@@ -110,3 +110,7 @@ instance GUIValue b => HasText TextItem b where
   text t w   = cset w "text" t
   -- Gets the displayed text.
   getText w  = cget w "text"
+
+-- | An anchor defines where a text item is placed relative to the
+-- given position.
+instance HasAnchor TextItem

@@ -27,7 +27,7 @@ import BaseClasses(Widget)
 import Configuration
 import ScrollBar
 import Index
-import Selection
+import Selection hiding (HasIndex,getBaseIndex)
 import Char(isSpace)
 import Focus
 import XSelection
@@ -36,7 +36,7 @@ import Computation
 import Destructible
 import Packer
 import Tooltip
-
+import Subwidget
 
 -- -----------------------------------------------------------------------
 -- type
@@ -124,6 +124,15 @@ instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a] where
 -- | A listbox can have a tooltip (only displayed if you are using tixwish).
 instance HasTooltip (ListBox a)
 
+
+-- --------------------------------------------------------
+-- A list box widget can be a subwidget, e.g. in a combo box
+-- --------------------------------------------------------
+
+instance GUIValue a => CanBeSubwidget (ListBox a) where
+  createAsSubwidget megaWidget 
+     = do lb <- createSubwidget (LISTBOX []) lboxMethods megaWidget
+          return (ListBox lb)
 
 -- -----------------------------------------------------------------------
 -- ListBox configurations

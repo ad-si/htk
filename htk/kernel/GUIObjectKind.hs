@@ -51,6 +51,7 @@ data ObjectKind =
   | WINDOWPANE
   | COMBOBOX Bool                         -- editable
   | BOX Orientation Flexibility
+  | SUBWIDGET ObjectKind String
 
 data CanvasItemKind = 
     ARC
@@ -120,4 +121,6 @@ instance Show ObjectKind where
        PANEDWINDOW _ -> "tixPanedWindow"
        COMBOBOX _ -> "tixComboBox"
        WINDOWPANE -> ""
-       BOX _ _ -> "frame") ++ r
+       BOX _ _ -> "frame"
+       SUBWIDGET subKind megaName -> megaName ++ " subwidget " ++ show subKind)
+    ++ r

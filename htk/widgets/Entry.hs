@@ -3,7 +3,7 @@
 module Entry (
 
   module Selection,
-  module Index,
+  --module Index exported by ICursor
   module ICursor,
 
   Entry,
@@ -24,16 +24,17 @@ import Resources
 import Geometry
 import GUIValue
 import ScrollBar
-import Index
-import Selection
+--import Index exported by ICursor
+import Selection hiding (HasIndex, getBaseIndex)
 import XSelection
-import ICursor
+import ICursor 
 import Computation
 import Destructible
 import Synchronized
 import Packer
 import TkVariables
 import Tooltip
+import Subwidget
 
 
 -- -----------------------------------------------------------------------
@@ -280,6 +281,12 @@ instance HasInsertionCursorIndexGet (Entry a) Int where
   -- Gets the position of the insertion cursor.
   getInsertionCursor ent = evalMethod ent (\nm -> [tkGetInsert nm])
 
+
+-- | An entry widget can be a subwidget, e.g. in a combo box
+instance GUIValue a => CanBeSubwidget (Entry a) where
+  createAsSubwidget megaWidget 
+     = do e <- createSubwidget ENTRY entryMethods megaWidget
+          return (Entry e)
 
 -- -----------------------------------------------------------------------
 -- configuration options

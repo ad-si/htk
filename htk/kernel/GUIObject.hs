@@ -140,6 +140,10 @@ newGUIObject par@(GUIOBJECT parId parostref) kind meths =
                                                  (ObjectName nm) oid)
                                          parId meths)
                       return (GUIOBJECT oid ost)
+      SUBWIDGET subKind megaName -> 
+         do let objName = "["++show kind++"]"
+            ost <- newRef (OST subKind (ObjectName objName) parId meths)
+            return (GUIOBJECT oid ost)
       _ -> do
              let nm = show parnm ++
                       (if show parnm == "." then "" else ".") ++ show oid
@@ -222,3 +226,5 @@ data Methods =
             unbindCmd   :: ObjectName -> BindTag -> [WishEvent] ->
                            Bool -> TclScript,
             cleanupCmd  :: ObjectID -> ObjectName -> TclScript }
+
+

@@ -5,7 +5,9 @@ module ComboBox (
   ComboBox,
   newComboBox,
 
-  pick
+  pick,
+  entrySubwidget,
+  listBoxSubwidget
 
 ) where
 
@@ -18,6 +20,9 @@ import Synchronized
 import Destructible
 import Packer
 import Tooltip
+import Entry 
+import ListBox 
+import Subwidget
 
 
 -- -----------------------------------------------------------------------
@@ -25,8 +30,20 @@ import Tooltip
 -- -----------------------------------------------------------------------
 
 -- | The @ComboBox@ datatype.
-newtype GUIValue a => ComboBox a = ComboBox GUIOBJECT deriving Eq
+-- A ComboBox is a so called mega widget composed of an entry widget
+-- and a list box. Both subwidgets are accessible by themselves.
 
+data GUIValue a => 
+          ComboBox a = ComboBox GUIOBJECT (Entry a) (ListBox a)
+                                   deriving Eq
+
+-- | Retrieve the entry subwidget of a combo box.
+entrySubwidget :: GUIValue a => ComboBox a -> Entry a
+entrySubwidget (ComboBox _ x _) = x
+
+-- | Retrieve the list box subwidget of a combo box.
+listBoxSubwidget :: GUIValue a => ComboBox a -> ListBox a
+listBoxSubwidget (ComboBox _ _ x) = x
 
 -- -----------------------------------------------------------------------
 -- combo box creation
@@ -45,9 +62,10 @@ newComboBox :: (GUIValue a, Container par) =>
    -- ^ A combo box.
 newComboBox par editable cnf =
   do
-    w <- createGUIObject (toGUIObject par) (COMBOBOX editable)
-                         comboBoxMethods
-    configure (ComboBox w) cnf
+    cb <- createGUIObject (toGUIObject par) (COMBOBOX editable) comboBoxMethods
+    e  <- createAsSubwidget cb
+    lb <- createAsSubwidget cb
+    configure (ComboBox cb e lb) cnf
 
 
 -- -----------------------------------------------------------------------
@@ -58,7 +76,6 @@ newComboBox par editable cnf =
 -- ComboBox.
 pick :: GUIValue a => Int -> Config (ComboBox a)
 pick i cb = execMethod cb (\nm -> tkPick nm i) >> return cb
-
 
 -- -----------------------------------------------------------------------
 -- combo box methods
@@ -81,8 +98,8 @@ comboBoxMethods = Methods (cgetCmd defMethods)
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject (ComboBox a) where 
-  toGUIObject (ComboBox f) = f
+instance GUIValue a => GUIObject (ComboBox a) where 
+  toGUIObject (ComboBox f _ _) = f
   cname _ = "ComboBox"
 
 -- | The value of a combo box is the list of the displayed objects (these
@@ -95,34 +112,33 @@ instance (GUIValue a, GUIValue [a]) => HasValue (ComboBox a) [a] where
   getValue w = evalMethod w (\nm -> tkGet nm)
 
 -- | A combo box has standard widget properties (focus, cursor, ...).
-instance Widget (ComboBox a)
+instance GUIValue a => Widget (ComboBox a)
 
 -- | A combo box widget can be destroyed.
-instance Destroyable (ComboBox a) where
+instance GUIValue a => Destroyable (ComboBox a) where
   -- Destroys a combo box widget.
   destroy = destroy . toGUIObject
 
 -- | A combo box widget has a configureable border.
-instance HasBorder (ComboBox a)
+instance GUIValue a => HasBorder (ComboBox a)
 
 -- | A combo box widget has a text anchor.
-instance HasAnchor (ComboBox a)
+instance GUIValue a => HasAnchor (ComboBox a)
 
 -- | A combo box widget has a background colour.
-instance HasColour (ComboBox a) where 
+instance GUIValue a => HasColour (ComboBox a) where 
   legalColourID = hasBackGroundColour
 
 -- | You can specify the size of a combo box widget-
-instance HasSize (ComboBox a)
+instance GUIValue a => HasSize (ComboBox a)
 
 -- | You can synchronize on a combo box widget.
-instance Synchronized (ComboBox a) where
+instance GUIValue a => Synchronized (ComboBox a) where
   -- Synchronizes on a combo box widget.
   synchronize = synchronize . toGUIObject
 
 -- | A combo box widget is a stateful widget, it can be enabled or disabled.
-instance HasEnable (ComboBox a)
-
+instance GUIValue a => HasEnable (ComboBox a)
 
 -- -----------------------------------------------------------------------
 -- Tk commands
@@ -159,3 +175,4 @@ showElements = concatMap (++ " ") . (map show)
 tkPick :: ObjectName -> Int -> TclScript
 tkPick name index = [show name ++ " pick " ++ show index]
 {-# INLINE tkPick #-}
+
