@@ -356,10 +356,15 @@ newEmptyFolder view folderType name =
 insertInFolder :: View -> Link Folder -> WrappedLink -> IO Bool
 insertInFolder view folderLink wrappedLink =
    do
-      folder <- readLink view folderLink
+      versioned <- fetchLink view folderLink
+      folder <- readObject view versioned
+
       wrappedObject <- wrapReadLink view wrappedLink
       let
          name = nodeTitle wrappedObject
+
+      dirtyObject view versioned 
+      -- To be on the safe side, we dirty the folder before changing it.
       synchronize (contentsLock folder) (
          do
             map <- readContents (contents folder)
