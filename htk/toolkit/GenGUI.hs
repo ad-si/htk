@@ -334,12 +334,13 @@ newGenGUI mstate =
     (leave_np, _) <- bind np [WishEvent [] Leave]
 
     (np_ev, _) <- bindNotepadEv np
+    (tl_ev, _) <- bindTreeListEv tl
 
     spawnEvent (forever ((do
                             ev <- np_ev
                             always
                               (case ev of
-                                 Selected c ->
+                                 Notepad.Selected c ->
                                    npItemSelected gui (c, True)
                                  Deselected c ->
                                    npItemSelected gui (c, False)
@@ -350,10 +351,21 @@ newGenGUI mstate =
                                  Notepad.Rightclick inf ->
                                    npRightClick gui inf
                                  _ -> done)) +>
+                         (do
+                            ev <- tl_ev
+                            always
+                              (case ev of
+                                 TreeList.Selected mobj ->
+                                   tlObjectSelected gui mobj
+                                 Focused mobjninf ->
+                                   tlObjectFocused gui clipboard mobjninf
+                                 _ -> done)) +>
+{-
                          (receive (selectionEvent tl) >>>=
                             tlObjectSelected gui) +>
                          (receive (focusEvent tl) >>>=
                             tlObjectFocused gui clipboard) +>
+-}
                          (do
                             ev_inf <- enter_ed
                             always

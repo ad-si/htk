@@ -13,7 +13,7 @@
 \setlength{\topmargin}{-1cm}
 \setlength{\textheight}{23.5cm}
 
-\title{Verkapselung von Tk-Widgets für HTk}
+\title{Verkapselung von Tk-Objekten für HTk}
 \author{ludi@tzi.de}
 \date {}
 
@@ -21,39 +21,45 @@
 
 \maketitle
 
+\tableofcontents
 
-\section*{Grundlegendes}
+\section{Grundlegendes}
 
 ...
 
-Zentral bei der Verkapselung eines Tk-Widgets in HTk ist der (abstrakt)
-exportierte Datentyp. Dieser dient nach außen hin als Repräsentation
-des jeweiligen Widgets. Darauf können z.B. später verschiedene
-Konfigurationen angewendet werden.
+
+\section{Externe Repräsentation}
+
+Zentral bei der Verkapselung eines Tk-Objekten für HTk ist der (abstrakt)
+exportierte Datentyp. Dieser ist die externe Repräsentation des jeweiligen
+Objektes, und dient später als Handle, u.a. um nachträglich
+Konfigurationsoptionen zu setzen oder Events zu binden. Für das
+Label-Widget sieht dieser z.B. so aus:
 
 \begin{verbatim}
 newtype Label a = Label GUIOBJECT deriving Eq
+-- ein (Label String) enthält Text, ein (Label Image) ein Bild 
 \end{verbatim}
 
-Dieser Typ kann weitere Widget-spezifische Felder haben, dies
-ist eine Frage der individuellen Implementierung. Er enthält jedoch immer
-ein Feld des Typs \verb|GUIOBJECT|
+Dieser Typ kann weitere Objekt-spezifische Felder haben, das ist eine
+Frage der individuellen Implementierung. Er enthält jedoch immer ein Feld
+des Typs \verb|GUIOBJECT|.
 
 
-\section*{Der Typ GUIOBJECT und die Klasse GUIObject}
+\section{Der Typ GUIOBJECT und die Klasse GUIObject}
 
-Dieser Type \verb|GUIOBJECT| ist die interne Repräsentation der
+Dieser Typ \verb|GUIOBJECT| ist die interne Repräsentation der
 verschiedenen Oberflächen-Objekte (im wesentlichen Widgets,
 Canvas-Objekte, Menüelemente, aber auch spezielleres wie z.B. Text-Tags
-oder Canvas-Tags).
-Diese interne Repräsentation durch \emph{einen} Typen ermöglicht z.B.
-Listen verschiedster Objekte im internen Status zu halten oder
-als Funktions-Argumente zu übergeben.
+oder Canvas-Tags). Diese interne Repräsentation durch \emph{einen} Typen
+ermöglicht z.B. Listen verschiedster Objekte im internen Status zu halten
+oder als Funktions-Argumente zu übergeben.
 
-Der \verb|GUIOBJECT|-Wert muß jedoch i.d.R. nicht selbst konstruiert
-werden, hierzu gibt es spezielle Funktionen (z.B. \verb|createGUIObject|
-im Modul \verb|Core|, \verb|createCanvasItem| im Modul
-\verb|CanvasItemAux|). Aussehen tut er wie folgt:
+Der \verb|GUIOBJECT|-Wert muß jedoch normalerweise nicht selbst
+konstruiert werden, hierzu gibt es spezielle Funktionen
+(z.B. \verb|createGUIObject| im Modul \verb|Core|,
+\verb|createCanvasItem| im Modul \verb|CanvasItemAux|). Aussehen tut er
+wie folgt:
 
 \begin{verbatim}
 data GUIOBJECT = GUIOBJECT ObjectID (Ref OST) | ROOT
@@ -61,15 +67,15 @@ data GUIOBJECT = GUIOBJECT ObjectID (Ref OST) | ROOT
 
 Den \verb|ROOT|-Konstruktor möchte ich hier nicht weiter erläutern. Er hat
 eine spezielle Bedeutung und steht für die Wish-Instanz bzw. das
-Hauptfenster, dies muß man aber jetzt nicht verstehen. Für "normale"
+Hauptfenster, dies muß man aber jetzt nicht verstehen. Für ,,normale''
 GUI-Objekte wird ein Wert entsprechend des ersten Konstruktors erzeugt.
-Dieser enthält die \verb|ObjectID|, die dieses spezielle Widget eindeutig 
-identifiziert und eine Referenz auf den zu diesem Objekt gehörende Status.
+Dieser enthält die \verb|ObjectID|, die dieses spezielle Objekt eindeutig 
+identifiziert und eine Referenz auf das zu diesem Objekt gehörende
+Statusobjekt (die \verb|ObjectID| und das Statusobjekte werden jedoch
+von obiger Funktion automatisch erzeugt, daher will ich hier darauf nicht
+weiter eingehen).
 
-(GUIObjectKind, GUIObjectName...)
-
-Der (exportierte, s.o.) Widget-Typ muß immer eine Instanz der Klasse
-\verb|GUIObject| sein:
+Der externe Typ muß immer eine Instanz der Klasse \verb|GUIObject| sein:
 
 \begin{verbatim}
 instance GUIObject (Label a) where 
@@ -78,20 +84,215 @@ instance GUIObject (Label a) where
 \end{verbatim}
 
 So kann durch die Klassenmethode \verb|toGUIObject| der externe Typ
-in die interne Repräsentation gewandelt werden.
+in die interne Repräsentation gewandelt werden. Die \verb|cname|-Methode
+liefert lediglich eine Textuelle Repräsentation des Objekttyps und kann
+z.B. für Debug-Ausgaben benutzt werden.
 
 ...
 
 
+\section{Konfigurationsoptionen}
 
-\section*{Widget-Methoden}
+\subsection{Der Typ GUIVALUE und die Klasse GUIValue}
+\begin{verbatim}
+data Generator = HaskellTk | Tk
+data GUIVALUE = GUIVALUE Generator String
+\end{verbatim}
+
+...
+
+\begin{verbatim}
+class (Show a, Read a) => GUIValue a where
+        cdefault      :: a
+        toGUIValue    :: a -> GUIVALUE
+        maybeGUIValue :: GUIVALUE -> (Maybe a)
+        fromGUIValue  :: GUIVALUE -> a
+\end{verbatim}
+
+...
+
+\subsection{Interne Repräsentation}
+\begin{verbatim}
+type ConfigID   = String
+type ConfigOption = (ConfigID, GUIVALUE)
+\end{verbatim}
+
+...
+
+\subsection{Vordefinierte Klassen}
 
 ...
 
 
-\section*{Erzeugung}
+\section{Ein internes GUIOBJECT erzeugen}
+
+\subsection{Widgets}
+Der interne \verb|GUIOBJECT|-Wert wird für Widgets durch die Funktion
+\begin{verbatim}
+createGUIObject :: GUIOBJECT ->     -- Vaterobjekt
+                   ObjectKind ->    -- Objekttyp
+                   Methods ->       -- Widget spezifische Zugriffsmethoden
+                   IO GUIOBJECT
+\end{verbatim}
+im Modul \verb|Core| erzuegt werden. Hierbei müssen die folgenden
+Parameter angegeben werden:
+\begin{itemize}
+\item Das Vaterobjekt: Die interne Repräsentation (als \verb|GUIOBJECT|) 
+des Containers, der das Widget enthalten soll. Obwohl Widgets erst später
+gepackt werden,  muß dieser bereits bei der Konstruktion angegeben werden,
+da der Tcl-Pfad zu dem erzeugten Objekt entsprechend (hierarchisch)
+gesetzt werden muß.
+\item Der Objekttyp: Um auch anhand der internen \verb|GUIOBJECT|-Werte
+verschiedene Objekte unterscheiden zu können, gibt es den
+\verb|ObjectKind|-Typ:
+\begin{verbatim}
+data ObjectKind =
+    FRAME
+  | LABEL
+  | MESSAGE
+  | BUTTON
+...
+\end{verbatim}
+Für neue Widgets muß hier ein entsprechender Konstruktor hinzugefügt
+werden. Er steht im Modul \verb|GUIObjectKind| in
+\verb|kernel/GUIObjectKind.hs|.
+\item Die Widget-Methoden: Der \verb|Methods|-Typ enthält eine Sammlung
+verschiedener Zugriffs-Methoden auf Objekte. Da sich für unterschiedliche 
+Objekte die Tcl-Syntax z.B. für das Setzen einer Konfigurationsoption oder
+für die Zerstörung des Objektes unterschiedlich sein kann, liefern diese
+Methoden eine einheitliche Schnittstelle für den Zugriff auf verschiedene
+Objekte (dazu mehr im nächsten Abschnitt). Für einfache Widgets reichen
+hier aber meist die Standard-Methoden in \verb|defMethods| im Modul
+\verb|Core|. So wird man auch selten \emph{alle} Methoden selbst schreiben,
+in der Regel reicht es, die \verb|defMethods| zu nehmen und evtl.
+einzelne Methoden durch eigene zu überschreiben.
+\end{itemize}
+
+Will man keine der Default-Methoden überschreiben, reicht es, die Funktion
+\begin{verbatim}
+createWidget :: GUIOBJECT -> ObjectKind -> IO GUIOBJECT
+\end{verbatim}
+aufzurufen. Diese ruft dann \verb|createGUIObject| auf und setzt dabei die
+Default-Methoden.
+
+\subsection{Canvasitems}
+Für die Erzeugung von Canvas-Objekten gibt es eine ähnliche Funktion im
+Modul \verb|CanvasItemAux|:
+\begin{verbatim}
+createCanvasItem :: CanvasItem w =>
+                    Canvas ->              -- Canvas-Container
+                    CanvasItemKind ->      -- Objekttyp
+                    (GUIOBJECT -> w) ->    -- Wrap
+                    [Config w] ->          -- Konfigurationsoptionen
+                    Coord ->               -- initiale Position
+                    IO w
+\end{verbatim}
 
 ...
 
+\begin{verbatim}
+data CanvasItemKind = 
+    ARC
+  | LINE 
+...
+\end{verbatim}
+
+...
+
+
+\subsection{Menüelemente}
+Zur Erzeugung von Menüelementen gibt es schließlich die folgende Funktion:
+\begin{verbatim}
+createMenuItem :: MenuItem w =>
+                  Menu ->                  -- Menü-Container
+                  MenuItemKind ->          -- Objekttyp
+                  (GUIOBJECT -> w) ->      -- Wrap
+                  [Config w] ->            -- Konfigurationsoptionen
+                  IO w
+\end{verbatim}
+
+...
+
+\begin{verbatim}
+data MenuItemKind =
+    MENUCASCADE
+  | MENUCOMMAND
+...
+\end{verbatim}
+
+...
+
+\section{Objekt-Methoden}
+
+
+\subsection{Tcl-Syntax}
+Wie bereits erwähnt dienen die Objekt-Methoden einem einheitlichen Umgang
+mit verschiedenen Objekten bzw. deren unterschiedlicher Tcl-Syntax (bei 
+Erzeugung, Packen usw.). Genauer gesagt erzeugen sie die jeweils
+erforderlichen Tcl-Kommandos in Form eines \verb|TclScript|:
+
+\begin{verbatim}
+type TclCmd = String             -- ein einzelnes Kommando
+type TclScript = [TclCmd]        -- eine Tcl-Befehlsfolge
+\end{verbatim}
+
+\subsection{Tcl-Skripte und Kommandos ausführen}
+In bestimmten Situationen, z.B. bei der Implementierung
+Objekt-spezifischer Konfigurationsoptionen, kann es sein, daß man solche
+Tcl-Skripte oder Kommandos selbst ausführen muß. Hierzu können die
+folgenden Funktionen aus dem Modul \verb|Wish| benutzt werden:
+\begin{verbatim}
+execTclScript :: TclScript -> IO () -- Ausführen eines Tcl-Skriptes
+execCmd :: TclCmd -> IO ()          -- Ausführen eines einzelnen Kommandos
+\end{verbatim}
+
+... (auch speziellere Kommandos mit TclResponse ??)
+
+\subsection{Der Methods-Typ}
+Der \verb|Methods|-Typ hat die folgenden Felder:
+\begin{verbatim}
+data Methods =
+  Methods { cgetCmd     :: ObjectName -> ConfigID -> TclScript,
+            csetCmd     :: ObjectName -> [ConfigOption] -> TclScript,
+            createCmd   :: ObjectName -> ObjectKind -> ObjectName ->
+                           ObjectID -> [ConfigOption] -> TclScript,
+            packCmd     :: ObjectName -> [PackOption] -> TclScript,
+            gridCmd     :: ObjectName -> [GridPackOption] -> TclScript,
+            destroyCmd  :: ObjectName -> TclScript,
+            bindCmd     :: ObjectName -> BindTag -> [WishEvent] ->
+                           EventInfoSet -> TclScript,
+            unbindCmd   :: ObjectName -> BindTag -> [WishEvent] ->
+                           TclScript,
+            cleanupCmd  :: ObjectID -> ObjectName -> TclScript }
+\end{verbatim}
+Auf den Typ \verb|ObjectName| möchte ich hier nicht weiter eingehen. Er
+wird durch die oben erwähnten \verb|GUIOBJECT|-Konstruktoren automatisch
+erzeugt und enthält den Tcl-Pfad des entsprechenden Objektes. Es reicht zu
+wissen, daß er eine Instanz der Klasse \verb|Show| ist und so auf den
+Tcl-Bezeichner des Objektes zugegriffen werden kann.
+\begin{itemize}
+\item \textbf{cgetCmd:} \newline
+Erzeugt ein Tcl-Skript, daß den Wert einer Konfigurationsoption eines
+Objektes abfragt.
+Ein Beispiel (die Default-Methode):
+\begin{verbatim}
+tkGetWidgetConfig :: ObjectName -> ConfigID -> TclScript
+tkGetWidgetConfig name cid = [(show name) ++ " cget -" ++ cid]
+\end{verbatim}
+\item \textbf{csetCmd:} \newline
+...
+\item \textbf{createCmd:} \newline
+...
+\item \textbf{packCmd:} \newline
+...
+\item \textbf{gridCmd:} \newline
+...
+\item \textbf{destroyCmd:} \newline
+...
+\item \textbf{unbindCmd:} \newline
+...
+\item \textbf{cleanupCmd:} \newline
+...
+\end{itemize}
 
 \end{document}

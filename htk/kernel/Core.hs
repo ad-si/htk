@@ -167,7 +167,6 @@ instance GUIObject a => Destroyable a where
 -- -----------------------------------------------------------------------
 
 data GUI        = GUI GUIOBJECT (Ref GST)
-
 type GST        = FiniteMap ObjectID GUIOBJECT
 
 

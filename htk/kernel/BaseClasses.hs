@@ -1,22 +1,8 @@
 -- -----------------------------------------------------------------------
--- 
--- HH  HH  TTTTTTTT  kk
--- HH  HH     TT     kk  kk
--- HH  HH     TT     kk kk
--- HHHHHH     TT     kkkk
--- HH  HH     TT     kk kk
--- HH  HH     TT     kk  kk
--- HH  HH     TT     kk   kk
 --
--- (c) University of Bremen
+-- $Source$
 --
--- Original author: Einar Karlsen,  
---                  University of Bremen
---                  email: ewk@informatik.uni-bremen.de
---
--- Current authors: cxl, ger, ludi
---
--- Module : BaseClasses
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
 --
 -- $Revision$ from $Date$  
 -- Last modification by $Author$

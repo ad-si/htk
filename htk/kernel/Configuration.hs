@@ -49,7 +49,8 @@ module Configuration (
   HasFile(..),
   HasAlign(..),
   HasIncrement(..),
-  HasEnable(..)
+  HasEnable(..),
+  HasAnchor(..)
 
 ) where
 
@@ -60,6 +61,17 @@ import GUIValue
 import Colour
 import Font
 import Resources
+
+
+-- -----------------------------------------------------------------------
+-- has anchor
+-- -----------------------------------------------------------------------
+
+class GUIObject w => HasAnchor w where
+  anchor :: Anchor -> Config w
+  getAnchor :: w -> IO Anchor
+  anchor a w = cset w "anchor" a
+  getAnchor w = cget w "anchor"
 
 
 -- -----------------------------------------------------------------------

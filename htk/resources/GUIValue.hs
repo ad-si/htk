@@ -1,22 +1,13 @@
-{- #########################################################################
-
-MODULE        : GUIValue
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Defines the class of values that can be passed to Tk.
-                Unfortunately, we cannot (in general) rely on the
-                definition provided by Haskells Read and Write since
-                some types (e.g booleans) require a different
-                unparsing in Tk. However, we can rely on default
-                definitions to inherit the semantics of read and write
-                for most types.
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module GUIValue (
         Generator(..),
