@@ -62,12 +62,14 @@ update (variableUpdate @ (VariableMapUpdate update))
                (variableMap,[],False) 
             else
                (VariableMapData (addToFM map key elt),[variableUpdate],True)
-      DelElement (key,elt) -> 
-         if member key
-            then
-               (VariableMapData (delFromFM map key),[variableUpdate],True)
-            else
-               (variableMap,[],False)
+      DelElement (key,_) -> 
+         -- we ignore the element, allowing delFromVariable map to put an
+         -- error there.
+         case lookupFM map key of
+            Just elt ->
+               (VariableMapData (delFromFM map key),
+                  [VariableMapUpdate (DelElement (key,elt))],True)
+            Nothing -> (variableMap,[],False)
       BeginGroup -> (variableMap,[variableUpdate],True)
       EndGroup -> (variableMap,[variableUpdate],True)
    where
