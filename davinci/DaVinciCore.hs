@@ -634,7 +634,7 @@ delEdge :: Edge -> IO ()
 delEdge e@(Edge g _ (eid @ (EdgeId str)) _) =
         changeVar' (fGraphState g) (\gs -> gs {
                 fEdgeUpd = (EdgeDel eid) : (fEdgeUpd gs),
-                fLinks   = filter (\(e2,s,t) -> e /= e) (fLinks gs)     
+                fLinks   = filter (\(e2,s,t) -> e2 /= e) (fLinks gs)     
                 })
 
 

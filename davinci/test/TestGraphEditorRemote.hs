@@ -4,6 +4,8 @@ module Main(main) where
 
 import System
 
+import InfoBus(shutdown)
+
 import GraphEditorRemote
 import DaVinciGraphDisp
 
@@ -11,3 +13,4 @@ main =
    do
       [server] <- getArgs
       graphEditorRemote daVinciSort server
+      shutdown

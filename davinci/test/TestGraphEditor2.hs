@@ -6,7 +6,7 @@ import GraphEditor
 import Graph
 import DaVinciGraphDisp
 import SimpleGraph
-import SIM(destroyed,sync)
+import SIM(destroyed,sync,shutdown)
 
 main =
    do
@@ -21,3 +21,4 @@ main =
 
       sync (destroyed graphEditor)
       sync (destroyed graphEditor2)
+      shutdown
