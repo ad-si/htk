@@ -287,7 +287,7 @@ boot : boothere
 
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp -c -fno-code -ohi $@
+	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp -fno-code -ohi $@
 
 $(LIBOBJSHS) : %.o : %.hs
 	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS)

@@ -67,7 +67,7 @@ import qualified Dynamic
 import Dynamic(Typeable(..),TypeRep)
 import Debug(debug)
 
-#if (__GLASGOW_HASKELL__ >= 503)
+#if (0 && __GLASGOW_HASKELL__ >= 503)
 
 import GHC.Dynamic(Dynamic(..))
 
