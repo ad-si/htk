@@ -80,7 +80,18 @@ foreign import ccall unsafe "callWish.h read_from_wish" readFromWishPrim
    :: CString -> CSize -> IO CSize
 #endif /* NEW_GHC */
 
+#ifndef NEW_GHC
+foreign import "read_from_wish_avail" unsafe readFromWishAvail :: IO CSize
+#else
+foreign import ccall unsafe "callWish.h readFromWishAvail" readFromWishAvail :: 
+IO CSize
+#endif
+
 readFromWish :: IO String
+#ifdef GHC_CONCURRENCY_FIXED
+{-  This is how we SHOULD do it.  Unfortunately, GHC on Windows provides
+    no mechanism for waiting on a file which doesn't stop the world.
+    -}
 readFromWish =
    do
       -- Make sure there is input available, but try to avoid blocking.
@@ -92,13 +103,46 @@ readFromWish =
 
       -- We allocate the buffer using allocArray, which hopefully is more
       -- efficient than mallocArray/free.
-      allocArray bufferSize
+      allocaArray bufferSize
          (\ (buffer :: Ptr CChar) ->
             do
-               resultSize <- readFromWishPrim buffer 
-                  (fromIntegral bufferSize) resultSizePtr
+               resultSize 
+                  <- readFromWishPrim buffer (fromIntegral bufferSize) 
                peekCStringLen (buffer,fromIntegral resultSize)
             )
+
+#else
+{- So what we actually do, sadly, is check every so often (currently
+   every tenth of a second) to see if input is available. -}
+
+readFromWish =
+   do
+      let 
+         bufferSize = 100 
+         -- absurdly large for most answers from Wish we will need, in fact
+
+         waitTick = Concurrent.threadDelay 100000
+
+         readToBuffer (buffer :: Ptr CChar) =
+            do
+               bytesAvail <- readFromWishAvail
+               if bytesAvail > 0
+                  then
+                     do
+                        resultSize 
+                           <- readFromWishPrim buffer (fromIntegral bufferSize) 
+                        peekCStringLen (buffer,fromIntegral resultSize)
+                  else
+                     do
+                        waitTick
+                        readToBuffer buffer
+
+      -- We allocate the buffer using allocArray, which hopefully is more
+      -- efficient than mallocArray/free.
+      allocaArray bufferSize readToBuffer
+
+#endif
+
 
 -- -----------------------------------------------------------------------
 -- Implementation of CallWish functions.  The main excitement is that
@@ -144,9 +188,13 @@ readCalledWish (CalledWish mVar) =
             nextChunk <- readFromWish
             readWithBuffer nextChunk acc
       readWithBuffer ('\n' : rest) acc =
-         return (rest,reverse acc)
+         return (rest,reverse (trimReturn acc))
       readWithBuffer (other : rest) acc =
          readWithBuffer rest (other : acc)
+
+      -- the joy of Windows . . .
+      trimReturn ('\r':line) = line
+
 
 
 

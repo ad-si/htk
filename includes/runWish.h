@@ -15,4 +15,7 @@ int get_readwish_fd(void);
 /* reads from wish.  NB - this will block until something is available. */
 size_t read_from_wish(char *buffer,size_t bufferSize);
 
+/* returns number of bytes available from wish. */
+size_t read_from_wish_avail();
+
 

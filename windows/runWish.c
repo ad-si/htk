@@ -5,10 +5,12 @@
 #include <stdio.h> 
 #include <windows.h> 
 
-#include <io.h> /* This is the mingw interface, which we will use for reading
-  from wish */
+/* Now follows the mingw interface, which we will use for reading
+  from wish */ 
+#include <io.h>
+#include <fcntl.h> 
 
-#include "callWish.h"
+#include "runWish.h"
  
 static HANDLE hChildStdinRd, hChildStdinWr, hChildStdinWrDup, 
    hChildStdoutRd, hChildStdoutWr, hChildStdoutRdDup, 
@@ -102,7 +104,7 @@ void initialise_wish(char *wish_path) {
       ErrorExit("Create process failed"); 
 
 // Make an fd value corresponding to the childs output
-   hChildStdoutRdDupFd = _open_osfhandle ((long) hChildStdoutRdDup,O_RDONLY)
+   hChildStdoutRdDupFd = _open_osfhandle ((long) hChildStdoutRdDup,_O_RDONLY);
  
 // After process creation, restore the saved STDIN and STDOUT. 
  
@@ -152,11 +154,27 @@ int get_readwish_fd() {
    }
 
 size_t read_from_wish(char *buffer,size_t bufferSize) { 
-   /* Use the mingw function.
+   /* Use the mingw function. */
    return (size_t) _read(hChildStdoutRdDupFd,(void *)buffer,
       (unsigned int) bufferSize);
    }
  
+
+size_t read_from_wish_avail() {
+   DWORD lpTotalBytesAvail;
+   BOOL success;
+
+   success = PeekNamedPipe(hChildStdoutRdDup,NULL,0,NULL,&lpTotalBytesAvail,
+      NULL);
+
+   if(success) {
+      return (size_t) lpTotalBytesAvail;
+      }
+   else {
+      ErrorExit("PeekNamedPipe failed");
+      }
+   }    
+
 static VOID ErrorExit (LPTSTR lpszMessage) 
 { 
    fprintf(stderr, "%s\n", lpszMessage); 

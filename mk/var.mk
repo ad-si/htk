@@ -20,14 +20,14 @@ else
     HC_OPTIONS = -recomp -fwarn-deprecations -O
 endif
 
-HCSYSLIBS = -package concurrent -package data -package net -package posix -package text -package util -package lang
+HCSYSLIBS = -package concurrent -package data -package text -package util -package lang
 
 HCSHORTFLAGS = \
    $(HCSYSLIBS) -fglasgow-exts \
    -fallow-overlapping-instances -fallow-undecidable-instances \
    -cpp -ddump-hi-diffs -H25M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
 
-HCFLAGS = -i$(HCDIRS) -I$(TOP)/includes $(HCSHORTFLAGS)
+HCFLAGS = -i$(HCDIRS) -I$(TOP)\includes -optc-I$(TOP)\includes $(HCSHORTFLAGS)
 
 # LINKFLAGS contains extra flags to be put at the end of the command line
 # when compiling executables.
