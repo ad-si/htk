@@ -14,13 +14,15 @@
 
 module TextDisplay(
 
-  createTextDisplay -- :: String-> String-> [Config ...] -> IO ()
+  createTextDisplayExt, -- :: String-> String-> [Config ...] -> IO()-> IO Toplvl
+  createTextDisplay     -- :: String-> String-> [Config ...] -> IO ()
 
 ) where
 
 import HTk
 import Core
 import ScrollBox
+import MarkupText 
 
 
 ---
@@ -29,8 +31,11 @@ import ScrollBox
 -- @param title   - the title of the window
 -- @param txt     - the text to be displayed
 -- @param conf    - configuration options for the text editor
-createTextDisplay :: String-> String-> [Config Editor]-> IO ()
-createTextDisplay title txt conf =
+-- @param unpost  - action to be executed when the window is closed
+-- @return result - the window in which the text is displayed
+createTextDisplayExt :: String-> String-> [Config Editor]-> IO()-> IO (Toplevel,
+								       Editor)
+createTextDisplayExt title txt conf unpost =
   do win <- createToplevel [text title]
      b   <- newFrame win  [relief Groove, borderwidth (cm 0.05)]    
      t   <- newLabel b [text title, HTk.font (Helvetica, Roman, 18::Int)]
@@ -42,9 +47,18 @@ createTextDisplay title txt conf =
      pack ed [Side AtTop, Expand On, Fill X]
      pack q [Side AtRight, PadX 5, PadY 5] 		 
 
-     appendText ed txt
+     ed # value txt
      ed # state Disabled
 
      quit <- clicked q
-     spawnEvent (quit >>> destroy win)
-     done
+     spawnEvent (quit >>> do destroy win; unpost)
+     return (win, ed)
+
+---
+-- Display some (longish) text in an uneditable, scrollable editor.
+-- Simplified version of createTextDisplayExt
+-- @param title   - the title of the window
+-- @param txt     - the text to be displayed
+-- @param conf    - configuration options for the text editor
+createTextDisplay :: String-> String-> [Config Editor]-> IO()
+createTextDisplay t txt conf = do createTextDisplayExt t txt conf done; done
