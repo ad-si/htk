@@ -32,6 +32,7 @@ module MarkupText (
   leftmargin,
   wrapmargin,
   rightmargin,
+  href,
 --  image,
 --  bitmap,
 
@@ -146,6 +147,7 @@ module MarkupText (
 ) where
 
 import HTk
+import GUIObject
 import Configuration
 import Editor
 import TextTag
@@ -155,6 +157,24 @@ import Object
 import ReferenceVariables
 import PrelBase
 import Char
+import IOExts(unsafePerformIO)
+import Object
+import Wish
+
+
+-- -----------------------------------------------------------------------
+-- state
+-- -----------------------------------------------------------------------
+
+unbinds :: Ref [(ObjectID, [IO ()])]
+unbinds = unsafePerformIO (newRef [])
+
+addToState :: Editor String -> [IO ()] -> IO ()
+addToState ed acts =
+  do
+    let GUIOBJECT oid _ = toGUIObject ed
+    ub <- getRef unbinds
+    setRef unbinds ((oid, acts) : ub)
 
 
 -- -----------------------------------------------------------------------
@@ -184,6 +204,7 @@ data MarkupText =
   | MarkupRightMargin Int [MarkupText]
   | MarkupImage Image
   | MarkupBitMap BitMapHandle
+  | MarkupHRef [MarkupText] [MarkupText]
 
 type TagFun =
   Editor String -> BaseIndex -> BaseIndex -> IO (TextTag String)
@@ -252,6 +273,9 @@ image = MarkupImage
 
 bitmap :: BitMapHandle -> MarkupText
 bitmap = MarkupBitMap
+
+href :: [MarkupText] -> [MarkupText] -> MarkupText
+href = MarkupHRef
 
 
 -- -----------------------------------------------------------------------
@@ -762,6 +786,7 @@ parseMarkupText m f =
                            tag # fg c1
                            (entered, u_entered) <- bindSimple tag Enter
                            (left, u_left) <- bindSimple tag Leave
+                           death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
                                     (entered >>
@@ -770,7 +795,10 @@ parseMarkupText m f =
                                  +> (left >>
                                        (always (tag # fg c1) >>
                                         listenTag))
+                                 +> receive death
                            spawnEvent listenTag
+                           addToState ed [u_entered, u_left,
+                                          syncNoWait(send death ())]
                            return tag)
             parseMarkupText' ms txt' (tag : tags') (line', char') bold
                              italics current_font
@@ -786,6 +814,7 @@ parseMarkupText m f =
                            tag <- createTextTag ed pos1 pos2 []
                            (entered, u_entered) <- bindSimple tag Enter
                            (left, u_left) <- bindSimple tag Leave
+                           death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
                                     (entered >>
@@ -794,7 +823,10 @@ parseMarkupText m f =
                                  +> (left >>
                                        (always (tag # underlined Off) >>
                                         listenTag))
+                                 +> receive death
                            spawnEvent listenTag
+                           addToState ed [u_entered, u_left,
+                                          syncNoWait (send death ())]
                            return tag)
             parseMarkupText' ms txt' (tag : tags') (line', char') bold
                              italics current_font
@@ -810,10 +842,14 @@ parseMarkupText m f =
                            tag <- createTextTag ed pos1 pos2 []
                            (click, u_click) <-
                              bindSimple tag (ButtonPress (Just (BNo 1)))
+                           death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
-                                 click >> always act >> listenTag
+                                    (click >> always act >> listenTag)
+                                 +> receive death
                            spawnEvent listenTag
+                           addToState ed [u_click,
+                                          syncNoWait (send death ())]
                            return tag)
             parseMarkupText' ms txt' (tag : tags') (line', char') bold
                              italics current_font
@@ -829,6 +865,7 @@ parseMarkupText m f =
                            tag <- createTextTag ed pos1 pos2 []
                            (enter, enter_u) <- bindSimple tag Enter
                            (leave, leave_u) <- bindSimple tag Leave
+                           death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
                                  (enter >> always (case menteract of
@@ -838,8 +875,11 @@ parseMarkupText m f =
                                  (leave >> always (case mleaveact of
                                                      Just act -> act
                                                      Nothing -> done) >>
-                                  listenTag)
+                                  listenTag) +>
+                                 receive death
                            spawnEvent listenTag
+                           addToState ed [enter_u, leave_u,
+                                          syncNoWait (send death ())]
                            return tag)
             parseMarkupText' ms txt' (tag : tags') (line', char') bold
                              italics current_font
@@ -869,18 +909,49 @@ parseMarkupText m f =
                              bindSimple tag (ButtonPress (Just (BNo 1)))
                            open <- newRef False
                            settags <- newRef []
+                           death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
-                                 click >>
-                                 always (clipact ed mark1 mark2 open
-                                                 settags txt' tags') >>
-                                 listenTag
+                                    (click >>
+                                     always (clipact ed mark1 mark2 open
+                                               settags txt' tags') >>
+                                    listenTag)
+                                 +> receive death
                            spawnEvent listenTag
+                           addToState ed [u_click,
+                                          syncNoWait (send death ())]
                            return tag)
             parseMarkupText' ms (txt' ++ "\n") (tag : tags')
                              (line' + 1, 0) bold italics current_font
 
-{- also need embedded windows
+        MarkupHRef m' linktext ->
+          do
+            ((txt', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags (line, char) bold italics
+                               current_font
+            let tag = ((line, char), (line', char'),
+                       \ed pos1 pos2 ->
+                         do
+                           tag <- createTextTag ed pos1 pos2 []
+                           (click, u_click) <-
+                             bindSimple tag (ButtonPress (Just (BNo 1)))
+                           death <- newChannel
+                           let listenTag :: Event ()
+                               listenTag =
+                                    (click >>
+                                     always (ed # clear >>
+                                             ed # new linktext) >>
+                                     listenTag)
+                                 +> receive death
+                           spawnEvent listenTag
+                           addToState ed [u_click,
+                                          syncNoWait (send death ())]
+                           return tag)
+            parseMarkupText' ms txt' (tag : tags') (line', char') bold
+                             italics current_font
+
+
+{-
         MarkupImage img ->
           do
             ((txt', tags'), (line', char')) <-
@@ -892,10 +963,14 @@ parseMarkupText m f =
                            tag <- createTextTag ed pos1 pos2 []
                            (click, u_click) <-
                              bindSimple tag (ButtonPress (Just (BNo 1)))
+                           death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
-                                 click >> always act >> listenTag
+                                    (click >> always act >> listenTag)
+                                 +> receive death
                            spawnEvent listenTag
+                           addToState ed [u_click,
+                                          syncNoWait (send death ())]
                            return tag)
             parseMarkupText' ms txt' (tag : tags') (line', char') bold
                              italics current_font
@@ -912,7 +987,7 @@ parseMarkupText m f =
 class HasMarkupText w where
   new :: [MarkupText] -> w -> IO w
   insertAt :: [MarkupText] -> Position -> Config w
---  clear :: Config w
+  clear :: Config w
 
 instance HasMarkupText (Editor String) where
   new m ed =
@@ -959,6 +1034,19 @@ instance HasMarkupText (Editor String) where
       shiftChar :: Distance -> Position -> Distance
       shiftChar pchar (line, char) =
         if line == 1 then char + pchar else char
+
+  clear ed =
+    do
+      let obj@(GUIOBJECT oid _) = toGUIObject ed
+      unbinds' <- getRef unbinds
+      mapM (\ (oid', ubs) -> if oid == oid' then
+                               (mapM (\ act -> act) ubs) >> done
+                             else done)
+           unbinds'
+      deleteTextRange ed (IndexPos (1,0)) EndOfText
+      nm <- getObjectName obj
+      execCmd (show nm ++ " tag delete [" ++ show nm ++ " tag names]")
+      return ed
 
 fromDistance :: Distance -> Int
 fromDistance (Distance i) = i

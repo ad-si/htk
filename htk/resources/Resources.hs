@@ -19,8 +19,10 @@ module Resources (
   toggle,
   Orientation(..),
   Alignment(..),
+  Flexibility(..),
+
   CreationConfig,
-  Flexibility(..)
+  showCreationConfigs
 
 ) where
 
@@ -34,6 +36,14 @@ import Dynamics
 -- -----------------------------------------------------------------------
 
 type CreationConfig w = IO String
+
+showCreationConfigs :: [CreationConfig a] -> IO String
+showCreationConfigs (c : cs) =
+  do
+    str <- c
+    rest <- showCreationConfigs cs
+    return ("-" ++ str ++ " " ++ rest)
+showCreationConfigs _ = return ""
 
 
 -- -----------------------------------------------------------------------

@@ -19,7 +19,15 @@ module PanedWindow (
   newPanedWindow,
 
   Pane,
-  createPane
+  createPane,
+
+  after,
+  before,
+  at,
+  expand,
+  minsize,
+  maxsize,
+  initsize
 
 ) where
 
@@ -159,17 +167,16 @@ createPane :: PanedWindow -> [CreationConfig Pane]  -> [Config Pane] ->
               IO Pane
 createPane nb ccnf cnf =
   do
-    cconf' <- mapM id ccnf
-    w <- createGUIObject (toGUIObject nb) WINDOWPANE windowPaneMethods
-                         {- cconf' -}
+--    cconf' <- mapM id ccnf
+    ccnfstr <- showCreationConfigs ccnf
+    w <- createGUIObject (toGUIObject nb) WINDOWPANE
+                         (windowPaneMethods ccnfstr)
     configure (Pane w) cnf
 
 
 -- -----------------------------------------------------------------------
 -- pane creation options
 -- -----------------------------------------------------------------------
-
--- type CreationConfig w = IO String   temporarily in ressources/Ressources.hs
 
 after :: Pane -> CreationConfig Pane
 after pane =
@@ -187,30 +194,29 @@ at n = return ("at " ++ show n)
 expand :: Double -> CreationConfig Pane
 expand d = return ("expand " ++ show d)
 
-min :: Int -> CreationConfig Pane
-min i = return ("min " ++ show i)
+minsize :: Int -> CreationConfig Pane
+minsize i = return ("min " ++ show i)
 
-max :: Int -> CreationConfig Pane
-max i = return ("max " ++ show i)
+maxsize :: Int -> CreationConfig Pane
+maxsize i = return ("max " ++ show i)
 
-size :: Int -> CreationConfig Pane
-size i = return ("size " ++ show i)
-
+initsize :: Int -> CreationConfig Pane
+initsize i = return ("size " ++ show i)
 
 
 -- -----------------------------------------------------------------------
 -- window pane methods
 -- -----------------------------------------------------------------------
 
-windowPaneMethods = Methods tkGetPaneConfig
-                            tkSetPaneConfigs
-                            tkCreatePane
-                            (packCmd voidMethods)
-                            (gridCmd voidMethods)
-                            (destroyCmd defMethods)
-                            (bindCmd defMethods)
-                            (unbindCmd defMethods)
-                            (cleanupCmd defMethods)
+windowPaneMethods ccnf = Methods tkGetPaneConfig
+                                 tkSetPaneConfigs
+                                 (tkCreatePane ccnf)
+                                 (packCmd voidMethods)
+                                 (gridCmd voidMethods)
+                                 (destroyCmd defMethods)
+                                 (bindCmd defMethods)
+                                 (unbindCmd defMethods)
+                                 (cleanupCmd defMethods)
 
 
 -- -----------------------------------------------------------------------
@@ -230,14 +236,14 @@ tkSetPaneConfigs (PaneName oid) args =
 tkSetNoteBookPageConfigs _ _ = []
 {-# INLINE tkSetPaneConfigs #-}
 
-tkCreatePane :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
-                [ConfigOption] -> TclScript
-tkCreatePane parnm WINDOWPANE _ oid args =
-  [show parnm ++ " add " ++ show oid ++ " " ++ showConfigs args,
+tkCreatePane :: String -> ObjectName -> ObjectKind -> ObjectName ->
+                ObjectID -> [ConfigOption] -> TclScript
+tkCreatePane ccnfstr parnm WINDOWPANE _ oid _ =
+  [show parnm ++ " add " ++ show oid ++ " " ++ ccnfstr,
    "global v" ++ show oid,
    "set v" ++ show oid ++ " [" ++ show parnm ++ " subwidget " ++
    show oid ++ "]"]
-tkCreatePane _ _ _ _ _ = []
+tkCreatePane _ _ _ _ _ _ = []
 {-# INLINE tkCreatePane #-}
 
 
@@ -261,10 +267,6 @@ instance Destroyable Pane where
 ---
 -- Destroys a pane.
   destroy   = destroy . toGUIObject
-
----
--- You can specify the size of a paned window.
-instance HasSize Pane
 
 ---
 -- A pane has standard widget properties (focus, cursor...).

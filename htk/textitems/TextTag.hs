@@ -380,4 +380,3 @@ tkTagRemove (TextPaneItemName name tnm) start end =
    show end]
 tkTagRemove _ _ _ = []
 {-# INLINE tkTagRemove #-}
-

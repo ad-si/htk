@@ -100,15 +100,15 @@ main =
          _Beta, prose ", ",
          _Chi, prose ", ",
          newline,
-
--- problems with some special characters ??
          equiv, prose ", ",
          neq, prose ", ",
          leq, prose ", ",
          MarkupText.not, prose ", ",
          MarkupText.and, prose ", ",
          MarkupText.or, prose ", ",
-         MarkupText.sum, prose " ???"]
+         MarkupText.sum,
+         newline, newline,
+         href [link "A link to another MarkupText"] txt2]
 
       add_txt :: [MarkupText]
       add_txt =
@@ -120,6 +120,16 @@ main =
              prose "."],
           newline,
           prose "This is another line of inserted text."]
+
+      txt2 :: [MarkupText]
+      txt2 =
+        [newline,
+         prose "This is another markup Text!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         newline,
+         href [link "Back"] txt]
 
     ed # new txt
     ed # insertAt add_txt (4,5)
