@@ -19,9 +19,10 @@ PNMTOPS  = pnmtops
 .fig.pdf:
 	$(FIG2DEV) -L pdf $< > $@
 
-# This will fall over if there are too many colours in the PNG file...
-.png.eps:
-	$(PNGTOPNM) $< | $(PNMTOPS) > $@
+# This will fall over if there are too many colours in the PNG file,
+# and it sometimes rotates the picture -- useless.
+# .png.eps:
+#	$(PNGTOPNM) $< | $(PNMTOPS) > $@
 
 .dvi.ps:
 	$(DVIPS) -o $@ $<
