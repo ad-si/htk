@@ -1,4 +1,4 @@
-(MAKEGRAPH 1 "MAYA" NIL ((NODETYPE D BOX "SteelBlue"   (MENU "Theory" ((BUTTON "Show" VIEW-THEORY)   ))))   ((EDGETYPE AG SOLID "Blue" (BUTTON "Show" SHOW)) (EDGETYPE AXL DASHED "Blue" (BUTTON "Show" SHOW))) ((AG AG AG)(AG AXL AXL) )
+(MAKEGRAPH 1 "MAYA" NIL ((NODETYPE D BOX "SteelBlue"   (MENU "Theory" ((BUTTON "Show" VIEW-THEORY)   ))))   ((EDGETYPE AG SOLID "Blue" (BUTTON "Show" SHOW)) (EDGETYPE AXL DASHED "Blue" (BUTTON "Show" SHOW))) ((AG AG AG)(AG AXL AXL))
 
 (addnode 1 0 D 1)   
 
@@ -20,6 +20,7 @@
 
 (redisplay 10 0) 
 
+---- Test 1 ----
 
 (hidenodes 11 0 (4))
 
@@ -36,7 +37,7 @@
 (redisplay 16 0)
 
 
-(show 17 0 16)
+(show 17 0 19)
 
 (redisplay 18 0)
 
@@ -46,12 +47,49 @@
 (redisplay 20 0)
 
 
-(show 21 0 19)
+(show 21 0 25)
 
 (redisplay 22 0)
 
 
 (quit 23)
+
+---- Test 2 ----
+
+(hidenodes 11 0 (4))
+
+(redisplay 12 0)
+
+
+(hideedges 13 0 (9))
+
+(redisplay 14 0)
+
+
+(abstractnodes 15 0 (1 2))
+
+(redisplay 16 0)
+
+
+(show 17 0 20)
+
+(redisplay 18 0)
+
+
+(show 19 0 17)
+
+(redisplay 20 0)
+
+
+(show 21 0 11)
+
+(redisplay 22 0)
+
+
+(quit 23)
+
+
+
 
 
 

@@ -15,7 +15,7 @@ import DaVinciGraph
 import GraphDisp
 import GraphConfigure
 import AbstractGraphView
-
+import IORef
 
        
 
@@ -171,23 +171,24 @@ make_edgeComp x =
   make_edgeComp1 (LP [AP x, AP y, AP z]) = Just (x,y,z)
   make_edgeComp1 _ = Nothing
 
-makegraph1 cid [AP title,LP menus,LP nodetypes,LP edgetypes,LP comptable] graphs = do
-  let (_,ev_cnt) = graphs
-  Result graphs' gid err <- AbstractGraphView.makegraph title  
+makegraph1 cid [AP title,LP menus,LP nodetypes,LP edgetypes,LP comptable] gv = do
+  (gs,ev_cnt) <- readIORef gv
+  Result gid err <- AbstractGraphView.makegraph title  -- ... graphs'...
                      (map (GlobalMenu . (make_menu (global_action ev_cnt))) menus)
                      (map (make_nodeType ev_cnt) nodetypes)
                      (map (make_edgeType ev_cnt) edgetypes)
                      (make_edgeComp comptable)
-                     graphs
+                     gv
   case err of
-    Nothing -> cmd_succeeds cid (show gid) graphs'
-    Just e -> cmd_fails cid e graphs'
+    Nothing -> cmd_succeeds cid (show gid) 
+    Just e -> cmd_fails cid e
+    
 makegraph1 cid _ graphs = do
-  cmd_fails cid "makegraph: illegal argument format" graphs
+  cmd_fails cid "makegraph: illegal argument format"
 
 makegraph cid args graph =
   catch (makegraph1 cid args graph)
-        (\e -> cmd_fails cid "makegraph: illegal argument format" graph)
+        (\e -> cmd_fails cid "makegraph: illegal argument format") -- graph)
 
 delgraph gid _ graphs =
     AbstractGraphView.delgraph gid graphs
@@ -254,6 +255,13 @@ hideedges gid [LP edges] graphs =
 hideedges _ _ graphs = do
   return_fail graphs "hideedges: illegal argument format"
 
+-- noch nicht richtig implementiert
+hideedgetype gid [AP edgetype] graphs =
+  AbstractGraphView.hideedgetype gid edgetype graphs
+hideedgetype _ _ graphs =
+  return_fail graphs "hideedgetype: illegal argument format"
+
+
 showIt gid [AP ev_id] graphs = 
   case try_to_read ev_id :: Maybe Int of
     Just ev_id' -> AbstractGraphView.showIt gid ev_id' graphs 
@@ -282,7 +290,8 @@ command c cid (gid:args) gv = do
          ("hidenodes",Main.hidenodes),
          ("abstractnodes",Main.abstractnodes),
          ("show",Main.showIt),
-         ("hideedges",Main.hideedges)]) of
+         ("hideedges",Main.hideedges)]) of --,
+--	 ("hideedgetype",Main.hideedgetype)]) of
     (_,Nothing) -> cmd_fails cid ("unknown command: "++c)
     (Nothing,_) -> cmd_fails cid ("illegal graph id: "++gid)
     (Just gid', Just cmd) -> do 
@@ -294,12 +303,13 @@ command c cid (gid:args) gv = do
 command_loop gv =
   do s <- getLine
      let lexres = lexer s
+     putStrLn ("Point 1 " ++ s)	 
      case lexres of
         "(":c:cid:args -> command (map toLower c) cid args gv
-        otherwise -> return ()
+	otherwise -> return ()
      case lexres of
-       "(":"quit":_ -> return ()
-       otherwise -> command_loop gv
+        "(":"quit":_ -> return ()
+        otherwise -> command_loop gv
                            
  
 main = do
@@ -384,4 +394,8 @@ main = do
 -- (ANSWER ActionId T args)  : the answer to the action send to davinci of id ActionId
 -- (REQUEST DaVinciAction) : a request from davinci invoked by user
 -- (ANSWER ActionId NIL errmsg)
+
+
+
+
 
