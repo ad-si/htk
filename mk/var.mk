@@ -79,3 +79,6 @@ VERSIONSINODEDIR= $(CVSDIR)/inodeserver
 HTKDIRS = $(HTKPACKERDIR):$(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):$(HTKTIXDIR):
 
 HTKSDIRS = packer:resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:tix:
+
+# COBJS is used for ghci.
+COBJS = $(CVSDIR)/copy_file.o $(UTILDIR)/object.o $(UTILDIR)/default_options.o 

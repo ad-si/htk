@@ -14,6 +14,8 @@ import IO
 
 import qualified IOExts
 import qualified CString
+import qualified Ptr
+import qualified MarshalAlloc
 import Exception
 import Storable
 
@@ -42,19 +44,16 @@ hGetLineR handle =
       line <- hGetLine handle
       return (read line)
 
-{-
 readFileInstant :: FilePath -> IO String
 readFileInstant file =
    do
-      (addr,len) <- IOExts.slurpFile file
-      str <- CString.unpackCStringLenIO addr len
-      IOExts.freeHaskellFunctionPtr addr 
-      -- unpackCStringLenIO is, according to Simon Marlow,
-      -- supposed to unpack the string at once.           
+      (ptr,len) <- IOExts.slurpFile file
+      str <- CString.peekCStringLen (Ptr.castPtr ptr,len)
+      MarshalAlloc.free ptr
       return str
-
+{-
    Another way
--}
+
 
 readFileInstant :: String -> IO String
 readFileInstant file =
@@ -68,4 +67,4 @@ readFileInstant file =
       -- the Versions test on Linux.
       return contents
 
-      
+-}      

@@ -57,7 +57,7 @@ HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean display
+.PHONY : depend libhere lib testhere test all clean display ghci
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -68,6 +68,10 @@ HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 all : testhere libhere mainhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
 
+# ghci starts up GHC interactively.
+ghci :
+	$(HC) $(HCFLAGS) $(COBJS) --interactive
+ 
 test : testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
 

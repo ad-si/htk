@@ -6,10 +6,8 @@
 # SUBDIRS is a list of all directories containing code to be compiled to
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
-SUBDIRS=$(UTILDIR) $(EVENTSDIR) $(SERVERDIR) $(REACTORDIR) $(HTKDIR) $(GRAPHSDIR) $(DAVINCIDIR) 
-# tools, cvs and types are still being worked on and not contained in this
-# release
-# $(TOOLSDIR) $(CVSDIR) $(TYPESDIR)
+SUBDIRS=$(UTILDIR) $(EVENTSDIR) $(SERVERDIR) $(REACTORDIR) $(HTKDIR) $(GRAPHSDIR) $(DAVINCIDIR) $(CVSDIR) $(TYPESDIR)
+# (TOOLSDIR) is currently not being worked on.
 
 include @TOP@/mk/boilerplate.mk 
 

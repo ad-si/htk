@@ -1,6 +1,6 @@
 LIB        = libreactor.a
 
 SRCS = Lock.hs BSem.hs InfoBus.hs CallServer.hs ProcessClasses.hs \
-    FdRead.hs ChildProcess.hs Notification.hs MainParseDebug.hs
+    FdRead.hs ChildProcess.hs Notification.hs MainParseDebug.hs Expect.hs
 
 include @TOP@/mk/boilerplate.mk

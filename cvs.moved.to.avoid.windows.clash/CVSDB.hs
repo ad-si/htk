@@ -16,13 +16,6 @@ module CVSDB(
    -- type of versions of objects in the repository
    -- instance of Read/Show/StringClass
 
-   AttributeVersion,
-   -- type of versions of attributes in the repository.
-   -- (Each object has an associated set of attributes, which
-   -- are separately versioned)
-   initialAttributeVersion, -- :: AttributeVersion
-   -- initial version allocated to attributes.
-
    ObjectSource,
    -- type of data as retrieved from the repository.
    exportString, -- :: ObjectSource -> IO String
@@ -38,19 +31,26 @@ module CVSDB(
    Location,
    -- represents Location of object in the repository.  Instance of 
    -- Read/Show/Eq.
-   newLocation, -- :: Repository -> ObjectSource -> Attributes ->
-                --   IO (Location,ObjectVersion,AttributeVersion)
-   -- creates new object in the repository, returning its initial version
-   -- and the version of the associated attributes.
-   newInitialLocation, -- :: Repository -> ObjectSource -> IO ()
-   -- creates an object with a new initial location, or else
-   -- raise an error.  (Used when file system is initialised)
+   initialLocation, -- :: Location
+   -- returns the (already allocated) initialLocation.
 
-   commit, -- :: Repository -> ObjectSource -> Location -> ObjectVersion -> 
-           --       IO ObjectVersion
+   newLocation, -- :: Repository -> IO Location
+   -- allocate a new unique location in the repository.
+   -- and the version of the associated attributes.
+
+   getFilePath, -- :: Repository -> Location -> IO FilePath
+   -- get the REAL, complete, file path corresponding to a particular
+   -- location.  This allows it to be modified in place.
+   -- If this is done, it's important that ObjectSource be
+   -- DirectAccess.
+   ObjectSource(DirectAccess), 
+
+   commit, -- :: Repository -> ObjectSource -> Location 
+      -- -> Maybe ObjectVersion -> IO ObjectVersion
    -- commits a new version of the object to the repository, returning its
-   -- new version.  The version supplied should be a previous version of
-   -- this object.
+   -- new version.  The version, if supplied, should be a previous version of
+   -- this object.  If it is NOT supplied, this MUST be the first time
+   -- we store to this object.
    retrieveFile, -- :: Repository -> Location -> ObjectVersion -> FilePath ->
                  --       IO ()
    -- retrieveFile retrieves the given version of the object at Location
@@ -58,32 +58,12 @@ module CVSDB(
    retrieveString, -- :: Repository -> Location -> ObjectVersion -> IO String
    -- retrieveFile retrieves the given version of the object as a String
 
-   Attributes, 
-   -- type of attribute information.  Attributes are keyed
-   -- by a String and may be anything that is an instance of Read and Show  
-   getAttribute, -- :: Read a => Attributes -> String -> Maybe a
-   setAttribute, -- :: Show a => Attributes -> String -> Maybe a -> Attributes
-   getAttributeKeys, -- :: Attributes -> [String]
-   emptyAttributes, -- :: Attributes
-
-   commitAttributes, -- :: Repository -> Attributes -> Location -> 
-      --                      AttributeVersion -> IO ObjectVersion
-      -- similar to commit.
-   retrieveAttributes, -- :: Repository -> Location -> AttributeVersion ->
-                       --       IO Attributes
-   -- similar to retrieveString
-    
-
    listVersions, -- :: Repository -> Location -> IO [ObjectVersion]
    -- listVersion lists all versions of the object with the given location.
 
-   watch, -- :: Repository -> Location -> IA ()
+   watch, -- :: Repository -> Location -> Event ()
    -- watch returns an event which occurs whenever a commit occurs to the
    -- object with the given location.
-
-   initialLocation -- :: Location
-   -- location we always start with.
-
    ) where
 
 import IO
@@ -97,6 +77,7 @@ import ST
 import Debug(debug)
 import IOExtras
 import WBFiles
+import Registry
 
 import Concurrent
 import Set
@@ -111,11 +92,12 @@ import FiniteMap
 import Maybes
 import IOExtras
 
-import BSem
-import Event
-import SocketEV
+import Events
 
-import ExternalEvent(IA)
+
+import BSem
+import HostsPorts
+
 import Notification
 import RegularExpression
 
@@ -132,7 +114,7 @@ data Repository = Repository {
    workingDir :: String, 
       -- Working directory.  Includes terminal file separator.
       -- Also includes module name.
-   wDirContents :: MVar(FiniteMap Location (MVar(Maybe ObjectVersion))),
+   wDirContents :: LockedRegistry Location ObjectVersion,
       -- wDirContents contains all versions of objects (including
       -- attribute files) currently in the working directory.
    wDirDirs :: MVar (Set Location),
@@ -197,7 +179,7 @@ initialise options =
 
       (allocator,closeAction,header) <- connectReply allocateService
 
-      wDirContents <- newMVar emptyFM
+      wDirContents <- newRegistry
       wDirDirs <- newMVar emptySet
 
       return Repository {
@@ -253,26 +235,22 @@ initialise options =
       cvsModuleName = "db" -- name of CVS module containing objects.
 
 ----------------------------------------------------------------
--- ObjectVersion/AttributeVersion and ObjectSource
+-- ObjectVersion and ObjectSource
 ----------------------------------------------------------------
 
 type ObjectVersion = CVSVersion 
 -- Read/Show/StringClass also inherited.  This is made
 -- deliberately concise.
 
-type AttributeVersion = CVSVersion
--- ditto
-
-initialAttributeVersion :: AttributeVersion
-initialAttributeVersion = CVSVersion "1.1"
-
 data ObjectSource = 
       FileObject String
    |  StringObject String
+   |  DirectAccess
 
 exportString :: ObjectSource -> IO String
 exportString (StringObject str) = return str
 exportString (FileObject name) = readFileInstant name
+exportString DirectAccess = directAccessError
 
 foreign import "copy_file" unsafe copyFilePrim 
    :: (ByteArray Int) -> (ByteArray Int) -> IO Int
@@ -323,7 +301,19 @@ copyStringToFileAlternative string destination =
 exportFile :: ObjectSource -> FilePath -> IO ()
 exportFile (FileObject source) destination = copyFile source destination
 exportFile (StringObject str) destination = copyStringToFile str destination
+exportFile DirectAccess _ = directAccessError
 
+exportToCVSFile :: Repository -> ObjectSource -> CVSFile -> IO ()
+-- This is only used internally, and exports all sorts of
+-- ObjectSource to the CVSFile in question.
+exportToCVSFile repository DirectAccess cvsFile = done
+exportToCVSFile repository objectSource cvsFile =
+   exportFile objectSource (toRealName repository cvsFile)
+
+directAccessError :: IO a
+directAccessError =
+   error "DirectAccess objects cannot be read from indirectly."
+   -- use getFilePath instead
 
 importString :: String -> IO ObjectSource
 importString str = return (StringObject str)
@@ -334,71 +324,56 @@ importFile file = return (FileObject file)
 initialLocation :: Location
 initialLocation = Allocate.initialCVSFile
 
+getFilePath :: Repository -> CVSFile -> IO FilePath
+getFilePath repository cvsFile =
+   do
+      ensureDirectories repository cvsFile
+      return (toRealName repository cvsFile)
+-- getFilePath is identical to toRealName except that
+-- it also ensures that the directories are there.
+
 toRealName :: Repository -> CVSFile -> FilePath
 toRealName repository (CVSFile location) =
    (workingDir repository ++ location)
 
 ----------------------------------------------------------------
--- newLocation and newInitialLocation
+-- Adding an object for the first time
 ----------------------------------------------------------------
 
-newLocation :: Repository -> ObjectSource -> Attributes -> 
-   IO (Location,ObjectVersion,AttributeVersion)
-newLocation repository objectSource attributes =
+
+newLocation :: Repository -> IO Location
+newLocation repository =
    do
       -- get a new file name
       NewCVSFile cvsFile <- (allocator repository) GetNewCVSFile 
-      newGeneralLocation repository objectSource cvsFile attributes
+      return cvsFile
 
-newInitialLocation :: Repository -> ObjectSource -> IO ()
-newInitialLocation repository objectSource =
-   do
-      -- get a new file name
-      NewCVSFile cvsFile <- (allocator repository) GetNewCVSFile 
-      if(Allocate.initialCVSFile /= cvsFile) 
-         then
-            ioError(userError 
-                "Attempt to initialise already-initialised database"
-                )
-         else
-            newGeneralLocation repository objectSource cvsFile emptyAttributes
-      done
-
-newGeneralLocation :: Repository -> ObjectSource -> CVSFile -> Attributes ->
-   IO (Location,ObjectVersion,AttributeVersion)
-newGeneralLocation (repository@Repository{cvsLoc=cvsLoc}) 
-      objectSource cvsFile attributes =
+initialiseLocation :: Repository -> ObjectSource -> CVSFile ->
+   IO ObjectVersion
+initialiseLocation (repository@Repository{cvsLoc=cvsLoc}) 
+      objectSource cvsFile =
    do
       -- now create object
       ensureDirectories repository cvsFile
       -- now add it to repository
       -- object part
-      exportFile objectSource (toRealName repository cvsFile)
+      exportToCVSFile repository objectSource cvsFile
       cvsAddCheck cvsLoc cvsFile
       objectVersion <- updateDirContents repository cvsFile
          (\ Nothing -> cvsCommitCheck cvsLoc cvsFile Nothing 
             )
          -- a match failure here means someone else in this process
          -- is accessing the file    
-      -- attribute part  
-      let cvsFileAtt = attLocation cvsFile
-      copyStringToFile (show attributes) (toRealName repository cvsFileAtt)
-      cvsAddCheck cvsLoc cvsFileAtt
-      attributeVersion <- updateDirContents repository cvsFileAtt
-         (\ Nothing -> cvsCommitCheck cvsLoc cvsFileAtt Nothing 
-            )
-         -- a match failure here means someone else in this process
-         -- is accessing the file      
-      return (cvsFile,objectVersion,attributeVersion)
+      return objectVersion
 
 ----------------------------------------------------------------
 -- commit and retrieveFile/retrieveString
 ----------------------------------------------------------------
 
-commit :: Repository -> ObjectSource -> Location -> ObjectVersion -> 
+commit :: Repository -> ObjectSource -> Location -> Maybe ObjectVersion -> 
    IO ObjectVersion
 commit (repository@Repository{cvsLoc=cvsLoc,notifier=notifier}) 
-      objectSource (cvsFile@(CVSFile cvsFileName)) parentVersion =
+      objectSource (cvsFile@(CVSFile cvsFileName)) parentVersion' =
 -- CVS requires that the parent version be in place before we commit.
 -- Hopefully this is normally true anyway.
 -- Three versions are involved:
@@ -412,21 +387,24 @@ commit (repository@Repository{cvsLoc=cvsLoc,notifier=notifier})
 -- and no-one else has, we will have newVersion=commitVersion = 1.2.
 -- Example 2.  If then we want another new version to parentVersion 1.1,
 -- we will have newVersion = 1.1.1.1 and commitVersion = 1.1.1.
-   do
-      -- get the new version number
-      NewCVSVersion commitVersion <- 
-         (allocator repository) (GetNewCVSVersion cvsFile parentVersion)
-      newVersion <- retrieveGeneral repository cvsFile parentVersion 
-         (do
-            exportFile objectSource (toRealName repository cvsFile)
-            newVersion <- 
-               cvsCommitCheck cvsLoc cvsFile (Just commitVersion)
-            notify notifier cvsFileName
+   case parentVersion' of
+      Nothing -> initialiseLocation repository objectSource cvsFile
+      Just parentVersion ->
+         do
+            -- get the new version number
+            NewCVSVersion commitVersion <- 
+               (allocator repository) (GetNewCVSVersion cvsFile parentVersion)
+            newVersion <- retrieveGeneral repository cvsFile parentVersion 
+               (do
+                  exportToCVSFile repository objectSource cvsFile
+                  newVersion <- 
+                     cvsCommitCheck cvsLoc cvsFile (Just commitVersion)
+                  notify notifier cvsFileName
+                  return newVersion
+                  )
+            updateDirContents repository cvsFile
+               (\ _ -> return newVersion)
             return newVersion
-            )
-      updateDirContents repository cvsFile
-         (\ _ -> return newVersion)
-      return newVersion
 
 retrieveFile :: Repository -> Location -> ObjectVersion -> FilePath -> 
    IO ()
@@ -471,81 +449,6 @@ retrieveGeneral (repository@Repository{cvsLoc=cvsLoc}) cvsFile version
       return result
 
          
-----------------------------------------------------------------
--- Attributes
-----------------------------------------------------------------
-
-newtype Attributes = Attributes(LineShow (String,String))
-
-emptyAttributes :: Attributes
-emptyAttributes = Attributes(LineShow [])
-
-getAttribute :: Read a => Attributes -> String -> Maybe a
-getAttribute (Attributes(LineShow list)) key =
-      searchAttribute list
-   where
-      searchAttribute [] = Nothing
-      searchAttribute ((key',val'):tail) 
-         | (key' == key) = Just(read val')
-         | True = searchAttribute tail
-
-setAttribute :: Show a => Attributes -> String -> Maybe a -> Attributes
-setAttribute (attributes@(Attributes(LineShow list))) key valopt =
-   case (split [] list,valopt) of
-      (Nothing,Nothing) -> attributes
-      (Just (before,after),Nothing) -> al(before++after)
-      (Nothing,Just val) -> al((key,show val):list)
-      (Just (before,after),Just val) -> 
-         al((key,show val):(before++after))
-   where
-      split acc [] = Nothing
-      split acc ((kv@(key',val')):rest)
-         | (key' == key) = Just(acc,rest)
-         | True = split (kv:acc) rest
-      al = Attributes . LineShow
-                 
-getAttributeKeys :: Attributes -> [String]
-getAttributeKeys (Attributes(LineShow list)) =
-   map (\ (key,_) -> key) list
-
-instance QuickRead Attributes where
-   quickRead = WrapRead (\ str -> Attributes str)
-
-instance QuickShow Attributes where
-   quickShow = WrapShow (\ (Attributes str) -> str)
-
-commitAttributes :: Repository -> Attributes -> Location -> 
-   AttributeVersion -> IO ObjectVersion
-commitAttributes repository attributes location attributeVersion =
-   do
-      let
-         attLoc = attLocation location
-      objectSource <- importString (show attributes)
-      commit repository objectSource attLoc attributeVersion
-
-retrieveAttributes :: Repository -> Location -> AttributeVersion -> 
-   IO Attributes
-retrieveAttributes repository location attributeVersion =
-   do
-      let
-         attLoc = attLocation location
-      contents <- retrieveString repository attLoc attributeVersion
-      return (read contents)
-
-#ifdef DEBUG
-attLocation :: CVSFile -> CVSFile
-attLocation (CVSFile str) = CVSFile (postFix str)
-   where
-      postFix "" = "#"
-      postFix (h:t)
-         | (h=='#') = error ("CVSDB.attLocation applied to "++str)
-         | True = h:postFix t   
-#else
-attLocation :: CVSFile -> CVSFile
-attLocation (CVSFile str) = CVSFile (str++"#")
-#endif
-
-
 ----------------------------------------------------------------
 -- ensureDirectories
 ----------------------------------------------------------------
@@ -609,36 +512,14 @@ ensureDirectories
 updateDirContentsGeneral :: Repository -> Location -> 
    (Maybe ObjectVersion -> IO (ObjectVersion,extra)) -> 
    IO (ObjectVersion,extra)
--- updateDirContents repository location actionFn 
--- is used for all accesses to wDirContents in the 
--- repository.  It updates the version of location according to
--- action.  (actionFn Nothing means we don't already know about this
--- file; actionFn (Just version) means we do and version is its version.
--- It locks so that if updateDirContents is called concurrently on the
--- same file, the actions will not overlap.
--- updateDirContentsGeneral allows the action function to return a bit of
--- extra state.
-updateDirContentsGeneral (Repository{wDirContents=wDirContents}) 
-      location actionFn =
-   do
-      -- (1) obtain (creating if necessary) the unique MVar corresponding
-      --     to this location (and locking it)
-      map <- takeMVar wDirContents
-      (newMap,mVar) <- case lookupFM map location of
-         Nothing -> -- create
-            do
-               mVar <- newMVar Nothing
-               return (addToFM map location mVar,mVar)
-         Just mVar -> return (map,mVar)
-      putMVar wDirContents newMap
-      -- (2) read mVar
-      oldVersionOpt <- takeMVar mVar
-      -- (3) action
-      toReturn@(newVersion,extraReturn) <- actionFn oldVersionOpt
-      -- (4) put mVar
-      putMVar mVar (Just newVersion)
-
-      return toReturn
+updateDirContentsGeneral (Repository{wDirContents=wDirContents}) location
+   transformer =
+   transformValue wDirContents location 
+      (\ valInOpt ->
+         do
+            (valOut,extra) <- transformer valInOpt
+            return (Just valOut,(valOut,extra))
+         )
 
 updateDirContents :: Repository -> Location ->
    (Maybe ObjectVersion -> IO ObjectVersion) -> IO ObjectVersion
@@ -667,7 +548,7 @@ listVersions(repository@Repository{cvsLoc=cvsLoc}) cvsFile =
 -- notify for this to work).
 ----------------------------------------------------------------
 
-watch :: Repository -> Location -> IA ()
+watch :: Repository -> Location -> Event ()
 watch (repository@Repository{notifier=notifier}) 
       (cvsFile@(CVSFile cvsFileName)) =
    isNotified notifier cvsFileName

@@ -59,12 +59,14 @@ import Exception
 import Debug(debug)
 import ExtendedPrelude
 import Dynamics
-
 import qualified Thread
-
 import RegularExpression
+
 import Expect
-import SIM
+import Events
+import Destructible
+
+import ProcessClasses
 
 import CVSBasic
 
@@ -100,6 +102,7 @@ instance Show CVSReturn where
             in 
                acc3
 
+checkReturn :: CVSReturn -> IO ()
 checkReturn CVSSuccess = return ()
 checkReturn err = 
    do
@@ -119,7 +122,7 @@ newCVSLoc cvsRoot workingDir =
 --------------------------------------------------------------
 -- A key and new part of this CVS encapsulation is the novel
 -- means of wrapping up Expect events.  Key features:
--- (1) We use (for the first time) the fact that IA events
+-- (1) We use (for the first time) the fact that Event events
 --     are an instance of Monad, to write them using do expressions.
 -- (2) To indicate errors we throw a Dynamic exception
 --     encoding the error as a String.
@@ -148,10 +151,10 @@ cvsError mess =
 -- appropriate.   It is also responsible for destroying the
 -- Expect object.
 -- The first argument is a name to be added to error messages.
-tryCVS :: String -> Expect -> IA a -> IO (Maybe a,CVSReturn)
+tryCVS :: String -> Expect -> Event a -> IO (Maybe a,CVSReturn)
 tryCVS mess exp event =
    do
-      result <- tryIO isCVSError (sync event)
+      result <- tryJust isCVSError (sync event)
       status1 <- getToolStatus exp
       -- If status isn't here yet (this shouldn't happen very often)
       -- wait 0.2 seconds and try again before giving up.
@@ -177,20 +180,8 @@ tryCVS mess exp event =
             fmap (\ (CVSError mess) -> mess) (fromDyn dynamic)
             )
          `monadDot` -- did you know Maybe was an instance of Monad?
-         justDynExceptions
+         dynExceptions
 
-
---------------------------------------------------------------
--- Expect priorities
--------------------------------------------------------------
-
--- high is used for correct parses
-high :: String -> Pattern 
-high ptn = toPattern (ptn,1::Int)
-
--- low is used for errors
-low :: String -> Pattern
-low ptn = toPattern (ptn,0::Int)
 
 --------------------------------------------------------------
 -- Events which if matched cause fatal errors.
@@ -199,7 +190,7 @@ low ptn = toPattern (ptn,0::Int)
 
 -- This matches any line with 0 priority and raises an error after spooling
 -- to end of file.
-noLineHere :: Expect -> IA a
+noLineHere :: Expect -> Event a
 noLineHere exp =    
    (matchLine exp >>>=
       (\ line -> cvsError("Couldn't parse: "++(show line))
@@ -207,18 +198,18 @@ noLineHere exp =
       )
 
 -- This matches EOF and raises an error
-noEOFHere :: Expect -> IA a
+noEOFHere :: Expect -> Event a
 noEOFHere exp =
    (matchEOF exp >>> cvsError "Unexpected EOF"
       )
 
 -- A common idiom to guard against both unparsed lines and EOF
-guard :: Expect -> IA a -> IA a
+guard :: Expect -> Event a -> Event a
 guard exp event =
    event +> (noLineHere exp) +> (noEOFHere exp)
 
 -- This returns harmlessly if EOF and raises an error otherwise
-mustEOFHere :: Expect -> IA ()
+mustEOFHere :: Expect -> Event ()
 mustEOFHere exp = (matchEOF exp) +> (noLineHere exp)
 
 cvsAdd :: CVSLoc -> CVSFile -> IO CVSReturn
@@ -234,12 +225,12 @@ cvsAdd (CVSLoc globalOptions) file =
             )
       return result
    where
-      fileAdded = high
+      fileAdded = compile
          ".* commit' to add this file permanently\\'"
          -- forget "cvs add: use 'cvs " part of message,
          -- because cvs replaces "cvs" by whatever pathname it
          -- thinks it was called by, mangled somewhat.
-      directoryAdded = high
+      directoryAdded = compile
          "\\`Directory .* added to the repository\\'"
 
 cvsCommit :: CVSLoc -> CVSFile -> (Maybe CVSVersion) -> 
@@ -249,7 +240,7 @@ cvsCommit (CVSLoc globalOptions) file maybeVersion =
       exp <- callCVS globalOptions 
          (CommitSimple {revision'=maybeVersion,files=[file]})
       let 
-         mat ptn = match exp (high ptn)
+         mat ptn = match exp (compile ptn)
 {- Typical output from cvs commit:
    (1) for the first commit of a file:
 RCS file: /repository/unitest/1/3,v
@@ -259,7 +250,7 @@ Checking in 1/3;
 initial revision: 1.1
 done
    -}
-         event1 :: IA CVSVersion =
+         event1 :: Event CVSVersion =
             do
                mat "\\`RCS file: "
                guard exp (mat "\\`done\\'")
@@ -281,7 +272,7 @@ Checking in 1/1;
 new revision: 1.2; previous revision: 1.1
 done
    -}
-         event2 :: IA CVSVersion = 
+         event2 :: Event CVSVersion = 
             do
                mat "\\`Checking in .*;\\'"
                guard exp (mat "")
@@ -300,7 +291,7 @@ done
     this because it isn't clear here what CVSVersion to return,
     if none is supplied.  Should we handle it?
     
-         event3 :: IA CVSVersion =
+         event3 :: Event CVSVersion =
             do
                mustEOFHere
                return ???
@@ -319,7 +310,7 @@ cvsUpdate (CVSLoc globalOptions) file version =
       -- P (filename)
       (_,result) <- tryCVS "cvs update" exp(
             (do
-               match exp (high "\\`[PU] ")
+               match exp (compile "\\`[PU] ")
                mustEOFHere exp
                ) 
          +> mustEOFHere exp
@@ -336,9 +327,9 @@ cvsListVersions (CVSLoc globalOptions) file =
          (LogSimple {file=file})
 
       let
-         mat ptn = match exp (high ptn)
+         mat ptn = match exp (compile ptn)
 
-         preamble :: IA () =
+         preamble :: Event () =
             -- skip everything until we get to a line beginning "total revisions"
                (do
                   mat "\\`total revisions: "
@@ -351,7 +342,7 @@ cvsListVersions (CVSLoc globalOptions) file =
                   )
             +> noEOFHere exp
        
-         entry :: IA CVSVersion =
+         entry :: Event CVSVersion =
             (do
                guard exp (mat "\\`----------------------------\\'")
                revision <- 
@@ -372,12 +363,12 @@ cvsListVersions (CVSLoc globalOptions) file =
                return (CVSVersion revision)
                )
 
-         postamble :: IA () =
+         postamble :: Event () =
             do
                mat "\\`=============================================================================\\'"
                mustEOFHere exp
 
-         body :: [CVSVersion] -> IA [CVSVersion]
+         body :: [CVSVersion] -> Event [CVSVersion]
          body acc =
                (do
                   postamble
@@ -388,7 +379,7 @@ cvsListVersions (CVSLoc globalOptions) file =
                   body (this:acc)
                   )
 
-         logOutput :: IA [CVSVersion]
+         logOutput :: Event [CVSVersion]
          logOutput =
             do
                preamble
@@ -403,11 +394,11 @@ cvsCheckout (CVSLoc globalOptions) file =
       -- we expect a series of lines of the form "U ".
 
       let
-         mat ptn = match exp (high ptn)
+         mat ptn = match exp (compile ptn)
 
          oneLine = mat "\\`U "
 
-         checkoutOut :: IA () =
+         checkoutOut :: Event () =
                (do
                   oneLine
                   checkoutOut
