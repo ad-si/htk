@@ -311,6 +311,8 @@ instance HasConfig GlobalMenu DaVinciGraphParms where
                   menuEntries <- encodeGlobalMenu globalMenu daVinciGraph
                   doInContext (AppMenu(CreateMenus menuEntries))
                      (context daVinciGraph)
+                  doInContext (AppMenu(ActivateMenus(getMenuIds menuEntries)))
+                     (context daVinciGraph)
                ) : (graphConfigs graphParms)
          }
 
@@ -766,6 +768,19 @@ encodeLocalMenu
                )
             menuPrim1
       return (registry,encodeDaVinciMenu menuPrim2)
+
+getMenuIds :: [MenuEntry] -> [MenuId]
+getMenuIds [] = []
+getMenuIds (first:rest) = theseIds ++ getMenuIds rest
+   where
+      theseIds :: [MenuId]
+      theseIds = case first of
+         MenuEntry menuId _ -> [menuId]
+         MenuEntryMne menuId _ _ _ _ -> [menuId]
+         SubmenuEntry menuId _ menuEntries -> menuId : getMenuIds menuEntries
+         SubmenuEntryMne menuId _ menuEntries _ -> menuId : getMenuIds menuEntries
+         BlankMenuEntry -> []
+         _ -> error "DaVinciGraph: (Sub)MenuEntryDisabled not yet handled." 
 
 encodeGlobalMenu :: GlobalMenu -> DaVinciGraph -> IO [MenuEntry]
 -- This constructs a global menu.  The menuId actions are written
