@@ -45,9 +45,14 @@
 
    This file is fairly repetitive, mainly because of the need to
    repeat the configuration machinery over and over again.
+
+   The functionality provided in this file is inspired by that
+   provided by DaVinci.  However we extend it by allowing
+   nodes to have labels provided in the form of Dynamic values.
    -}
 module GraphDisp(
    Graph(..),
+   NewGraph(..),
    GraphConfig,
    GraphParms(..),
    GraphConfigParms(..),
@@ -138,9 +143,9 @@ class Node node where
 
 class NodeType nodeType where
 
-class (NodeType nodeType,NodeTypeParms nodeTypeParms) => 
-      NewNodeType nodeType nodeTypeParms where
-   newNodeType :: nodeTypeParms -> IO nodeType   
+class (Graph graph,NodeType nodeType,NodeTypeParms nodeTypeParms) => 
+      NewNodeType graph nodeType nodeTypeParms where
+   newNodeType :: graph -> nodeTypeParms -> IO nodeType   
 
 class NodeTypeConfig nodeTypeConfig where
 -- empty to prevent just anything being usable for the nodeTypeConfig 
@@ -192,9 +197,9 @@ class Arc arc where
 
 class ArcType arcType where
 
-class (ArcType arcType,ArcTypeParms arcTypeParms) => 
-      NewArcType arcType arcTypeParms where
-   newArcType :: arcTypeParms -> IO arcType   
+class (Graph graph,ArcType arcType,ArcTypeParms arcTypeParms) => 
+      NewArcType graph arcType arcTypeParms where
+   newArcType :: graph -> arcTypeParms -> IO arcType   
 
 class ArcTypeConfig arcTypeConfig where
 -- empty to prevent just anything being usable for the arcTypeConfig 
