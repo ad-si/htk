@@ -6,7 +6,7 @@ SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
    Expect.hs SafeSystem.hs ForkExec.hs SysVars.hs
 else
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
-   Expect.hs SafeSystem.hs ForkExec.hs
+   Expect.hs SafeSystem.hs
 endif
 
 
