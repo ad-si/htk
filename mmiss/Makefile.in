@@ -36,7 +36,7 @@ BOOTSRCS = MMiSSReadObject.boot.hs \
 
 SUBDIRS = api test
 
-EXTRAEXPORTS = MMiSS.dtd scripts/domisslatex.in scripts/doxdvi.in scripts/doacroread.in scripts/dolp.in
+EXTRAEXPORTS = MMiSS.dtd Files.xml scripts/domisslatex.in scripts/doxdvi.in scripts/doacroread.in scripts/dolp.in
 
 include @TOP@/mk/boilerplate.mk
 
@@ -48,7 +48,7 @@ displaysrcshere : displayextrasrcs
 displayextrasrcs :
 	@echo @TOP@/mmiss/MMiSS.dtd @TOP@/mmiss/scripts/domisslatex.in 
 	@echo @TOP@/mmiss/scripts/doxdvi.in @TOP@/mmiss/scripts/doacroread.in
-	@echo @TOP@/mmiss/scripts/dolp.in
+	@echo @TOP@/mmiss/scripts/dolp.in @TOP@/mmiss/Files.xml
 
 MMiSSFiles.hs : MMiSSFiles.dtd
 	@TOP@/HaXml/tools/DtdToHaskell $< $@
