@@ -63,6 +63,7 @@ module GraphConfigure(
    NodeArcsHidden(..), -- Setting if a node's arcs are hidden or not.
    Border(..), -- Specifying a node's border.
    FontStyle(..), -- Specifying the font style for a node.
+   FontStyleSource(..), -- allowing it to depend on a source.
    ModifyHasDef(..),
       -- specifies default values for these options.
 
@@ -351,12 +352,20 @@ instance ModifyHasDef Border where
    isDef _ = False
 
 data FontStyle = NormalFontStyle | BoldFontStyle | ItalicFontStyle 
-   | BoldItalicFontStyle 
+   | BoldItalicFontStyle deriving (Eq)
 
+{- Modification is no longer approved for FontStyle's, which should
+   be set by Sources.
 instance ModifyHasDef FontStyle where
    def = BoldFontStyle
    isDef BoldFontStyle = True
    isDef _ = False
+-}
+
+data FontStyleSource value
+    = FontStyleSource (value -> IO (SimpleSource FontStyle))
+
+instance NodeTypeConfig FontStyleSource
 
 ------------------------------------------------------------------------
 -- Graph Miscellaneous Flags.
@@ -425,6 +434,7 @@ class (
    HasConfigValue LocalMenu nodeTypeParms,
    HasConfigValue ValueTitle nodeTypeParms,
    HasConfigValue ValueTitleSource nodeTypeParms,
+   HasConfigValue FontStyleSource nodeTypeParms,
    HasConfigValue NodeGesture nodeTypeParms,
    HasConfigValue NodeDragAndDrop nodeTypeParms,
    HasConfigValue DoubleClickAction nodeTypeParms,
@@ -439,6 +449,7 @@ instance (
    HasConfigValue LocalMenu nodeTypeParms,
    HasConfigValue ValueTitle nodeTypeParms,
    HasConfigValue ValueTitleSource nodeTypeParms,
+   HasConfigValue FontStyleSource nodeTypeParms,
    HasConfigValue NodeGesture nodeTypeParms,
    HasConfigValue NodeDragAndDrop nodeTypeParms,
    HasConfigValue DoubleClickAction nodeTypeParms,
@@ -449,14 +460,14 @@ instance (
 
 class (
    HasModifyValue NodeArcsHidden graph node,
-   HasModifyValue Border graph node,
-   HasModifyValue FontStyle graph node
+   HasModifyValue Border graph node
+-- HasModifyValue FontStyle graph node
    ) => HasNodeModifies graph node
 
 instance (
    HasModifyValue NodeArcsHidden graph node,
-   HasModifyValue Border graph node,
-   HasModifyValue FontStyle graph node
+   HasModifyValue Border graph node
+-- HasModifyValue FontStyle graph node
    ) => HasNodeModifies graph node
 
 class (

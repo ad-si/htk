@@ -13,6 +13,7 @@ import Messages
 import AtomString
 import Sources
 import ICStringLen
+import Thread
 
 import View
 import Link
@@ -253,7 +254,7 @@ exportDirPlus view linkedObject0 exportOpts0 extraNodes =
          else
             return []
 
-      bundleNodes0 <- mapM
+      bundleNodes0 <- mapMConcurrentExcep
          (\ linkedObject1 
             -> exportEntireLinkedObject1 view linkedObject1 exportOpts1
             )

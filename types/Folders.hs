@@ -385,6 +385,7 @@ instance ObjectType FolderType Folder where
                           [(theNodeType,
                            menu $$$
                            (valueTitleSource view) $$$
+                           (fontStyleSource view) $$$
                            (DoubleClickAction openAction) $$$
                            (if allowAddFiles folderType
                               then 

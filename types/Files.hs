@@ -242,6 +242,7 @@ instance ObjectType FileType File where
                            parms1 = 
                               menu $$$ 
                               valueTitleSource view $$$
+                              fontStyleSource view $$$
                               nodeTypeParms
 
                            parms2 =

@@ -538,6 +538,7 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                   nodeTypeParms1 =
                      menu $$$
                      (valueTitleSource view) $$$
+                     (fontStyleSource view) $$$
                      (DoubleClickAction openAction) $$$
                      nodeTypeParms0
 

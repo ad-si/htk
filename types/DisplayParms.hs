@@ -24,6 +24,7 @@ module DisplayParms(
    defaultNodeTypes,
 
    valueTitleSource,
+   fontStyleSource,
    ) where
 
 import Maybe
@@ -360,3 +361,31 @@ valueTitleSource view =
             return (nodeTitleSourcePrim object)
    in
       ValueTitleSource getNodeTitleSource
+
+-- -----------------------------------------------------------------------
+-- Another function which describes whether the object in question is 
+-- dirty or not by making the fontstyle italic when it is dirty.
+-- -----------------------------------------------------------------------
+
+fontStyleSource :: ObjectType objectType object
+   => View -> FontStyleSource (Link object)
+fontStyleSource view =
+   let
+      getFontStyleSource link =
+         do
+            versioned <- fetchLink view link
+            let
+               isDirtySource = getIsDirtySimpleSource versioned
+               fontStyleSource =
+                  fmap
+                     (\ isDirty -> if isDirty 
+                        then
+                           BoldItalicFontStyle
+                        else
+                           BoldFontStyle
+                        )
+                     isDirtySource
+
+            return fontStyleSource
+   in
+      FontStyleSource getFontStyleSource

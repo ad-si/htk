@@ -42,6 +42,8 @@ import Link
 import View
 import MergeTypes
 import MergePrune
+import DisplayParms(fontStyleSource)
+
 import EntityNames
 
 import EmacsEdit
@@ -139,6 +141,7 @@ instance ObjectType MMiSSPreambleType MMiSSPreamble where
             nodeTypes = [(theNodeType,
                menu $$$
                ValueTitle (\ _ -> return "PREAMBLE") $$$
+               fontStyleSource view $$$
                Color "blue" $$$
                emptyNodeTypeParms
                )],

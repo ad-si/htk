@@ -15,6 +15,7 @@ import Control.Monad.Trans
 
 import Computation
 import AtomString
+import Thread
 
 import EntityNames
 
@@ -223,7 +224,7 @@ writePreWriteData view preWriteData =
       let
          bnl = toBundleNodeLocations preWriteData
 
-      postActions <- mapM
+      postActions <- mapMConcurrentExcep
          (\ (names,preWriteNodeData) ->
             let
                do1 :: HasBundleNodeWrite object => Link object -> IO (IO ())

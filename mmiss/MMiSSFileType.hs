@@ -79,6 +79,7 @@ import MergeTypes
 import MergePrune
 import GlobalRegistry
 import DisplayView(DisplayedView)
+import DisplayParms(fontStyleSource)
 
 import Text.XML.HaXml.Xml2Haskell
 import XmlExtras
@@ -700,6 +701,7 @@ getFilesNodeDisplayData view displayType mmissFileType
             shape1 $$$
             colour1 $$$
             (ValueTitle getTitle) $$$
+            fontStyleSource view $$$
             emptyNodeTypeParms
 
          nodeTypeParms = case fileTypeMenu fileType0 of
@@ -825,6 +827,7 @@ instance HasBundleNodeWrite MMiSSFile where
             (firstVersionSpec,_) : _ = newVersions
 
          pointVariantObject contents0 firstVersionSpec
+         dirtyLink view fileLink
 
 -- ------------------------------------------------------------------
 -- Executing commands

@@ -91,3 +91,4 @@ instance HasBundleNodeWrite MMiSSObject where
             (firstVersionSpec,_) : _ = newVersions
 
          pointVariantObject variantObject1 firstVersionSpec
+         dirtyLink view objectLink

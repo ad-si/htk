@@ -526,6 +526,8 @@ data DaVinciNodeType value = DaVinciNodeType {
    nodeType :: Type,
    nodeText :: value -> IO (SimpleSource String),
       -- how to compute the displayed name of the node
+   fontStyle :: Maybe (value -> IO (SimpleSource FontStyle)),
+      -- how to compute the font style of the node
    nodeMenuActions :: Registry MenuId (value -> IO ()),
    nodeDoubleClickAction :: value -> IO (),
    createNodeAndEdgeAction :: value -> IO (),
@@ -539,6 +541,7 @@ data DaVinciNodeTypeParms value =
    DaVinciNodeTypeParms {
       nodeAttributes :: Attributes value,
       configNodeText :: value -> IO (SimpleSource String),
+      configFontStyle :: Maybe (value -> IO (SimpleSource FontStyle)),
       configNodeDoubleClickAction :: value -> IO (),
       configCreateNodeAndEdgeAction :: value -> IO (),
       configCreateEdgeAction :: Dyn -> value -> IO ()
@@ -554,10 +557,18 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
    newNodePrim
          (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
          (nodeType @ DaVinciNodeType {
-            nodeType = daVinciNodeType,nodeText = nodeText})
+            nodeType = daVinciNodeType,nodeText = nodeText,
+            fontStyle = fontStyle})
          (value :: value) =
       do
          thisNodeTextSource <- nodeText value
+         fontStyleSourceOpt <- case fontStyle of
+            Nothing -> return Nothing
+            Just getFontStyleSource -> 
+               do
+                  fontStyleSource <- getFontStyleSource value
+                  return (Just fontStyleSource)
+
          nodeId <- newNodeId context
          let
             (daVinciNode :: DaVinciNode value) = DaVinciNode nodeId
@@ -566,8 +577,21 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
             do
                thisNodeText <- addNewAction thisNodeTextSource 
                   (setNodeTitle daVinciGraph daVinciNode)
+               let
+                  attributes1 = [titleAttribute thisNodeText]
+
+               attributes2 <-
+                  case fontStyleSourceOpt of
+                     Nothing -> return attributes1
+                     Just fontStyleSource ->
+                        do
+                            thisFontStyle <- addNewAction fontStyleSource
+                               (setFontStyle daVinciGraph daVinciNode)
+                            return (fontStyleAttribute thisFontStyle 
+                               : attributes1)
+
                addNodeUpdate daVinciGraph (
-                  NewNode nodeId daVinciNodeType [A "OBJECT" thisNodeText])
+                  NewNode nodeId daVinciNodeType attributes2)
             )
          return daVinciNode
 
@@ -682,6 +706,7 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
          (DaVinciNodeTypeParms {
             nodeAttributes = nodeAttributes,
             configNodeText = configNodeText,
+            configFontStyle = configFontStyle,
             configNodeDoubleClickAction = configNodeDoubleClickAction,
             configCreateNodeAndEdgeAction 
                = configCreateNodeAndEdgeAction,
@@ -695,12 +720,14 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
 
          let
             nodeText = configNodeText
+            fontStyle = configFontStyle
             nodeDoubleClickAction = configNodeDoubleClickAction
             createNodeAndEdgeAction = configCreateNodeAndEdgeAction
             createEdgeAction = configCreateEdgeAction
          return (DaVinciNodeType {
             nodeType = nodeType,
             nodeText = nodeText,
+            fontStyle = fontStyle,
             nodeMenuActions = nodeMenuActions,
             nodeDoubleClickAction = nodeDoubleClickAction,
             createNodeAndEdgeAction = createNodeAndEdgeAction,
@@ -711,6 +738,7 @@ instance NodeTypeParms DaVinciNodeTypeParms where
    emptyNodeTypeParms = DaVinciNodeTypeParms {
       nodeAttributes = emptyAttributes,
       configNodeText = const (return (staticSimpleSource "")),
+      configFontStyle = Nothing,
       configNodeDoubleClickAction = const done,
       configCreateNodeAndEdgeAction = const done,
       configCreateEdgeAction = const (const done)
@@ -720,6 +748,7 @@ instance NodeTypeParms DaVinciNodeTypeParms where
       (DaVinciNodeTypeParms {
          nodeAttributes = nodeAttributes,
          configNodeText = configNodeText,
+         configFontStyle = configFontStyle,
          configNodeDoubleClickAction = configNodeDoubleClickAction,
          configCreateNodeAndEdgeAction = configCreateNodeAndEdgeAction,
          configCreateEdgeAction = configCreateEdgeAction
@@ -727,6 +756,7 @@ instance NodeTypeParms DaVinciNodeTypeParms where
       DaVinciNodeTypeParms {
          nodeAttributes = coMapAttributes coMapFn nodeAttributes,
          configNodeText = configNodeText . coMapFn,
+         configFontStyle = (fmap (. coMapFn) configFontStyle),
          configNodeDoubleClickAction = configNodeDoubleClickAction . coMapFn,
          configCreateNodeAndEdgeAction = 
             configCreateNodeAndEdgeAction . coMapFn,
@@ -759,6 +789,11 @@ instance HasConfigValue ValueTitleSource DaVinciNodeTypeParms where
    configUsed' _ _ = True
    ($$$) (ValueTitleSource nodeText) parms = 
       parms { configNodeText = nodeText }
+
+instance HasConfigValue FontStyleSource DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (FontStyleSource fontStyleSource) parms = 
+      parms { configFontStyle = Just fontStyleSource }
 
 instance HasConfigValue Shape DaVinciNodeTypeParms where
    configUsed' _ _ = True
@@ -814,13 +849,16 @@ instance HasModifyValue NodeArcsHidden DaVinciGraph DaVinciNode where
                doInContext (DaVinciTypes.Graph (ChangeAttr ([Node nodeId []])))
                   (context daVinciGraph)
 
-instance HasModifyValue (String,String) DaVinciGraph DaVinciNode where
-   modify (key,value) daVinciGraph (DaVinciNode nodeId) =
+instance HasModifyValue Attribute DaVinciGraph DaVinciNode where
+   modify attribute daVinciGraph (DaVinciNode nodeId) = 
       do
          flushPendingChanges daVinciGraph
          doInContext
-            (DaVinciTypes.Graph (ChangeAttr [Node nodeId [A key value]]))
+            (DaVinciTypes.Graph (ChangeAttr [Node nodeId [attribute]]))
             (context daVinciGraph)
+
+instance HasModifyValue (String,String) DaVinciGraph DaVinciNode where
+   modify (key,value) = modify (A key value)
 
 instance HasModifyValue Border DaVinciGraph DaVinciNode where
    modify border =
@@ -831,18 +869,6 @@ instance HasModifyValue Border DaVinciGraph DaVinciNode where
             DoubleBorder -> "double"
       in
          modify ("BORDER",borderStr)
-
-instance HasModifyValue FontStyle DaVinciGraph DaVinciNode where
-   modify fontStyle =
-      let
-         fontStyleStr = case fontStyle of
-            NormalFontStyle -> "normal"
-            BoldFontStyle -> "bold"
-            ItalicFontStyle -> "italic"
-            BoldItalicFontStyle -> "bold_italic"
-      in
-         modify ("FONTSTYLE",fontStyleStr)
-
 
 ------------------------------------------------------------------------
 -- Node type configs for drag and drop
@@ -909,8 +935,7 @@ addArcGeneral
             do
                s <- (arcArcText daVinciArcType) value
                arcText <- readContents(s)
---               atts <- return ([A "OBJECT" ((arcArcText daVinciArcType) value)])
-               atts <- return ([A "OBJECT" arcText])
+               atts <- return ([titleAttribute arcText])
                setValue edges edgeId (ArcData daVinciArcType value)
                addEdgeUpdate daVinciGraph 
                   (NewEdge edgeId (arcType daVinciArcType) atts nodeFrom nodeTo)
@@ -1403,7 +1428,7 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
       )
 
 -- -----------------------------------------------------------------------
--- Setting node titles.
+-- Setting node titles and font styles.
 -- -----------------------------------------------------------------------
 
 ---
@@ -1420,8 +1445,36 @@ setNodeTitle daVinciGraph (daVinciNode@(DaVinciNode nodeId)) newTitle =
          Nothing -> return False
          Just (nodeData :: NodeData) ->
             do
-               modify ("OBJECT",newTitle) daVinciGraph daVinciNode
+               modify (titleAttribute newTitle) daVinciGraph daVinciNode
                return True
+
+titleAttribute :: String -> Attribute
+titleAttribute title = A "OBJECT" title
+
+-- | This function similarly changes the font style.
+setFontStyle :: Typeable value => DaVinciGraph -> DaVinciNode value 
+   -> FontStyle -> IO Bool
+setFontStyle daVinciGraph (daVinciNode@(DaVinciNode nodeId)) fontStyle =
+   do
+      flushPendingChanges daVinciGraph
+      nodeDataOpt <- getValueOpt (nodes daVinciGraph) nodeId
+      case nodeDataOpt of
+         Nothing -> return False
+         Just (nodeData :: NodeData) ->
+            do
+               modify (fontStyleAttribute fontStyle) daVinciGraph daVinciNode
+               return True
+
+fontStyleAttribute :: FontStyle -> Attribute
+fontStyleAttribute fontStyle =
+   let
+      fontStyleStr = case fontStyle of
+         NormalFontStyle -> "normal"
+         BoldFontStyle -> "bold"
+         ItalicFontStyle -> "italic"
+         BoldItalicFontStyle -> "bold_italic"
+   in
+      A "FONTSTYLE" fontStyleStr
 
 -- -----------------------------------------------------------------------
 -- Miscellaneous functions

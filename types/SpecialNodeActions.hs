@@ -4,7 +4,6 @@ module SpecialNodeActions(
    NodeActionSource,
    newNodeActionSource,
    setBorder,
-   setFontStyle,
    setArcsHidden,
    getNodeActions,
    emptyNodeActions,
@@ -24,7 +23,6 @@ import GraphConfigure
 
 data NodeAction = 
       Border Border
-   |  FontStyle FontStyle
    |  ArcsHidden NodeArcsHidden
 
 newtype NodeActionSource = NodeActionSource (KeyedChanges Char NodeAction)
@@ -38,10 +36,6 @@ newNodeActionSource =
 setBorder :: NodeActionSource -> Border -> IO ()
 setBorder (NodeActionSource keyedChanges) border =
    sendOrDelete border 'B' (Border border) keyedChanges
-
-setFontStyle :: NodeActionSource -> FontStyle -> IO ()
-setFontStyle (NodeActionSource keyedChanges) fontStyle =
-   sendOrDelete fontStyle 'F' (FontStyle fontStyle) keyedChanges
 
 setArcsHidden :: NodeActionSource -> NodeArcsHidden -> IO ()
 setArcsHidden (NodeActionSource keyedChanges) nodeArcsHidden =
@@ -67,7 +61,6 @@ getNodeActions (NodeActionSource keyedChanges) =
       apply :: (HasNodeModifies graph node,Typeable value) 
          => NodeAction -> graph -> node value -> IO ()
       apply (Border border) = modify border
-      apply (FontStyle fontStyle) = modify fontStyle
       apply (ArcsHidden arcsHidden) = modify arcsHidden
 
       applyMultiple :: (HasNodeModifies graph node,Typeable value) 

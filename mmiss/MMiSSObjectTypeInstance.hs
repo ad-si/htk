@@ -20,6 +20,7 @@ import Maybe
 import System.IO.Unsafe
 
 import Computation
+import Thread
 import ExtendedPrelude
 import AtomString(fromString,toString,fromStringWE)
 import Sources
@@ -171,6 +172,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                in
                   menu $$$
                   valueTitleSource view $$$
+                  fontStyleSource view $$$
                   nodeTypeParms
 
             getNodeLinks link =
@@ -479,7 +481,7 @@ instance HasBundleNodeData MMiSSObject where
          (allObjectVariants :: [(MMiSSVariantSpec,Variable)])
             <- getAllVariants (variantObject mmissObject)
          (variants :: [(Maybe MMiSSVariantSpec,BundleText)]) <-
-            mapM
+            mapMConcurrentExcep
                (\ (variantSpec,variable) ->
                   do
                      bundleText <- if getText exportOpts

@@ -347,11 +347,6 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                             content1 <- mapContent content0
                                             return (Just content1)
 
-                          
-                          setFontStyle (nodeActions object) 
-                             BoldItalicFontStyle
-                          
-                               
                           messageMess ("Commit of "++name++ " successful!")
                           return emacsContentOpt
                        )
@@ -366,6 +361,8 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                      writeData = writeData,
                      finishEdit = finishEdit
                      }
+
+               addEdit object
 
                return (content1,editedFile)
             )

@@ -107,6 +107,12 @@ module Link(
       -- :: HasCodedValue x => View -> [Link x] -> IO ()
       -- This function collects a lot of links in parallel.
 
+
+   getIsDirtySimpleSource, 
+      -- :: Versioned x -> SimpleSource Bool
+      -- Return a source which is True whenever the versioned value is
+      -- dirty (meaning that it has uncommitted data).
+
    ) where
 
 import Control.Concurrent
@@ -120,6 +126,8 @@ import Computation
 import Debug
 import Thread
 import BinaryAll
+import Sources
+import Broadcaster
 
 import VersionDB
 import ViewType
@@ -230,10 +238,12 @@ fetchOrSetLinkWE
                         Right status ->
                            do
                               statusMVar <- newMVar status
+                              statusBroadcaster <- newSimpleBroadcaster status
                               let
                                  versioned = Versioned {
                                     location = location,
-                                    statusMVar = statusMVar
+                                    statusMVar = statusMVar,
+                                    statusBroadcaster = statusBroadcaster
                                     }
                               return (Just(
                                  PresentObject {
@@ -378,7 +388,17 @@ cloneLink view1 (Link location1) view2 (Link location2) =
 
 data Versioned x = Versioned {
    location :: Location, -- Location in the view.
-   statusMVar :: MVar (Status x)
+   statusMVar :: MVar (Status x),
+   statusBroadcaster :: SimpleBroadcaster (Status x)
+      -- we keep this informed of the current status, mainly for the
+      -- purpose of updating information about when a link has been
+      -- modified.
+      --
+      -- Why not combine statusMVar & statusBroadcaster?  Because
+      -- (1) statusMVar came first and I can't be bothered to change it;
+      -- (2) statusBroadcaster really ought to be something that can
+      -- be accessed instantly to get out the last value, while sometimes
+      -- statusMVar has to be empty while we contact the server.
    }
 
 -- Make Versioned objects typeable (if x is).
@@ -398,7 +418,7 @@ mkObjectSourceFn :: HasCodedValue x => View
 -- a cloned object, and so this should be used if the object is marked
 -- as UpToDate.
 mkObjectSourceFn (view@View{repository = repository})
-      (Versioned {location = location,statusMVar = statusMVar}) 
+      (versioned@(Versioned {location = location,statusMVar = statusMVar})) 
       clonedOpt viewVersion =
    do
       status <- takeMVar statusMVar
@@ -420,7 +440,8 @@ mkObjectSourceFn (view@View{repository = repository})
             -> return (x,Just (Right (oldLocation,oldVersion)))
          Dirty x -> commitX x 
          Virgin x -> commitX x
-      putMVar statusMVar (UpToDate x)
+
+      putNewStatus versioned (UpToDate x)
       return objectSourceOpt
 
 data Status x = 
@@ -545,7 +566,7 @@ updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =
          Cloned _ _ _ -> return (Virgin x)
          UpToDate _ -> return (Dirty x)
          Dirty _ -> return (Dirty x)
-      putMVar statusMVar newStatus
+      putNewStatus versioned newStatus
 
 dirtyObject :: HasCodedValue x => View -> Versioned x -> IO ()
 dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
@@ -556,7 +577,7 @@ dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
          UpToDate x  -> return (Dirty x)
          _ -> return status
 
-      putMVar statusMVar newStatus
+      putNewStatus versioned newStatus
 
 readObject :: HasCodedValue x => View -> Versioned x -> IO x
 readObject view (versioned@Versioned{statusMVar = statusMVar} :: Versioned x) =
@@ -570,6 +591,39 @@ readObject view (versioned@Versioned{statusMVar = statusMVar} :: Versioned x) =
          Cloned x _ _ -> return x
          UpToDate x -> return x
          Dirty x -> return x
+
+putNewStatus :: Versioned x -> Status x -> IO ()
+putNewStatus versioned status =
+   do
+      broadcast (statusBroadcaster versioned) status
+      putMVar (statusMVar versioned) status
+
+-- ----------------------------------------------------------------------
+-- Access to whether the object is dirty or not
+-- ----------------------------------------------------------------------
+
+getIsDirtySimpleSource :: Versioned x -> SimpleSource Bool
+getIsDirtySimpleSource (versioned :: Versioned x) =
+   let
+      statusSource :: SimpleSource (Status x)
+      statusSource = toSimpleSource (statusBroadcaster versioned)
+
+      dirtySource1 :: SimpleSource Bool
+      dirtySource1 =
+         fmap
+            (\ status -> case status of
+               Empty -> True
+               Virgin _ -> True
+               Dirty _ -> True
+               Cloned _ _ _ -> False
+               UpToDate _ -> False
+               )
+            statusSource
+
+      dirtySource2 :: SimpleSource Bool
+      dirtySource2 = uniqSimpleSource dirtySource1
+   in
+      dirtySource2
 
 -- ----------------------------------------------------------------------
 -- Access to the lastChange
