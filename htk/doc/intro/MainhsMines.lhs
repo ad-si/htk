@@ -271,29 +271,6 @@ run htk currentSize =
     finishHTk
 
 
-detSize :: GUIValue a => TkVariable a -> IO (Int, Int)
-detSize x =
-	    do varx <- readTkVariable x
-	       if (show varx) == "\"size1\"" then return (6, 6)
-	        else 
-	         if (show varx) == "\"size2\"" then return (10, 10)
-	          else
-	           if (show varx) == "\"size3\"" then return (15, 15)
-	            else
-	             if (show varx) == "\"size4\"" then return (20, 20)
-	              else return (25,25)
-
-detDiff :: GUIValue a => TkVariable a -> IO Int
-detDiff x = 
-	    do varx <- readTkVariable x
-	       if (show varx) == "\"8\"" then return 8
-	        else
-		 if (show varx) == "\"6\"" then return 6
-		  else
-		   if (show varx) == "\"4\"" then return 4
-		    else return 3
-
-   
 \end{code}
 
 These are the bitmaps for the graphics, taken from gnomines. 
