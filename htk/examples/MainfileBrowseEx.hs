@@ -1,11 +1,13 @@
-{- --------------------------------------------------------------------
- -
- - file browse example (as an example for the treelist module)
- -
- - Author: ludi
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -13,10 +15,21 @@ import HTk
 import TreeList
 import Directory
 import System
+import Name
+import Concurrent(threadDelay)
 
 hidden :: FilePath -> Bool
 hidden ('.':_) = True
 hidden _ = False
+
+data FileObject = FileObject String String (IO Image)
+
+instance Eq FileObject where
+  FileObject path1 _ _ == FileObject path2 _ _ = path1 == path2
+
+instance CItem FileObject where
+  getName (FileObject _ nm _) = return (newName nm)
+  getIcon (FileObject _ _ img) = img
 
 getMatchedFiles :: [FilePath] -> FilePath -> IO [FilePath]
 getMatchedFiles fs abs = getMatchedFiles' fs [] abs
@@ -51,7 +64,8 @@ node abs fp =
         in containsFolder c
       _ -> return False
 
-toTreeListObjects :: String -> [FilePath] -> IO [TreeListObject String]
+toTreeListObjects :: String -> [FilePath] ->
+                     IO [TreeListObject FileObject]
 toTreeListObjects path (f : fs) =
   do
     p <- getPermissions (path ++ f)
@@ -61,41 +75,41 @@ toTreeListObjects path (f : fs) =
                   b <- node path f
                   return (if b then Node else Leaf)
               else return Leaf
-    let obj = newTreeListObject (path ++ f ++ "/") f isnode
+    let obj = newTreeListObject (FileObject (path ++ f ++ "/") f
+                                            folderImg) isnode
     objs <- toTreeListObjects path fs
     return (obj : objs)
 toTreeListObjects _ _ = return []
 
-cfun :: ChildrenFun String
+cfun :: ChildrenFun FileObject
 cfun obj =
   do
-    let val = getTreeListObjectValue obj
-    dcontents <- getDirectoryContents val
-    matched_files <- getMatchedFiles dcontents val
-    objs <- toTreeListObjects val matched_files
+    let (FileObject path _ _) = getTreeListObjectValue obj
+    dcontents <- getDirectoryContents path
+    matched_files <- getMatchedFiles dcontents path
+    objs <- toTreeListObjects path matched_files
     return objs
-
-ifun :: ImageFun String
-ifun _ = folderImg
 
 main :: IO ()
 main =
   do
-    main <- initHTk [text "file browse example"]
-    treelist <- newTreeList main cfun ifun
-                            [newTreeListObject "/" "/" Node]
-                            [background "white", size (cm 9, cm 10)]
-    pack treelist []
+    main <- initHTk [text "file browse example", size (cm 9, cm 10)]
+    tl <- newTreeList main cfun
+            [newTreeListObject (FileObject "/" "/" folderImg) Node]
+            [background "white"]
+    pack tl [Fill Both, Expand On]
 
     quit <- newButton main [text "Quit", width 15] :: IO (Button String)
     pack quit [Side AtBottom, PadX 10, PadY 5]
 
     clickedquit <- clicked quit
-    spawnEvent (forever (clickedquit >> always (destroy main)))
+    spawnEvent (clickedquit >> always (cleanUp tl >> destroy main))
 
+    sync (never)
+{-
     (htk_destr, _) <- bindSimple main Destroy
     sync htk_destr
-    destroy main    -- TD: Wish bleibt manchmal liegen. So gehts? Bug!
+-}
 
 folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7
