@@ -56,14 +56,23 @@ validate dtd' elem = walk (CElem elem)
     dtd = simplifyDTD dtd'
 
     walk (CElem (Elem name attrs contents)) =
-        let spec = lookupFM (elements dtd) name in 
+        let spec = lookupFM (elements dtd) name 
+            label = getLabel attrs
+        in 
         (isNothing spec) `gives` ("Element <"++name++"> not known.")
         ++ concatMap (checkAttr name) attrs
         ++ concatMap (checkRequired name attrs)
                      (fromMaybe [] (lookupFM (required dtd) name))
-        ++ checkContentSpec name (fromMaybe ANY spec) contents
+        ++ checkContentSpec name label (fromMaybe ANY spec) contents
         ++ concatMap walk contents
     walk _ = []
+
+    getLabel (("label", (AttValue [v])):as) = 
+      case v of
+        Left str -> str
+        _ -> ""
+    getLabel (a:as) = getLabel as                                             
+    getLabel [] = ""
 
     checkAttr elem (attr, val) =
         let typ = lookupFM (attributes dtd) (elem,attr)
@@ -87,104 +96,104 @@ validate dtd' elem = walk (CElem elem)
             ("Element <"++elem++"> requires the attribute \""++req
              ++"\" but it is missing.")
 
-    checkContentSpec elem ANY _ = []
-    checkContentSpec elem EMPTY [] = []
-    checkContentSpec elem EMPTY (_:_) =
-        ["Element <"++elem++"> is not empty but should be."]
-    checkContentSpec elem (Mixed PCDATA) cs = concatMap (checkMixed elem []) cs
-    checkContentSpec elem (Mixed (PCDATAplus names)) cs =
-        concatMap (checkMixed elem names) cs
-    checkContentSpec elem (ContentSpec cp) cs = excludeText elem cs ++
-        (let (errs,rest) = checkCP elem cp (flatten cs) in
+    checkContentSpec elem label ANY _ = []
+    checkContentSpec elem label EMPTY [] = []
+    checkContentSpec elem label EMPTY (_:_) =
+        ["Element <"++elem++"> with label '"++label++"' is not empty but should be."]
+    checkContentSpec elem label (Mixed PCDATA) cs = concatMap (checkMixed elem label []) cs
+    checkContentSpec elem label (Mixed (PCDATAplus names)) cs =
+        concatMap (checkMixed elem label names) cs
+    checkContentSpec elem label (ContentSpec cp) cs = excludeText elem label cs ++
+        (let (errs,rest) = checkCP elem label cp (flatten cs) in
          case rest of [] -> errs
-                      _  -> errs++["Element <"++elem++"> contains more elements" ++
+                      _  -> errs++["Element <"++elem++"> with label '"++label++"' contains more elements" ++
                                   " beyond its content spec."])
 
-    checkMixed elem permitted (CElem (Elem name _ _))
+    checkMixed elem label permitted (CElem (Elem name _ _))
         | not (name `Prelude.elem` permitted) =
-            ["Element <"++elem++"> contains an element <"++name
+            ["Element <"++elem++"> with label '"++label++"' contains an element <"++name
              ++"> but should not."]
-    checkMixed elem permitted _ = []
+    checkMixed elem label permitted _ = []
 
     flatten (CElem (Elem name _ _): cs) = name: flatten cs
     flatten (_: cs)                     = flatten cs
     flatten []                          = []
 
-    excludeText elem (CElem _: cs) = excludeText elem cs
-    excludeText elem (CMisc _: cs) = excludeText elem cs
-    excludeText elem (_:  cs) =
-        ["Element <"++elem++"> contains text/references but should not."]
+    excludeText elem label (CElem _: cs) = excludeText elem cs
+    excludeText elem label (CMisc _: cs) = excludeText elem cs
+    excludeText elem label (_:  cs) =
+        ["Element <"++elem++"> with label '"++label++"' contains text/references but should not."]
     excludeText elem [] = []
 
     -- This is a little parser really.  Returns errors, plus the remainder
     -- of the input string.
-    checkCP :: Name -> CP -> [Name] -> ([String],[Name])
-    checkCP elem cp@(TagName n None) [] = (cpError elem cp, [])
-    checkCP elem cp@(TagName n None) (n':ns)
+    checkCP :: Name -> String -> CP -> [Name] -> ([String],[Name])
+    checkCP elem label cp@(TagName n None) [] = (cpError elem label cp, [])
+    checkCP elem label cp@(TagName n None) (n':ns)
         | n==n'     = ([], ns)
         | otherwise = (cpError elem cp, n':ns)
-    checkCP elem cp@(TagName n Query) [] = ([],[])
-    checkCP elem cp@(TagName n Query) (n':ns)
+    checkCP elem label cp@(TagName n Query) [] = ([],[])
+    checkCP elem label cp@(TagName n Query) (n':ns)
         | n==n'     = ([], ns)
         | otherwise = ([], n':ns)
-    checkCP elem cp@(TagName n Star) [] = ([],[])
-    checkCP elem cp@(TagName n Star) (n':ns)
-        | n==n'     = checkCP elem (TagName n Star) ns
+    checkCP elem label cp@(TagName n Star) [] = ([],[])
+    checkCP elem label cp@(TagName n Star) (n':ns)
+        | n==n'     = checkCP elem label (TagName n Star) ns
         | otherwise = ([], n':ns)
-    checkCP elem cp@(TagName n Plus) [] = (cpError elem cp, [])
-    checkCP elem cp@(TagName n Plus) (n':ns)
-        | n==n'     = checkCP elem (TagName n Star) ns
+    checkCP elem label cp@(TagName n Plus) [] = (cpError elem label cp, [])
+    checkCP elem label cp@(TagName n Plus) (n':ns)
+        | n==n'     = checkCP elem label (TagName n Star) ns
         | otherwise = (cpError elem cp, n':ns)
-    checkCP elem cp@(Choice cps None) [] = (cpError elem cp, [])
-    checkCP elem cp@(Choice cps None) ns =
-        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem cp ns) cps ] in
-        if null next then (cpError elem cp, ns)
+    checkCP elem label cp@(Choice cps None) [] = (cpError elem label cp, [])
+    checkCP elem label cp@(Choice cps None) ns =
+        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem label cp ns) cps ] in
+        if null next then (cpError elem label cp, ns)
         else ([], head next)	-- choose the first alternative with no errors
-    checkCP elem cp@(Choice cps Query) [] = ([],[])
-    checkCP elem cp@(Choice cps Query) ns =
-        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem cp ns) cps ] in
+    checkCP elem label cp@(Choice cps Query) [] = ([],[])
+    checkCP elem label cp@(Choice cps Query) ns =
+        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem label cp ns) cps ] in
         if null next then ([],ns)
         else ([], head next)
-    checkCP elem cp@(Choice cps Star) [] = ([],[])
-    checkCP elem cp@(Choice cps Star) ns =
-        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem cp ns) cps ] in
+    checkCP elem label cp@(Choice cps Star) [] = ([],[])
+    checkCP elem label cp@(Choice cps Star) ns =
+        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem label cp ns) cps ] in
         if null next then ([],ns)
-        else checkCP elem (Choice cps Star) (head next)
-    checkCP elem cp@(Choice cps Plus) [] = (cpError elem cp, [])
-    checkCP elem cp@(Choice cps Plus) ns =
-        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem cp ns) cps ] in
-        if null next then (cpError elem cp, ns)
-        else checkCP elem (Choice cps Star) (head next)
-    checkCP elem cp@(Seq cps None) [] = (cpError elem cp, [])
-    checkCP elem cp@(Seq cps None) ns =
-        let (errs,next) = sequence elem ns cps in
+        else checkCP elem label (Choice cps Star) (head next)
+    checkCP elem label cp@(Choice cps Plus) [] = (cpError elem label cp, [])
+    checkCP elem label cp@(Choice cps Plus) ns =
+        let next = [ rem | ([],rem) <- map (\cp-> checkCP elem label cp ns) cps ] in
+        if null next then (cpError elem label cp, ns)
+        else checkCP elem label (Choice cps Star) (head next)
+    checkCP elem label cp@(Seq cps None) [] = (cpError elem label cp, [])
+    checkCP elem label cp@(Seq cps None) ns =
+        let (errs,next) = sequence elem label ns cps in
         if null errs then ([],next)
-        else (cpError elem cp++errs, ns)
-    checkCP elem cp@(Seq cps Query) [] = ([],[])
-    checkCP elem cp@(Seq cps Query) ns =
-        let (errs,next) = sequence elem ns cps in
+        else (cpError elem label cp++errs, ns)
+    checkCP elem label cp@(Seq cps Query) [] = ([],[])
+    checkCP elem label cp@(Seq cps Query) ns =
+        let (errs,next) = sequence elem label ns cps in
         if null errs then ([],next)
         else ([], ns)
-    checkCP elem cp@(Seq cps Star) [] = ([],[])
-    checkCP elem cp@(Seq cps Star) ns =
-        let (errs,next) = sequence elem ns cps in
-        if null errs then checkCP elem (Seq cps Star) next
+    checkCP elem label cp@(Seq cps Star) [] = ([],[])
+    checkCP elem label cp@(Seq cps Star) ns =
+        let (errs,next) = sequence elem label ns cps in
+        if null errs then checkCP elem label (Seq cps Star) next
         else ([], ns)
-    checkCP elem cp@(Seq cps Plus) [] = (cpError elem cp, [])
-    checkCP elem cp@(Seq cps Plus) ns =
-        let (errs,next) = sequence elem ns cps in
-        if null errs then checkCP elem (Seq cps Star) next
-        else (cpError elem cp++errs, ns)
+    checkCP elem label cp@(Seq cps Plus) [] = (cpError elem label  cp, [])
+    checkCP elem label cp@(Seq cps Plus) ns =
+        let (errs,next) = sequence elem label ns cps in
+        if null errs then checkCP elem label (Seq cps Star) next
+        else (cpError elem label cp++errs, ns)
 
-    sequence elem ns cps =
-        foldl (\(es,ns) cp-> let (es',ns') = checkCP elem cp ns
+    sequence elem label ns cps =
+        foldl (\(es,ns) cp-> let (es',ns') = checkCP elem label cp ns
                              in (es++es', ns'))
               ([],ns) cps
 
 
-cpError :: Name -> CP -> [String]
-cpError elem cp =
-    ["Element <"++elem++"> should contain "++display cp++" but does not."]
+cpError :: Name -> String -> CP -> [String]
+cpError elem label cp =
+    ["Element <"++elem++"> with label '"++label++"' should contain "++display cp++" but does not."]
 
 
 display :: CP -> String

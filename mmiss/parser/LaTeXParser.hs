@@ -160,7 +160,7 @@ commaSep p = p `sepBy` (oneOf ",")
 -- equalSep p = p `sepBy` (oneOf "=")
 
 listTypeParser :: GenParser Char st String
-listTypeParser = try(string "itemize") <|> try(string "enumeration") <|> return ("")
+listTypeParser = try(string "itemize") <|> try(string "enumerate") <|> return ("")
 
 
 {- attParser parses the list of attributes belonging to an MMiSS-Environment -}

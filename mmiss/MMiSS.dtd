@@ -236,7 +236,7 @@
 <?MMiSSDisplay bibEntry : Green ellipse ?>
 
 <!ELEMENT list  (listItem)*>
-<!ATTLIST list  listType  (itemize | enumeration | description)  #IMPLIED
+<!ATTLIST list  listType  (itemize | enumerate | description)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
                 %attributes;>
 <?MMiSSDisplay list : Green ellipse ?>
