@@ -3,12 +3,12 @@
 module EntityNames(
    EntityName, 
       -- a name identifying a single item in a folder
-   EntityFullName, 
+   EntityFullName(..), 
       -- identifies a sequence of names, the first one being
       -- the most significant.
-   EntitySearchName,
+   EntitySearchName(..),
       -- An EntityFullName but possibly 
-   EntityPath, -- Specifies a list of full paths to search; may also 
+   EntityPath(..), -- Specifies a list of full paths to search; may also 
       -- specify relative paths.
    ) where
 
@@ -29,8 +29,7 @@ import CodedValue
 ---
 -- Example EntityName's "a", "bc".  In general a non-empty sequence of
 -- characters none of which may be ".", "/" or ":".
-newtype EntityName = EntityName String
-
+newtype EntityName = EntityName String deriving (Eq,Ord,Show)
 ---
 -- An EntityFullName is a name for some object, relative to some other
 -- object.  "." represents that other object.

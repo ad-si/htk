@@ -17,6 +17,15 @@ module Sources(
       -- returns a source which can change.  The supplied action
       -- changes it.
 
+   variableGeneralSource,
+      -- :: x -> IO (Source x d,Updater x d)
+      -- Like variableSource, but allows the provider of new values to
+      -- get out an extra value.  For this it is necessary to go
+      -- via the Updater type.
+
+   Updater,
+   applyToUpdater, -- :: Updater x d -> (x -> (x,[d],extra)) -> IO extra
+
    -- Client side
    attachClient, -- :: Client d -> Source x d -> IO x
 
@@ -51,11 +60,26 @@ module Sources(
       -- newtype for Source x x
       -- Instance of Functor and Monad
 
+   staticSimpleSource, -- :: x -> SimpleSource x
+
    -- We also instance CanAddSinks (SimpleSource x) x x.
    -- This is done via the following class
    HasSource(..),
    HasSimpleSource(..),
 
+   -- miscellaneous handy utilities,
+   mkHistorySource, -- :: (x -> d) -> Source x d -> Source x (d,d)
+   mkHistorySimpleSource, -- :: x -> SimpleSource x -> SimpleSource (x,x)
+   uniqSimpleSource, -- :: Eq x => SimpleSource x -> SimpleSource x
+
+   pairSimpleSources, 
+      -- :: SimpleSource x1 -> SimpleSource x2 -> SimpleSource (x1,x2)
+      -- Pair two SimpleSource's.  This is probably better than using >>=, 
+      -- since it does not require reregistering with the second SimpleSource
+
+   sequenceSimpleSource, -- :: [SimpleSource x] -> SimpleSource [x]
+   -- Does a similar job to pairSimpleSources, so that the sources run
+   -- parallel.
    ) where
 
 import Maybe
@@ -117,6 +141,46 @@ variableSource x =
                putMVar mVar (SourceData {x = x,client = Just fullNewClient})
                return x
       return (Source addClient,update)
+
+
+newtype Updater x d = Updater (forall extra . (x -> (x,[d],extra)) -> IO extra)
+
+applyToUpdater :: Updater x d -> (x -> (x,[d],extra)) -> IO extra
+applyToUpdater (Updater update) updateAct = update updateAct
+
+variableGeneralSource :: x -> IO (Source x d,Updater x d)
+variableGeneralSource x =
+   do
+      mVar <- newMVar (SourceData {
+         x = x,
+         client = Nothing
+         })
+      let
+         update updateFn =
+            do
+               (SourceData {x = x1,client = clientOpt}) <- takeMVar mVar
+ 
+               let
+                  (x2,ds,extra) = updateFn x1
+                  sendUpdates (Just (Client clientFn)) (d:ds) =
+                     do
+                        newClientOpt <- clientFn d
+                        sendUpdates newClientOpt ds
+                  sendUpdates clientOpt _ = return clientOpt
+
+               newClientOpt <- sendUpdates clientOpt ds
+               putMVar mVar (SourceData {x = x2,client = newClientOpt})
+               return extra
+         addClient newClient =
+            do
+               (SourceData {x = x,client = oldClientOpt}) <- takeMVar mVar
+               let
+                  fullNewClient = case oldClientOpt of
+                     Nothing -> newClient
+                     Just oldClient -> combineClients oldClient newClient
+               putMVar mVar (SourceData {x = x,client = Just fullNewClient})
+               return x
+      return (Source addClient,Updater update)
 
 combineClients :: Client d -> Client d -> Client d
 combineClients (Client clientFn1) (Client clientFn2) =
@@ -448,6 +512,9 @@ seqSource (source1 :: Source x1 x1) (getSource2 :: x1 -> Source x2 d2) =
 
 newtype SimpleSource x = SimpleSource (Source x x)
 
+staticSimpleSource :: x -> SimpleSource x
+staticSimpleSource x = SimpleSource (staticSource x)
+
 instance Functor SimpleSource where
    fmap mapFn (SimpleSource source) = 
       SimpleSource ( (map1 mapFn) . (map2 mapFn) $ source)
@@ -512,3 +579,63 @@ instance HasSource hasSource x d => CanAddSinks hasSource x d where
 
             clientFn _ = return Nothing
          attachClient client (toSource hasSource)
+
+-- -----------------------------------------------------------------
+-- Other handy utilities
+-- -----------------------------------------------------------------
+
+---
+-- Pair two SimpleSource's.  This is probably better than using >>=, since it
+-- does not require reregistering with the second SimpleSource
+pairSimpleSources :: SimpleSource x1 -> SimpleSource x2 -> SimpleSource (x1,x2)
+pairSimpleSources (SimpleSource source1) (SimpleSource source2) =
+   let
+      sourceChoose = choose source1 source2
+      source =
+         foldSource 
+            id 
+            (\ (x1,x2) change -> 
+               let
+                  new = case change of
+                     Left newX1 -> (newX1,x2)
+                     Right newX2 -> (x1,newX2)
+               in
+                  (new,new)
+               )
+            sourceChoose
+   in
+      SimpleSource (map1 fst source)
+
+---
+-- Does a similar job to pairSimpleSources, so that the sources run
+-- parallel.
+sequenceSimpleSource :: [SimpleSource x] -> SimpleSource [x]
+sequenceSimpleSource [] = return []
+sequenceSimpleSource (first:rest) =
+   fmap (uncurry (:)) (pairSimpleSources first (sequenceSimpleSource rest))
+
+---
+-- For each update d, pairs it with its predecessor (given first).
+-- For the very first update, a value is given based on the initial x,
+-- mapped by the given function.
+mkHistorySource :: (x -> d) -> Source x d -> Source x (d,d)
+mkHistorySource getD source =
+   map1 (\ (x,d) -> x) (foldSource getD (\ lastD d -> (d,(lastD,d))) source)
+
+---
+-- Like mkHistorySource but for SimpleSource's; the x returns the initial
+-- value to compare with.
+mkHistorySimpleSource :: x -> SimpleSource x -> SimpleSource (x,x)
+mkHistorySimpleSource lastX (SimpleSource source) =
+   SimpleSource (map1 (\ x -> (lastX,x)) (mkHistorySource id source))
+
+---
+-- filter out consecutive duplicates
+uniqSimpleSource :: Eq x => SimpleSource x -> SimpleSource x
+uniqSimpleSource (SimpleSource source0) =
+   let
+      source1 = mkHistorySource id source0
+      source2 = filter2 (\ (lastD,d) -> if lastD == d then Nothing else Just d)
+         source1
+   in
+      SimpleSource source2

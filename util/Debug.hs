@@ -14,6 +14,7 @@ DESCRIPTION   : This module provides a uniform interface for debugging
 
 module Debug(
   debug, -- show something to log file if debugging is turned on.
+  debugTest, -- test a condition, if debugging is turned on.
 
   debugAct, 
   -- If an action fails print out a message before
@@ -85,7 +86,10 @@ debugAct mess act =
                throw error
          Right success -> return success
 
-      
+debugTest :: Show a => Bool -> a -> IO ()
+debugTest True val = return ()
+debugTest False val = hPutStr stderr ("Debug.debugCond: "++show val)
+
 #else
 debugString :: String -> IO ()
 debugString _ = return ()
@@ -93,10 +97,14 @@ debugString _ = return ()
 debug :: Show a => a -> IO()
 debug _ = return ()
 
+debugTest :: Show a => Bool -> a -> IO ()
+debugTest _ _ = done
+
 debugAct :: String -> IO a -> IO a
 debugAct _ act = act
 
 {-# inline debug #-}
+{-# inline debugTest #-}
 {-# inline debugAct #-}
 
 #endif

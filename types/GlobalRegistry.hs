@@ -219,13 +219,14 @@ lookupInGlobalRegistry globalRegistry view key =
 
 ---
 -- Add a new object type (with name created by newKey) 
--- This is harmless if done more than once.
+-- This is harmless if done more than once; the second insertion is ignored.
 addToGlobalRegistry :: GlobalRegistry objectType -> View -> GlobalKey ->
       objectType -> IO ()
 addToGlobalRegistry globalRegistry view key objectType =
    do
       viewData <- lookupViewData globalRegistry view
       addToVariableMap (objectTypes viewData) key objectType
+      done
 
 ---
 -- Like addToGlobalRegistry, but only adds the object type if there is

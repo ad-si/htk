@@ -23,6 +23,7 @@ import Monad
 
 import Concurrent
 import IOExts
+import Control.Concurrent.Chan
 
 import Computation
 import Object
@@ -180,26 +181,23 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
    ---
    -- Create and add a new sink containing the given action.
    addNewSink :: sinkSource -> (delta -> IO ()) -> IO (x,Sink delta)
-   addNewSink sinkSource action = addNewQuickSink sinkSource
-      (\ delta ->
-         do
-            forkIO (action delta)
-            done
-         )
+   addNewSink sinkSource action = 
+      do
+         parallelX <- newParallelExec
+         addNewQuickSink sinkSource
+            (\ delta -> parallelExec parallelX (action delta))
 
    ---
    -- Like addNewSink, but use the supplied SinkID
    addNewSinkGeneral :: sinkSource -> (delta -> IO ()) -> SinkID 
       -> IO (x,Sink delta)
    addNewSinkGeneral sinkSource action sinkID = 
-      addNewQuickSinkGeneral 
-         sinkSource 
-         (\ delta ->
-            do
-               forkIO (action delta)
-               done
-            )
-         sinkID
+      do
+         parallelX <- newParallelExec
+         addNewQuickSinkGeneral 
+            sinkSource 
+            (\ delta -> parallelExec parallelX (action delta))
+            sinkID
 
    ---
    -- Like addNewSink, but the action is guaranteed to terminate quickly
@@ -234,3 +232,31 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
    -- Adds a pre-existing sink.
    addOldSink :: sinkSource -> Sink delta -> IO x
 
+-- -------------------------------------------------------------------------
+-- A ParallelExec executes actions concurrently in a separate thread
+-- 
+-- Apart from (probably) being cheaper than forking off a new thread 
+-- each time, it also guarantees the order of the actions.
+--
+-- There is no way of stopping the thread, but we expect the garbage-collector
+-- to do it.
+-- -------------------------------------------------------------------------
+
+newtype ParallelExec = ParallelExec (Chan (IO ()))
+
+newParallelExec :: IO ParallelExec
+newParallelExec =
+   do
+      chan <- newChan
+      let
+         parallelExecThread =
+            do
+               act <- readChan chan
+               act
+               parallelExecThread
+
+      forkIO parallelExecThread
+      return (ParallelExec chan)
+
+parallelExec :: ParallelExec -> IO () -> IO ()
+parallelExec (ParallelExec chan) act = writeChan chan act
