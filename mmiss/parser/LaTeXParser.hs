@@ -7,7 +7,7 @@ module LaTeXParser (
    -- new :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
    -- The same, for a file.
    makeMMiSSLatex,
-   -- :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent TypedName)
+   -- :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
    -- Turns an Element into a MMiSSLaTeX source
    -- If the Bool is set, attaches a preamble.
 
@@ -319,6 +319,12 @@ lParams id l
                           p <- return [(Other str)]
                           return (LParams [(SingleParam p '{')] [] Nothing Nothing)
 
+  | id == "Properties" =
+      do pos <- getPosition
+	 attributes <- try(between (char '{') (char '}') attParser)
+		       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ ">")) 
+         return (LParams [] attributes Nothing Nothing)
+
   | id `elem` (map fst includeCommands) =
       do pos <- getPosition
          labelId <-  try(between (char '{') (char '}') idParser)
@@ -579,15 +585,17 @@ findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatex
 findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
 findFirstEnv ((Env "Package" ps fs):_) preambleFs _ = 
-  let atts1 = makeAttribs ps "Package" 
+  let propAtts = case (getProperties preambleFs) of
+                   Just(propPs) -> makeAttribs propPs "Package"
+                   Nothing -> []
+      packAtts = makeAttribs ps "Package" 
+      atts1 = unionAttributes propAtts packAtts
       atts2 = case (getPathAttrib preambleFs) of
                 (Just a) -> [a]
                 Nothing -> []
       atts = atts1 ++ atts2
       content = makeContent fs NoText "package"
       preamble = makePreamble preambleFs
---      preamblePI = (CMisc (PI ("mmiss:LaTeX-Preamble", makeTextElem preambleFs)))
---      newContent = mapWithError (map (addPreamble preamblePI)) content
   in case (fromWithError content) of
        Right c -> pairWithError (hasValue(Elem "package" atts c)) preamble
        Left err -> pairWithError (hasError(err)) preamble
@@ -596,8 +604,6 @@ findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument =
   if (name `elem` (map fst (plainTextAtoms ++ envsWithText ++ envsWithoutText))) then
     let content = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
         preamble = makePreamble preambleFs
---        preamblePI = (CMisc (PI ("mmiss:LaTeX-Preamble", makeTextElem preambleFs)))
---	c1 = mapWithError (map (addPreamble preamblePI)) c
     in case (fromWithError content) of
          (Left str) -> pairWithError (hasError(str)) preamble
          (Right cs) -> if ((genericLength cs) == 0) 
@@ -1130,6 +1136,13 @@ getPathAttrib (f:fs) = getPathAttrib fs
 getPathAttrib [] = Nothing 
 
 
+getProperties :: [Frag] -> Maybe Params
+
+getProperties ((Command "Properties" ps):fs) = Just(ps)
+getProperties (f:fs) = getProperties fs
+getProperties [] = Nothing
+
+
 makeAttribs :: Params -> String -> [Attribute]
 
 makeAttribs ps name = 
@@ -1185,6 +1198,11 @@ makeDefineAttribs (LParams ((SingleParam ((Other labelId):[]) _):_) atts _ _) =
 makeDefineAttribs _ = []
 
 
+unionAttributes :: [Attribute] -> [Attribute] -> [Attribute]
+unionAttributes xs ys = unionBy (eqAttPair) xs ys
+
+eqAttPair a b = (fst a) == (fst b)
+
 -- getLinkText erwartet die Params eines Link oder Reference-Elementes und extrahiert daraus
 -- den LinkText, der im ersten SingleParam steht und leer sein kann.
 
@@ -1217,8 +1235,7 @@ getEmphasisText (LParams ((SingleParam ((Other s):[]) _):ps) _ _ _) = s
     ob eine Praeambel erzeugt werden soll (True) oder nicht (False).
 --}
 
--- makeMMiSSLatex :: (Element, Bool) -> WithError ((EmacsContent (String, Char)),  MMiSSLatexPreamble)
-makeMMiSSLatex :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent (String, Char))
+makeMMiSSLatex :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
 
 makeMMiSSLatex ((Elem name atts content), preOut, preambles) = 
   let items = fillLatex preOut [(CElem (Elem name atts content))] []
@@ -1227,14 +1244,15 @@ makeMMiSSLatex ((Elem name atts content), preOut, preambles) =
                        Nothing -> []
                        (Just(pre)) -> [(EditableText (makePreambleText pre))]
    in if preOut 
-       then 
-         let beginDocument = [EditableText "\\begin{document}\n"]
-             endDocument = [EditableText "\n\\end{document}"]
-         in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)))
-       else hasValue((EmacsContent items))
+        then 
+          let beginDocument = [EditableText "\\begin{document}\n"]
+              endDocument = [EditableText "\n\\end{document}"]
+           in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)))
+        else hasValue((EmacsContent items))
 
 
-fillLatex :: Bool -> [Content] -> [EmacsDataItem (String, Char)] -> [EmacsDataItem (String, Char)]
+fillLatex :: Bool -> [Content] -> [EmacsDataItem ((String, Char), [Attribute])] 
+               -> [EmacsDataItem ((String, Char), [Attribute])]
 
 fillLatex out [] l = l
 
@@ -1267,7 +1285,7 @@ fillLatex out ((CElem (Elem ('i':'n':'c':'l':'u':'d':'e':unit) atts _)):cs) inLi
        in fillLatex out cs (inList ++ items)
      else
        let labelId = getParam "included" atts
-           item = [EmacsLink (labelId, (fromIncludeStr unit))]
+           item = [EmacsLink ((labelId, (fromIncludeStr unit)), atts)]
        in fillLatex out cs (inList ++ item)
 
 fillLatex out ((CElem (Elem name atts contents)):cs) inList
@@ -1374,7 +1392,7 @@ getAttribs [] str _ = if ((take 1 str) == ",")
 getAttribs ((name, (AttValue [(Left value)])):as) str excludeList = 
    if (name `elem` excludeList)
      then getAttribs as str excludeList
-     else getAttribs as (str ++ "," ++ attNameToLatex(name) ++ "=" ++ value) excludeList                
+     else getAttribs as (str ++ "," ++ attNameToLatex(name) ++ "={" ++ value ++ "}") excludeList                
 
 
 attNameToLatex :: String -> String
@@ -1543,10 +1561,10 @@ parseMakeParse name = do root <- parseMMiSSLatexFile name
                          return(parseMMiSSLatex str)
 --}
 
-getStrOfEmacsDataItem :: EmacsDataItem (String, Char) -> String
+getStrOfEmacsDataItem :: EmacsDataItem ((String, Char), [Attribute]) -> String
 
 getStrOfEmacsDataItem (EditableText str) = str
-getStrOfEmacsDataItem (EmacsLink (str,c)) = str ++ [c]                                   
+getStrOfEmacsDataItem (EmacsLink ((str,c), _)) = str ++ [c]                                   
 
 
 append :: a -> [a] -> [a]
