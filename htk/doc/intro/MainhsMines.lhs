@@ -1,26 +1,32 @@
+
 \section{The HsMines Game}
 
+\textit{Contributed by Christoph Grimmer
+  \texttt{<crimson@informatik.uni-bremen.de>}}
+
 As an example for more complex GUI programming, we will now develop a
-GUI for a Minesweeper like game called HsMines. Just in case you do
-not know Minesweeper or some of its many clones I'll give a short
+GUI for a Minesweeper like game called hsMines. Just in case you do
+not know Minesweeper or any of its many clones I'll give a short
 overview.
 
 \subsection{What's that game?}
-Playing Minesweeper you have a grid of about 15x15 similar fields.
+Playing Minesweeper you have a grid of about 15 by 15 similar fields.
 Hidden inside these fields could be a mine or just an empty field --
 you wont know until you click at the field and are eventually shred to
-pieces by some nasty mine. Goal of the game is to find all the mines
-and mark them with tiny flags. An nearly impossible task. To make the
+pieces by some nasty mine. The goal of the game is to find all the mines
+and mark them with tiny flags --- a nearly impossible task. To make the
 game any fun you are told the exact amount of mines around the field
 you just opened. If this number is 0, it's safe to explore all the
-adjacent fields. And because this is a stupid task the machine does it
+adjacent fields. And because this is a stupid task, the machine does it
 for you. If you manage to explore all empty fields you win, if you
 find one of the mines, you lose, best time gets the highscore.  Simple
 as that.
 
-For this is not a course in haskell programming I will not spent many
+This is not a course in Haskell programming I will not spent many
 words on the games code itself and will come straight to the very
-heart of this section, the HsMines GUI.
+heart of this section, the hsMines GUI. You can find the source for
+the game (and this text) in \texttt{htk/doc/intro/MainhsMines.lhs}, in
+case you are curious.
 
 % Here is all of the code I did not talk about but that is
 % needed to make the programm compileable
@@ -42,8 +48,7 @@ import DialogWin (createAlertWin,createMessageWin)
 -- The state of a single field.
 data State = Cleared Int 
            | Unexplored { flagged :: Bool,
-                          mine    :: Bool 
-                        }
+                          mine    :: Bool }
 
 -- A field is still untouched if it is neither cleared nor flagged
 untouched :: State-> Bool
@@ -213,9 +218,9 @@ smWinImg = unsafePerformIO (newImage [imgData GIF "R0lGODdhIAAgAPcAALLA3NjXz+Hao
 \end{code}
 \end{comment}
 
-\subsection{In the beginning\dots}
-\dots, as we have read, is the window. And for we are running compiled
-code here, it's created in the \texttt{main} function.
+\subsection{In the beginning is the Window}
+As we have read, it all starts with a window. And since we are running
+compiled code here, it's created in the \texttt{main} function.
 
 \begin{code}
 main = 
@@ -226,28 +231,31 @@ run :: HTk-> (Int, Int)-> IO ()
 run htk currentSize = 
  do main <- createToplevel [text "hsMines"]
 \end{code}
-\begin{verbatim}
-    finishHTk
-\end{verbatim}
 
 Having only this, the GUI would look rather boring, but it's not bad
-for just a few lines of code, isn't it? It looks a bit bent in a loop
-but we will see later that this is needed to make the field
-resizeable.
+for just a few lines of code, isn't it? It looks a bit awkward but we
+will see later that this is needed to make the field resizeable. If
+this were all the program, we would need a line 
+\begin{xcode}
+    finishHTk
+\end{xcode}
+to clean up everything and finish. With that, our program would like
+shown in Fig.~\ref{fig:hsMines-initial}.
 
-The last line is necessary to clean up all we've kicked loose so far.
+%% The last line is necessary to clean up all we've kicked loose so far.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \begin{center}
-\includegraphics[scale=0.6]{img/hsMines/screenshot01}
-\caption{The hsMines window}
+\includegraphics[width=4.2cm]{img/hsMines/screenshot01}
+\caption{The hsMines window, initial state.}
+\label{fig:hsMines-initial}
 \end{center}
 \end{figure}
 
 \subsection{Menus}
 
-What would a GUI be without them? Somewhat empty as it seems. So let's
-create some menus.
+Let's start start building the interface, then. Every interface needs
+menus, so let's create some.
 
 \begin{code}
     menubar <- createMenu main False []
@@ -269,44 +277,42 @@ create some menus.
     pmc2 # menu pmc2m
 \end{code}
 
-To this point we create a number of menus and pulldowns. Let's go
-through this step by step.  In line 1 we create an \texttt{menu}
-inside \emph{main} (our window) that was created in \texttt{run}. In
-line 2 we tell \HTk to asign this new \texttt{menu} we call
+Let's go through this step by step.  In line 1 we create a menu inside
+\emph{main} (our window) that was created in \texttt{run} above. In
+line 2 we tell \HTk to attach this new \texttt{menu} we call
 \emph{menubar} to be the \texttt{menu} of \emph{main}.
 
 In line 3 (we will not count the empty lines), we create our first
-\texttt{pulldown menu} -- that is what actually is normaly called a
-menu. This \texttt{pulldown menu} is created inside \emph{menubar}, is
-called \emph{fm} and has the charming \texttt{text} "`File"'. For not
-leaving this menu (or \texttt{pulldown menu}) empty, we create menu
-entrys so called \texttt{menu commands} inside \emph{fm}. So by now we
-have \emph{restb} and \emph{quitb} inside \emph{fm} inside
+pulldown menu --- that is what actually is normaly called a menu. This
+pulldown menu is created inside \emph{menubar}, is called \emph{fm}
+and has the charming text `File'. To fill this menu empty, we create
+menu entries, called menu commands inside \emph{fm}; a menu command is
+the simplest form of menu item which you can just select (or not). So
+by now we have \emph{restb} and \emph{quitb} inside \emph{fm} inside
 \emph{menubar} inside \emph{main}.
 
-This is quit nice but we will try to put some more functionality into
-our menu besides restarting and quiting the game. And as we read
+Besides restarting and quitting, we will need to put some more
+functionality into our menu. As we read
 above, the game grid will be resizeable so we will need a
-"`Preferences"' menu to have these commands in.
+`Preferences' menu to have these commands in.
 
-We create a second \texttt{pulldown menu} in \emph{menubar} called
-\emph{pm}. In this menu we nest to submenus called \texttt{menu
-  cascades}. Each of the cascades has a name, \emph{pmc1} and
-\emph{pmc2}, and a \texttt{String} set to it's \texttt{text}. The next
-step is a bit tricky. One would expect now to fill the cascades
+We create a second pulldown menu in \emph{menubar} called
+\emph{pm}. In this menu we nest to submenus (called menu
+  cascades). Each of the cascades has a name, \emph{pmc1} and
+\emph{pmc2}, and a text configuration set to its title. The next
+step is a bit tricky. One would now expect to fill the cascades
 directly with some commands. But the \texttt{menu cascades} are only
-\texttt{Containers} fit to hold a \texttt{menu}. So we have to create
-another two menus inside \emph{main} and asign them to the two
+\texttt{Containers} holding other menus, so we have to create
+another two menus inside \emph{main} and assign them to the two
 cascades.  These two menus are called \emph{pmc1m} and \emph{pmc2m}
-which should be an abreviation "`Prefernce Menu Cascade 1's Menu"'
-respectivly 2.
+which should be an abreviation for preference menu cascade first menu
+(and second respectively).
 
-By now we have a \texttt{menu} which holds two \texttt{pulldown
-  menus}. The first contains two \texttt{commands}, the second
-contains two \texttt{cascades} which in turn each contain a
-\texttt{menu} again. To make sense of these menus we have to fill them
-of course. And finally we have to put some functions behind all those
-commands and what so ever or this would all be for naught.
+By now we have a menu bar which holds two pulldown menus. The first
+contains two commands, the second contains two cascades which in turn
+each contain a menu again. To make sense of these two submenus we have
+to fill them of course. And finally we have to put some functions
+behind all those commands or this would all be for naught.
 
 \begin{code}
     varSize <- createTkVariable currentSize
@@ -340,31 +346,37 @@ commands and what so ever or this would all be for naught.
             [text "nuts", value (3::Int),
              variable varDiff]
 \end{code}
-In the code above we do several new things. First we create a new
-\texttt{Tk variable} named \emph{varSize} and a few lines later one
-called \emph{varDiff}. These are necessary to remember things we do to
-our GUI like in this case switching a button.  Our next step is to
-create a \texttt{menu radio button}\footnote{ 
-  A radio button is a button with several instances. Each of the
-  instances is shown, can be selected and is bound to a different
-  value but to the same variable. By selecting one of the instances
-  the according value is asign to the variable. Because a variable can
-  only have one value at a given time, only one of the instances can
-  be selected.}
-in each of the two submenus. The first \texttt{radio button} asigns
-\texttt{tuples of Int} to the Variable \emph{varSize}, the actual
-values are given in a couple of functions above in the code which can
-be fully seen in the source.
+
+\begin{wrapfigure}[17]{l}{7cm}
+  \begin{center}
+    \includegraphics[width=6cm]{img/hsMines/screenshot02}
+    \caption{The hsMines main window with an open menu}
+    \label{fig:hsMine-menu}
+  \end{center}
+\end{wrapfigure}
+In the code above we do several new things. First we create two Tk
+variables called \emph{varSize} and \emph{varDiff}. These are
+necessary to hold the state of the GUI, in this case the user's
+selection.  Our next step is to create a menu radio button in each of
+the two submenus. The first radio button assigns pairs of integers to
+the TkVariable \emph{varSize}, the actual values are as indicated in
+the text configuration and given in a couple of functions above in the
+code which can be fully seen in the source.
+Fig.~\ref{fig:hsMines-menu} shows the size submenu of the preferences.
 
 As you we can see in the code above (in \texttt{main} and
 \texttt{run}), \emph{currentSize} holds the value of \emph{normalSize}
-and so by default the \texttt{radio button} is set to
-\emph{normalSize}. Nearly the same happens to \emph{varDiff} and it's
-\texttt{radio button} just without the hiding functions.
+and so by default the radio button is set to
+\emph{normalSize}. Nearly the same happens with \emph{varDiff} and its
+radio button.
 
-The values of \emph{varDiff} have to be explicitly casted because by
-default \texttt{TkVariables} contain \texttt{Strings}. But still
-nothing happens besides setting two variables.
+Note that we have to resolve the overloading of the numeric constants
+by type annotations, because TkVariables can hold all instances of the
+class \texttt{GUIValue}; when we just write \texttt{value 3}, this
+might also be e.g. the floating point number $3$.
+
+But something should happen we click those menus, so we need to bind
+them to some events:
 
 \begin{code}
     restartClick <- clicked restb
@@ -377,17 +389,14 @@ nothing happens besides setting two variables.
     csr5 <- clicked sr5
 \end{code}
 
-This rather cryptic peace of codes allows us to bind the
-\texttt{commands} and the size \texttt{radio button(s)} to a couple of
-\texttt{events}. These will occure now whenever one of the buttons is
-selected -- "`\texttt{clicked}"'.
-
-\begin{figure}[h]
-\begin{center}
-\includegraphics[scale=0.6]{img/hsMines/screenshot02}
-\caption{The hsMines main window with an open Prefs/Size menu}
-\end{center}
-\end{figure}
+This binds the commands and the size radio button(s) to a couple of
+\texttt{events}, which will occur whenever one of the buttons is
+selected (i.e. clicked). Note that we do not bind anything to the
+difficulty submenu. This is because we are actually not interested in
+the user selecting a new difficulty during the game, we just read out
+the value set by the user every time we restart a game. (This is not
+ver polite --- it might be better to inform the user of this when he
+changes the selection, but this is just a small demonstration program.) 
 
 \subsection{The field}
 
@@ -399,35 +408,47 @@ playfield which can be used to restart the game.
 
     pack sm [Side AtTop, PadY 20, PadX 20, Anchor North] 
 \end{code}
-So we create a \texttt{Button} called \emph{sm} (from \textbf{sm}iley
-btw) and bind it to another \texttt{Event}. And because the GUI does
-not automaticaly know where and when to place the \texttt{Button} we
-have to tell it to \texttt{pack sm} \texttt{at} the \texttt{top} of
-the \texttt{main} window, \texttt{pad} it \texttt{20} pixels wide in
-any direction and keep it align to the upperside (which is
-\texttt{North} on most maps). The \texttt{photo} command assigns an
-\texttt{Image} to a \texttt{Container} that is fit to contain an
-\texttt{Image} e.g. a \texttt{Button widget}. In this case we have a
-collection of base64 encoded GIFs pasted into the code. This is
-definitivly not the best way to use graphics, but it works for small
-ones. As we will see later, there are also tiny \texttt{Images} for the
-empty field and the numbers and not only the flag. The reason for that
-is, that you can't overwrite a \texttt{photo} with some \texttt{text}.
-We may do it internaly but it will not be shown. The workaround is to
-have \texttt{Images} for all the numbers. On the other hand we have a
+We create a \texttt{Button} called \emph{sm} (from \textbf{sm}iley
+btw), bind it to an event, and pack it at the top of the \texttt{main}
+window, padding it 20 pixels wide in both directions and aligning to
+the top (which is \texttt{North} on most maps). The \texttt{photo}
+configuration assigns an image to any widget that can hold one, such
+as a button. In this case we have a collection of base64 encoded GIFs
+directly in the code (not shown here); \footnote{The images have been
+  taken from gnomines (the GNOME minesweeper clone, where they are
+  attributed to Tuomas Kuosmanen \texttt{tigert} (Tuomas Kuosmanen).}
+this has the advantages of making the code stand-alone. As we will see
+later, there are also tiny \texttt{Images} for the empty field and the
+numbers and not only the flag; the main reason for this is to that all
+buttons should always have precisely the same size. We further have a
 wide selection of colours for the numbers. Just try to find out wich
-colour the '8' has\dots But back to the smiley.
+colour the 8 has\dots But back to the smiley.
 
 Same as the \texttt{menu commands}, the \texttt{Button} is useless by
-itself. To get things started we create an \texttt{IO Channel} named
-\emph{restartCh}.  We can later at any given time send some
-\texttt{IO} over this \texttt{Channel} to trigger an \texttt{Event}
-which will be used to reinitialise the game field.
+itself. To get things started we create a channel named
+\emph{restartCh}. We will set things up such that sending ... over the
+channel will restart the game.
+
+
+\begin{code}
+    restartCh <- newChannel
+
+    bfr <- newFrame main [width (cm 10)]
+\end{code}
+
+But before we can initialise the game field, we of course have to
+create it. To contain the field we create a new a frame with a given
+width. The width is just to have something to start with and will be
+adjusted by the packer as needed. The frame is packed below the smiley
+button. They both are told to be at the top of \emph{main}, but
+because it is packed after the button it is placed below.
+
+\begin{code}
+    pack bfr [Side AtTop, PadX 15] 
+\end{code}
 
 \begin{comment}
 \begin{code}
-    bfr <- newFrame main [width (cm 10)]
-    size <- readTkVariable varSize
 -- code for number of flags/mines and counter; commented out as it
 -- will make the screenshots invalid
 --    lf   <- newFrame main []
@@ -439,58 +460,42 @@ which will be used to reinitialise the game field.
 \end{code}
 \end{comment}
 
+
+Until now this was all very plain and straight. The buttons for the
+field are created in a more complex way. The function \texttt{buttons}
+is used to create a number of buttons along with their position, and
+assigns them to \emph{allbuttons} (i.e. \emph{allbuttons} has type
+\texttt{[((Int, Int), Button)]}. To pack them, we have to iterate
+through the whole list using \verb!mapM_!. And in order to have all
+buttons appear on the screen at once, and not one by one, we wrap
+\texttt{delayWish} around this.
+
 \begin{code}
-    restartCh <- newChannel
+    size <- readTkVariable varSize
     allbuttons <- buttons bfr sm (receive restartCh) size
-\end{code}
-
-But before we can initialise any game field, we of course have to
-create it. To contain the field we create a new \texttt{Frame} (a
-\texttt{Container widget}) with a given \texttt{width}. The
-\texttt{width} is just to have something to start with and will be
-adjusted by the \texttt{packer} as needed. The \texttt{Frame} is
-packed below the smiley button. They both are told to be at the top of
-\emph{main}, but because only one of them can be there they're placed
-below each other in packing order.
-
-\begin{verbatim}
-    bfr <- newFrame main [width (cm 10)]
-\end{verbatim}
-\begin{code}
-    pack bfr [Side AtTop, PadX 15] 
-\end{code}
-
-Until now this was all very plain and straight. The \texttt{Buttons}
-for the field are created in a more complex way. The function
-\texttt{buttons}, the one called with the \texttt{IO Channel}, is
-responsible to create a number of \texttt{Buttons} and asigns them to
-\emph{allbuttons}. To pack them, we have to iterate through the whole
-\texttt{list of Buttons}.
-
-\begin{code}
     delayWish $ mapM_ (\(xy, b)-> grid b 
           [GridPos xy, GridPadX 1, GridPadY 1]) allbuttons
 \end{code}
-%\)
-In this case a \texttt{grid packer} is used that puts all the
-\texttt{Buttons} at exactly stated positions in a \texttt{grid}. So
-let's for now assume, \texttt{buttons} returns a list of
-\texttt{Buttons} that can be packed by the \texttt{grid packer}. If
+
+\begin{wrapfigure}[15]{l}{6cm}
+\begin{center}
+\includegraphics[width=5cm]{img/hsMines/screenshot03}
+\caption{The uninitialised hsMines field}
+\label{fig:hsMines-uninitialised}
+\end{center}
+\end{wrapfigure}
+In this case the grid packer is used to put all the
+buttons at exactly stated positions in a grid. If
 the code compilation does not reach any point where the game is
 started, the packed but uninitialised game field including the smiley
 and all thing looks like this. To make a distinction between
 uninitialised and initialised fields, we put a little star on
-each \texttt{Button}.
-
-\begin{figure}[h]
-\begin{center}
-\includegraphics[scale=0.3]{img/hsMines/screenshot03}
-\caption{The uninitialised hsMines field}
-\end{center}
-\end{figure}
+each \texttt{Button}. The result is shown in
+Fig.~\ref{fig:hsMines-uninitialised}. \\[3ex]
 
 All that is left to do now in \texttt{run} is to initiate the game for
-the first time. 
+the first time. The actual playing happens in the event handling of
+the buttons. \\[3ex]
 
 \begin{code}
     let start :: IO () 
@@ -498,12 +503,12 @@ the first time.
                    sendIO restartCh diff
                    
     -- start the menu handler
-    stopmh<- spawnEvent 
-     (forever (startClick >>> start
+    stopmh<- spawnEvent (forever
+          (startClick >>> start
         +> quitClick >>> destroy htk
         +> choose [csr1, csr2, csr3, csr4, csr5] >>> 
              createMessageWin "Changes come into effect 
-               after \"Restart\"." [] ))
+               after \"Restart\"." []))
 
     -- the restart handler (note no forever!)
     spawnEvent (restartClick >>> 
@@ -519,37 +524,28 @@ the first time.
     finishHTk
 \end{code}
 
-There is a bit more to clean up the window and such. We will see to
-this now. Let us go through this step by step. \texttt{start} is a
-function that returns an \texttt{empty IO} operation. Inside the
-functions, the variable \emph{varDiff} which holds the games
-difficulty is read and sent via the \texttt{IO Channel}
-\emph{restartCh}. This will take effect in \texttt{buttons} and we'll
-come to this later. But \texttt{start} is not the first thing to
-happen. First, an \texttt{Event} is bound to \emph{stopmh} but is not
-\texttt{spawned} instantly because haskell is evaluated lazyly and so
-the evalutation will take place when \emph{stopmh} is realy needed -
-which happens to be just in the next line. There another
-\texttt{Event} is \texttt{spawned}.  This one immediately performes 4
-functions. Now \emph{stopmh} is evaluated and the \texttt{Event} is
-\texttt{spawned}. The second action is to \texttt{destroy} the
-\emph{main} window. Step 3 and 4 create a new window with the actual
-field size. This is the reason fpr the intervined function calls of
-\texttt{run} and \texttt{main}.
+There is a bit more to clean up the window and such; let us go through
+this step by step. \texttt{start} is a function that reads the
+variable \emph{varDiff} and sends the value over the channel
+\texttt{restatCh}. This has the effect of restarting the game (see
+\texttt{buttons} below, the event of receiving something on that
+channel restarts the game).
 
-The second \texttt{Event} thread, that is spawned in step 1 now waits
-for a number of things to happen. Either the \emph{startClick}
-\texttt{Event} occurs and \texttt{start} is executed or the
-\emph{quitClick} \texttt{Event} occurs and the whole \HTk is
-\texttt{destroyed} or one of the size selecting \texttt{radio buttons}
-is clicked meaning that one of the five \emph{csr} \texttt{Events}
-occurs which leads to the creation of a \texttt{message window}.
+First, we build a composed event that handles the menu buttons:
+clicking the smiley (event \texttt{startClick}) should restart the game,
+and selecting the quit menu (event \texttt{quitClick}) should finish the
+game by destroying the main window. Selecting a new size
+(\texttt{csr1} to \texttt{csr5}) should not do anything immediately,
+but we are polity and inform users that they have to restart the
+game--- clicking just the smiley is not enough!)
 
-Finally, at the end of the \texttt{run} function \texttt{start} is
-called and the game is started. Remember? The size of the game field
-is sent via \emph{restartCh} and something will happen in
-\texttt{buttons}.  Let's take a look at
-%This is NO typo but intentionaly done.
+On the other hand, a separate event handles the restart. This is
+because if we restart we destroy the main window, and start the game
+again from the top. From the interface design point, this is bad
+design for two reasons: firstly, it makes the interface very jittery
+with windows unecessary opening and closing and what not, and
+secondly, there is the awkward handling of having to restart the game
+with the menu if you want to change the size. 
 
 \subsection{The \texttt{buttons} function}
 
@@ -561,33 +557,31 @@ buttons :: Container par=> par-> Button-> Event Int
                            -> IO [((Int, Int), Button)]
 \end{code}
 
-For comparison lets have another look on how it's called:
+For reference recall how it was called:
 
-\begin{verbatim}
+\begin{xcode}
     allbuttons <- buttons bfr sm (receive restartCh) size
-\end{verbatim}
+\end{xcode}
 
-We have a class restriction on the first argument, \emph{par}, which
-has to be a \texttt{Container}. \emph{par} happens to be just that, a
+We have a class constraint on the first argument, \emph{par}, which
+has to be container. \emph{par} happens to be just that, a
 \texttt{Frame}. Lucky us. The next argument has to be a
-\texttt{Button} as we can happily admit our smiley buttons \emph{sm}
-is. The third argument has to be an \texttt{Event of Int}. This
-\texttt{Event} occurs, when some \texttt{IO Int} is send via the
-\texttt{IO Channel} \emph{restartCh} and is received by
-\texttt{receive}. The last argument is a \texttt{2-tuple of Int} which
-is the size of the game field. \emph{size} is an \texttt{Int} read
-from the \texttt{TkVariable} \emph{varSize}. So when something is
-asigned to \emph{allbuttons}, the function \texttt{buttons} is called
-with a lot of intricate arguments.
+button as we can happily admit our smiley button \emph{sm}
+is. The third argument has to be an event, more precisely
+\texttt{Event Int}. This event signals that the game should be
+restarted with the difficulty level given; in the call, this is the
+event which signals receiving something in the \emph{restartCh}
+channel (recall from above how we send something along this
+channel to restart the game). 
 
-When \texttt{buttons} has done it's work, it will return an \texttt{IO
-  of a list of tuples of tuples of Int and a Button}. We can see that
-it is simpler to examine the signature ourselfs than try to puzzle out
-what we just read.
+\texttt{buttons} creates all the buttons, and returns a list of pairs,
+where each of these pairs contains the coordinates (as a pair of
+integers) and the button. We can see that it is simpler to examine the
+signature ourself than try to puzzle out what we just read.
 
 The code of \texttt{buttons} is simple at start.
 
-\subsubsection{Create an array of buttons,\dots}
+\subsubsection{Creating an array of buttons}
 
 \begin{code}
 buttons par sb startEv (size@(xmax, ymax)) =
@@ -597,23 +591,23 @@ buttons par sb startEv (size@(xmax, ymax)) =
                                     y <- [1.. ymax]]
 \end{code}
 
-This code is executed no matter what \emph{startEv} might be! It
-creates all the \texttt{Buttons} and paints a little star inside so
-the playfield looks the way the Figure above shows it.
-%Verweis auf Figure?
-But there is more to happen in the \texttt{buttons} function!
+This code creates all the \texttt{Buttons} and paints a little star
+inside so the playfield looks as shown in
+Fig.~\ref{fig:hsMines-uninitialised}, using standard list
+comprehension and map for monads. But there is more to happen in the
+\texttt{buttons} function!
 
-\subsubsection{bind them\dots}
+\subsubsection{Binding the buttons}
 
 \begin{code}
      let bArr = array ((1,1), size) buttons
-         getButtonClick b n xy = 
+         getButtonRelease b n xy = 
             do (click, _) <- bindSimple b 
-                 (ButtonRelease (Just n))
+                              (ButtonRelease (Just n))
                return (click >> return xy)
-     leCl  <- mapM (\(xy, b)-> getButtonClick b 1 xy) 
+     leCl <- mapM (\(xy, b)-> getButtonRelease b 1 xy) 
                                  buttons
-     riCl  <- mapM (\(xy, b)-> getButtonClick b 3 xy) 
+     riCl <- mapM (\(xy, b)-> getButtonRelease b 3 xy) 
                                  buttons
      press <- mapM (\(_, b)-> 
        do (cl, _)<- bindSimple b (ButtonPress Nothing)
@@ -621,43 +615,29 @@ But there is more to happen in the \texttt{buttons} function!
 
 \end{code}
 
-This looks rather complicated but does nothing more than what we did,
-when we bound the smiley \texttt{Button} to the \emph{startClick}
-\texttt{Event}. It's just that we bind the whole \texttt{Array of
-  Buttons} we created via a slightly adjusted \texttt{Event}
-(\texttt{getButtonClick b 1/3 xy})\footnote{ 
-  As you could surely guess, 2 would be the modifier to get the center
-  mouse button bound.}
-to two \texttt{Events}. We also bind the \texttt{Button} to the
-\emph{press} \texttt{Event}. This \texttt{Event} occurs whenever a
-\texttt{Button} is pressed.  It's used to alter the smiley and because
-it doesn't matter which \texttt{Button} is pressed, we don't keep the
-coordinates.  Know the programm knows, whether a \texttt{Button} is
-clicked and, when it's released, which \texttt{Button} it is and if it
-was clicked with the left or the right mouse button.  Funny thing is
-that if you use the middle mouse button to click a \texttt{Button},
-the smiley will stay worried.
+This looks rather complicated but does nothing more than what we did
+above when we bound the smiley button to the event \emph{startClick}.
+First, we arrange our buttons in an array so we can later on refer to
+the button at position $(x,y)$ easier. Then we bind three events to
+each of the buttons: one for releasing the first (left) button, one
+for releasing the third (right) button, one for pressing any button.
+The left and right clicks are of type \texttt{Event (Int, Int)},
+because we will later on have refer to the coordinates of a button
+being released.
 
-\subsubsection{and start\dots}
+\subsubsection{Starting the game}
 
-\begin{verbatim}
-     spawnEvent start
-     return buttons
-\end{verbatim}
+We now define three events (and a couple of auxiliary functions) which
+encode the main logic of the game. The first one starts the game, the
+third and second play the game. Then, if we synchronise on the start
+event, we set the game in motion and in effect wait until it is over.
 
-At the end, we \texttt{spawn} an \texttt{Event} called \emph{start}
-and wait. But wait what for? We need to remember that an
-\texttt{Event} is handed over to \texttt{buttons}. And this
-\texttt{Event} is used to get the game running.
-
-\begin{comment}
-\begin{code}
-     let
-\end{code}
-\end{comment}
+All of these definitions are local to \texttt{buttons} and use the
+declarations from above, such as \emph{leCl}, \emph{riCl} and
+\emph{bArr}. 
 
 \begin{code}
-         start :: Event ()
+     let start :: Event ()
          start = 
            startEv >>>= \d-> 
              do m <- createMines (snd (bounds bArr)) d
@@ -667,17 +647,13 @@ and wait. But wait what for? We need to remember that an
                 sync (play m)
 \end{code}
 
-This says: If the \texttt{Event} \emph{start} occurs (by being
-\texttt{spawned} for example) then \emph{startEv}, if it occurs,
-executes some more code. Have a look on how we create mines later,
-it's of no importance for the GUI. We map over all elements in the
-\texttt{Button Array} \emph{bArr} and asign the \emph{zeroImg} to
-their \texttt{photo}. Then we asign a new smiley to the \texttt{photo}
-of \emph{sb} and \texttt{synchronize} the \emph{start} \texttt{Event}
-to the \emph{play} \texttt{Event}. No new \texttt{Event} thread is
-created, \emph{start} just changed into \emph{play}.
+This says: after the start event (the argument of which is $d$ here,
+the difficulty level), we create the mines on the playing field, make
+the smiley smile, and fill all buttons with the zero image. Have a
+look at how we create the mines later, it is of no importance for the
+GUI. Then we play.
 
-\subsubsection{to play\dots}
+\subsubsection{Playing the game}
 
 \begin{code}
          play :: Mines-> Event ()
@@ -695,31 +671,33 @@ created, \emph{start} just changed into \emph{play}.
                 play m
              +>
              start 
-
 \end{code}
 
-Playing is easy. To play with a set \emph{m} of mines means to execute
-these steps over and over again:
+Playing is easy. The \texttt{Mines} datatype needs not to be explained
+right now, suffice it to say that it models the state of the playing
+field (including the mines, but also keeping track of which fields
+have been explored or flagged). To play with a set \emph{m} of mines
+means to execute these steps over and over again:
 
-\begin{enumerate}
-\item If the left mousebutton is pressed, execute \texttt{open} with
-  the \texttt{Button Array} and the mines. If \texttt{Nothing} is
-  left, you loose\footnote{ 
-    Of course this is the case because \texttt{open} returns Nothing
-    if we try to explore a mine.}
-  If there are mines left, you play on. And if all fields are explored
-  we won. Great, isn't it?
-\item If the right mousebutton is pressed, execute \texttt{flag} with
-  the \texttt{Button Array} and the mines. No evil may occur, just
-  play on.
+\begin{itemize}
+\item If the left mousebutton is released, call \texttt{open} with the
+  button array, the mines and the position of the field we want to
+  open (note clever $\eta$-reduced notation). If \texttt{open} returns
+  \texttt{Nothing}, we lose; otherwise, we play on with the new
+  playing field. 
+\item If the right mousebutton is released, call \texttt{flag} with
+  the button array, the mines and the position. No evil may occur,
+  just play on.
 \item If a mouse button is pressed (remember, even the middle button
-  counts), the smiley should look worried. Normaly another
-  \texttt{Event} occurs so the smiley changes within a second but only
-  if we pressed the left or right mouse button. This, of course, is a
-  feature.
-\item If things go awry, goto \emph{start} and wait for the
-  \emph{startEv} \texttt{Event}.
-\end{enumerate}
+  counts), the smiley should look worried. Normally any of the two
+  release events above will occur within a short while so the smiley
+  changes back, but if we press the middle button, the smiley stays
+  worried. We consider this a feature, and in the best academic
+  tradition leave it to the reader to come up with a solution.
+\item On the other, if a start event occurs, restart the game; this
+  can happen e.g. if the users clicks the smiley in the middle of the
+  game.
+\end{itemize}
 
 \begin{code}
          playOn :: Mines-> Event ()
@@ -730,16 +708,17 @@ these steps over and over again:
                           else play m
 \end{code}
 
-\texttt{playOn} takes care of the smiley when we (de)flagged some field
-or explored it. It also checks wether we have won with the previous
+\texttt{playOn} takes care of the smiley when we (de)flagged or
+explored a field. It also checks wether we have won with the previous
 move; this is the case if there are no untouched fields left (i.e. all
-fields are either cleared or flagged).
+fields are either cleared or flagged). This works because we are only
+allowed to drop as many flags as there are mines on the field. 
 
-\subsubsection{until it's over.}
+\subsubsection{Game Over}
 
-\texttt{gameLost} and \texttt{gameWon} are just windows to open,
-to tell you that you've lost or won. That also changes your smiley
-into a freak.
+\texttt{gameLost} and \texttt{gameWon} just open message windows to
+tell you that you've lost or won. The smiley also takes appropriate
+action, feelin very sick or grinning inanely.
 
 \begin{code}
          gameLost :: IO ()
@@ -753,38 +732,57 @@ into a freak.
 
 \end{code}
 
-Only after you finished up the messenger, the game is realy over and
-can be started again, the \verb§>>§ operator takes care of that.
+The windows are modal, so only after you closed them, the
+game is really over and can be started again.
 
 \begin{code}
          gameOver :: Event ()
          gameOver = start 
-                    +> 
-                    (choose (leCl++ riCl) >> gameOver) 
+                    +> (choose (leCl++ riCl) >> gameOver) 
+                    +> (choose press >> gameOver)
 \end{code}
 
-\begin{comment}
+The \texttt{play} event changes into \texttt{gameOver} once the game
+is over. It only lets you restart the game, and just swallows any of
+the button events (\texttt{leCl} etc). If we didn't react to the
+button events like that, they would still be in the event queue, and
+be reacted to once the game restarts--- not what you want really!
+
+Anyway, now we have set up the logic to play the game we can spawn an
+event handler which waits for the game to start by synchronising on
+the \texttt{start} event. All that is left is to return the buttons so
+the main function can pack them. (Note that we bound events to buttons
+before packing them, this is entirely possible.)
+
 \begin{code}
      spawnEvent start
      return buttons
 \end{code}
-\end{comment}
 
-\texttt{gameOver} is the \texttt{Event} to take over. It leads you
-back to the \emph{start} \texttt{Event}, waiting for the
-\emph{startEv} \texttt{Event} to occur. If any of the ingame
-\texttt{Events} still occur, because some dumbhead did not understand
-the "`BOOM! You lost."' message or what so ever, the game is still
-over and nothing changes.
+This is the end of the \texttt{buttons} function. Everything else is
+just plain haskell. Ok, you're right, there is some tiny bits
+left. Nobody explained how the numbers show up when a non-mine field
+is explored, right? Okay, we'll come to that now.
 
-That's it, anything else is just plain haskell. Naugh, you're right,
-there is some tiny tidbits left. Nobody explained how the numbers show
-up when a non mine field is explored, right? Okay, we'll come to that
-now.
+\subsection{Modelling the Playing Field}
 
-\subsection{Fuzzing around on the play field}
+The playing field is represented by two arrays: one contains just the
+buttons, since these are not going to change, and one contains the
+actual state of a field, which is going to change: 
+\begin{xcode}
+data State = Cleared Int 
+           | Unexplored { flagged :: Bool,
+                          mine    :: Bool }
 
-The simple part is leaving and taking flags.
+type Mines   = Array (Int, Int) State
+type Buttons = Array (Int, Int) Button  
+\end{xcode}
+Three utility functions, \texttt{untouched}, \texttt{mines} and
+\texttt{flags}, check wether is a state is untouched (neither cleared
+nor flagged), and count the number of mines or flags on a field; we do
+not show them here.
+
+Now, the simple part is leaving and taking flags.
 
 \begin{comment}
 \begin{code}
@@ -792,26 +790,26 @@ The simple part is leaving and taking flags.
 \end{code}
 \end{comment}
 
-
 \begin{code}
 flag :: Buttons-> Mines-> (Int, Int)-> IO Mines
 flag b m xy = 
   case m!xy of
     Cleared _ -> return m
     s@(Unexplored{flagged= f})-> 
-        if f || (sum (map flags (elems m)) < sum (map mines (elems m)))
+        if f || (sum (map flags (elems m)) < 
+                    sum (map mines (elems m)))
         then do b!xy # (if not f then photo flagImg 
                         else photo zeroImg)
                 return (m // [(xy, s{flagged= not f})])
         else return m 
 \end{code}
 
-The function takes the \texttt{Button Array}, the \texttt{Mines} and
-the coordinates of the selected \texttt{Button}. If the the field is
-\emph{Cleared} which means it was explored more early the
-\texttt{Mines} are simply returned. If the field is
-\texttt{Unexplored} and flagged we set it unflagged and asign the
-\emph{zeroImg} to its \texttt{Button} and vice versa.
+If the the field is \emph{Cleared} which means it was explored earlier
+the mines are left unchanged.  \texttt{Mines} are simply returned. If
+the field is \texttt{Unexplored} and flagged we set it unflagged and
+assign the \emph{zeroImg} to its \texttt{Button} and vice versa.
+However, when dropping a flag we have make sure that there are not
+more flags on the field than mines.
 
 The more complex part is actually exploring the field.
 
@@ -839,15 +837,15 @@ open b m xy =
     _ -> peek b m [xy] >>= return. Just
 \end{code}
 
-The function takes the same arguments but it only may return
-\texttt{IO Mines}.  If we try to explore an \texttt{Cleared} field,
-nothing changes. If we try to explore an \texttt{Unexplored} field
-which is flagged, we return the given argument and still nothing
-changes. If we try to open an \texttt{Unexplored} field which is a
-mine the function returns \texttt{Nothing} wich leads to
-\texttt{gameLost} in \texttt{buttons}. And at last, when every other
-case is weeded out, we \texttt{peek} inside an \texttt{Unexplored},
-nonflagged nomine field.
+The function takes the same arguments but it returns a \texttt{Maybe}
+of mines. If we try to explore a \texttt{Cleared} field, nothing
+changes. If we try to explore an \texttt{Unexplored} field which is
+flagged, we return the given argument and still nothing changes,
+because it is inconvenient to accidently click a flag and get killed.
+If we try to open an \texttt{Unexplored} field which is a mine the
+function returns \texttt{Nothing}, and we have lost. And at last, when
+every other case is weeded out, we \texttt{peek} inside an
+\texttt{Unexplored}, nonflagged nomine field.
 
 \begin{comment}
 \begin{code}
@@ -876,45 +874,39 @@ peek b m (xy:rest) =
 \end{code}
 
 \texttt{peek} takes a list of coordinates to check. Initially this
-should be exactly one coordinate respectivly the one we try to explore
-right now. We use \texttt{adjMines} the get the number of
-\texttt{Mines} around the field to explore wich is a number from 0 to
-8. We asign the corresponding \texttt{Image} to the \texttt{Button's
-  photo} and change its \texttt{relief} to \texttt{Flat}. In case the
-number is not 0, this would just be it because now the \texttt{list of
-  coordinates} would be empty. But to make life more comfortable we
-will now use the computer for its main purpose: To accomplish stupid
-tasks for us. Because if the number of \texttt{Mines} in the adjacent
-fields is 0 we can savely explore any of these. So now \emph{rest},
-the list of coordinates still to explore (an empty \texttt{list} right
-now) is \texttt{unified} with the coordinates of the adjecent fields
-which are still \texttt{Unexplored}. If we forgot to apply this
-\texttt{filter} the exploration would go on forever exploring the same
-fields over and over again. But if it's done right the programm
-explores all save fields thereby creating number rimmed empty areas on
-the playfield.
+should be exactly one coordinate, namely the one we try to explore
+right now. \texttt{adjMines} calculates the number of
+mines around the field we explore; \texttt{adjacents} is a utility
+function which takes a positition and returns the list of its adjacent
+positions. 
 
-\begin{figure}[h]
+We assign the corresponding image to the button's photo and change its
+relief to flat (note how we compose configurations with
+\texttt{(>>=)}). If the number of mines in the adjacent fields is 0 we
+can savely explore all of these. So \emph{rest}, the list of
+coordinates still to explore is united with the coordinates of the
+adjecent fields which are still untouched. If we forgot to apply this
+filter the exploration would go on forever exploring the same fields
+over and over again, but this way the program explores all safe
+fields, creating empty areas surrouned by numbers on the playfield
+(see Fig.~\ref{fig:hsMines-one-click}, left).
+
+\begin{figure}[htbp]
 \begin{center}
-\includegraphics[scale=0.3]{img/hsMines/screenshot04}
-\caption{The hsMines field after a single lucky Click}
+\includegraphics[width=5cm]{img/hsMines/screenshot04}
+~~~~~
+\includegraphics[width=5cm]{img/hsMines/screenshot05}
+\caption{hsMines after one lucky click, and a few lucky clicks later.}
+\label{fig:hsMines-one-click}
 \end{center}
 \end{figure}
 
 And just in case you don't believe this for real I finished the game
-;-)
+;-) (Fig.~\ref{fig:hsMines-one-click}, right).
 
-\begin{figure}[h]
-\begin{center}
-\includegraphics[scale=0.3]{img/hsMines/screenshot05}
-\caption{The same field a few lucky Clicks later}
-\end{center}
-\end{figure}
-
-
-The excurse through the HsMInes source is over for now. There is still
-a couple of interessting functions left one can explore on it's own.
-Have fun.
+The excurse through the \texttt{hsMInes} source is over for now. There
+is still a couple of interessting functions (such as
+\texttt{createMines}) left one can explore on it's own. Have fun.
 
 
 %%% Local Variables: 

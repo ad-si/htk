@@ -32,6 +32,7 @@ main =
      pack b []
 \end{code}
 This introduces three important concepts in \HTk:
+
 \begin{itemize}
 \item firstly, the elements of the graphical user interface are
   organized hierarchically. When we create a new button, we have to
@@ -47,11 +48,22 @@ This introduces three important concepts in \HTk:
   list of packing options as argument; more on that below.
 \end{itemize}
 
-To specify the dynamic behaviour, we need two ingredients: firstly, we
-need to connect the external event of the user clicking the button
-with an element of the data type \texttt{Event}, and secondly, we need
-to set up the program such that it reacts to the occurence of this
-event by changing the button's label. 
+\begin{wrapfigure}[8]{l}{3cm}
+  \begin{center}
+    \includegraphics[width=2cm]{img/screenshot-simple1}
+    \caption{A simple example.}
+    \label{fig:simple1}
+  \end{center}
+\end{wrapfigure} 
+Fig.~\ref{fig:simple1} shows the result of the two
+operations.\footnote{The decoration of the window --- border, buttons
+  etc --- may look different on your system, since it depends on your
+  window manager.}  To specify the dynamic behaviour, we need two
+ingredients: firstly, we need to connect the external event of the
+user clicking the button with an element of the data type
+\texttt{Event}, and secondly, we need to set up the program such that
+it reacts to the occurence of this event by changing the button's
+label.
 
 Setting up external events to produce an \texttt{Event a} is called
 \emph{binding}. When we bind an external event, we specify the
@@ -77,10 +89,18 @@ the desired effect:
                       b # text nu_label))
      finishHTk
 \end{code}     
+\begin{wrapfigure}[9]{r}{3.3cm}
+  \begin{center}
+    \includegraphics[width=2cm]{img/screenshot-simple1a}
+    \caption{After clicking.}
+    \label{fig:simple1a}
+  \end{center}
+\end{wrapfigure} 
 Here, \texttt{randomRIO (replicate 5 ('a','z'))} generates a list of
 five actions of type \texttt{IO Char}, and \texttt{mapM} evaluates
 them to a random string of length 5. The next line sets the label to
-this random string; how exactly this works will be explained below.
+this random string; how exactly this works will be explained
+below. Fig.~\ref{fig:simple1a} shows the result.
 
 Another function requires an explanation here: \texttt{forever ::
   Event a-> Event a} takes an event, and returns this event composed

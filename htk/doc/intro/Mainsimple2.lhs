@@ -13,7 +13,7 @@ import Random
 
 We have to augment our previous program in two aspects: statically, we
 have to provide another button, and dynamically, we have to react to
-this button being pressed by ending the program
+this button being pressed by ending the program.
 
 For the first part, we create the second button just like the first
 part. When we place it, we have to specify where it is going to be
@@ -23,7 +23,16 @@ regardless of the size of the labels.  This is done by adding
 \emph{packing options} to the \texttt{pack} command. Here,
 \texttt{Side} says we want the first button at the top and the second
 at the buttom, and \texttt{Fill X} specifies the stretching
-behaviour mentioned above:
+behaviour mentioned above (Fig.~\ref{fig:simple2} shows the resulting window):\\[0ex]
+%%% nasty, this bit of latex assumes the code 
+%%% doesn't run into the picture.
+\begin{wrapfigure}[0]{r}{3.5cm}
+  \begin{center}
+    \includegraphics[width=2cm]{img/screenshot-simple2}
+    \caption{A second example.}
+    \label{fig:simple2}
+  \end{center}
+\end{wrapfigure} 
 
 \begin{code}
 main:: IO ()
