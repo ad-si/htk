@@ -44,7 +44,6 @@ import qualified IOExts(unsafePerformIO)
 import qualified Concurrent
 import Dynamic
 import Exception
-import Computation(done)
 
 import WBFiles
 
@@ -99,7 +98,7 @@ debug :: Show a => a -> IO()
 debug _ = return ()
 
 debugTest :: Show a => Bool -> a -> IO ()
-debugTest _ _ = done
+debugTest _ _ = return ()
 
 debugAct :: String -> IO a -> IO a
 debugAct _ act = act
