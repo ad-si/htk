@@ -3,8 +3,14 @@ module LaTeXParser (
    PackageId(..),
 
    parseMMiSSLatex, 
-      -- :: FileSystem -> FilePath 
+      -- :: FileSystem -> FilePath -> Bool
       -- -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+      -- Parses the given File (by means of the FileSystem functions given) and
+      -- returns the corresponding XML-Element and (if the boolean parameter
+      -- is true) the list of Preambles found in the mmisslatex file. If the bool
+      -- parameter is false, it will throw away anything which preceeds the first
+      -- mmiss environent found.
+   
    makeMMiSSLatexContent,
       -- :: Element -> Bool 
       -- -> [(MMiSSLatexPreamble,PackageId)]
@@ -12,13 +18,17 @@ module LaTeXParser (
       -- This is used for Emacs and also for other consumers of LaTeX text
       -- expecting a single file, for example the MMiSS checker and the
       -- XML API.
+      -- The bool parameter controls whether 'includeXXX' elements are expanded
+      -- into Emacs-Links (False) or into \includeXXX commands when the output is designated
+      -- to be feed into latex (True). In the latter case, the preambles are merged and
+      -- included in the output, otherwise, they are left out.
+
    writeMMiSSLatex, 
       -- :: FileSystem -> Element -> Bool
       -- -> [(MMiSSLatexPreamble,PackageId)]
       -- -> IO (WithError ()) 
       -- This is used for exporting the LaTeX text to a directory within
       -- a file system, and may split up the element.
-
 
    mkLaTeXString, 
       -- :: EmacsContent ((String,Char),[Attribute]) -> String
@@ -86,9 +96,9 @@ import QuickReadShow
 newtype PackageId = PackageId {packageIdStr :: String} deriving (Eq,Ord)
 
 -- Functions
-parseMMiSSLatex :: FileSystem -> FilePath 
-   -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
-parseMMiSSLatex fileSystem filePath =
+parseMMiSSLatex :: FileSystem -> FilePath -> Bool
+                   -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+parseMMiSSLatex fileSystem filePath searchPreamble =
    do
       strWE <- readString fileSystem filePath 
       case fromWithError strWE of
@@ -98,7 +108,7 @@ parseMMiSSLatex fileSystem filePath =
                case result of
 		  Left err -> return (hasError (show err))
 		  Right fs  ->
-                    do preEl <- extractPreamble fileSystem filePath fs  
+                    do preEl <- extractPreamble fileSystem filePath fs searchPreamble  
 		       case fromWithError preEl of
 			 Left err -> return(hasError(err))
 			 Right (preambleOpt, rootFrag) -> 
@@ -143,7 +153,10 @@ parseMMiSSLatex fileSystem filePath =
 		  let result = parseFrags str      
 		  in case result of
 		       Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) ++ " " ++ (show err)))
-		       Right newfs -> return (hasValue (newfs))
+		       Right newfs -> 
+                         let specialFrag1 = Special InputStart (makeTextElem [f] "")
+                             specialFrag2 = Special InputEnd filename
+                         in return (hasValue ([specialFrag1] ++ newfs ++ [specialFrag2]))
         (Command "include" (LParams sps _ _ _)) -> 
            do let fstr = singleParamToString(head sps)
                   filename = delete '{' (delete '}' fstr)          
@@ -154,7 +167,10 @@ parseMMiSSLatex fileSystem filePath =
 		  let result = parseFrags str      
 		  in case result of
 		       Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) ++ " " ++ (show err)))
-		       Right newfs -> return (hasValue (newfs))
+		       Right newfs ->
+                         let specialFrag1 = Special InputStart (makeTextElem [f] "")
+                             specialFrag2 = Special InputEnd filename
+                         in return (hasValue ([specialFrag1] ++ newfs ++ [specialFrag2]))
         otherwise -> return(hasValue([f]))
 
     createInputPath filePath filename = 
@@ -338,77 +354,6 @@ concatFilenames (filename:[]) = filename
 concatFilenames (filename:rest) = filename ++ "," ++ concatFilenames rest
 
 
-{-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch und erzeugt einen
-
-findFirstEnv :: [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatexPreamble)
-
-findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
-findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
-findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument = 
-  let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
-      latexPre = makePreamble (filterGeneratedPreambleParts newPreambleFs)
-      importCmds = makeImportCmds newPreambleFs []
-      xmlAtts = map convertAttrib atts1
-      content = makeContent fs NoText "package"
-  in case (fromWithError content) of
-	Right c -> pairWithError elem mmissPreamble 
-		   where 
-		     elem = hasValue(Elem "package" xmlAtts c)
-		     mmissPreamble = 
-		       case fromWithError latexPre of
-			 Left str -> hasError(str)
-			 Right(lp) -> case lp of 
-					Just(p) -> wE_MMiSSLatexPreamble p
-					Nothing -> hasError("MMiSSLatexPreamble is empty!")
-		     wE_MMiSSLatexPreamble p = 
-		       case fromWithError(importCmds) of
-			 Right(impCmds) -> hasValue (Just(MMiSSLatexPreamble {
-							 latexPreamble = p,
-							 importCommands = impCmds
-						     }))
-			 Left str -> hasError(str)
-	Left err -> let preEl = fromWithError(pairWithError latexPre importCmds)
-			mmissPreamble = case preEl of 
-					  Right _ -> hasValue(Nothing)
-					  Left str -> hasError(str)
-		    in pairWithError (hasError(err)) mmissPreamble
-
-findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
-  if (name `elem` (map fst (plainTextAtoms ++ envsWithText ++ envsWithoutText))) then
-    let content = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
-    in case (fromWithError content) of
-         (Left str) -> hasError(str)
-         (Right cs) -> 
-            if ((genericLength cs) == 0) 
-              then hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
-              else let ce = head cs
-                   in case ce of 
-			(CElem e) -> hasValue(e, Nothing)
-			_ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
-    else if (name `elem` (map fst mmiss2EnvIds)) 
-           -- Env must be a link or Reference-Element: ignore it
-           then findFirstEnv rest preambleFs beforeDocument
-           -- Env ist plain LaTeX:
-           else if (not beforeDocument)
-	          -- Env is in document-Env but is not MMiSSLatex: pull out content and search there as well.
-                  -- Throws away this env:
-                  then findFirstEnv (fs ++ rest) preambleFs False
-                  -- We are before document env and it is no MMiSSLatex: add to preamble-Fragments
-                  else findFirstEnv rest (preambleFs ++ [(Env name ps fs)]) True
-
--- Frag is no Environment: Must be Command, Other or Escaped Char.
--- We are before \begin{document}, so add to preamble: 
-findFirstEnv (f:fs) preambleFs True = findFirstEnv fs (preambleFs ++ [f]) True
-
--- We are in the document but before the package env. or some other env. We decided to pull the Fragments
--- found here out to the Preamble. So they will be listed before the \begin{document} once the user
--- checks out the MMiSSLaTeX document:
-findFirstEnv (f:fs) preambleFs False = findFirstEnv fs (preambleFs ++ [f]) False
-
-findFirstEnv [] _ _  = hasError("No root environment ('package' or some other env.) found!")           
---}
-
-
 
 makeContent :: [Frag] -> Textmode -> String -> WithError [Content]
 
@@ -477,7 +422,9 @@ makeContent (f:frags) NoText parentEnv =
               in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
                                                                    ++ (lparamsToString ps) ++ delimStr))]))
                                             (makeContent frags NoText parentEnv)
-
+     (Special sType str) ->
+        let piStr = (show sType) ++ " " ++ str
+        in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags NoText parentEnv)
 
 makeContent (f:frags) TextAllowed parentEnv = 
   if (parentEnv `elem` (map fst listEnvs)) 
@@ -519,6 +466,9 @@ makeContent (f:frags) TextAllowed parentEnv =
 		 in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
 								      ++ (lparamsToString ps) ++ delimStr))]))
 					       (makeContent frags TextAllowed parentEnv)
+        (Special sType str) ->
+          let piStr = (show sType) ++ " " ++ str
+          in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags TextAllowed parentEnv)
 
     else   
     ------------------------------------------
@@ -604,6 +554,9 @@ makeContent (f:frags) TextAllowed parentEnv =
 			 in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
 								      ++ (lparamsToString ps) ++ delimStr))]))
 					       (makeContent frags TextAllowed parentEnv)
+        (Special sType str) ->
+          let piStr = (show sType) ++ " " ++ str
+          in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags TextAllowed parentEnv)
 
 
 
@@ -741,6 +694,10 @@ makeTextFragment parentEnv name params (f:frags) content =
                            otherwise -> ""
              newElem = CMisc (PI (piInsertLaTeX, ("\\" ++ cname ++ (lparamsToString ps) ++ delimStr)))
  	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
+    (Special sType str) ->
+          let piStr = (show sType) ++ " " ++ str
+              newElem = [(CMisc (PI (piSpecial, piStr)))]
+          in makeTextFragment parentEnv name params frags (content ++ newElem)
     (Env ename ps fs) -> 
       if (ename `elem` (map fst latexEmbeddedFormulaEnvs))
         then
@@ -850,6 +807,11 @@ makeListItem params (f:frags) contentList =
          else 
           let (content, restFrags) = makeNamelessTextFragment "Item" (f:frags) []
           in makeListItem params restFrags (contentList ++ [content])
+
+     (Special sType str) ->
+          let piStr = (show sType) ++ " " ++ str
+              newElem = [(CMisc (PI (piSpecial, piStr)))]
+          in makeListItem params frags (contentList ++ newElem)
 
 {--
      (Command name ps) -> 
@@ -1020,7 +982,7 @@ makeMMiSSLatex11 ((Elem name atts content), preOut, preambles) =
   let items = fillLatex preOut [(CElem (Elem name atts content))] []
       (p,_) = mergePreambles preambles
       preambleItem = [(EditableText (toString p))]
-   in if preOut 
+  in if preOut 
         then 
           let beginDocument = [EditableText "\\begin{document}\n"]
               endDocument = [EditableText "\n\\end{document}"]
@@ -1123,6 +1085,12 @@ fillLatex out ((CString _ str):cs) inList = fillLatex out cs (inList ++ [(Editab
 fillLatex out ((CMisc (Comment str)):cs) inList = fillLatex out cs (inList ++ [(EditableText str)])
 
 fillLatex out ((CMisc (PI (piInsertLaTeX, str))):cs) inList =  fillLatex out cs (inList ++ [(EditableText str)])
+
+fillLatex out ((CMisc (PI (piSpecial, str))):cs) inList =  
+  if (out == True)
+    then let newStr = "%% Inserted by MMiSS repository:\n" ++ "%% " ++ str
+         in fillLatex out cs (inList ++ [(EditableText newStr)])
+    else fillLatex out cs inList
 
 fillLatex out ((CElem (Elem "package" atts contents)):cs) inList = 
   let s1 = "\\begin{Package}" 

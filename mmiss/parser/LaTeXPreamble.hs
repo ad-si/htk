@@ -6,7 +6,7 @@ module LaTeXPreamble (
    emptyMMiSSLatexPreamble,
    emptyLaTeXPreamble, 
    parsePreamble,
-   extractPreamble,  -- :: FileSystem -> FilePath -> [Frag] -> WithError(Maybe MMiSSLatexPreamble, Frag)
+   extractPreamble,  -- :: FileSystem -> FilePath -> [Frag] -> Bool -> WithError(Maybe MMiSSLatexPreamble, Frag)
    mergePreambles,   -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
 
    importCommands, -- :: MMiSSLatexPreamble -> Maybe ImportCommands
@@ -102,8 +102,9 @@ mergePreambles preambleList =
        Just(p) -> (p,[])
 
 
-extractPreamble :: FileSystem -> FilePath -> [Frag] -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
-extractPreamble fileSys filePath frags = findFirstEnv fileSys filePath frags [] True  
+extractPreamble :: FileSystem -> FilePath -> [Frag] -> Bool -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
+extractPreamble fileSys filePath frags searchPreamble = 
+  findFirstEnv fileSys filePath frags [] True searchPreamble 
 
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch, extrahiert die Preamble
@@ -123,57 +124,67 @@ extractPreamble fileSys filePath frags = findFirstEnv fileSys filePath frags [] 
     das ohne Praeambel ausgecheckt wurde.
 --}
 
-findFirstEnv :: FileSystem -> FilePath -> [Frag] -> [Frag] -> Bool -> IO (WithError (Maybe MMiSSLatexPreamble, Frag))
+findFirstEnv :: FileSystem -> FilePath -> [Frag] -> [Frag] 
+                -> Bool -> Bool -> IO (WithError (Maybe MMiSSLatexPreamble, Frag))
 
-findFirstEnv fsys fpath ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fsys fpath fs preambleFs True
-findFirstEnv fsys fpath ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fsys fpath fs preambleFs False
-findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument = 
-  do
-    (newPreambleFs, atts1) <- return(addPropertiesFrag preambleFs packAtts)
-    latexPre <- makePreamble fsys fpath (filterGeneratedPreambleParts newPreambleFs)
-    importCmds <- return (makeImportCmds newPreambleFs [])
-    case fromWithError latexPre of
-	Left str -> return(hasError(str))
-	Right(lp) -> 
-	  case lp of 
-	     Just(p) -> 
-	       case fromWithError(importCmds) of
-		 Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
-						           latexPreamble = p,
-						           importCommands = impCmds
-						         }),
-                                                   (Env "Package" ps fs)))
-		 Left str -> return (hasError(str))
-	     Nothing -> 
-	       case fromWithError(importCmds) of
-		 Right(_) -> 
-		   return(hasError ("Insufficient preamble: Only found import commands."))
-		 Left(err) -> return (hasError("Insufficient preamble: Only found import commands.\n" ++ err))
+findFirstEnv fsys fpath ((Env "Root" _ fs):[]) preambleFs _ searchPreamble = 
+   findFirstEnv fsys fpath fs preambleFs True searchPreamble
+findFirstEnv fsys fpath ((Env "document" _ fs):_) preambleFs _ searchPreamble = 
+  findFirstEnv fsys fpath fs preambleFs False searchPreamble
+findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument searchPreamble = 
+  if (searchPreamble == False) 
+    -- we have a package as topmost mmiss environment but there must not be a preamble (because the
+    -- parsed string comes out of an Emacs buffer, in which case it has no preamble).
+    then return (hasValue(Nothing, (Env "Package" ps fs))) 
+    else
+      do
+	(newPreambleFs, atts1) <- return(addPropertiesFrag preambleFs packAtts)
+	latexPre <- makePreamble fsys fpath (filterGeneratedPreambleParts newPreambleFs)
+	importCmds <- return (makeImportCmds newPreambleFs [])
+	case fromWithError latexPre of
+	  Left str -> return(hasError(str))
+	  Right(lp) -> 
+	    case lp of 
+	       Just(p) -> 
+		 case fromWithError(importCmds) of
+		   Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
+							     latexPreamble = p,
+							     importCommands = impCmds
+							   }),
+						     (Env "Package" ps fs)))
+		   Left str -> return (hasError(str))
+	       Nothing -> 
+		 case fromWithError(importCmds) of
+		   Right(_) -> 
+		     return(hasError ("Insufficient preamble: Only found import commands."))
+		   Left(err) -> return (hasError("Insufficient preamble: Only found import commands.\n" ++ err))
 
-findFirstEnv fsys fpath ((Env name ps fs):rest) preambleFs beforeDocument = 
+findFirstEnv fsys fpath ((Env name ps fs):rest) preambleFs beforeDocument searchPreamble = 
   if (name `elem` (map fst (mmissPlainTextAtoms ++ envsWithText ++ envsWithoutText))) 
     then return (hasValue(Nothing, (Env name ps fs)))
     else if (name `elem` (map fst mmiss2EnvIds)) 
            -- Env must be a link or Reference-Element: ignore it
-           then findFirstEnv fsys fpath rest preambleFs beforeDocument
+           then findFirstEnv fsys fpath rest preambleFs beforeDocument searchPreamble
            -- Env ist plain LaTeX:
            else if (not beforeDocument)
 	          -- Env is in document-Env but is not MMiSSLatex: pull out content and search there as well.
                   -- Throws away this env:
-                  then findFirstEnv fsys fpath (fs ++ rest) preambleFs False
+                  then findFirstEnv fsys fpath (fs ++ rest) preambleFs False searchPreamble
                   -- We are before document env and it is no MMiSSLatex: add to preamble-Fragments
-                  else findFirstEnv fsys fpath rest (preambleFs ++ [(Env name ps fs)]) True
+                  else findFirstEnv fsys fpath rest (preambleFs ++ [(Env name ps fs)]) True searchPreamble
 
 -- Frag is no Environment: Must be Command, Other or Escaped Char.
 -- We are before \begin{document}, so add to preamble: 
-findFirstEnv fsys fpath (f:fs) preambleFs True = findFirstEnv fsys fpath fs (preambleFs ++ [f]) True
+findFirstEnv fsys fpath (f:fs) preambleFs True searchPreamble = 
+   findFirstEnv fsys fpath fs (preambleFs ++ [f]) True searchPreamble
 
 -- We are in the document but before the package env. or some other env. We decided to pull the Fragments
 -- found here out to the Preamble. So they will be listed before the \begin{document} once the user
 -- checks out the MMiSSLaTeX document:
-findFirstEnv fsys fpath (f:fs) preambleFs False = findFirstEnv fsys fpath fs (preambleFs ++ [f]) False
+findFirstEnv fsys fpath (f:fs) preambleFs False searchPreamble = 
+  findFirstEnv fsys fpath fs (preambleFs ++ [f]) False searchPreamble
 
-findFirstEnv _ _ [] _ _  = return(hasError("No root environment ('package' or some other env.) found!"))
+findFirstEnv _ _ [] _ _ _ = return(hasError("No root environment ('package' or some other env.) found!"))
 
 
 
@@ -354,7 +365,7 @@ parsePreamble s =
 {-- addPropertiesFrag bekommt die Fragmente der Präambel sowie die Attribute, die am Package-Env.
 definiert wurden übergeben und erzeugt daraus eine geänderte Liste von Präambel-Fragmenten.
 Dazu wird das \Properties-Kommando aus der Präambel herausgefiltert und dessen Attributwerte mit denen
-des Packages vereiningt. Diese neuen Attributwerte werden wiederum als \Properties-Fragment codiert
+des Packages vereinigt. Diese neuen Attributwerte werden wiederum als \Properties-Fragment codiert
 und in die zurückgegebene Fragment-Liste eingefügt. Im Prinzip werden also die Package-Attributwerte
 in das \Properties-Fragment, das in der Präambel steht, hineingesetzt.
 --}

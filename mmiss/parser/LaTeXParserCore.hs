@@ -2,11 +2,13 @@ module LaTeXParserCore (
    Frag(..),
    Params(..),
    SingleParam(..),
+   SpecialFragType(..),
    Attributes,
    
    parseFrags,  -- :: String -> Either ParseError [Frag]
    
    piInsertLaTeX,   -- :: String
+   piSpecial,      -- :: String
    latexToUnicodeTranslations,  -- :: String
 
    parseString,  -- :: Frag -> [Frag]
@@ -75,6 +77,7 @@ type Delimiter = String
 -- (Davon ausgehend ist klar, wie das korrespondierende rechte Klammerzeichen aussehen muss: 
 data SingleParam = SingleParam [Frag] Char    deriving Show
 
+data SpecialFragType = InputStart | InputEnd deriving (Eq,Show)
 
 {--------------------------------------------------------------------------------------------
 
@@ -92,7 +95,8 @@ data SingleParam = SingleParam [Frag] Char    deriving Show
 data Frag = Env EnvId Params [Frag]               -- Environments e.g. \begin{document}..
           | Command Command Params                 -- \name params
           | EscapedChar Char                       -- Sonderzeichen: #$&~_^%{} 
-          | Other Other deriving Show
+          | Other Other
+          | Special SpecialFragType String    deriving Show
 
 -- Parameter of LateX-Envs and Commands. Der erste der beiden Maybe Delimiter-Komponenten
 -- wird benutzt, um bei Commands den String aufzunehmen, der das Command vom nachfolgenden
@@ -119,6 +123,7 @@ parseFrags str = parse (frags []) "" str
 -- zur Struktur und nicht zu den Textbestandteilen gehören.
 
 piInsertLaTeX = "mmissInsertLaTeX"
+piSpecial = "mmissSpecial"
 
 -- The search/replace strings listed in latexToUnicodeTranslations are applied to attribute values when
 -- they are stored in XML-attribute instances:
@@ -751,6 +756,7 @@ makeTextElem (f:fs) inStr =
                         otherwise -> "\\end{" ++ name ++ "}"
               newStr = makeTextElem content ""
          in makeTextElem fs (inStr ++ begin ++ beginDelimStr ++ newStr ++ end ++ endDelimStr)
+      otherwise -> makeTextElem fs inStr
 
 
 {-- lparamsToString formatiert Params (Command-Parameter) in die ursprüngliche Latex-Form --}
