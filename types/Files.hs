@@ -8,6 +8,7 @@ module Files(
       -- instance of HasAttributes, HasFilePath
    FileType,
    newEmptyFile,
+   getPlainFileType,
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -33,6 +34,7 @@ import AttributesType
 import ObjectTypes
 import DisplayParms
 import GlobalRegistry
+import CallEditor
 
 -- ------------------------------------------------------------------
 -- FileType and its instance of HasCodedValue
@@ -43,7 +45,8 @@ data FileType = FileType {
    fileTypeLabel :: Maybe String,
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (String,Link File),
-   knownFiles :: VariableSet (Link File)
+   knownFiles :: VariableSet (Link File),
+   canEdit :: Bool
    }
 
 fileType_tyCon = mkTyCon "Files" "FileType"
@@ -54,19 +57,21 @@ instance HasCodedValue FileType where
    encodeIO = mapEncodeIO 
       (\ (FileType {fileTypeId = fileTypeId,fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
-            displayParms = displayParms})
-         -> (Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms)
+            displayParms = displayParms,canEdit = canEdit})
+         -> (Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
+            canEdit)
          )
    decodeIO codedValue0 view =
       do
-         ((Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms),
+         ((Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
+               canEdit),
             codedValue1) <- decodeIO codedValue0 view
          knownFiles <- newEmptyVariableSet
          return (FileType {fileTypeId = fileTypeId,
             fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,
-            knownFiles = knownFiles},codedValue1)
+            knownFiles = knownFiles,canEdit = canEdit},codedValue1)
 
 
 -- ------------------------------------------------------------------
@@ -106,6 +111,8 @@ instance HasCodedValue File where
 -- The instance of ObjectType
 -- ------------------------------------------------------------------
 
+---
+-- Node type 
 theNodeType :: NodeType
 theNodeType = fromString ""
 
@@ -132,10 +139,21 @@ instance ObjectType FileType File where
                   Just (NodeDisplayData {
                      topLinks = [],
                      arcTypes = [],
-                     nodeTypes = [(theNodeType,
-                        ValueTitle (\ (str,_ :: Link File) -> return str) $$
-                           nodeTypeParms
-                        )],
+                     nodeTypes = 
+                        let
+                           parms1 = 
+                              ValueTitle (\ (str,_) -> return str) $$$
+                              nodeTypeParms
+                        in
+                           [(theNodeType,
+                              if canEdit fileType
+                                 then
+                                    DoubleClickAction 
+                                       (\ (_,link) -> editObject view link) $$$
+                                    parms1
+                                 else
+                                    parms1
+                              )],
                      getNodeType = const theNodeType,
                      knownSet = SinkSource (knownFiles fileType),
                      mustFocus = (\ _ -> return False),
@@ -206,4 +224,37 @@ registerFiles :: IO ()
 registerFiles = 
    do
       registerObjectType (error "Unknown FileType" :: FileType)
+
+-- ------------------------------------------------------------------
+-- The plain file type
+-- ------------------------------------------------------------------
+
+---
+-- getPlainFileType is used to construct the file type
+-- when the repository is initialised (in createRepository),
+-- and add it to the global registry.  It also adds the
+-- file display type to the display type registry.
+getPlainFileType :: View -> IO FileType
+getPlainFileType view =
+   do
+      knownFolders <- newEmptyVariableSet
+      key <- newKey globalRegistry view
+      let
+         fileType = FileType {
+            fileTypeId = key,
+            fileTypeLabel = Just "Plain file",
+            requiredAttributes = emptyAttributesType,
+            displayParms = emptyNodeTypes,
+            knownFiles = knownFolders,
+            canEdit = True
+            }
+
+      addToGlobalRegistry globalRegistry view key fileType
+
+      return fileType
+
+
+thePlainFileType :: View -> IO FileType
+thePlainFileType view =
+   lookupInGlobalRegistry globalRegistry view firstKey
 

@@ -10,6 +10,7 @@ module Folders(
    lookupFileName,
    newEmptyFolder,
    insertInFolder,
+   thePlainFolderType,
    ) where
 
 import FiniteMap
@@ -271,7 +272,7 @@ registerFolders =
 -- ------------------------------------------------------------------
 
 ---
--- mkPlainFolderType is used to construct the folder type
+-- getPlainFolderType is used to construct the folder type
 -- when the repository is initialised (in getTopFolder),
 -- and add it to the global registry.  It also adds the
 -- folder display type to the display type registry.
@@ -298,6 +299,11 @@ getPlainFolderType view =
       addToGlobalRegistry displayTypeRegistry view key displayType
 
       return folderType
+
+thePlainFolderType :: View -> IO FolderType
+thePlainFolderType view =
+   lookupInGlobalRegistry globalRegistry view firstKey
+
 
 -- ------------------------------------------------------------------
 -- Retrieving the top folder.

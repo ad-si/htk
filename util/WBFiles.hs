@@ -37,10 +37,11 @@
    wish          The filename of the wish program
    daVinci       The filename of daVinci
    cvs           The filename of cvs
-   editor        A command to execute the text editor.  In this command
-                 %s is replaced with the full file path, %% with %.
-                 For more details see types/CallEditor.hs
-
+   editor        A command to execute the text editor.  
+                 This uses the CommandStringSub format, with defined
+                 substitutions %F => where the file is to be found and
+                 %N => what the user-visible name (for example, of the
+                 buffer) should be.
    top           The directory in which UniForM is installed
 
    daVinciIcons  The directory containing daVinci icons
@@ -269,7 +270,7 @@ usualProgramArguments = [
       },
    ProgramArgument{
       optionName = "editor",
-      optionHelp = "text editor invocation; %s is replaced with filename",
+      optionHelp = "text editor cmd; %F => filename; %N => user-visible name",
       defaultVal = Nothing,
       argType = STRING
       },

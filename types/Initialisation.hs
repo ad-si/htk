@@ -13,6 +13,7 @@ import Graph
 import qualified VersionDB
 import View
 import Folders
+import Files
 import VersionGraphService
 import VersionGraph
 
@@ -38,6 +39,10 @@ createRepository repository =
       -- (1) create a new view containing just an empty folder
       view <- newView repository
       topFolderLink <- getTopFolder view
+
+      -- (2) initialise plain file type
+      getPlainFileType view
+
       version <- commitView view
 
       if version /= VersionDB.firstVersion
