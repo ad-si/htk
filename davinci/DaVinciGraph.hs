@@ -40,6 +40,7 @@ import Computation
 import ExtendedPrelude
 import Debug(debug)
 import Thread
+import CompileFlags
 
 import Channels
 import Events
@@ -58,9 +59,6 @@ import GraphConfigure
 import DaVinciTypes
 import DaVinciBasic
 
-#ifdef DEBUG
-#define getValue (getValueSafe (__FILE__ ++ show (__LINE__)))
-#endif
 
 ------------------------------------------------------------------------
 -- How you refer to everything
@@ -269,7 +267,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   case lastSelection of
                      LastNode nodeId ->
                         do
-                           NodeData nodeType nodeValue <- getValue nodes nodeId
+                           NodeData nodeType nodeValue <- getValueHere nodes nodeId
                            (nodeDoubleClickAction nodeType) nodeValue
                      _ -> error "DaVinciGraph: confusing node double click"
   
@@ -280,7 +278,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   case lastSelection of
                      LastEdge edgeId ->
                         do
-                           ArcData arcType arcValue <- getValue edges edgeId
+                           ArcData arcType arcValue <- getValueHere edges edgeId
                            (arcDoubleClickAction arcType) arcValue
                      _ -> error "DaVinciGraph: confusing edge double click"
             actGlobalMenu :: MenuId -> IO ()
@@ -307,21 +305,21 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                         createErrorWin mess [] 
             actGlobalMenu menuId =
                do
-                  action <- getValue globalMenuActions menuId
+                  action <- getValueHere globalMenuActions menuId
                   action
 
             actNodeMenu :: NodeId -> MenuId -> IO ()
             actNodeMenu nodeId menuId =
                do
-                  NodeData nodeType nodeValue <- getValue nodes nodeId
-                  menuAction <- getValue (nodeMenuActions nodeType) menuId
+                  NodeData nodeType nodeValue <- getValueHere nodes nodeId
+                  menuAction <- getValueHere (nodeMenuActions nodeType) menuId
                   menuAction nodeValue
 
             actEdgeMenu :: EdgeId -> MenuId -> IO ()
             actEdgeMenu edgeId menuId =
                do
-                  ArcData arcType arcValue <- getValue edges edgeId
-                  menuAction <- getValue (arcMenuActions arcType) menuId
+                  ArcData arcType arcValue <- getValueHere edges edgeId
+                  menuAction <- getValueHere (arcMenuActions arcType) menuId
                   menuAction arcValue
 
             -- We now do the drag-and-drops.  There is no special
@@ -329,14 +327,14 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             -- done by the otherActions handler. 
             actCreateNodeAndEdge nodeId =
                do
-                  NodeData nodeType nodeValue <- getValue nodes nodeId
+                  NodeData nodeType nodeValue <- getValueHere nodes nodeId
                   (createNodeAndEdgeAction nodeType) nodeValue
 
             actCreateEdge :: NodeId -> NodeId -> IO ()
             actCreateEdge nodeId1 nodeId2 =
                do
-                  NodeData nodeType2 nodeValue2 <- getValue nodes nodeId2
-                  NodeData _ nodeValue1 <- getValue nodes nodeId1
+                  NodeData nodeType2 nodeValue2 <- getValueHere nodes nodeId2
+                  NodeData _ nodeValue1 <- getValueHere nodes nodeId1
                   (createEdgeAction nodeType2) (toDyn nodeValue1) nodeValue2
 
          context <- newContext handler
@@ -1442,5 +1440,17 @@ coDyn valueA =
    in
       case fromDyn dyn of
          Just valueB -> valueB
+
+-- ---------------------------------------------------------------------
+-- A safer version of getValue
+-- ---------------------------------------------------------------------
+
+getValueHere :: GetSetRegistry registry from to => registry -> from -> IO to
+getValueHere =
+   if isDebug
+      then
+         getValueSafe "DaVinciGraph getValue"
+      else
+         getValue
 
       

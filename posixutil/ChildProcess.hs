@@ -120,6 +120,7 @@ import FileNames
 import WBFiles
 import DeepSeq
 import IOExtras
+import CompileFlags
 
 import Concurrent
 import Maybes
@@ -201,15 +202,39 @@ data ChildProcess =
       bufferVar :: (MVar String),
                        -- bufferVar of previous characters (only relevant
                        -- for line mode)
-#ifdef DEBUG
       toolTitle :: String,
                        -- Title of the tool, derived from the file name,
                        -- used in the debugging file.
-#endif
       chunkSize :: PosixTypes.ByteCount 
                        -- max. size of one "chunk" of characters read
                        -- at one time
       }
+
+-- -------------------------------------------------------------------------
+-- Writing debugging information to a file
+-- (This code needs to be early because of the splice)
+-- -------------------------------------------------------------------------
+
+$(
+   if isDebug
+      then
+         [d|
+            debugWrite childProcess str =
+               debugString (toolTitle childProcess++">"++str)
+
+            debugRead childProcess str =
+               debugString (toolTitle childProcess++"<"++str)
+         |]
+      else
+         [d|
+            debugWrite _ _ = done
+            debugRead _ _ = done
+         |]
+   )
+
+-- NB - these functions expect a newline to be at the end of the string.
+debugWrite :: ChildProcess -> String -> IO ()
+debugRead :: ChildProcess -> String -> IO ()
 
 -- -------------------------------------------------------------------------
 -- Constructor
@@ -335,9 +360,7 @@ newChildProcess path confs  =
                      processID = fromIntegral processID,
                      bufferVar = bufferVar,
                      chunkSize = fromIntegral (chksize parms),
-#ifdef DEBUG
                      toolTitle = toolTitle,
-#endif
                      closeAction = closeAction
                      }
 
@@ -392,9 +415,8 @@ newChildProcess path confs  =
                                     "[LARGE NUMBER OF MILLISECONDS]")
                               Just result -> return result
 
-#ifdef DEBUG
                            debugRead newChild (result++"\n")
-#endif
+
                            if response == result
                               then
                                  done
@@ -482,9 +504,7 @@ readMsg (child@ChildProcess
       buffer <- takeMVar bufferVar 
       (newBuffer,result) <- readWithBuffer readFrom buffer []
       putMVar bufferVar newBuffer
-#ifdef DEBUG
       debugRead child (result++"\n")
-#endif
       return result
    where
       readWithBuffer readFrom [] acc = 
@@ -501,9 +521,7 @@ readMsg (child @ ChildProcess {lineMode = False, readFrom = readFrom,
 	               chunkSize = chunkSize}) =
    do
       result <- readChunk chunkSize readFrom
-#ifdef DEBUG
       debugRead child (result++"\n")
-#endif
       return result
 
 readChunk :: PosixTypes.ByteCount -> PosixTypes.Fd -> IO String
@@ -564,11 +582,15 @@ sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  =
 sendMsgRaw :: ChildProcess -> CString.CStringLen -> IO ()
 sendMsgRaw (child@ChildProcess{writeTo = writeTo}) cStringLen =
    do
-#ifdef DEBUG
-      str <- CString.peekCStringLen cStringLen
-      debugWrite child str
-#endif
+      if isDebug
+         then
+               do
+                  str <- CString.peekCStringLen cStringLen
+                  debugWrite child str
+         else
+            done
       fdWritePrim writeTo cStringLen
+
 
 closeChildProcessFds  :: ChildProcess -> IO ()
 closeChildProcessFds (ChildProcess{closeAction = closeAction}) = 
@@ -652,25 +674,3 @@ writeLineError = userError "ChildProcess: write line error"
 waitForInputFd :: PosixTypes.Fd -> IO()
 waitForInputFd fd  = threadWaitRead(fromIntegral fd)
 
--- -------------------------------------------------------------------------
--- Writing debugging information to a file
--- -------------------------------------------------------------------------
-
--- NB - these functions expect a newline to be at the end of the string.
-debugWrite :: ChildProcess -> String -> IO ()
-debugRead :: ChildProcess -> String -> IO ()
-
-#ifdef DEBUG
-
-debugWrite childProcess str =
-   debugString (toolTitle childProcess++">"++str)
-
-debugRead childProcess str =
-   debugString (toolTitle childProcess++"<"++str)
-
-#else
-
-debugWrite _ _ = done
-debugRead _ _ = done
-
-#endif

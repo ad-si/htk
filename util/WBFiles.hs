@@ -91,10 +91,6 @@
    
    ######################################################################### -}
 
-#include "config.h"
-   /* we need config.h so we can see if we are running Windows and if so
-      define getWindowsTick */
-
 module WBFiles (
    -- Functions for reading the results of initialising WBFiles.
    -- Values for which we provide defaults either here or in the
@@ -108,11 +104,11 @@ module WBFiles (
 
    getToolTimeOut, -- :: IO Int
       -- gets tool time out.
-#if WINDOWS
    getWindowsTick, -- :: IO Int
       -- get time to wait between ticks for Windows.
-#endif
-   getTOP, -- IO String
+      -- Away from Windows, this function will not work.
+   getTOP, --  :: IO String
+      -- Get the location of the top directory.
    getTOPPath, 
       -- :: [String] -> IO String
       -- Get a path within the top directory.  
@@ -190,6 +186,7 @@ module WBFiles (
    ) where
 
 import Char
+import CompileFlags
 import IO
 import List
 import Monad
@@ -252,11 +249,6 @@ getGnuClientPath = valOf (getArgString "gnuclient")
 
 getToolTimeOut :: IO Int
 getToolTimeOut = valOf (getArgInt "toolTimeOut")
-
-#if WINDOWS
-getWindowsTick :: IO Int
-getWindowsTick = valOf (getArgInt "windowsTick")
-#endif
 
 getTOP :: IO String
 getTOP = valOf (getArgString "top")
@@ -348,14 +340,12 @@ usualProgramArguments = [
       defaultVal = Just (IntValue 10000),
       argType = INT
       },
-#if WINDOWS
    ProgramArgument{
       optionName = "windowsTick",
-      optionHelp = "interval in microseconds between when we poll wish.",
+      optionHelp = "interval in microseconds for polling wish (Windows only).",
       defaultVal = Just (IntValue 10000),
       argType = INT
       },
-#endif
    ProgramArgument{
       optionName = "editor",
       optionHelp = "text editor cmd; %F => filename; %N => user-visible name",
@@ -684,7 +674,7 @@ parseTheseArgumentsRequiring' arguments required =
                      return (newExit ExitSuccess,prevMap)
                "--uni-version" -> 
                      do
-                        printToErr ("uni's version is "++UNIVERSION)
+                        printToErr ("uni's version is "++uniVersion)
                         return (newExit ExitSuccess,prevMap)
                "--uni-parameters" ->
                   do
@@ -817,4 +807,22 @@ printToErr :: String -> IO ()
 printToErr message =
    do
       hPutStrLn stderr message
+
+------------------------------------------------------------------------
+-- Windows handling
+------------------------------------------------------------------------
+
+$(
+   if  isWindows
+      then
+        [d|
+           getWindowsTick :: IO Int
+           getWindowsTick = valOf (getArgInt "windowsTick")
+        |]
+      else
+         [d|
+            getWindowsTick :: IO Int
+            getWindowsTick = error "getWindowsTick does not exist"
+         |]
+  )
 

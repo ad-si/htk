@@ -10,11 +10,7 @@ module PtrMagic(
    readStringFromAddr#,
    ) where
 
-#if (__GLASGOW_HASKELL__ >= 503)
 import GHC.Ptr(Ptr(Ptr))
-#else
-import PrelPtr(Ptr(Ptr))
-#endif
 
 import GlaExts(Addr#)
 import CString

@@ -16,12 +16,6 @@ beforeAfter action =
       putStrLn (show after)
 
 main :: IO ()
-#if 0
-
-main = (beforeAfter . sync) (always (putStrLn "T1") >>>= (\ _ -> sync (always (putStrLn "T2"))))
-
-#else
-
 main = (beforeAfter . sync) (
    do
       always (putStrLn "T1")      
@@ -30,4 +24,3 @@ main = (beforeAfter . sync) (
       always (putStrLn "T4")
       always (putStrLn "T5")
    )
-#endif

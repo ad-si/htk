@@ -9,8 +9,6 @@ module MMiSSEditFormatConverter(
       -- -> IO (WithError String)
    ) where
 
-#include "config.h"
-
 import Maybe
 
 import Data.FiniteMap
@@ -23,11 +21,7 @@ import Link
 
 import EmacsContent
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
 
 import LaTeXParser
 

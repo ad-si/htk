@@ -1,9 +1,3 @@
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
 {- #########################################################################
 
 MODULE        : Dynamics
@@ -57,7 +51,6 @@ module Dynamics (
         HasTyRep3(..),
         HasTyRep4(..),
         HasTyRep5(..),
-#ifdef NEW_GHC
         HasTyRep1_1(..),
         HasTyRep2_11(..),
         HasTyRep3_011(..),
@@ -66,7 +59,6 @@ module Dynamics (
         HasTyRep4_0111(..),
         HasTyRep5_00111(..),
         HasTyRep6_000111(..),
-#endif
         ) 
 where
 
@@ -76,21 +68,8 @@ import qualified Dynamic
 import Dynamic(Typeable(..),TypeRep)
 import Debug(debug)
 
-#ifdef NEW_GHC
-
 fromDyn :: Typeable a => Dyn -> Maybe a
 fromDyn = Dynamic.fromDynamic
-
-#else
--- Here follows the infamous ghc5.02 Dynamics hack
-
-import qualified PrelDynamic(Dynamic(..))
-import qualified GlaExts
-
-fromDyn :: Typeable a => Dyn -> Maybe a
-fromDyn (PrelDynamic.Dynamic _ o) = Just (GlaExts.unsafeCoerce# o)
-
-#endif
 
 type Dyn = Dynamic.Dynamic
 
@@ -227,8 +206,6 @@ instance (HasTyRep5 ty,Typeable value1) => HasTyRep4 (ty value1) where
 -- in the types stuff.
 -- ------------------------------------------------------------
 
-#ifdef NEW_GHC
-
 class HasTyRep1_1 ty where
    tyRep1_1 :: HasTyRep1 typeArg => ty typeArg -> TyRep
 
@@ -333,8 +310,6 @@ data Dummy x = Dummy x
 dummy_tyRep = mkTyRep "Dynamics" "Dummy"
 instance (HasTyRep1 Dummy) where
    tyRep1 _ = dummy_tyRep
-
-#endif
 
 -- ------------------------------------------------------------
 -- Instances of HasTyRep* for GHC-defined types which don't provide

@@ -9,16 +9,10 @@ module MMiSSAttributes(
    toXmlAttributes, -- :: Attributes -> IO [XmlTypes.Attribute]
    ) where
 
-#include "config.h"
-
 import Computation
 import Registry
 
-#if HAXMLINT
 import Text.XML.HaXml.Types as XmlTypes
-#else
-import XmlTypes
-#endif
 
 import BasicObjects
 import View

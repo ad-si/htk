@@ -2,7 +2,8 @@ PACKAGE = uni-util
 PACKAGES = concurrent lang data network text haskell-src uni-options
 
 SRCS       = \
-  CompileFlags.hs Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
+  TemplateHaskellHelps.hs CompileFlags.hs \
+  Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   WBFiles.hs Object.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \
   IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs \
   RegularExpression.hs DelSet.hs Thread.hs UniqueString.hs UniqueFile.hs \
@@ -19,6 +20,8 @@ SRCS       = \
 SRCSC      = new_object.c default_options.c copy_file.c
 
 SUBDIRS = test
+
+EXTRA_HC_OPTIONS += -cpp
 
 include @TOP@/mk/boilerplate.mk
 

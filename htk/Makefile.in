@@ -8,7 +8,8 @@ endif
 
 DOIMPORTS  = YES
 
-EXTRA_HC_OPTIONS += -icanvasitems:components:containers:devices:kernel:menuitems:packer:resources:textitems:tix:toolkit:toplevel:widgets -H200M
+# Sadly we need -cpp for CallWish.
+EXTRA_HC_OPTIONS += -cpp -icanvasitems:components:containers:devices:kernel:menuitems:packer:resources:textitems:tix:toolkit:toplevel:widgets -H200M
 
 SRCS       = resources/Resources.hs\
              resources/GUIValue.hs\

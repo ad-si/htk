@@ -2,18 +2,6 @@
    There are really two implementations; one for Windows and one for
    everything else.
    -}
-
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
-#ifndef NEW_GHC
-{-# OPTIONS -#include "runWish.h" #-}
-{-  (This is only relevant for Windows, but should do no harm.) -}
-#endif /* NEW_GHC */
-
 module CallWish(
    CalledWish, -- Type representing wish instance
    callWish, -- :: IO CalledWish
@@ -23,16 +11,6 @@ module CallWish(
    readCalledWish, -- :: CalledWish -> IO String
    destroyCalledWish, -- :: CalledWish -> IO ()
    ) where
-
-#include "config.h"
-
-#if (WINDOWS)
-
-{- POLLWISH is the number of microseconds we wait between polling the wish
-   output.  We set the default to 10000, so 100 times a second. -}
-#ifndef POLLWISH
-#define POLLWISH 10000
-#endif
 
 import MarshalAlloc
 import MarshalArray
@@ -47,17 +25,17 @@ import Concurrent
 
 import WBFiles
 import Debug
+import CompileFlags
+
+#include "config.h"
+
+#if (WINDOWS)
 
 -- -----------------------------------------------------------------------
 -- Foreign function interface to the three C functions
 -- -----------------------------------------------------------------------
 
-
-#ifndef NEW_GHC
-foreign import "initialise_wish" unsafe initialiseWishPrim :: CString -> IO () 
-#else /* NEW_GHC */
 foreign import ccall unsafe "runWish.h initialise_wish" initialiseWishPrim :: CString -> IO ()
-#endif /* NEW_GHC */
 
 initialiseWish :: String -> IO ()
 initialiseWish wishPath =
@@ -65,18 +43,9 @@ initialiseWish wishPath =
      cString <- newCString wishPath
      initialiseWishPrim cString
 
-#ifndef NEW_GHC
-foreign import "write_to_wish" unsafe writeToWishPrim :: CString -> CSize -> IO ()
-#else /* NEW_GHC */
 foreign import ccall unsafe "runWish.h write_to_wish" writeToWishPrim :: CString -> CSize -> IO ()
-#endif /* NEW_GHC */
-
-#ifndef NEW_GHC
-foreign import "get_readwish_fd" unsafe getReadWishFdPrim :: IO CInt
-#else
 foreign import ccall unsafe "runWish.h get_readwish_fd" getReadWishFdPrim 
    :: IO CInt
-#endif
 
 getReadWishFd :: IO Int
 getReadWishFd =
@@ -84,23 +53,13 @@ getReadWishFd =
      cfd <- getReadWishFdPrim
      return (fromIntegral cfd)
 
-#ifndef NEW_GHC
-foreign import "read_from_wish" unsafe readFromWishPrim 
-   :: CString -> CSize -> IO CSize
-#else /* NEW_GHC */
 foreign import ccall unsafe "runWish.h read_from_wish" readFromWishPrim 
    :: CString -> CSize -> IO CSize
-#endif /* NEW_GHC */
-
-#ifndef NEW_GHC
-foreign import "read_from_wish_avail" unsafe readFromWishAvail :: IO CSize
-#else
 foreign import ccall unsafe "runWish.h read_from_wish_avail" readFromWishAvail 
    :: IO CSize
-#endif
 
 readFromWish :: IO String
-#ifdef GHC_CONCURRENCY_FIXED
+{-
 {-  This is how we SHOULD do it.  Unfortunately, GHC on Windows provides
     no mechanism for waiting on a file which doesn't stop the world.
     -}
@@ -123,7 +82,7 @@ readFromWish =
                peekCStringLen (buffer,fromIntegral resultSize)
             )
 
-#else
+-}
 {- So what we actually do, sadly, is check every so often (currently
    every tenth of a second) to see if input is available. -}
 
@@ -154,11 +113,8 @@ readFromWish =
       -- We allocate the buffer using allocArray, which hopefully is more
       -- efficient than mallocArray/free.
       str <- allocaArray bufferSize readToBuffer
-#ifdef DEBUG
       debugString("wish<"++str++"\n")
-#endif
       return str
-#endif
 
 
 -- -----------------------------------------------------------------------
@@ -180,10 +136,13 @@ callWish =
 sendCalledWish :: CalledWish -> CStringLen -> IO ()
 sendCalledWish _ (cString,len) =
    do
-#ifdef DEBUG
-      str <- peekCStringLen (cString,len)
-      debugString ("wish>"++str)
-#endif
+      if isDebug
+         then
+            do
+               str <- peekCStringLen (cString,len)
+               debugString ("wish>"++str)
+         else
+            done
       writeToWishPrim cString (fromIntegral len)
 
 -- I don't know how you destroy a child process in Windows.  Hopefully

@@ -5,7 +5,6 @@ module MMiSSReadObject(
    readMMiSSObject,
 
    ) where
-#include "config.h"
 
 import Control.Concurrent.MVar
 
@@ -23,11 +22,7 @@ import ObjectTypes
 import LinkManager
 import EntityNames
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
 
 import LaTeXParser(MMiSSExtraPreambleData(..))
 

@@ -9,8 +9,6 @@ module MMiSSContent(
    toTopElement,
    ) where
 
-#include "config.h"
-
 import List
 
 import Computation
@@ -20,11 +18,7 @@ import BinaryAll(Choice5(..))
 import CodedValue
 import EntityNames
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
 
 import MMiSSAttributes
 import MMiSSDTDAssumptions

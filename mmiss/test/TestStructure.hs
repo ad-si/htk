@@ -3,8 +3,6 @@
    back again. -}
 module Main(main) where
 
-#include "config.h"
-
 import IO
 import System
 
@@ -13,17 +11,10 @@ import AtomString
 
 import CodedValue
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Pretty
 import Text.PrettyPrint.HughesPJ
-#else
-import XmlTypes
-import XmlParse
-import XmlPP
-import Pretty
-#endif
 
 import MMiSSContent
 import MMiSSDTD

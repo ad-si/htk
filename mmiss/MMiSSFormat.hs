@@ -7,19 +7,10 @@ module MMiSSFormat(
    Format(..),
    formatForm, -- :: Form Format
    ) where
-#include "config.h"
 
 import Computation
 
 import SimpleForm
-
-#if HAXMLINT
-import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
-
-import LaTeXParser
 
 data Format = LaTeX | XML deriving Show
 

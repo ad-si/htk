@@ -1,13 +1,3 @@
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
-#ifndef NEW_GHC
-{-# OPTIONS -#include "unistd.h" #-}
-#endif /* NEW_GHC */
-
 module FdRead(
    fdWriteLn, -- :: Posix.Fd -> String -> IO ()
    fdWritePrim, -- :: Posix.Fd -> CStringLen -> IO ()
@@ -25,12 +15,7 @@ import System.Posix as Posix
 
 import Computation
 
-#ifndef NEW_GHC
-foreign import "write" unsafe writePrim :: Fd -> CString -> CSize -> IO CSize
-#else /* NEW_GHC */
 foreign import ccall unsafe "unistd.h write" writePrim :: Fd -> CString -> CSize -> IO CSize
-#endif /* NEW_GHC */
-
 
 fdWritePrim :: Posix.Fd -> CStringLen -> IO ()
 fdWritePrim fd (cstring,len) =

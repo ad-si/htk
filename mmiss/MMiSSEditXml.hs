@@ -19,6 +19,7 @@ import Maybe
 import Computation
 import ExtendedPrelude
 import Debug(debug)
+import CompileFlags
 
 import EmacsContent
 
@@ -72,19 +73,21 @@ toEditableXml fName elem =
 parseXmlString :: String -> EmacsContent (TypedName,[Attribute])
 parseXmlString s0 =
    let
-      -- (0) if DEBUG is set, check that there aren't any funny characters
+      -- (0) if isDebug is set, check that there aren't any funny characters
       -- which upset HaXml's column-numbering algorithm.
-#ifdef DEBUG
+
       funny :: Char -> Bool
       funny '\r' = True
       funny '\t' = True
       funny _ = False
 
-      s = if any funny s0 then error ("MMiSSEditXml: funny chars in "++show s)
-         else s0
-#else
-      s = s0
-#endif
+      s = 
+         if isDebug -- hopefully if not this will get optimised out.
+            then
+               if any funny s0 then 
+                  error ("MMiSSEditXml: funny chars in "++show s) else s0
+                  
+            else s0
 
       -- (1) tokenize
       tokens = xmlLex "MMiSSEditXml.extractAllIncludes" s

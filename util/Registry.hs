@@ -79,6 +79,7 @@ import ExtendedPrelude(newFallOut,mkBreakFn)
 import Dynamics
 import BinaryAll
 import Thread
+import CompileFlags
 
 
 -- ----------------------------------------------------------------------
@@ -480,23 +481,22 @@ getValueSafe :: GetSetRegistry registry from to
    => String -> registry -> from -> IO to
 getValueSafe = getValue'
 
+
 getValue' :: GetSetRegistry registry from to 
    => String -> registry -> from -> IO to
-
-#ifdef DEBUG
-
-getValue' label registry from =
-   do
-      toOpt <- getValueOpt registry from
-      case toOpt of
-         Nothing -> error ("Registry.getValue' - failed with "++label)
-         Just to -> return to
-
-#else
-
-getValue' label = getValue
-
-#endif
+getValue' = 
+   if isDebug
+      then
+         (\ label registry from ->
+            do
+               toOpt <- getValueOpt registry from
+               case toOpt of
+                  Nothing -> error ("Registry.getValue' - failed with "
+                     ++ label)
+                  Just to -> return to
+            )
+      else
+         (\ label -> getValue)
 
 -- ----------------------------------------------------------------------
 -- Instance of HasBinary for monads which have IO.

@@ -16,6 +16,7 @@ import VariableSet(VariableSetSource,toKey)
 import VariableList
 import VariableSetBlocker
 import Dynamics
+import CompileFlags
 
 import BSem
 
@@ -132,15 +133,16 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                            ),
                      Button "Export Object as LaTeX"
                         (\ link -> exportMMiSSObjectLaTeX view link),
-#ifdef DEBUG
-                     Button "Export Object as XML"
-                        (\ link -> exportMMiSSObjectXML view link),
-#endif
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
                      Button "Delete" (deleteObject view)
 --                     Button "Add CASL variant" (\ link -> addCASLVariant view link)
-                     ]
+                     ] ++
+                     if isDebug then
+                        [Button "Export Object as XML"
+                            (\ link -> exportMMiSSObjectXML view link)] 
+                        else []
+
                   menu = LocalMenu (Menu Nothing editOptions)
                in
                   menu $$$

@@ -55,6 +55,7 @@ import RegexString
 import Dynamics
 import Debug(debug)
 import CompileFlags
+import TemplateHaskellHelps
 
 -- Since the regular expression implementation is now changing for the
 -- third time, we provide the following interface.
@@ -83,9 +84,9 @@ $(
       else
          [d| 
             matchRegexAll0 regEx str =
-               ($idVar fmap)
+               fmap
                   (\ (a,b,c,_,d) -> (a,b,c,d) )
-                  (RegexString.matchRegexAll regEx str)
+                  ($(dynName "RegexString.matchRegexAll") regEx str)
          |]
    )
 

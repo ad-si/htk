@@ -12,5 +12,9 @@ SUBDIRS    = test
 
 XHCDIRS = $(HTKDIRS)
 
+EXTRA_HC_OPTIONS += -cpp
+# Sadly unavoidable because of tricks in DisplayGraph.hs
+
+
 include @TOP@/mk/boilerplate.mk
 

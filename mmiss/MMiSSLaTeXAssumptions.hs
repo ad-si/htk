@@ -7,17 +7,11 @@ module MMiSSLaTeXAssumptions(
       -- AttValue [Left String], in other words is a single String.
    ) where
 
-#include "config.h"
-
 import ExtendedPrelude
 
 import EmacsContent
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
 
 import MMiSSDTDAssumptions
 

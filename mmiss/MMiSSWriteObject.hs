@@ -5,8 +5,6 @@ module MMiSSWriteObject(
    writeToMMiSSObject,
    ) where
 
-#include "config.h"
-
 import Maybe
 
 import qualified Control.Exception
@@ -38,16 +36,9 @@ import LinkManager
 import LinkDrawer
 import SpecialNodeActions
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Validate
-#else
-import XmlParse
-import XmlTypes
-
-import XmlValidate
-#endif
 
 import MMiSSDTDAssumptions
 import MMiSSDTD

@@ -11,8 +11,6 @@ module MMiSSEmacsEdit(
 
    ) where
 
-#include "config.h"
-
 import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Control.Exception(assert)
@@ -43,11 +41,7 @@ import AttributesType
 import EmacsContent
 import EmacsEdit
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
 
 import LaTeXParser(MMiSSExtraPreambleData(..))
 

@@ -22,9 +22,9 @@ else
 endif
 
 HCSHORTFLAGS = \
-   -cpp -recomp -fwarn-deprecations \
+   -recomp -fwarn-deprecations \
    $(HC_OPTIONS) $(EXTRA_HC_OPTIONS) \
-   -package-conf $(PACKAGECONF) 
+   -package-conf $(PACKAGECONF) $($*_HC_OPTIONS)
 
 PACKAGESARGS = $(PACKAGES:%=-package %)
 

@@ -135,9 +135,7 @@ data SimpleDBCommand =
    |  MultiCommand [SimpleDBCommand]
          -- A group of commands to be executed one after another.
          -- Returns MultiResponse with the corresponding responses.
-#ifdef DEBUG
    deriving (Show)
-#endif
 
 data SimpleDBResponse =
       IsLocation Location
@@ -150,9 +148,7 @@ data SimpleDBResponse =
    |  IsNotFound 
    |  IsOK
    |  MultiResponse [SimpleDBResponse]
-#ifdef DEBUG
-   deriving (Show)
-#endif
+  deriving (Show)
 
 -- | Information about a Version sent on commit or ModifyUserInfo
 data VersionInformation =
@@ -195,9 +191,7 @@ data Diff =
    --     otherwise specified;
    -- (b) locations whose contents are specified as (location,version1)
    --     on commit have identical contents to those of (location,version1).
-#ifdef DEBUG
    deriving (Show)
-#endif
 
 type ChangeData = Either ICStringLen (Location,ObjectVersion)
    -- This indicates the contents of a changed item.  

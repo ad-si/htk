@@ -1,9 +1,3 @@
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
 {- DisplayView displays all the objects in a particular view according to a 
    particular display type. -}
 module DisplayView(
@@ -71,12 +65,10 @@ data DisplayedObjectType objectType object graph node nodeType arcType =
 type TransmittedAction graph node object =
    (graph -> node (Link object) -> IO ())
 
-#ifdef NEW_GHC
 displayedObjectTypeTyRep = mkTyRep "DisplayView" "DisplayedObjectType"
 
 instance HasTyRep6_000111 DisplayedObjectType where
    tyRep6_000111 _ = displayedObjectTypeTyRep
-#endif
 
 ---
 -- Contains DisplayedObjectType for all object types in the view

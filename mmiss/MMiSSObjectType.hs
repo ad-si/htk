@@ -29,8 +29,6 @@ module MMiSSObjectType(
    getParentLinkedObjectPreamble,
    ) where
 
-#include "config.h"
-
 import System.IO.Unsafe(unsafeInterleaveIO)
 
 import Computation(WithError,coerceWithErrorIO,fromWithError,mapWithError)
@@ -47,11 +45,7 @@ import DialogWin
 
 import Graph(ArcType)
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
 
 import VersionDB (Location)
 import ViewType

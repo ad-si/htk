@@ -124,6 +124,7 @@ import ICStringLen
 import Debug(debug)
 import ExtendedPrelude
 import AtomString
+import CompileFlags
 
 import Destructible
 import BSem
@@ -165,15 +166,17 @@ initialise =
       let
          queryRepository1 :: SimpleDBCommand -> IO SimpleDBResponse
          queryRepository1 =
-#ifdef DEBUG
-            \ simpleDBCommand -> do
-               debug simpleDBCommand
-               response <- queryRepository0 simpleDBCommand
-               debug response
-               return response
-#else
-            queryRepository0
-#endif
+           if isDebug
+              then
+                 (\ simpleDBCommand -> 
+                    do
+                       debug simpleDBCommand
+                       response <- queryRepository0 simpleDBCommand
+                       debug response
+                       return response
+                    )
+              else
+                 queryRepository0
 
          queryRepository2 :: [SimpleDBCommand] -> IO [SimpleDBResponse]
          queryRepository2 [] = return []

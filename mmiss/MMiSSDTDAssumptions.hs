@@ -44,8 +44,6 @@ module MMiSSDTDAssumptions(
       -- Return all the external files in an element
    ) where
 
-#include "config.h"
-
 import Maybe
 import Char
 
@@ -53,11 +51,7 @@ import ExtendedPrelude
 import Computation
 import AtomString
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-#else
-import XmlTypes
-#endif
 
 import AttributesType
 
