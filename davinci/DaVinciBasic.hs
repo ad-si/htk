@@ -57,6 +57,7 @@ import WBFiles
 import FileNames
 import Registry
 import UniqueString
+import Thread
 
 import Spawn
 import Events
@@ -167,6 +168,14 @@ newDaVinci =
   
 daVinciVersion :: Maybe String
 daVinciVersion = version daVinci
+
+workAroundDaVinciBug1 :: Bool
+workAroundDaVinciBug1 = 
+   (daVinciVersion == Just "daVinci Presenter Professional 3.0.3")
+
+daVinciSkip :: IO ()
+daVinciSkip =
+   if workAroundDaVinciBug1 then delay (secs 0.05) else done
     
 instance Destroyable DaVinci where
    destroy (DaVinci {
@@ -321,6 +330,7 @@ doInContextVeryGeneral daVinciCmd contextOpt =
                                  error "set_context returned wrong context"
                               else
                                  done
+                           daVinciSkip
                            case result of
                               Ok -> done
                               _ -> error ("set_context returned "++

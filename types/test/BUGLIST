@@ -1,0 +1,9 @@
+3rd May 2002
+
+1)  ghc5.03, Linux, remote, debugging version
+    runWorkbench can't even start up and falls over with "no parse" error.
+2)  ghc5.02, Solaris, debugging
+    HUGE file (libuni-htk.a) causes Server a stack overflow.
+3)  ghc5.02, optimised + unoptimised version, Solaris.
+    On closing window in optimised version, nothing else seems to be 
+    possible.

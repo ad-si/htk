@@ -1,0 +1,7 @@
+#!/usr/local/bin/bash
+# Test script for running the workbench once the server is already going.
+export UNISERVER=titania.informatik.uni-bremen.de
+export UNIEDITOR="xterm -e ne %F"
+rm -rf /tmp/db /tmp/#
+export UNIDEBUG=/home/ger/uni/types/test/w.debug
+./Workbench
