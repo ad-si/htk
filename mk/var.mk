@@ -24,7 +24,7 @@ endif
 HCSHORTFLAGS = \
    -cpp -recomp -fwarn-deprecations \
    $(HC_OPTIONS) $(EXTRA_HC_OPTIONS) \
-   -packageconf $(PACKAGECONF) 
+   -package-conf $(PACKAGECONF) 
 
 PACKAGESARGS = $(PACKAGES:%=-package %)
 

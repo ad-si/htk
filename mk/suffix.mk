@@ -293,12 +293,6 @@ boothere : $(HIBOOTFILES)
 boot : boothere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) boot &&) echo $(MAKE) boot finished.
 
-ifeq "$(GhcMajVersion).$(GhcMinVersion)" "5.02"
-   HIBOOTEXTRA = -c
-else
-   HIBOOTEXTRA =
-endif
-   
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
 ifeq "$(GhcMajVersion).$(GhcMinVersion)" "5.02"
