@@ -252,7 +252,9 @@ packageherequick :
 # remove-package complains about the package not being there (which it won't
 # be, the first time we use this).
 ifneq "$(PACKAGE)" ""
-	if [ -e $(PACKAGE).o -a lib$(PACKAGE).a -nt $(PACKAGE).o ]; then $(RM) $(PACKAGE).o; fi
+	if [ -f $(PACKAGE).o -a -f lib$(PACKAGE).a ]; then \
+	   $(GFIND) lib$(PACKAGE).a -maxdepth 0 -newer $(PACKAGE).o -exec \
+	      $(RM) $(PACKAGE).o \; ; fi
 	$(GHCPKG) --config-file $(PACKAGECONF) --remove-package $(PACKAGE) ; echo ""
 ifneq "$(DOIMPORTS)" ""
 # Copy import files over.
