@@ -11,3 +11,11 @@ int copy_file(const char *from,const char *to);
 #define ETOBAD (-2)
 /* no memory */
 #define ENOBUFFMEM (-3) 
+
+/* copy_string_to_file is a routine for a string to a file.
+   (This is used for attributes.)  We give the string as
+   (length,location)
+   */
+int copy_string_to_file(size_t length,const char *source,const char *to);
+/* A negative result indicates an error.  The only possible value
+   is ETOBAD. */

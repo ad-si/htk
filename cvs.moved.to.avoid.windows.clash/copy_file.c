@@ -51,4 +51,30 @@ int copy_file(const char *from,const char *to) {
    return result;
    }
 
-   
+int copy_string_to_file(size_t length,const char *source,const char *to) {
+   FILE *out = fopen(to,"wb");
+   int result = 0;
+   char *error = ""; /* used for additional error messages */
+
+   if(!out) {
+      result = ETOBAD;
+      error = strerror(errno);
+      }
+   else {
+      int errout;
+      fwrite(source,sizeof(char),length,out);
+      errout = ferror(out);
+      if(errout) {
+         result=ETOBAD;
+         error = strerror(errout);
+         }
+      }
+   fprintf(stderr,"\ndebug: writing %d \"%*s\" %s\n",length,length,source,to);
+   if(result) {
+      fprintf(stderr,
+         "copy_string_to_file.c: result %d to %s\n error %s",
+         result,to,error);
+      } 
+   return result;
+   } 
+

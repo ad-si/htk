@@ -95,6 +95,10 @@ import IO
 import System
 import Directory
 
+import PackedString
+import CTypesISO(CSize)
+import ST
+
 import Debug(debug)
 
 import Concurrent
@@ -288,7 +292,7 @@ data ObjectSource =
 
 exportString :: ObjectSource -> IO String
 exportString (StringObject str) = return str
-exportString (FileObject name) = readFile name
+exportString (FileObject name) = copyFileToString name
 
 foreign import "copy_file" unsafe copyFilePrim 
    :: (ByteArray Int) -> (ByteArray Int) -> IO Int
@@ -314,10 +318,41 @@ copyFile source destination =
                else
                   return ()
 
+foreign import "copy_string_to_file" unsafe copyStringToFilePrim 
+   :: CSize -> (ByteArray Int) -> (ByteArray Int) -> IO Int
+
+copyStringToFile string destination = writeFile destination string
+
+-- This is a direct encapsulatin of copyStringToFile in C
+-- which we turn out not to need, yet.
+copyStringToFileAlternative string destination =
+   do
+      let
+         packedString = PackedString.packString string
+         packedBytes = psToByteArray packedString
+         (sizetLen :: CSize) = fromIntegral (lengthPS packedString)  
+         destinationPrim = CString.packString destination 
+      code <- copyStringToFilePrim sizetLen packedBytes destinationPrim
+      if (code<0)
+         then
+            ioError(userError("CVSDB: Can't copy string to "++
+               destination++" with error "++show code))
+         else
+            return ()
+
+-- readFile by itself won't do as it works lazily.
+copyFileToString :: String -> IO String
+copyFileToString file =
+   do
+      handle <- openFile file ReadMode
+      contents <- hGetContents handle
+      seq (last contents) (hClose handle)
+      -- The seq hopefully forces everything to be read.
+      return contents
+      
 exportFile :: ObjectSource -> FilePath -> IO ()
-exportFile (FileObject source) destination = 
-   copyFile source destination
-exportFile (StringObject str) destination = writeFile destination str
+exportFile (FileObject source) destination = copyFile source destination
+exportFile (StringObject str) destination = copyStringToFile str destination
 
 
 importString :: String -> IO ObjectSource
@@ -377,7 +412,7 @@ newGeneralLocation (repository@Repository{cvsLoc=cvsLoc})
          -- is accessing the file    
       -- attribute part  
       let cvsFileAtt = attLocation cvsFile
-      writeFile (toRealName repository cvsFileAtt) (show attributes)
+      copyStringToFile (show attributes) (toRealName repository cvsFileAtt)
       cvsAddCheck cvsLoc cvsFileAtt
       attributeVersion <- updateDirContents repository cvsFileAtt
          (\ Nothing -> cvsCommitCheck cvsLoc cvsFileAtt Nothing 
@@ -435,7 +470,7 @@ retrieveString repository cvsFile version =
       resultHere <- newEmptyMVar
       retrieveGeneral repository cvsFile version
          (do
-            contents <- readFile (toRealName repository cvsFile)
+            contents <- copyFileToString (toRealName repository cvsFile)
             putMVar resultHere contents
             )
       takeMVar resultHere
