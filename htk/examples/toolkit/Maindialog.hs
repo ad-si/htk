@@ -19,7 +19,7 @@ import InputWin
 import InputForm
 import TextDisplay
 
-data Test = Test {ent1 :: String, ent2 :: String, enu1 :: Int, ent3 :: Int}
+data Test = Test {ent1 :: String, ent2 :: String, enu1 :: Int, ent3 :: Int, chck1 :: Bool} deriving Show
 
 main :: IO ()
 main =
@@ -60,7 +60,7 @@ main =
   clickedbut35 <- clicked but35
   spawnEvent (forever (clickedbut35 >>>
     (do f  <- readFile "/etc/passwd"
-        createTextDisplay "Display /etc/passwd" f [] )))
+        createTextDisplay "Display /etc/passwd" f [size (50,10)] )))
 	
 
   clickedbut4 <- clicked but4
@@ -100,13 +100,14 @@ all mobile phones." []))
   spawnEvent (forever (clickedbut9 >>> 
     (do -- one adt to store the entered information and 
         -- the initial field values
-        let def = Test{ent1="HALLO WELT!", ent2="TEST", enu1=5, ent3=42}
+        let def = Test{ent1="HALLO WELT!", ent2="TEST", enu1=5, ent3=42, 
+		       chck1=True}
 	-- create the InputForm (as a function so there is no parent)
 	-- give as value (Just a) or Nothing
 	let iform p = newInputForm p (Just def) []
 	-- create the InputWindow with the formfunction
 	-- returns the InputWindow and the InputForm (which can be filled now)
-        (iwin,form) <- createInputWin "Hi there\nPlease enter all relevant data below." iform []
+        (iwin,form) <- createInputWin "Please enter all relevant data below." iform []
         -- add various fields here to the InputForm
 	newTextField form [size (5,5), selector ent1, text "Editor String",
 	                   modifier (\ old val -> old {ent1=val})] 
@@ -117,12 +118,13 @@ all mobile phones." []))
         newEnumField form [0,1,2,3,4,5] 
           [text "Option Int", selector enu1, 
            modifier (\ old val -> old {enu1=val})] :: IO (EnumField Test Int)
+        newCheckboxField form True [text "The above is true: ",
+				    selector chck1, modifier (\o v-> o{chck1= v})]
         -- wait for user input
         res <- wait iwin True
         case res of
-           Nothing -> putStrLn "canceled"
-           Just val -> putStrLn(show(val # ent1)++ " "++
-                                show(val # ent3)++ " "++ show(val # enu1)))))
+           Nothing -> putStrLn "Cancelled!"
+           Just val -> putStrLn("Result: "++ show val))))
  
   clickedbut2 <- clicked but2
   spawnEvent (forever (clickedbut2 >>> destroy htk)) -- game over.
