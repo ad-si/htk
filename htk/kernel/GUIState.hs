@@ -377,6 +377,10 @@ getParentObject w =do {
 -- Interactions 
 -- --------------------------------------------------------------------------
 
+--listenGUI' :: (Interactive w, GUIEventDesignator e) =>
+--              w -> e -> DispatchMode -> UIA
+--listenGUI' w e md =
+
 listenGUI :: (Interactive w,GUIEventDesignator e) 
           => w -> e -> DispatchMode -> IA EventInfo
 listenGUI w e md = interaction gev bnd unbnd

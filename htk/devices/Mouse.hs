@@ -35,6 +35,7 @@ import GUICore
 import Char(isSpace)
 import Debug(debug)
 
+--import UserInteraction
 
 -- --------------------------------------------------------------------------
 -- Grab Status 
@@ -128,6 +129,13 @@ mouseEvent :: (Interactive w,GUIEventDesignator e)
            => w -> e -> IA (Position,Int)
 mouseEvent w e = userinteraction w e Request >>>= return . getMouseEventInfo
     where getMouseEventInfo info = ((xfield info,yfield info),buttonno info)
+
+{-
+mouseEvent :: (Interactive w,GUIEventDesignator e)  
+           => w -> e -> IA (Position,Int)
+mouseEvent w e = liftIA(userinteraction w e Request) >>>= return . getMouseEventInfo
+    where getMouseEventInfo info = ((xfield info,yfield info),buttonno info)
+-}
 
 mouseMotion :: Interactive w => w -> IA Position
 mouseMotion w = mouseEvent w Motion >>>= return . fst

@@ -20,7 +20,6 @@ import ScrollBox
 import Maybe
 import IO
 import Directory
-import Posix
 import System
 
 msg :: Editor String -> String -> IO ()
@@ -37,8 +36,10 @@ getMatchedFiles fs abs = getMatchedFiles' fs [] abs
                             IO [FilePath]
         getMatchedFiles' (f : fs) dirs abs =
           do
-            fstat <- getFileStatus (abs ++ f ++ "/")
-            (if f == "." || f == ".." || not(isDirectory fstat) ||
+            putStrLn ("MAIN: getting permissions of " ++ f)
+            p <- getPermissions (abs ++ f)
+            putStrLn ("MAIN: got permissions\n")
+            (if f == "." || f == ".." || not(searchable p) ||
                 hidden f then
                getMatchedFiles' fs dirs abs
              else getMatchedFiles' fs (f : dirs) abs)
@@ -47,14 +48,22 @@ getMatchedFiles fs abs = getMatchedFiles' fs [] abs
         hidden ('.':_) = True
         hidden _ = False
 
+notEmpty :: FilePath -> IO Bool
+notEmpty fp =
+  do
+    c <- getDirectoryContents fp
+    return (length c > 2)
+
 toTreeListObjects :: TreeList String -> String -> [FilePath] ->
                      IO [TreeListObject String]
 toTreeListObjects treelist path (f : fs) =
   do
-    fstat <- getFileStatus (path ++ f ++ "/")
+    p <- getPermissions (path ++ f)
     acc <- system ("access -rx " ++ path)
-    obj <- return (treelist, path ++ f ++ "/", f,
-                   acc == ExitSuccess && isDirectory fstat)
+--    isnode <- if acc == ExitSuccess then notEmpty (path ++ f)
+--              else return False
+    isnode <- return (acc == ExitSuccess)
+    obj <- return (treelist, path ++ f ++ "/", f, isnode)
     objs <- toTreeListObjects treelist path fs
     return (obj : objs)
 toTreeListObjects _ _ _ = return []
@@ -82,7 +91,6 @@ launch st _ =
     treelist <- newTreeList st cfun ifun [parent box, background "white",
                                               size (cm 9, cm 10)]
     setRoot (treelist, "/", "/", True)
-    show_hidden <- newCheckButton [text "show hidden files", parent box]
     quit <- newButton [side AtBottom,  pad Horizontal 10, pad Vertical 5,
                        parent box, text "Quit", width 15,
                        command (\ ()-> destroy win)]
