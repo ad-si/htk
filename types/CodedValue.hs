@@ -100,6 +100,11 @@ module CodedValue(
       -- -> (value2 -> CodedValue -> CodedValue)
    mapDecodePure, -- :: HasPureCodedValue value2 => (value2 -> value1)
       -- -> (CodedValue -> (value1,CodedValue))
+
+   equalByEncode, -- :: HasCodedValue value => (View,value) -> (View,value)
+      -- -> IO Bool
+      -- Returns True if the two values encode to the same CodedValue.
+      -- They are encoded with the views passed with them.
    ) where
 
 import Char
@@ -822,3 +827,14 @@ safeDecodeIO codedValue view =
 #else
 safeDecodeIO = decodeIO
 #endif
+
+-- -------------------------------------------------------------------
+-- Utility functions
+-- -------------------------------------------------------------------
+
+equalByEncode :: HasCodedValue value => (View,value) -> (View,value) -> IO Bool
+equalByEncode (view1,value1) (view2,value2) =
+   do
+      codedValue1 <- doEncodeIO value1 view1
+      codedValue2 <- doEncodeIO value2 view2
+      return (codedValue1 == codedValue2)

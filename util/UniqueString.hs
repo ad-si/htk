@@ -8,6 +8,8 @@ module UniqueString(
    newUniqueString, -- :: UniqueStringSource -> IO String
 
 
+   maxUniqueStringSources, -- :: [UniqueStringSource] -> IO UniqueStringSource
+
    -- Here is a "pure" interface.
    UniqueStringCounter,
 
@@ -34,6 +36,7 @@ module UniqueString(
 import Array
 import Concurrent
 
+import ExtendedPrelude
 import Dynamics
 import QuickReadShow
 
@@ -91,6 +94,27 @@ createUniqueStringSource l =
       mVar <- newMVar (UniqueStringCounter l)
       return (UniqueStringSource mVar)
 
+
+compareUniqueStringSource :: UniqueStringSource -> UniqueStringSource 
+   -> IO Ordering
+compareUniqueStringSource (UniqueStringSource mVar1) (UniqueStringSource mVar2)
+      =
+   do
+      c1 <- readMVar mVar1
+      c2 <- readMVar mVar2
+      return (compare c1 c2)
+
+maxUniqueStringSources :: [UniqueStringSource] -> IO UniqueStringSource
+maxUniqueStringSources stringSources =
+   do
+      stringCounters <- mapM
+         (\ (UniqueStringSource mVar) -> readMVar mVar) 
+         stringSources
+      let
+         maxCounter = foldl max firstUniqueStringCounter stringCounters
+      mVar <- newMVar maxCounter
+      return (UniqueStringSource mVar)
+ 
 ---
 -- The instance is used by types/CodedValue
 uniqueStringSource_tyRep = mkTyRep "UniqueString" "UniqueStringSource"
@@ -125,6 +149,20 @@ stepUniqueStringCounter (uniqueStringCounter @ (UniqueStringCounter ilist)) =
 toStringUniqueStringCounter :: UniqueStringCounter -> String
 toStringUniqueStringCounter (UniqueStringCounter ilist) =
    map (\ i -> printableCharsArr ! i) ilist
+
+instance Eq UniqueStringCounter where
+   (==) = mapEq (\ (UniqueStringCounter l) -> l)
+
+instance Ord UniqueStringCounter where
+   compare (UniqueStringCounter l1) (UniqueStringCounter l2)
+         = comp l1 l2
+      where
+         comp [] [] = EQ
+         comp (_:_) [] = GT
+         comp [] (_:_) = LT
+         comp (c1:cs1) (c2:cs2) = case comp cs1 cs2 of
+            EQ -> compare c1 c2
+            other -> other
 
 -- -------------------------------------------------------------------
 -- firstUniqueString
