@@ -20,7 +20,6 @@ TO BE DONE    : Accelerators
 
    ######################################################################### -}
 
-
 module DaVinciMenu (
 
    Graph,
@@ -53,69 +52,86 @@ import Debug(debug)
 -- ---------------------------------------------------------------------------
 
 installGraphMenu :: Menu a -> Graph -> IO ()
-installGraphMenu mn g = do {
-        gl <- getChildObjects (toGUIObject mn);
-        it <- sequence (map toMenuType gl);
-        withGraph g (return (createMenus it));
-        withGraph g (return (activateMenus it));
-        done
-        }
+installGraphMenu menu graph = 
+    do
+       menuParts <- getChildObjects (toGUIObject menu)
+       menuTypes <- sequence (map toMenuType menuParts)
+       withGraph graph (return (createMenus menuTypes))
+       withGraph graph (return (activateMenus menuTypes))
+       done
 
+-- For specifications of the arguments see installNodeOrEdgeTypeMenu
+installNodeTypeMenu :: Menu a -> Graph -> TypeId -> [AttrAssoc] -> IO ()
+installNodeTypeMenu = installNodeOrEdgeTypeMenu "nr"
 
 installEdgeTypeMenu :: Menu a -> Graph -> TypeId -> [AttrAssoc] -> IO ()
-installEdgeTypeMenu mn g tid assocs = do {
-        gl <- getChildObjects (toGUIObject mn);
-        it <- sequence (map toMenuType gl);
-        withGraph g (return (
-                "visual(add_rules([er("++show tid++",[m("++show it ++")," ++
-                 drop 1 (show assocs)   ++ ")]))"
-                ));
-        done
-        }
+installEdgeTypeMenu = installNodeOrEdgeTypeMenu "er" 
 
-installNodeTypeMenu :: Menu a -> Graph -> TypeId -> [AttrAssoc] -> IO ()
-installNodeTypeMenu mn g tid assocs = do {
-        gl <- getChildObjects (toGUIObject mn);
-        it <- sequence (map toMenuType gl);
-        withGraph g (return (
-                "visual(add_rules([nr("++show tid++",[m("++show it++")," ++
-                drop 1 (show assocs) ++         ")]))"
-                ));
-        done
-        }
+installNodeOrEdgeTypeMenu :: 
+   String -> Menu a -> Graph -> TypeId -> [AttrAssoc] -> IO()
+-- installNodeOrEdgeMenu is used for installing a new menu for
+-- a DaVinci node or edge type.
+-- Arguments:
+--    1. Should be "er" for an EdgeType and "nr" for a NodeType.
+--    2. The Menu
+--    3. The Graph
+--    4. The TypeId for the Node or Edge type in question.
+--    5. AttrAssoc settings.
+installNodeOrEdgeTypeMenu nodeOrEdge menu graph typeId assocs =
+   do
+      menuParts <- getChildObjects (toGUIObject menu)
+      menuTypes <- sequence (map toMenuType menuParts)
+      withGraph graph (return (
+         callDaVinci "visual" [
+            innerCallDaVinci "add_rules" [
+               Arg [
+                  CallDaVinci nodeOrEdge [
+                     Arg typeId,
+                     Arg ((
+                        innerCallDaVinci "m" [
+                           Arg menuTypes
+                           ]
+                        ) :
+                        (map Arg assocs)
+                        )
+                     ]
+                  ]
+               ]
+            ]
+         ))
+      done
 
+{- Typical output (an edge type with an empty assocs list):
 
+   visual(add_rules([er("255",[m([menu_entry("254","ArcType1")])])]))
+   -}
 
 -- ---------------------------------------------------------------------------
 -- Generate DaVinci Menu Definition
 -- ---------------------------------------------------------------------------
 
 toMenuType :: GUIOBJECT -> IO MenuType
-toMenuType guio = do {
-        t <- getText guio;
-        acc <-  getAccelerator guio; -- unused
-        mne <-  getUnderline guio;  -- unused
-        kind <- getObjectKind guio;
-        makeMenu guio kind (show (objectID guio)) t acc mne 
-        }
+toMenuType guiObject = 
+   do
+      text <- getText guiObject
+      kind <- getObjectKind guiObject
+      makeMenu guiObject kind (show (objectID guiObject)) text 
 
-makeMenu :: GUIOBJECT -> ObjectKind -> String -> 
-                           String -> String -> Int -> IO MenuType
-makeMenu guio CLICKBUTTON oid t acc mne = 
-        return (MenuType oid t Nothing Nothing)
-makeMenu guio SEPARATOR oid t acc mne = 
-        return Blank
-makeMenu guio MENUBUTTON oid t acc mne = do {
-        chs <- getChildObjects (toGUIObject guio);
-        case chs of
-                [] -> return Blank
-                [mn] -> do {
-                        gl <- getChildObjects (toGUIObject mn);
-                        it <- sequence (map toMenuType gl);
-                        return (SubMenuType oid t it Nothing)
-                        }
-        }
-
+makeMenu :: GUIOBJECT -> ObjectKind -> String -> String  -> IO MenuType
+makeMenu guiObject CLICKBUTTON objectId text = 
+   return (MenuType objectId text Nothing Nothing)
+makeMenu guiObject SEPARATOR objectId text = 
+   return Blank
+makeMenu guiObject MENUBUTTON objectId text = 
+   do
+      children <- getChildObjects (toGUIObject guiObject)
+      case children of
+         [] -> return Blank
+         [menu] -> 
+            do
+               menuParts <- getChildObjects (toGUIObject menu)
+               menuTypes <- sequence (map toMenuType menuParts)
+               return (SubMenuType objectId text menuTypes Nothing)
 
 -- ---------------------------------------------------------------------------
 -- DaVinci commands for activating and creating menus.
@@ -126,8 +142,8 @@ activateMenus :: [MenuType] -> String
 -- This activates all the menus.  It's only necessary for Graph's.
 activateMenus menus = 
    callDaVinci "app_menu" [
-      callDaVinci "activate_menus" [
-         show (getMenuIds menus)
+      innerCallDaVinci "activate_menus" [
+         Arg (getMenuIds menus)
          ]]
         
 getMenuIds :: [MenuType] -> [MenuId]
@@ -139,9 +155,7 @@ getMenuIds (Blank : rest) = getMenuIds rest
 
 createMenus :: [MenuType] -> String
 createMenus x =
-   "("++ 
-      (callDaVinci "app_menu" [show x]) 
-      ++  ")"
+   callDaVinci "app_menu" [innerCallDaVinci "create_menus" [Arg x]]
 
 -- ---------------------------------------------------------------------------
 -- DaVinci Menu Definitions
@@ -186,31 +200,17 @@ type MenuMne    = Maybe String
 
 instance Show MenuType where
    showsPrec d  (MenuType menuId menuLabel Nothing Nothing) =
-      callDaVinciAcc "menu_entry" [show menuId,show menuLabel]
+      callDaVinciAcc "menu_entry" [Arg menuId,Arg menuLabel]
    showsPrec d  (MenuType menuId menuLabel (Just mne) (Just (mmod,macc))) =
       callDaVinciAcc "menu_entry_mne" 
-         [show menuId,show menuLabel,show mne,show mmod,show macc]
+         [Arg menuId,Arg menuLabel,Arg mne,Arg mmod,Arg macc]
    showsPrec d (SubMenuType menuId menuLabel mtypes Nothing) =
       callDaVinciAcc "submenu_entry"
-         [show menuId,show menuLabel,show mtypes]
+         [Arg menuId,Arg menuLabel,Arg mtypes]
    showsPrec d (SubMenuType menuId menuLabel mtypes (Just mne)) =
       callDaVinciAcc "submenu_entry_mne"
-         [show menuId,show menuLabel,show mtypes,show mne]
+         [Arg menuId,Arg menuLabel,Arg mtypes,Arg mne]
    showsPrec d Blank = ("blank"++)
-
--- callDaVinci and callDaVinciAcc unparses the standard DaVinci function call.
--- callDaVinciAcc allows you to add a parameter to append at the end.
-callDaVinci :: String -> [String] -> String
-callDaVinci funName funArgs = callDaVinciAcc funName funArgs ""
-
-callDaVinciAcc :: String -> [String] -> String -> String
-callDaVinciAcc funName funArgs toAppend =
-   let
-      withCommas [] = ""
-      withCommas [one] = one
-      withCommas (first:rest) = first ++ "," ++ withCommas rest
-   in
-      funName ++ "(" ++ withCommas funArgs ++ ")" ++ toAppend
 
 instance Show MenuMod where
    showsPrec d  (MenuMod Alt)  r           = "alt" ++ r
@@ -218,4 +218,9 @@ instance Show MenuMod where
    showsPrec d  (MenuMod Control) r        = "control" ++ r
    showsPrec d  (MenuMod Meta) r           = "meta" ++ r
    showsPrec d  NoMenuMod  r               = "none" ++ r
+
+
+
+
+
 

@@ -359,16 +359,22 @@ createGraph = do {
 
 
 withGraph ::  Graph -> IO String -> IO Graph
-withGraph g beh = synchronize g (do {
-        changeVar (fDaVinciState dav) (\dst -> do {
-                cmd <- beh;
-                cntx' <- changeContext dav (fContextID dst) g;
-                evalCmd cmd dav;
-                return (dst{fContextID = Just cntx'})
-                });
-        return g
-}) where dav = fDaVinci g
-
+withGraph graph commandAct = 
+   synchronize graph (
+      do
+         changeVar (fDaVinciState daVinci) 
+            (\ daVinciState -> 
+               do
+                  command <- commandAct
+                  newContext <- 
+                     changeContext daVinci (fContextID daVinciState) graph
+                  evalCmd command daVinci
+                  return (daVinciState {fContextID = Just newContext})
+               )
+         return graph
+      )
+   where 
+      daVinci = fDaVinci graph
 
 withGraphOneWay ::  Graph -> IO String -> IO Graph
 withGraphOneWay g beh = synchronize g (do {
