@@ -45,6 +45,7 @@
 # These variables should be set before suffix.mk is read.
 # The following targets are provided:
 #
+# boot     does set
 # depend   sets up dependencies between Haskell files 
 #             (which may need to be done before anything else)
 # libhere  makes the library file in this directory
@@ -66,7 +67,7 @@ OBJSC = $(patsubst %.c,%.o,$(SRCSC))
 OBJS = $(OBJSALLHS)  $(OBJSC)
 LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
           $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
-HTKLIBSRCS = $(filter-out $(HTKNOTSRCS),$(LIBSRCS))
+EXPORTSRCS = $(filter Test%.% Main%.%,$(SRCS) $(SRCSC))
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
@@ -88,6 +89,9 @@ HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
 HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
              $(patsubst %.lhs,$$PWD/%.lhs,$(SRCSLHS)) \
              $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
+EXPORTSRCSFULL = $(patsubst %,$$PWD/%,$(EXPORTSRCS))
+EXPORTHIFILES = $(patsubst %,$$PWD/%,$(HILIBFILES))
+
 # Can't be bothered to have a special variable for C header files.
 # Instead we decree that all C files must have an associated header
 # file.
@@ -120,7 +124,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs displayhtkhshere displayhtkhs objsc objschere preparehtkwin packageherequick packagehere packages packagesquick
+.PHONY : depend libhere lib testhere test all clean ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -193,7 +197,7 @@ mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
 ifneq "$(strip $(PACKAGE))" ""
-	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(HCLIBFLAGS) $(LIBSRCS)
+	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS)
 	$(AR) -r $(LIB) $(LIBOBJS)
 endif
 
@@ -201,8 +205,7 @@ $(GHCIOBJ) : $(LIB)
 	$(LD) -r --whole-archive -o $@ $<
 
 
-packagehere : libfasthere
-	$(MAKE) packageherequick
+packagehere : libfasthere packageherequick
 
 packages : packagehere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) packages && ) echo Finished make packages
@@ -227,6 +230,28 @@ packagesquick : packageherequick
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) packagesquick && ) echo Finished make packagesquick
 
 
+prepareexportshere : 
+ifneq "$(strip $(PACKAGE))" ""
+	$(GHCPKG) --config-file $(PACKAGECONF).export --remove-package $(PACKAGE) ; echo ""
+	sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(GHCPKG) --config-file $(PACKAGECONF).export --add-package 
+endif
+
+prepareexports : prepareexportshere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) prepareexports && ) echo Finished make prepareexports
+
+
+displayexportshere :
+ifeq "$(strip $(PACKAGE))" ""
+	@PWD=`pwd`;echo $(EXPORTSRCSFULL)
+else
+	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(LIB) 
+ifeq "$(DOIMPORTS)" ""
+	@PWD=`pwd`;echo $(EXPORTHIFILES)
+else
+	@PWD=`pwd`;echo $PWD/imports/*.hi
+endif
+endif
+
 displaysrcshere :
 	@PWD=`pwd`;echo $(ALLFILESALL)
 
@@ -238,13 +263,6 @@ displaysrcs : displaysrcshere
 
 displayhs : displayhshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displayhs && ) echo
-
-
-displayhtkhshere :
-	@PWD=`pwd`;echo $(HTKLIBSRCS)
-
-displayhtkhs : displayhtkhshere
-	$(foreach subdir,$(HTKLIBSUBDIRS),$(MAKE) -r -C $(subdir) displayhtkhs &&) echo
 
 objschere : $(OBJSC)
 objsc : objschere
@@ -264,12 +282,17 @@ $(MAINPROGS) : % :  Main%.o
 $(HIFILES) : %.hi : %.o
 	@:
 
+boothere : $(HIBOOTFILES)
+
+boot : boothere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) boot &&) echo $(MAKE) boot finished.
+
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) $< $(HCFLAGS) $(HCLIBFLAGS) -no-recomp -c -o /dev/null -ohi $@
+	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp -c -fno-code -ohi $@
 
 $(LIBOBJSHS) : %.o : %.hs
-	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) $(HCLIBFLAGS)
+	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS)
 
 $(LIBOBJSLHS) : %.o : %.lhs
 	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) 

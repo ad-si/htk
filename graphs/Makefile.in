@@ -1,7 +1,7 @@
-LIBS = $(TOP)/graphs/libgraphs.a $(TOP)/htk/libhtk.a \
-   $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
-   $(TOP)/events/libevents.a $(TOP)/util/libutil.a
-LIB        = libgraphs.a
+PACKAGE = uni-graphs
+
+PACKAGES = uni-server uni-htk
+
 SRCS       = GraphDisp.hs GraphConfigure.hs NewNames.hs Graph.hs \
      SimpleGraph.hs GetAttributes.hs DisplayGraph.hs GraphEditor.hs \
      GraphEditorService.hs MainGraphEditorServer.hs GraphEditorRemote.hs \

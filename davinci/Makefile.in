@@ -1,11 +1,8 @@
-LIBS = $(TOP)/graphs/libgraphs.a \
-   $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
-   $(TOP)/concurrency/libconcurrency.a $(TOP)/util/libutil.a
-LIB        = libdavinci.a
+PACKAGE = uni-davinci
+PACKAGES = uni-graphs
+
 SRCS       = DaVinciTypes.hs DaVinciBasic.hs DaVinciGraph.hs
 SUBDIRS    = test
-
-XHCDIRS = $(HTKDIRS)
 
 include @TOP@/mk/boilerplate.mk
 

@@ -1768,14 +1768,15 @@ if test "$GOAHEAD" = YES; then
    echo Compiling MainFixFileNames
    $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
 
-   echo Setting up packages file as empty
+   echo Setting up packages and export packages file as empty
    # The echo prints []; the funny things bracketted by @ signs are
    # "Quadrigraphs" which express this so.  Normal square brackets
    # won't work since they have a special meaning for autoconf.
    echo [] >uni-package.conf
-
+   echo [] >uni-package.conf.export
    mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
-#
+   $GHCPKG --config-file uni-package.conf.export --add-package <uni-package.options
+
    # Find out what GHC thinks this directory is (this will not necessarily be
    # the same as TOP on Windows).  This string is escaped.
    GHCTOP=`echo '$PWD' | mk/FixFileNames`
@@ -2609,7 +2610,8 @@ if test "$no_create" != yes; then
 fi
 
    chmod +x htk/doc/hdoc/generatedoc
-   echo 'To compile UniForM type "gmake depend" followed by "gmake all"'
+   echo 'To compile UniForM type "gmake boot" followed by "gmake packages"'
+   echo 'If you want the test programs do "gmake all" instead of "gmake packages"'
 fi
 
 

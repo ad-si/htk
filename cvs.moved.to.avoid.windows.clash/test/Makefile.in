@@ -1,6 +1,5 @@
-LIBS = $(TOP)/cvs/libcvs.a $(TOP)/reactor/libreactor.a \
-   $(TOP)/server/libserver.a $(TOP)/events/libevents.a \
-   $(TOP)/util/libutil.a
+PACKAGES = uni-cvs
+
 SRCS = Test1.hs TestAllocateService.hs
 
 include @TOP@/mk/boilerplate.mk

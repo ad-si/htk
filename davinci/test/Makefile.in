@@ -1,12 +1,7 @@
-LIBS = $(TOP)/davinci/libdavinci.a $(TOP)/graphs/test/libtestgraph.a \
-   $(TOP)/graphs/libgraphs.a $(TOP)/htk/libhtk.a \
-   $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
-   $(TOP)/events/libevents.a $(TOP)/util/libutil.a
+PACKAGES = uni-davinci uni-graphs-test
 
 SRCS = TestDaVinci.hs MainDepend.hs TestGraphEditor.hs TestGraphEditor2.hs \
    TestDaVinciDouble.hs TestGraphEditorRemote.hs
-
-XHCDIRS= $(TOP)/graphs/test:$(HTKDIRS)
 
 include @TOP@/mk/boilerplate.mk
 

@@ -393,6 +393,8 @@ class (GraphClass graph,NodeClass node) =>
       graph -> node value -> IO ()
    setNodeValuePrim :: Typeable value =>
       graph -> node value -> value -> IO ()
+   getNodeValuePrim :: Typeable value =>
+      graph -> node value -> IO value
 
 class HasTyRep1 node => NodeClass node
 
@@ -423,6 +425,7 @@ class (GraphClass graph,NodeClass nodeFrom,NodeClass nodeTo,ArcClass arc,
 class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
    deleteArcPrim :: (Typeable value) => graph -> arc value -> IO ()
    setArcValuePrim  :: Typeable value => graph -> arc value -> value -> IO ()
+   getArcValuePrim :: Typeable value => graph -> arc value -> IO value
 
 class HasTyRep1 arc => ArcClass arc
 

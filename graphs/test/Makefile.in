@@ -1,13 +1,8 @@
-LIBS = $(TOP)/graphs/libgraphs.a $(TOP)/htk/libhtk.a \
-   $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
-   $(TOP)/events/libevents.a $(TOP)/util/libutil.a
-
-LIB = libtestgraph.a
+PACKAGE = uni-graphs-test
+PACKAGES = uni-graphs
 
 SRCS = GraphDispTest.hs TopSort.hs Hasse.hs DrawDepend.hs \
        TestGetAttributes.hs TestGetAttributes2.hs
-
-XHCDIRS= $(HTKDIRS)
 
 include @TOP@/mk/boilerplate.mk
 

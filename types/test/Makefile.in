@@ -1,10 +1,5 @@
-LIBS = $(TOP)/types/libtypes.a \
-   $(TOP)/cvs/libcvs.a $(TOP)/davinci/libdavinci.a $(TOP)/graphs/libgraphs.a \
-   $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
-   $(TOP)/events/libevents.a $(TOP)/util/libutil.a
+PACKAGES = uni-types uni-htk
 
 SRCS       = TestAttributeRepresentation.hs MainServer.hs MainWorkbench.hs
-
-XHCDIRS = $(HTKDIRS)
 
 include @TOP@/mk/boilerplate.mk

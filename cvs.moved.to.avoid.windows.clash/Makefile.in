@@ -1,7 +1,5 @@
-LIB        = libcvs.a
-LIBS = $(TOP)/cvs/libcvs.a $(TOP)/reactor/libreactor.a \
-   $(TOP)/server/libserver.a $(TOP)/events/libevents.a \
-   $(TOP)/util/libutil.a
+PACKAGE = uni-cvs
+PACKAGES = uni-server
 
 SRCS       = CVSTypes.hs CVSBasic.hs CVSHigh.hs CVSDB.hs Allocate.hs \
    AllocateService.hs MainAllocateService.hs
