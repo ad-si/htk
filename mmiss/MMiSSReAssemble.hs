@@ -69,7 +69,6 @@ reAssemble
                Nothing -> return Nothing
                Just (element0,searchData1) ->
                   do
-
                      monadifyWithError (check element0)
                      element1 <- reAssembleElement variantSearch0 
                         searchData1 element0
@@ -100,6 +99,8 @@ reAssemble
                                  <- monadifyWithError (
                                     fromStringWE referredNameString)
                               let
+                                 priority = getPriority element0
+
                                  linkAttributesSpec 
                                     = toMMiSSVariantSpecFromXml linkAttributes
 
@@ -108,7 +109,11 @@ reAssemble
                               elementOpt <- reAssembleName referredName
                                  variantSearch2 searchData0 check
                               case elementOpt of
-                                 Just element1 -> return (CElem element1)
+                                 Just element1 -> 
+                                    let
+                                       element2 = setPriority element1 priority
+                                    in
+                                       return (CElem element2)
                                  Nothing -> return content
                      _ -> return content
 

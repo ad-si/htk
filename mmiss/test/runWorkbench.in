@@ -16,6 +16,7 @@ UNISERVER=denebola.informatik.uni-bremen.de
 UNIPORT=11395
 
 UNISERVERDIR=${UNISERVERDIR:-`./TempDir /tmp/uni.$USER.server.`}
+echo Using $UNISERVERDIR for the internal server.  Set UNISERVERDIR next time to reuse it.
 UNIWORKINGDIR=${UNIWORKINGDIR:-`./TempDir /tmp/uni.$USER.working.`}
 
 # The following variables have to be set since in the binary release they

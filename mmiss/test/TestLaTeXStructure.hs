@@ -39,11 +39,12 @@ main =
          Left str -> ioError (userError str)
          Right (el,_) -> return el
       putStr (toExportableXml el)
-{-
+
       let verified = validateElement "package" el
       case verified of
          [] -> done
          errors -> error (unlines errors)
+      {-
       let
          unparsedWE = makeMMiSSLatex (el,False)
          unparsed = coerceWithError unparsedWE

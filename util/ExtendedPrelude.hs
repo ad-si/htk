@@ -26,6 +26,10 @@ module ExtendedPrelude (
    insertOrdAlternate,
    bottom,
 
+   readCheck,
+      -- :: (Read a) => String -> Maybe a
+      -- returns Just a if we can read a, and the rest is just spaces.
+
    chop, -- :: Int -> [a] -> Maybe [a]
       -- removes last elements from a list
    lastOpt, -- :: [a] -> Maybe a
@@ -106,6 +110,14 @@ trimLeading (str@(ch:rest)) = if isSpace ch then trimLeading rest else str
 -- Remove trailing and leading spaces
 trimSpaces :: String -> String
 trimSpaces = trimTrailing . trimLeading
+
+
+---
+-- returns Just a if we can read a, and the rest is just spaces.
+readCheck :: Read a => String -> Maybe a
+readCheck str = case reads str of
+   [(val,s)] | all isSpace s  -> Just val
+   _ -> Nothing
 
 
 -- ---------------------------------------------------------------------------

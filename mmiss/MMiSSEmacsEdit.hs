@@ -91,6 +91,8 @@ data EditRef =
             -- ^ Variants attached to this particular link.  These may somehow
             -- be edited (though there is no facility for doing that at the 
             -- moment). 
+         priority :: String,
+            -- ^ Priority attached to this link.
          miniType :: Char
          }
 
@@ -152,6 +154,7 @@ editMMiSSObjectInner formatConverter view link =
                      outerVariants = variantSearch,
                      linkVariants = emptyMMiSSVariantSpec,
                      miniType = getObjectMiniType object,
+                     priority = "1", 
                      description = EntityFullName [name]
                      }
             
@@ -269,6 +272,8 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                     outerVariants = outerVariants1,
                                     linkVariants = linkVariants1,
                                     miniType = miniType,
+                                    priority = getPriorityAttributes 
+                                       includeAttributes,
                                     description =  fullName
                                     }
 
@@ -290,9 +295,11 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                    (\ editRef -> 
                                       ((toString (description editRef),
                                          miniType editRef),
-
-                                         fromMMiSSVariantSpecToXml
-                                            (linkVariants editRef)
+                                         setPriorityAttributes'
+                                            (fromMMiSSVariantSpecToXml
+                                               (linkVariants editRef)
+                                               )
+                                             (priority editRef)
                                          )
                                       )
                                    emacsContent0
@@ -402,8 +409,22 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   form3 :: Form Char
                   form3 = fmap getMiniType form2
 
-                  extraForm :: Form (EntityFullName,Char)
-                  extraForm = form1 // form3
+                  form4 :: Form String
+                  form4 = newFormEntry "Priority" "0"
+
+                  form5 :: Form String
+                  form5 = guardForm 
+                     (\ priorityStr 
+                         -> case readCheck priorityStr of
+                           Just (_ :: Double) -> True 
+                           _ -> False
+                         )
+                      "Priority must be a number"
+                      form4
+
+
+                  extraForm :: Form (EntityFullName,(Char,String))
+                  extraForm = form1 // (form3 // form5)
 
                extraFormItem <- mkExtraFormItem extraForm
                
@@ -415,7 +436,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                      do
                         linkVariants1 
                            <- toMMiSSVariantSpecFromAttributes attributes
-                        (description1,miniType1) 
+                        (description1,(miniType1,priority1)) 
                            <- readExtraFormItem extraFormItem
 
                         -- construct the inner link environment.  This code is 
@@ -438,6 +459,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                               description = description1,
                               outerVariants = outerVariants1,
                               linkVariants = linkVariants1,
+                              priority = priority1,
                               miniType = miniType1
                               }
 

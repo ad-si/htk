@@ -9,7 +9,8 @@ module MMiSSDTDAssumptions(
 
    ClassifiedElement(..),
    classifyElement, -- :: Element -> WithError ClassifiedElement
-   unclassifyElement, -- :: Element -> Maybe (String,Element -> WithError ())
+   unclassifyElement, 
+      -- :: Element -> Maybe (String,[Attribute],Element -> WithError ())
 
    getMiniType, -- :: String -> Char
    toIncludeStr, -- :: Char -> String
@@ -23,6 +24,15 @@ module MMiSSDTDAssumptions(
    getPath, -- :: Element -> WithError EntityPath
       -- Get an Element's path.  This must be a single String and defaults to 
       -- "."
+
+
+   getPriorityAttributes, -- :: [Attribute] -> String
+   getPriority, -- :: Element -> String
+   setPriority, -- :: Element -> String -> Element
+      -- get/set an element's priority.
+     
+   setPriorityAttributes', -- :: [Attributes] -> String -> [Attributes]
+      -- this assumes the attributes have no existing priority.
 
    variantAttributes, -- :: [String]
    variantAttributesType, -- :: AttributesType
@@ -159,7 +169,8 @@ classifyElement (Elem name attributes content) =
                DirectInclude label 
                   (Elem ("include" ++ toIncludeStr includeChar) [
                   ("included",AttValue [Left labelString]),
-                  ("status",AttValue [Left "present"])
+                  ("status",AttValue [Left "present"]),
+                  ("priority",AttValue [Left "1"])
                   ] [])
                )
                (fromStringWE labelString)
@@ -284,6 +295,27 @@ getPath (Elem xmlTag attributes _) =
       pathString = fromMaybe "." (getAttribute attributes "path")
    in
       fromStringWE pathString 
+
+
+getPriority :: Element -> String
+getPriority (Elem _ attributes _) 
+   = getPriorityAttributes attributes
+
+getPriorityAttributes :: [Attribute] -> String
+getPriorityAttributes attributes
+   = fromMaybe "0" (getAttribute attributes "priority")
+
+setPriority :: Element -> String -> Element
+setPriority (Elem name attributes0 content) priority =
+   let
+      attributes1 = deleteFirstOpt (\ (key,_) -> key == "priority") attributes0
+      attributes2 = setPriorityAttributes' attributes1 priority
+   in
+      Elem name attributes2 content
+
+setPriorityAttributes' :: [Attribute] -> String -> [Attribute]
+setPriorityAttributes' attributes priority =
+   ("priority",AttValue [Left priority]) : attributes
 
 -- ----------------------------------------------------------------------
 -- Variant Attributes
