@@ -18,7 +18,10 @@ module Image (
         newImage,
 
         intToImage,
-        imageToInt
+        imageToInt,
+
+	Format(..),
+	imgData
 
         ) where
 
@@ -50,6 +53,22 @@ newImage :: [Config Image] -> IO Image
 newImage ol = do
         w <- createWidget LABEL
         configure (Image w) ol
+
+imgData :: Format -> String  -> Config Image
+imgData f str w =
+  synchronize w (do {
+	execTclScript [tkImageCreateFromData no f str] >>
+        cset w "image" no})
+  where no = getObjectNo (toGUIObject w)
+
+data Format = GIF | PPM | PGM
+
+formatToString :: Format -> String
+formatToString f =
+  case f of
+    GIF -> "GIF"
+    PPM -> "PPM"
+    _   -> "PGM"
 
 
 -- --------------------------------------------------------------------------
@@ -112,3 +131,5 @@ tkGetImageFile :: Int -> String
 tkGetImageFile no = (show no) ++ " cget -file "
 {-# INLINE tkGetImageFile #-}
 
+tkImageCreateFromData :: Int -> Format -> String -> String
+tkImageCreateFromData no f dat = "image create photo " ++ show no ++ " -data " ++ show dat ++ " -format " ++ show (formatToString f)
