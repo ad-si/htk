@@ -18,15 +18,17 @@ module InputForm (
 
         InputField(..), 
 
-        EntryField,
-        newEntryField,
+--        EntryField,
+--        newEntryField,
 
 --        EnumField,
 --        newEnumField,
 
---        TextField,
---        newTextField,
+        TextField,
+        newTextField,
 
+        getFormValue,
+	setFormValue
 --        RecordField,
 --        newRecordField,
 
@@ -60,10 +62,10 @@ class InputField f where
         modifier :: GUIValue b => (a -> b -> a) -> Config (f a b)
     
 class Variable a b where
-        setVar :: a -> a -> IO ()
-	getVar :: a -> IO a
-	withVar:: a -> (a -> b) -> IO b
-
+        setVar :: a -> b -> IO ()
+	getVar :: a -> IO b
+	withVar:: a -> (a -> b) -> IO a
+	
 -- --------------------------------------------------------------------------
 -- InputForm Type 
 -- --------------------------------------------------------------------------           
@@ -92,9 +94,9 @@ data FieldInf a  = FieldInf {
 -- --------------------------------------------------------------------------
 -- Commands 
 -- --------------------------------------------------------------------------           
-newInputForm :: Box -> [Config (InputForm a)] -> IO (InputForm a)
-newInputForm par ol = do {
-        em <- newRef (FormState Nothing Nothing Nothing Nothing Nothing Nothing []);
+newInputForm :: Box -> Maybe a -> [Config (InputForm a)] -> IO (InputForm a)
+newInputForm par val ol = do {
+        em <- newRef (FormState val Nothing Nothing Nothing Nothing Nothing []);
         configure (InputForm par em) ol
 }
 
@@ -108,74 +110,106 @@ instance GUIObject (InputForm a) where
         toGUIObject (InputForm b e) = toGUIObject b
         cname _ = "InputForm"
 
+instance HasColour (InputForm a) where
+        legalColourID _ "foreground" = True
+        legalColourID _ "background" = True
+        legalColourID _ _ = False
+        setColour form@(InputForm b e) "background" c = synchronize form (do {
+                configure b [bg c]; 
+                setFormConfig (\fst -> fst{fFormBg = Just c}) form;
+                })
+        setColour form@(InputForm b e) "foreground" c = synchronize form (do {
+                configure b [fg c]; 
+                setFormConfig (\fst -> fst{fFormFg = Just c}) form;
+                })
+        setColour form _ _ = return form
+        getColour form "background" = getFormConfig form fFormBg
+        getColour form "foreground" = getFormConfig form fFormFg
+        getColour _ _ = return cdefault
+
+instance HasFont (InputForm a) where
+        font f form@(InputForm b e) = synchronize form (
+                setFormConfig (\fst -> fst{fFormFont = Just (toFont f)}) form
+                )
+        getFont form    = getFormConfig form fFormFont
+
+
+instance HasEnable (InputForm a) where
+        state s form@(InputForm b e) = synchronize form (
+                setFormConfig (\fst -> fst{fFormState = Just s}) form
+                )
+        getState form   = getFormConfig form fFormState
+
+instance Widget (InputForm a) where
+        cursor c form@(InputForm b e) = synchronize form ( do {
+                configure b [cursor c];
+                setFormConfig (\fst -> fst{fFormCursor = Just (toCursor c)}) form
+                })
+        getCursor form  = getFormConfig form fFormCursor
+
 instance HasSize (InputForm a)
 
 instance HasBorder (InputForm a)
 
-
-
--- --------------------------------------------------------------------------
---  Entry Fields  
--- --------------------------------------------------------------------------           
-data GUIValue b => EntryField a b = EntryField (Prompt b) (Ref (FieldInf a))
-
-newEntryField :: GUIValue b => InputForm a -> [Config (EntryField a b)] -> IO (EntryField a b)
-newEntryField form@(InputForm box field) confs = do {
-        pr <- newPrompt box [];
-        pv <- newFieldInf
-                (\c -> do {bg (toColour c) pr; done})
-                (\c -> do {fg (toColour c) pr; done})
-                (\f -> do {font (toFont f) pr; done})
-                (\c -> do {cursor (toCursor c) pr; done})
-                (\s -> do {state s pr; done});
-        addNewField form pr pv;
-        configure (EntryField pr pv) confs;
-}
-
-instance Eq (EntryField a b) where 
-        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
-
-instance GUIObject (EntryField a b) where 
-        toGUIObject (EntryField pr _) = toGUIObject pr
-        cname _ = "EntryField"
-
-instance Synchronized (EntryField a b) where
-        synchronize fe = synchronize (toGUIObject fe)
-
-instance (GUIValue b,GUIValue c) => HasText (EntryField a b) c where
-        text v f@(EntryField pr _) = do {text v pr; return f}
-        getText (EntryField pr _) = getText pr
-
---instance GUIValue a => Variable (EntryField a b) a where
---        setVar fe@(EntryField pr pv) t = setVar pr t
---        getVar (EntryField pr pv) = getVar pr
---        withVar w f = synchronize w (do {v <- getVar w; f v}) 
---        updRef w f = synchronize w (do {
---                v <- getRef w;
+instance Synchronized (InputForm a) where
+        synchronize w = synchronize (toGUIObject w)
+        
+instance Variable (InputForm a) a where
+        setVar form val = setFormValue form val
+        getVar form  = getFormValue form
+--        withVar w f = synchronize w (do {v <- getVar w; f v; return w}) 
+--        updVar w f = synchronize w (do {
+--                v <- getVar w;
 --                (v',r) <- f v;
---                setRef w v';
+--                setVar w v';
 --                return r
 --                })
 
---instance InputField EntryField where
---        selector f fe@(EntryField _ pv) = synchronize fe (do {
---                setSelectorCmd pv cmd;
---                return fe
---                }) where cmd r = do {value (f r) fe; done}
---        modifier f fe@(EntryField _ pv) = synchronize fe (do {
---                setReplacorCmd pv cmd;
---                return fe
---                }) where cmd r = do {
---                        ans <- try (getValue fe);
---                        case ans of
---                                (Left e) -> do {
---                                        nm <- getText fe;
---                                        newErrorWin (nm ++ " illegal field value") [];
---                                        raise illegalGUIValue
---                                        }
---                                (Right val) -> return (f r val) 
---                        }
+-- --------------------------------------------------------------------------
+--  Auxiliary
+-- --------------------------------------------------------------------------           
+getFormValue :: InputForm a -> IO a
+getFormValue form @ (InputForm b e) = synchronize form (do {
+        fst <- getRef e;
+        case fFormValue fst of
+                Nothing -> raise undefinedFormValue
+                (Just val) -> updValue (fRecordFields fst) val
+        }) 
+ where  updValue [] val = return val
+        updValue (fei:fel) val = do {putStrLn("updating value");
+	                             val' <- (fei # fUpdField) val;
+				     updValue fel val'
+				     }
+ 
 
+setFormValue :: InputForm a -> a -> IO ()
+setFormValue form @ (InputForm b e) val = synchronize form (do {
+        fst <- getRef e;
+        setRef e (fst{fFormValue = Just val});
+        foreach (fRecordFields fst) (\fei -> (fSetField fei) val);
+        })
+
+setFormConfig :: (FormState a -> FormState a) -> Config (InputForm a)
+setFormConfig trans form@(InputForm b e) = do {
+        changeRef e trans;
+        fst <- getRef e;
+        foreach (fRecordFields fst) (setDefaultAttrs fst);
+        return form
+        } 
+
+getFormConfig :: GUIValue b => InputForm a -> (FormState a -> Maybe b) -> IO b
+getFormConfig form@(InputForm b e) fetch = do { 
+        mv <- withRef e fetch;
+        case mv of
+                Nothing -> return cdefault
+                (Just c) -> return c
+        }
+
+-- --------------------------------------------------------------------------
+--  Exceptions
+-- --------------------------------------------------------------------------           
+undefinedFormValue :: IOError
+undefinedFormValue = userError "form value is not defined"
 
 -- --------------------------------------------------------------------------
 --  Text Fields  
@@ -186,6 +220,7 @@ data GUIValue b => TextField a b =
 
 newTextField :: GUIValue b => InputForm a -> [Config (TextField a b)] -> IO (TextField a b)
 newTextField form@(InputForm box field) confs = do {
+        -- :: IO (Editor ?)
         tp <- newEditor box [bg "white"];
 	pack tp [Expand On, Fill Both];
         pv <- newFieldInf 
@@ -194,7 +229,9 @@ newTextField form@(InputForm box field) confs = do {
                 (\f -> do {done})
                 (\c -> do {done})
                 (\s -> do {state s tp; done});
-        configure (TextField tp pv) confs
+        configure (TextField tp pv) confs;
+	addNewField form tp pv;
+        configure (TextField tp pv) []
 }
 
 instance Eq (TextField a b) where 
@@ -206,6 +243,55 @@ instance GUIObject (TextField a b) where
 
 instance Synchronized (TextField a b) where
         synchronize fe = synchronize (toGUIObject fe)
+
+instance HasColour (TextField a b) where
+        legalColourID _ _ = True
+        setColour fe@(TextField ed _) cid c = do {setColour ed cid c; return fe}
+        getColour (TextField ed _) cid = getColour ed cid
+
+instance HasBorder (TextField a b)
+
+instance HasSize (TextField a b) where
+        width w fe @ (TextField ed _) = do {width w ed; return fe}
+        getWidth (TextField ed _)    = getWidth ed
+        height h fe @ (TextField ed _) = do {height h ed; return fe}
+        getHeight fe @ (TextField ed _)= getHeight ed
+
+instance HasFont (TextField a b) where 
+        font f fe@(TextField ed _) = do {font f ed; return fe}
+        getFont (TextField ed _) = getFont ed
+
+instance HasEnable (TextField a b) where 
+        state v f@(TextField ed _) = do {state v ed; return f}
+        getState (TextField ed _) = getState ed
+	
+instance GUIValue b => Variable (TextField a b) b where
+        setVar fe @ (TextField tp _) t = do {value t tp; done}
+	-- getValue tp causes following error:
+	--  Fail: invalid command name ".133.146.201.289"
+        getVar (TextField tp _) = do {putStrLn("??");getValue tp}
+--        withVar w f = synchronize w (do {v <- getVar w; f v}) 
+--        updVar w f = synchronize w (do {
+--                v <- getVar w;
+--                (v',r) <- f v;
+--                setVar w v';
+--                return r
+--                })
+
+instance InputField TextField where
+        selector f fe@(TextField tp pv) = synchronize fe (do {
+                setSelectorCmd pv cmd;
+                return fe
+                }) where cmd r = do {value (f r) tp; done}
+        modifier f fe@(TextField tp pv) = synchronize fe (do {
+                setReplacorCmd pv cmd;
+                return fe
+                }) where cmd r = do {
+                        putStrLn("HELLO!");
+			val <- getVar fe;
+                        putStrLn("HELLO!");
+			return (f r val)
+                        }
 
 -- --------------------------------------------------------------------------
 --  Auxiliary Computations for Field Information
@@ -242,11 +328,15 @@ setDefaultAttrs fst fei = do {
         }
 
 setSelectorCmd :: Field a -> (a -> IO ()) -> IO ()
-setSelectorCmd pv cmd = changeRef pv (\fei -> fei{fSetField = cmd})
+setSelectorCmd pv cmd = do
+ changeRef pv (\fei -> fei{fSetField = cmd})
+ putStrLn("selector set")
 
 
 setReplacorCmd :: Field a -> (a -> IO a) -> IO ()
-setReplacorCmd pv cmd = changeRef pv (\fei -> fei{fUpdField = cmd})
+setReplacorCmd pv cmd = do
+ changeRef pv (\fei -> fei{fUpdField = cmd})
+ putStrLn("replacor set")
 
 
 
