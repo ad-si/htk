@@ -22,7 +22,7 @@ safeSystem command =
       top <- getTOP
       let 
          fullName = (trimDir top) `combineNames`
-            ("reactor" `combineNames` "runCommand")
+            ("posixutil" `combineNames` "runCommand")
       childProcess <- newChildProcess fullName [
          linemode True,
          standarderrors True
