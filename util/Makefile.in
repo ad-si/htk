@@ -1,5 +1,5 @@
 PACKAGE = uni-util
-PACKAGES = concurrent lang data text net uni-options
+PACKAGES = concurrent lang data network text uni-options
 
 SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   WBFiles.hs Object.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \

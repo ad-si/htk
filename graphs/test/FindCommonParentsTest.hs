@@ -1,7 +1,5 @@
 {- Test graphs for FindCommonParents -}
-module FindCommonParentsTest(
-   graph1,graph2,  -- :: GraphBack Int Int
-   ) where
+module FindCommonParentsTest where
 
 import FindCommonParents
 
@@ -35,3 +33,29 @@ graph2 = GraphBack {
       11 -> [6]
       )))
    }
+
+graph3 :: GraphBack Int Int
+graph3 = GraphBack {
+   getAllNodes = return [1,2,3,4,5],
+   getKey = (\ i -> return (Just i)),
+   getParents = (\ i -> return (Just (case i of
+      1 -> []
+      2 -> [1]
+      3 -> [1]
+      4 -> [2,3]
+      5 -> [4]
+      )))
+   }
+
+graph4 :: GraphBack Int Int
+graph4 = GraphBack {
+   getAllNodes = return [1],
+   getKey = (\ i -> return (Just i)),
+   getParents = (\ i -> return (Just []))
+   }
+
+t34 :: IO ()
+t34 =
+   do
+      l <- findCommonParents graph3 graph4 [4]
+      putStrLn (show l)

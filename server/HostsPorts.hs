@@ -32,7 +32,7 @@ module HostsPorts(
    ) where
 
 import IO
-import Socket
+import Network
 
 import Control.Exception
 

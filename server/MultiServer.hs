@@ -31,10 +31,10 @@ import Maybe
 import IO
 import Random
 
-import Socket
-import qualified SocketPrim
+import Network
+import qualified Network.Socket
 import qualified Network.BSD
-import Concurrent
+import Control.Concurrent
 
 import Registry
 import Object
@@ -65,14 +65,14 @@ newMultiServer :: Bool -> (Maybe PortNumber) -> IO MultiServer
 newMultiServer acceptNonLocal portNumberOpt =
    do
       let
-         portNumber = fromMaybe SocketPrim.aNY_PORT portNumberOpt
+         portNumber = fromMaybe Network.Socket.aNY_PORT portNumberOpt
       socket <- listenOn (PortNumber portNumber)
 
       thisHostName <- Network.BSD.getHostName
       thisHostEntry <- Network.BSD.getHostByName thisHostName
       let
          thisHostAddress = Network.BSD.hostAddress thisHostEntry
-      localHostAddress <- SocketPrim.inet_addr "127.0.0.1"
+      localHostAddress <- Network.Socket.inet_addr "127.0.0.1"
 
       let
          hostNameFilter otherHostName =
@@ -125,7 +125,7 @@ workerThread multiServer =
 -- ------------------------------------------------------------------------
 
 getPortNumber :: MultiServer -> IO PortNumber
-getPortNumber multiServer = SocketPrim.socketPort (socket multiServer)
+getPortNumber multiServer = Network.Socket.socketPort (socket multiServer)
 
 waitForClient multiServer multiServerKey action =
    do

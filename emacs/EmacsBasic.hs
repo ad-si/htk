@@ -40,7 +40,7 @@ module EmacsBasic(
 import IO
 
 import qualified Control.Exception
-import Socket(PortNumber)
+import Network(PortNumber)
 import Concurrent
 import qualified IOExts(unsafePerformIO)
 

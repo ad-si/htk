@@ -23,7 +23,7 @@ import Maybe
 import Data.IORef
 import System.IO.Unsafe
 
-import Socket
+import Network
 
 import Computation
 import WBFiles

@@ -6,7 +6,7 @@ else
 CRYPTPACKAGES = 
 endif
 
-PACKAGES = net uni-reactor uni-posixutil uni-htk \
+PACKAGES = uni-reactor uni-posixutil uni-htk \
    $(CRYPTPACKAGES) $(if @HAXML@,uni-HaXml) 
 
 

@@ -130,7 +130,7 @@ findCommonParents
                   -> IO (Set nodeKey,[(node1,Maybe node2)])
                -- Set is visited set, ancestors already visited.
                -- list is accumulating parameter.
-               doNode1 node1 visited0 acc0 =
+               doNode1 node1 visited0 acc0 = 
                   -- Examine node1 to see if it is common ancestor.
                   do
                      Just nodeKey <- getKey1 node1      
@@ -156,7 +156,7 @@ findCommonParents
                                     -- Have to scan back to this node's
                                     -- ancestors.
                                     do
-                                       Just nodes <- getParents1 node
+                                       Just nodes <- getParents1 node1
                                        doNodes nodes visited1 acc0
 
       -- (2) Get the list, but don't sort out the order yet.

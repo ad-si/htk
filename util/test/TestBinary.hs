@@ -4,7 +4,8 @@ module Main where
 import Data.Word
 
 import Bytes
-import BinaryAll
+import Binary
+import BinaryInstances
 
 main =
    do
