@@ -245,7 +245,7 @@
 
 <!ENTITY % m.problem.mix   "%m.compositeUnit.class;">
 <!ENTITY % m.solution.mix  "%m.compositeUnit.class;">
-<!ENTITY % m.example.mix   "%m.compositeUnit.mix; | %m.atom.class;">
+<!ENTITY % m.example.mix   "%m.compositeUnit.mix; | %m.atom.class; | %m.list.class;">
 
 <!ENTITY % m.exercise.mix    "%m.problem.mix;">
 <!ENTITY % m.assignment.mix  "%m.problem.mix;">
@@ -259,7 +259,7 @@
 
 <!ENTITY % m.definition.mix    "%m.theoryFragment.class; | %m.compositeUnit.mix; | %m.list.class;">
 
-<!ENTITY % m.assertion.mix        "%m.term.class; | %m.compositeUnit.mix;">
+<!ENTITY % m.assertion.mix        "%m.term.class; | %m.compositeUnit.mix; | %m.list.class;">
 <!ENTITY % m.theorem.mix          "%m.assertion.mix;">
 <!ENTITY % m.proposition.mix      "%m.assertion.mix;">
 <!ENTITY % m.lemma.mix            "%m.assertion.mix;">
@@ -367,19 +367,19 @@
 <!ATTLIST  itemize  numeringPattern   CDATA  #IMPLIED
                    %all-attributes;
                    %animation-attr;>
-<?MMiSSDisplay itemize : White box ?>
+<?MMiSSDisplay itemize : Green box ?>
 
 <!ELEMENT  enumerate  (%m.enumerate.mix;)*>
 <!ATTLIST  enumerate  numeringPattern   CDATA  #IMPLIED
                      %all-attributes;
                      %animation-attr;>
-<?MMiSSDisplay enumerate : White box ?>
+<?MMiSSDisplay enumerate : Green box ?>
 
 <!ELEMENT  description  (%m.description.mix;)*>
 <!ATTLIST  description  numeringPattern   CDATA  #IMPLIED
                        %all-attributes;
                        %animation-attr;>
-<?MMiSSDisplay description : White box ?>
+<?MMiSSDisplay description : Green box ?>
 
 
 <!ELEMENT  definition  (%m.definition.mix;)*>
@@ -428,6 +428,7 @@
 <!ATTLIST  item descItem   CDATA  #IMPLIED
                 %structure-attr;
                 %system-attr;>
+<?MMiSSDisplay item : Green box ?>
 
 <!ELEMENT  comment  (%m.comment.mix;)*>
 <!ATTLIST  comment  %all-attributes;>
@@ -499,7 +500,7 @@
                    %variant-attr;
                    latexEnv   (math | shortMathDollar | shortMathParens | displaymath 
                                | shortDisplaymath | shortDisplaymathDollar 
-                               | equation) #REQUIRED>
+                               | equation | eqnarray | eqnarrayStar) #REQUIRED>
 
 <!ELEMENT rule  %m.rule.mix;>
 <!ATTLIST rule  %structure-attr;
