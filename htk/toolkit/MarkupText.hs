@@ -102,6 +102,7 @@ module MarkupText (
   existsone,
   MarkupText.not,
   MarkupText.and,
+  bigand,
   MarkupText.or,
   times,
   MarkupText.sum,
@@ -666,6 +667,17 @@ not = symbchr 216
 -- Special character.
 and :: MarkupText
 and = symbchr 217
+
+---
+-- Special character.
+bigand :: MarkupText
+bigand = bigsymbchr 217
+
+
+---
+-- Special character.
+bigand :: MarkupText
+bigand = bigsymbchr 217
 
 ---
 -- Special character.
