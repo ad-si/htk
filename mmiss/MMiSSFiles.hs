@@ -28,8 +28,12 @@ data Menu_ = Menu_DisplayVariants DisplayVariants
 	   | Menu_Separator Separator
 	   | Menu_Command Command
 	   deriving (Eq,Show)
-data DisplayVariants = DisplayVariants 		deriving (Eq,Show)
-data SelectVariants = SelectVariants 		deriving (Eq,Show)
+data DisplayVariants = DisplayVariants
+    { displayVariantsTitle :: (Defaultable String)
+    } deriving (Eq,Show)
+data SelectVariants = SelectVariants
+    { selectVariantsTitle :: (Defaultable String)
+    } deriving (Eq,Show)
 data SubMenu = SubMenu
     { subMenuMenu :: String
     } deriving (Eq,Show)
@@ -131,19 +135,35 @@ instance XmlContent Menu_ where
     toElem (Menu_Separator a) = toElem a
     toElem (Menu_Command a) = toElem a
 instance XmlContent DisplayVariants where
-    fromElem (CElem (Elem "displayVariants" [] []):rest) =
-	(Just DisplayVariants, rest)
+    fromElem (CElem (Elem "displayVariants" as []):rest) =
+	(Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem DisplayVariants =
-	[CElem (Elem "displayVariants" [] [])]
+    toElem as =
+	[CElem (Elem "displayVariants" (toAttrs as) [])]
+instance XmlAttributes DisplayVariants where
+    fromAttrs as =
+	DisplayVariants
+	  { displayVariantsTitle = defaultA fromAttrToStr "Display Variants" "title" as
+	  }
+    toAttrs v = catMaybes 
+	[ defaultToAttr toAttrFrStr "title" (displayVariantsTitle v)
+	]
 instance XmlContent SelectVariants where
-    fromElem (CElem (Elem "selectVariants" [] []):rest) =
-	(Just SelectVariants, rest)
+    fromElem (CElem (Elem "selectVariants" as []):rest) =
+	(Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem SelectVariants =
-	[CElem (Elem "selectVariants" [] [])]
+    toElem as =
+	[CElem (Elem "selectVariants" (toAttrs as) [])]
+instance XmlAttributes SelectVariants where
+    fromAttrs as =
+	SelectVariants
+	  { selectVariantsTitle = defaultA fromAttrToStr "Select Variants" "title" as
+	  }
+    toAttrs v = catMaybes 
+	[ defaultToAttr toAttrFrStr "title" (selectVariantsTitle v)
+	]
 instance XmlContent SubMenu where
     fromElem (CElem (Elem "subMenu" as []):rest) =
 	(Just (fromAttrs as), rest)

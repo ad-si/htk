@@ -1,0 +1,15 @@
+<!-- Describes the file-types available to MMiSS.  This file should be
+     written according to the DTD in MMiSSFiles.dtd. -->
+<fileTypes>
+<fileType tag="gif" menu="xvmenu" colour="red"/>
+<fileType tag="jpeg" menu="xvmenu" colour="green"/>
+<menu id="xvmenu">
+   <command title="view" command="xv %F"/>
+   <separator/>
+   <subMenu menu="variants">
+</menu>
+<menu id="variants" title="Variants">
+   <displayVariants title="Display"/>
+   <selectVariants title="Select"/>
+</menu>
+</fileTypes>

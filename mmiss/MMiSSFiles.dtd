@@ -15,6 +15,9 @@
    colour CDATA #IMPLIED
    shape CDATA #IMPLIED
    >
+<!-- colour: any X-Window colour name should work.
+     shape: use one of those in graph/GraphConfigure.hs
+     -->
 
 <!-- A menu to be hung onto one or more file buttons. -->
 <!ELEMENT menu (displayVariants|selectVariants|subMenu|separator|command)* >
@@ -25,9 +28,13 @@
 
 <!-- A "Display Variants" button -->
 <!ELEMENT displayVariants EMPTY>
+<!ATTLIST displayVariants
+   title CDATA "Display Variants" >
 
 <!-- A "Select Variants" button -->
 <!ELEMENT selectVariants EMPTY>
+<!ATTLIST selectVariants
+   title CDATA "Select Variants" >
 
 <!-- A submenu -->
 <!ELEMENT subMenu EMPTY>

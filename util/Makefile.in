@@ -1,7 +1,8 @@
 PACKAGE = uni-util
 PACKAGES = concurrent lang data network text uni-options
 
-SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
+SRCS       = \
+  CompileFlags.hs Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   WBFiles.hs Object.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \
   IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs \
   RegularExpression.hs DelSet.hs Thread.hs UniqueString.hs UniqueFile.hs \

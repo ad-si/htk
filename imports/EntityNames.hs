@@ -35,6 +35,9 @@ module EntityNames(
    entityNameParser, -- :: GenParser Char st EntityName
    entityFullNameParser, -- :: GenParser Char st EntityFullName
    entitySearchNameParser, -- :: GenParser Char st EntitySearchName
+
+   -- special character also allowed for internal purposes in EntityName's.
+   specialChar, -- :: Char
    ) where
 
 import Char
@@ -66,6 +69,10 @@ import SimpleForm
 -- such components in its name.
 --
 -- Example EntityName's: "a", "bc", "z9_", "þ1".
+--
+-- FOR INTERNAL USE ONLY.  EntityName's may also include the \x7f
+-- character, provided it is not at the beginning.  
+-- (This is used for file extensions, instead of ".").
 newtype EntityName = EntityName String deriving (Eq,Ord,Typeable,Show)
 
 ---
@@ -197,9 +204,12 @@ instance Monad m => HasBinary ImportCommands m where
 -- We also include checks for validity, using AtomString.fromStringError.
 -- ----------------------------------------------------------------------
 
--- EntityNames are represented with names separated by periods.
 instance StringClass EntityName where
-   toString (EntityName name) = name
+   toString (EntityName name) | (all (/= specialChar) name) = name
+   toString (EntityName name) = error (
+      "EntityNames.toString: Special character discovered in EntityName "
+      ++ show name)
+
    fromStringWE = mkFromStringWE entityNameParser "Entity Name"
 
 instance StringClass EntityFullName where
@@ -338,7 +348,11 @@ simpleNameCharParser :: GenParser Char st Char
 -- Characters allowed after the first character of a simpleName.
 simpleNameCharParser =
    satisfy
-      (\ ch -> isAlphaNum ch || (ch == '_') || (ch == ':'))
+      (\ ch -> isAlphaNum ch || (ch == '_') || (ch == ':') 
+         || (ch == specialChar))
+
+specialChar :: Char
+specialChar = '\x7f'
 
 simpleNamesParser :: GenParser Char st [String]
 simpleNamesParser =

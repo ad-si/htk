@@ -692,6 +692,9 @@ instance Show MMiSSVariants where
 instance Show MMiSSVariantSpec where
    show (MMiSSVariantSpec variants) = show variants
 
+instance Show MMiSSVariantSearch where
+   show (MMiSSVariantSearch variants) = show variants
+
 displayMMiSSVariantDictKeys :: MMiSSVariantDict object -> IO ()
 displayMMiSSVariantDictKeys (MMiSSVariantDict registry) =
    do

@@ -8,6 +8,7 @@ module CopyFile(
    copyFileToString,
    copyFileToStringCheck,
    copyICStringLenToFile,
+   copyFileToICStringLenCheck,
 
    copyCStringLenToFile,
    copyFileToCStringLen,
@@ -127,6 +128,16 @@ copyFileToCStringLen file =
    do
       (ptr,len) <- IOExts.slurpFile file
       return (Ptr.castPtr ptr,len)
+
+copyFileToICStringLenCheck :: FilePath -> IO (WithError ICStringLen)
+copyFileToICStringLenCheck filePath =
+   exceptionToError
+      (\ exception ->
+         case Exception.ioErrors exception of
+            Nothing -> Nothing
+            Just ioError -> Just (show ioError) 
+         )
+      (copyFileToICStringLen filePath)
 
 copyFileToICStringLen :: FilePath -> IO ICStringLen
 copyFileToICStringLen filePath =

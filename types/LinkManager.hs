@@ -87,6 +87,13 @@ module LinkManager(
    lookupNameSimple,
       -- :: LinkedObject -> String -> IO (Maybe LinkedObject)
       -- Extract a single element in a linkedObject's contents by name.
+
+   lookupNameInFolder,
+      -- :: LinkedObject -> EntityName -> IO (Maybe LinkedObject)
+      -- Extract a single element in a linkedObject's contents by EntityName
+   lookupObjectInFolder,
+      -- :: LinkedObject -> EntityName -> IO (Maybe LinkedObject)
+      -- Extract an object in a linkedObject's contents by EntityName
    lookupFullNameInFolder,
       -- :: LinkedObject -> EntityFullName -> IO (Maybe LinkedObject)
       -- Extract a full name as a sub object of a given object.
@@ -382,11 +389,32 @@ lookupNameSimple linkedObject str =
          entityNameWE = fromStringWE str
       case fromWithError entityNameWE of
          Left _ -> return Nothing
-         Right entityName ->
-            do
-               linkedObjectPtrOpt <- readContents (
-                  lookupEntityName linkedObject entityName)
-               return (fmap fromLinkedObjectPtr linkedObjectPtrOpt)
+         Right entityName -> lookupNameInFolder linkedObject entityName
+
+
+-- | Extract an object in a linkedObject's contents by EntityName
+lookupObjectInFolder :: ObjectType objectType object
+   => LinkedObject -> EntityName -> IO (Maybe (Link object))
+lookupObjectInFolder linkedObject entityName =
+   do
+      linkedObjectOpt <- lookupNameInFolder linkedObject entityName
+      return (case linkedObjectOpt of
+         Nothing -> Nothing
+         Just linkedObject ->
+            let
+               wrappedLink = toWrappedLink linkedObject
+            in
+               unpackWrappedLink wrappedLink
+         )
+
+-- | Extract a single element in a linkedObject's contents by EntityName
+lookupNameInFolder :: LinkedObject -> EntityName -> IO (Maybe LinkedObject)
+lookupNameInFolder linkedObject entityName =
+   do
+      linkedObjectPtrOpt <- readContents (
+         lookupEntityName linkedObject entityName)
+      return (fmap fromLinkedObjectPtr linkedObjectPtrOpt)
+
 ---
 -- Extract a full name as a sub object of a given object.
 lookupFullNameInFolder :: LinkedObject -> EntityFullName 

@@ -20,10 +20,18 @@ module FileNames(
             -- a sequence of file names, with the top directory
             -- first.  (If the first character is the file separator
             -- the first list element is the empty string.)
-   unbreakName
+   unbreakName,
             -- :: [String] -> String
             -- unbreakName inverts breakName
- 
+
+   splitExtension,
+            -- :: String -> Maybe (String,String)
+            -- Remove the (last) extension part from a file name, returning
+            -- the two parts.  For example "foo.bar" should go to (foo,bar).
+   unsplitExtension,
+            -- :: String -> String -> String
+            -- reverse unsplitExtension.
+   
             
    ) where
 
@@ -68,3 +76,17 @@ breakName (first : rest)
 unbreakName :: [String] -> String
 unbreakName [] = ""
 unbreakName parts = foldr1 combineNames parts
+
+
+splitExtension :: String -> Maybe (String,String)
+splitExtension str = case splitExtension0 str of
+      Just (ne @ (name,ext)) | not (null name),not (null ext) -> Just ne
+      _ -> Nothing
+   where
+      splitExtension0 [] = Nothing
+      splitExtension0 (c:cs) = case splitExtension0 cs of
+         Just (name0,ext) -> Just (c:name0,ext)
+         Nothing -> if c == '.' then Just ("",cs) else Nothing
+
+unsplitExtension :: String -> String -> String
+unsplitExtension name ext = name ++ "." ++ ext
