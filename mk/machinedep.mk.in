@@ -2,9 +2,11 @@
 # change for different installations of Uni.
 #
 # HC is the location of the GHC command
+# CC is the location of the C compiler
 # MV is the location of the "mv" command.
 # GFIND is the location of GNU find, hopefully.
 HC = @GHC@
+CC = @CC@
 TOP = @TOP@
 GFIND = @GFIND@
 CP = @CP@

@@ -5,6 +5,7 @@ module Files(
    registerFiles, -- :: IO ()
       -- to be done at initialisation
    File,
+      -- instance of HasAttributes, HasFilePath
    FileType,
    newEmptyFile,
    ) where

@@ -37,6 +37,9 @@
    wish          The filename of the wish program
    daVinci       The filename of daVinci
    cvs           The filename of cvs
+   editor        A command to execute the text editor.  In this command
+                 %s is replaced with the full file path, %% with %.
+                 For more details see types/CallEditor.hs
 
    top           The directory in which UniForM is installed
 
@@ -75,7 +78,10 @@ module WBFiles (
       -- gets the path for tixwish
    getCVSPath, -- ditto cvs
    getDaVinciPath, -- ditto daVinci
+
    getTOP, -- ditto
+   getEditorString, -- :: IO (Maybe String)
+      -- returns editor string, if set.
    getPort, -- IO Int
 
    -- getBackupDir and getWorkingDir trim a right-file-separator
@@ -176,6 +182,9 @@ getWishPath = valOf (getArgString "wish")
 getCVSPath :: IO String
 getCVSPath = valOf (getArgString "cvs")
 
+getEditorString :: IO (Maybe String)
+getEditorString = getArgString "editor" 
+
 getDaVinciPath :: IO String
 getDaVinciPath = valOf (getArgString "daVinci")
 
@@ -256,6 +265,12 @@ usualProgramArguments = [
       optionName = "cvs",
       optionHelp = "path to the cvs program",
       defaultVal = Just (StringValue "/usr/bin/cvs"),
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "editor",
+      optionHelp = "text editor invocation; %s is replaced with filename",
+      defaultVal = Nothing,
       argType = STRING
       },
    ProgramArgument{

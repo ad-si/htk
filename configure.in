@@ -12,9 +12,7 @@ echo ""
 echo "The top of the UniForM build tree is: $TOP"
 AC_SUBST(TOP)
 #
-# Find a C compiler (we only need this for mkEverything.c at the
-# time of writing, but it seems reasonable to assume everyone has
-# one somewhere).
+# Find a C compiler.
 AC_PATH_PROGS(CC,gcc,cc)
 #
 # Check for ghc
