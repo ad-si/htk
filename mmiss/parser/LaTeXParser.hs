@@ -73,7 +73,7 @@ envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract",
                [("Theory","theory"), ("Theorem", "theorem"), ("Development","development")] ++
                [("Proof","proof"), ("Script","script"), ("List", "list"), ("ListItem", "listItem")] ++
                [("Conjecture", "conjecture"), ("Lemma", "lemma"), ("Corollary", "corollary")] ++
-               [("Assertion", "assertion")]
+               [("Assertion", "assertion"), ("TextFragment","textFragment")]
 
 envsWithoutText = [("Package", "package")]
 
@@ -216,6 +216,19 @@ envParams id =  if (id `elem` (map fst mmiss2EnvIds))
 -- [FormalismID] {LabelID} {Title} {Attributes}
 
 mEnvParams :: String -> GenParser Char st Params
+
+mEnvParams "TextFragment" = 
+   do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
+      spaces
+      labelId <-  try(between (char '{') (char '}') idParser)
+                   <?> "{labelID}{title}{attribute-list} for Environment <TextFragment>"   
+      spaces
+      attributes <- try(between (char '{') (char '}') attParser)
+		     <?> "{attribute-list} for Environment <TextFragment>"   
+      if formId == "" 
+        then return(MParams Nothing labelId "" attributes)
+        else return(MParams (Just(formId)) labelId "" attributes)
+
 mEnvParams "List" = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
 		       spaces
 		       labelId <-  try(between (char '{') (char '}') idParser)
@@ -476,10 +489,12 @@ findFirstEnv [] _ _  = hasError("No root environment ('package' or some other en
 
 
 addPreamble :: Content -> Content -> Content
+{--
 addPreamble preambleElem (CElem (Elem name atts content))  = 
   CElem (Elem name atts ((map (addPreamble preambleElem) content) ++ [preambleElem]))
 addPreamble _ e = e
-
+--}
+addPreamble pre c = c
 
 
 makeContent :: [Frag] -> Textmode -> String -> WithError [Content]
@@ -550,8 +565,9 @@ makeContent (f:frags) TextAllowed parentEnv =
                   (makeContent frags TextAllowed parentEnv)
          else
            if (name == "TextFragment")
-	     then myConcatWithError (hasValue([(makeTextFragment parentEnv name (Just(ps)) fs [])])) 
-                                    (makeContent frags TextAllowed parentEnv)
+	     then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
+                  in  myConcatWithError (hasValue([(makeTextFragment parentEnv ename (Just(ps)) fs [])])) 
+                                        (makeContent frags TextAllowed parentEnv)
              else
                if (name `elem` (map fst mmiss2EnvIds))
 	         then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
@@ -729,7 +745,6 @@ detectTextMode name = if (name `elem` (map fst envsWithText)) then TextAllowed
                        else NoText
 
 
-
 makeAttribs :: Params -> String -> [Attribute]
 
 makeAttribs ps name = 
@@ -770,11 +785,13 @@ makeIncludeAttribs _ = []
 
 makeTextFragmentAttribs :: Maybe(Params) -> [Attribute]
 makeTextFragmentAttribs Nothing = []
-makeTextFragmentAttribs (Just((LParams ((SingleParam (Other labelId) _):[]) (Just(atts))))) =
-  [("label", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
-makeTextFragmentAttribs (Just((LParams ((SingleParam (Other labelId) _):[]) Nothing))) =
-  [("label", (AttValue [Left labelId]))]
-makeTextFragmentAttribs _ = []
+makeTextFragmentAttribs (Just (MParams formId labelId _ atts)) =
+  let a1 = case formId of
+	      Just(str) -> [("notation", (AttValue [Left str]))]
+              Nothing -> []
+      a2 = if (labelId == "") then [] else [("label", (AttValue [Left labelId]))]
+      a3 = (map convertAttrib atts)
+  in a1 ++ a2 ++ a3
 
 
 makeListItemAttribs :: Params -> [Attribute]
