@@ -20,6 +20,7 @@ WORKINGDIR = $${UNIWORKINGDIR:-/tmp/@}
 DBDIR = $(WORKINGDIR)/simpledb
 STOREDIR = $(WORKINGDIR)/storeDir
 BACKUPDIR = $(WORKINGDIR)/backup
+UNITEMPFILES = $(WORKINGDIR)/\#
 
 runServer :
 	UNIDEBUG=$$PWD/s.debug $(MAKE) -r -C $(TOP)/types/test runServer
@@ -37,3 +38,4 @@ runWorkbench :
 
 killWorkbench :
 	(pkill "^MMiSSWorkbench$$" || echo not running)
+	rm -rf $(UNITEMPFILES)
