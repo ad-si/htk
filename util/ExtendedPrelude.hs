@@ -22,6 +22,7 @@ module ExtendedPrelude (
    insertOrdLt,
    insertOrdGt,
    insertOrd,
+   insertOrdAlternate,
    bottom,
 
    -- Indicates that this type allows an IO-style map.
@@ -116,6 +117,20 @@ insertOrd p x ll@(e:l) =
       x : ll
    else
       e : (insertOrd p x l)
+
+
+---
+-- insertOrdAlternate is similar to insertOrd except (1) it takes an Ordering
+-- argument; (2) if it finds an argument that matches, it applies the
+-- given function to generate a new element, rather than inserting another.
+-- The new generated element should be EQ to the old one.
+insertOrdAlternate :: (a -> a -> Ordering) -> a -> (a -> a) -> [a] -> [a]
+insertOrdAlternate p x merge [] = [x]
+insertOrdAlternate p x merge (ll@(e:l)) =
+   case p x e of
+      LT -> x : ll
+      EQ -> merge e : l
+      GT -> e : insertOrdAlternate p x merge l
 
 -- ---------------------------------------------------------------------------
 -- bottom
