@@ -1115,7 +1115,7 @@ parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
 parseAndMakeMMiSSLatex name pre = do root <- parseMMiSSLatexFile name
                                      root1 <- return(coerceWithError root)
 				     (EmacsContent l) <- return(coerceWithError(makeMMiSSLatex (root1, pre)))
-;				     putStrLn (concat (map getStrOfEmacsDataItem l))
+				     putStrLn (concat (map getStrOfEmacsDataItem l))
 
 
 parseMakeParse :: SourceName -> IO (WithError Element)
