@@ -64,6 +64,7 @@ import Registry
 import AtomString
 import Computation
 import Dynamics
+import Sink
 import VariableSet
 
 import GraphDisp
@@ -105,9 +106,13 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- objectTypeIdPrim
    getObjectTypePrim :: object -> objectType
       -- Extracts the type of an object.
+
+   nodeTitle :: object -> String
+      -- Returns a title for the object, to be used to index it in containing
+      -- folders.
    getNodeDisplayData :: 
       (HasNodeTypeConfigs nodeTypeParms,HasArcTypeConfigs arcTypeParms) 
-      => WrappedDisplayType -> objectType ->
+      => View -> WrappedDisplayType -> objectType ->
          Maybe (NodeDisplayData nodeTypeParms arcTypeParms objectType object)
       -- Get everything we need to display objects of this type.
       -- This will be called for each existing object type
@@ -132,7 +137,7 @@ data WrappedLink = forall objectType object .
 
 -- ----------------------------------------------------------------
 -- NodeDisplayData
--- We make heavy use of VariableSets for these.
+-- We make heavy use of Sinks for these.
 -- ----------------------------------------------------------------
 
 
@@ -158,17 +163,16 @@ data NodeDisplayData nodeTypeParms arcTypeParms objectType object =
       -- getNodeType retrieves the node type for a particular node.
       getNodeType :: objectType -> NodeType,
 
-      -- We maintain a set of objects called the knownSet.  This includes
-      -- all nodes which are either in topLinks or as a result of focus;
-      -- it may also include other nodes (for example, because of other
-      -- displays).
-      knownSet :: VariableSet (Link object),
+      -- We maintain a set of objects called the knownSet.  The knownSet
+      -- contains known objects of this type; in particular it includes
+      -- all new created objects of this type in this view.
+      knownSet :: VariableSetSource (Link object),
 
       -- focus returns variable sets for the arcs from and to a given
       -- object.  Every arc should appear in exactly one of these sets.
-      focus :: object -> 
-         IO (VariableSet (WrappedLink,ArcType),
-            VariableSet (WrappedLink,ArcType)),
+      focus :: Link object -> 
+         IO (VariableSetSource (WrappedLink,ArcType),
+            VariableSetSource (WrappedLink,ArcType)),
 
       closeDown :: IO ()
          -- This tells the display implementation it is OK to stop
@@ -359,12 +363,39 @@ decodeIO' :: ObjectType objectType object
    => objectType -> CodedValue -> View -> IO (objectType,CodedValue)
 decodeIO' _ codedValue0 view = decodeIO codedValue0 view
 
-      
+-- -----------------------------------------------------------------
+-- Similarly, we make WrappedLink an instance of HasCodedValue
+-- -----------------------------------------------------------------
 
+wrappedLink_tyCon = mkTyCon "ObjectTypes" "WrappedLink"
+instance HasTyCon WrappedLink where
+   tyCon _ = wrappedLink_tyCon
 
-   
+---
+-- The only important thing about the value returned by toObjectType is 
+-- its types; the value itself are undefined.
+toObjectType :: ObjectType objectType object => Link object -> objectType
+toObjectType link = error "toLinkType"
 
+---
+-- toLinkType is similar but returns a decodeIO action for the link type.
+toLinkType :: ObjectType objectType object => objectType -> 
+   (CodedValue -> View -> IO (Link object,CodedValue))
+toLinkType objectType = decodeIO
 
+instance HasCodedValue WrappedLink where
+   encodeIO (WrappedLink link) codedValue0 view =
+      do
+         let objectType = toObjectType link
+         codedValue1 <- encodeIO link codedValue0 view
+         codedValue2 
+            <- encodeIO (objectTypeTypeIdPrim objectType) codedValue1 view
+         return codedValue2
 
-
-
+   decodeIO codedValue0 view =
+      do
+         (typeKey :: String,codedValue1) <- decodeIO codedValue0 view
+         Just (WrappedObjectTypeTypeData objectType) <-
+            getValueOpt objectTypeTypeDataRegistry typeKey
+         (link,codedValue2) <- toLinkType objectType codedValue1 view
+         return (WrappedLink link,codedValue2)

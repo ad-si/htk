@@ -3,7 +3,7 @@
 module Link(
    -- Links.
    -- A Link x is a pointer to an object of type x.  Links are made
-   -- instances of HasCodedValue (in CodedValue.hs), which means they
+   -- instances of HasCodedValue, which means they
    -- can themselves be stored in the repository, for example as attributes
    -- of other objects.
    Link,
@@ -47,6 +47,8 @@ module Link(
    -- makeLink is used to create a link to an object.
    fetchLink, -- :: HasCodedValue x => View -> Link x -> IO (Versioned x)
    -- look up a link to an object in the repository.
+   readLink, -- :: HasCodedValue x => View -> Link x -> IO x
+   -- Does fetchLink and readObject in one go.
    ) where
 
 import Concurrent
@@ -66,6 +68,14 @@ import CodedValueStore
 -- ----------------------------------------------------------------------
 
 newtype Link x = Link Location
+
+link_tyCon = mkTyCon "Link" "Link"
+instance HasTyCon1 Link where
+   tyCon1 _ = link_tyCon
+
+instance Typeable x => HasCodedValue (Link x) where
+   encodeIO = mapEncodeIO (\ (Link location) -> Str location)
+   decodeIO = mapDecodeIO (\ (Str location) -> Link location)
 
 instance HasKey (Link x) Location where
    toKey (Link location) = location
@@ -105,6 +115,13 @@ fetchLink (view@View{repository = repository,objects = objects})
                            (commitVersioned view versioned)),
                         versioned)
             )                 
+
+readLink :: HasCodedValue x => View -> Link x -> IO x
+readLink view link =
+   do
+      versioned <- fetchLink view link
+      readObject view versioned 
+
 
 -- ----------------------------------------------------------------------
 -- Versioned

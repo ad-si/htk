@@ -98,6 +98,9 @@ import Int
 import UniqueString
 import AtomString(StringClass(..))
 import Registry
+import Sink
+import VariableSet
+import VariableMap
 
 import VersionDB
 import ViewType
@@ -620,6 +623,39 @@ instance (HasCodedValue from,HasCodedValue to,Ord from)
          (contents,codedValue1) <- decodeIO codedValue0 view
          registry <- listToNewRegistry contents
          return (registry,codedValue1)
+
+---------------------------------------------------------------------
+-- We make VariableSet's and VariableMap's an instance of HasCodedValue
+---------------------------------------------------------------------
+
+instance (Typeable x,HasCodedValue [x],HasKey x key) 
+      => HasCodedValue (VariableSet x) where
+   encodeIO variableSet codedValue view =
+      do
+         list <- readContents variableSet
+         encodeIO list codedValue view
+
+   decodeIO codedValue0 view =
+      do
+         (list,codedValue1) <- decodeIO codedValue0 view
+         variableSet <- newVariableSet list
+         return (variableSet,codedValue1)
+
+instance (Ord key,HasCodedValue key,HasCodedValue elt) 
+   => HasCodedValue (VariableMap key elt) where
+
+   encodeIO variableMap codedValue view =
+      do
+         mapData <- readContents variableMap
+         let list = mapToList mapData
+         encodeIO list codedValue view
+
+   decodeIO codedValue0 view =
+      do
+         (list,codedValue1) <- decodeIO codedValue0 view
+         variableMap <- newVariableMap list
+         return (variableMap,codedValue1)
+         
 
 ---------------------------------------------------------------------
 -- FormatError's

@@ -1,21 +1,24 @@
-{- VariableSet is an interface and a simple implementation of it that
-   allow us to track changes to an unordered mutable set.  The elements
-   of the set are keyed by instancing HasKey with some Ord instance;
-   this allows us to set up a special HasKey instance for this module without
-   committing us to that Ord instance everywhere. -}
+{- VariableSet allow us to track changes to an unordered mutable set.  
+   The elements of the set are keyed by instancing HasKey with some Ord
+   instance; this allows us to set up a special HasKey instance for this 
+   module without committing us to that Ord instance everywhere. -}
 module VariableSet(
    HasKey(..),
    Keyed(..),
    VariableSetUpdate(..),
    VariableSet(..),
 
+   newEmptyVariableSet,
    newVariableSet,
    updateSet,
+
+   VariableSetSource,
    ) where
 
 import Set
 import Concurrent
 
+import Dynamics
 import Sink
 import Broadcaster
 
@@ -64,12 +67,23 @@ data VariableSetUpdate x =
    |  DelElement x
 
 update :: HasKey x key 
-   => VariableSetData x -> VariableSetUpdate x -> VariableSetData x
+   => VariableSetData x -> VariableSetUpdate x -> Maybe (VariableSetData x)
 update (VariableSetData set) update =
    case update of
-      AddElement x -> VariableSetData (addToSet set (Keyed x))
-      DelElement x -> VariableSetData (delFromSet set (Keyed x))
-
+      AddElement x -> 
+         let
+            kx = Keyed x
+            isElement = elementOf kx set
+         in
+            if isElement then Nothing else 
+               Just (VariableSetData (addToSet set kx))
+      DelElement x ->
+         let
+            kx = Keyed x
+            isElement = elementOf kx set
+         in
+            if isElement then Just(VariableSetData (delFromSet set kx))
+               else Nothing
 
 newtype VariableSet x = 
    VariableSet (Broadcaster (VariableSetData x) (VariableSetUpdate x))
@@ -80,11 +94,21 @@ newtype VariableSet x =
 
 ---
 -- Create a new empty variable set.
-newVariableSet :: HasKey x key => IO (VariableSet x)
-newVariableSet = 
+newEmptyVariableSet :: HasKey x key => IO (VariableSet x)
+newEmptyVariableSet = 
    do
-      broadcaster <- newBroadcaster update (VariableSetData emptySet)
+      broadcaster <- newGeneralBroadcaster update (VariableSetData emptySet)
       return (VariableSet broadcaster)
+
+---
+-- Create a new variable set with given contents
+newVariableSet :: HasKey x key => [x] -> IO (VariableSet x)
+newVariableSet contents =
+   do
+      broadcaster <- newGeneralBroadcaster update 
+         (VariableSetData (mkSet (map Keyed contents)))
+      return (VariableSet broadcaster)
+
 
 ---
 -- Update a variable set in some way.
@@ -101,9 +125,28 @@ instance HasKey x key
    => CanAddSinks (VariableSet x) [x] (VariableSetUpdate x) where
    addOldSink (VariableSet broadcaster) sink =
       do
-         (VariableSetData x) <- addOldSink broadcaster sink
-         return (map unKey (setToList x))
+         (VariableSetData set) <- addOldSink broadcaster sink
+         return (map unKey (setToList set))
 
+   readContents (VariableSet broadcaster) =
+      do
+         (VariableSetData set) <- readContents broadcaster
+         return (map unKey (setToList set))
+
+-- --------------------------------------------------------------------
+-- Make VariableSet Typeable
+-- --------------------------------------------------------------------
+
+variableSet_tyCon = mkTyCon "VariableSet" "VariableSet"
+instance HasTyCon1 VariableSet where
+   tyCon1 _ = variableSet_tyCon
+
+-- --------------------------------------------------------------------
+-- Type with the clients interface to a variable set (but which may be
+-- otherwise implemented)
+-- --------------------------------------------------------------------
+
+type VariableSetSource x = SinkSource [x] (VariableSetUpdate x)
    
 
 

@@ -5,8 +5,8 @@ module Broadcaster(
    Broadcaster,
 
    newBroadcaster,
+   newGeneralBroadcaster,
    updateBroadcaster,
-   readBroadcaster,
    ) where
 
 import Concurrent
@@ -22,7 +22,9 @@ import Sink
 -- -------------------------------------------------------------------------
 
 data Broadcaster x delta = Broadcaster {
-   apply :: x -> delta -> x,
+   apply :: x -> delta -> Maybe x,
+   -- If it returns Nothing, it means don't update, and don't broadcast
+   -- the change.
    mVar :: MVar (x,[Sink delta])
    }
 
@@ -33,8 +35,9 @@ data Broadcaster x delta = Broadcaster {
 
 ---
 -- Make a new one.
-newBroadcaster :: (x -> delta -> x) -> x -> IO (Broadcaster x delta)
-newBroadcaster apply x =
+newGeneralBroadcaster :: (x -> delta -> Maybe x) -> x 
+   -> IO (Broadcaster x delta)
+newGeneralBroadcaster apply x =
    do
       mVar <- newMVar (x,[])
       return (Broadcaster {
@@ -43,13 +46,23 @@ newBroadcaster apply x =
          })
 
 ---
+-- Like newGeneralBroadcaster, but apply function always updates.
+newBroadcaster :: (x -> delta -> x) -> x -> IO (Broadcaster x delta)
+newBroadcaster apply' =
+   let
+      apply x delta = Just (apply' x delta)
+   in
+      newGeneralBroadcaster apply
+
+
+---
 -- the most general update function
 updateBroadcaster :: Broadcaster x delta -> delta -> IO ()
 updateBroadcaster (Broadcaster {apply = apply,mVar = mVar}) delta =
    do
       (x0,clients0) <- takeMVar mVar
       let 
-         x1 = apply x0 delta
+         x1opt = apply x0 delta
 
          processClients [] clients = return clients
          processClientS (sink:rest) clients0 =
@@ -57,19 +70,13 @@ updateBroadcaster (Broadcaster {apply = apply,mVar = mVar}) delta =
                interested <- putSink sink delta
                processClients rest 
                   (if interested then sink:clients0 else clients0)
-        
-      clients1 <- processClients clients0 []
-      
-      putMVar mVar (x1,clients1)
-
----
--- Peek at the value without doing anything else
-readBroadcaster :: Broadcaster x delta -> IO x
-readBroadcaster (Broadcaster {mVar = mVar}) =
-   do
-      (x,_) <- readMVar mVar
-      return x
-
+      case x1opt of
+         Nothing -> putMVar mVar (x0,clients0)
+         Just x1 ->
+            do
+               clients1 <- processClients clients0 []
+               
+               putMVar mVar (x1,clients1)
 
 -- -------------------------------------------------------------------------
 -- Adding sinks
@@ -81,5 +88,11 @@ instance CanAddSinks (Broadcaster x delta) x delta where
          (x,clients0) <- takeMVar mVar
          putMVar mVar (x,sink:clients0)
          return x
+
+   readContents (Broadcaster {mVar = mVar}) =
+      do
+         (x,_) <- readMVar mVar
+         return x
+
 
 

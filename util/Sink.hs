@@ -11,8 +11,10 @@ module Sink(
    newSinkGeneral,
 
    putSink,
+   coMapSink,
 
    CanAddSinks(..),
+   SinkSource(..),
    ) where
 
 import Concurrent
@@ -114,6 +116,12 @@ putSink sink x =
       if interested then (action sink x) else done
       return interested
 
+---
+-- Convert a sink from one type to another
+coMapSink :: (y -> x) -> Sink x -> Sink y
+coMapSink fn (Sink {sinkID = sinkID,action = action}) =
+   Sink {sinkID = sinkID,action = action . fn}
+
 -- -------------------------------------------------------------------------
 -- The CanAddSinks class.
 -- -------------------------------------------------------------------------
@@ -161,6 +169,15 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
          return (x,sink)
 
    ---
+   -- Get contents without adding a sink
+   readContents :: sinkSource -> IO x
+   readContents sinkSource =
+      do
+         (x,sink) <- addNewQuickSink sinkSource (\ _ -> done)
+         invalidate sink
+         return x
+     
+   ---
    -- Like addNewQuickSink, but use the supplied SinkID
    addNewQuickSinkGeneral :: sinkSource -> (delta -> IO ()) -> SinkID 
       -> IO (x,Sink delta)
@@ -174,3 +191,12 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
    -- Adds a pre-existing sink.
    addOldSink :: sinkSource -> Sink delta -> IO x
 
+-- -------------------------------------------------------------------------
+-- The SinkSource type.
+-- -------------------------------------------------------------------------
+
+data SinkSource x delta = forall sinkSource . CanAddSinks sinkSource x delta 
+   => SinkSource sinkSource
+
+instance CanAddSinks (SinkSource x delta) x delta where
+   addOldSink (SinkSource sinkSource) sink = addOldSink sinkSource sink
