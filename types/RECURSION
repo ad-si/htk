@@ -1,6 +1,0 @@
-The module DisplayView depends on ObjectTypes and vice-versa.
-To break this circularity, we create a DisplayView.hi-boot 
-file and an ObjectTypes.hi-boot file.  These files are themselves produced by 
-compiling the files ObjectTypes.boot.hs and DisplayTypes.boot.hs, and moving 
-the  resulting .hi files, or for ghc5.03 onwards, generating files in .hi-boot
-format from the .hi format using --show-iface.

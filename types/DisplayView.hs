@@ -92,7 +92,6 @@ data DisplayedObjectType objectType object graph node nodeType arcType =
       nodeTypes' :: FiniteMap NodeType (nodeType (Link object)),
       getNodeType' :: object -> NodeType,
       getNodeLinks' :: Link object -> IO ArcEnds,
-      closeDown' :: IO (),
       specialNodeActions' :: object 
          -> SimpleSource (graph -> node (Link object) -> IO ())
       }
@@ -205,7 +204,6 @@ addNewObjectTypeInner
                      arcTypes' = arcTypes',
                      getNodeType' = getNodeType nodeDisplayData,
                      getNodeLinks' = getNodeLinks nodeDisplayData,
-                     closeDown' = closeDown nodeDisplayData,
                      specialNodeActions' = specialNodeActions nodeDisplayData
                      }
 
@@ -354,7 +352,6 @@ displayView
                         :: FiniteMap NodeType (nodeType (Link object))),
                      getNodeType' = getNodeType',
                      getNodeLinks' = getNodeLinks',
-                     closeDown' = closeDown',
                      specialNodeActions' = specialNodeActions'
                      } :: DisplayedObjectType objectType object 
                         graph node nodeType arcType) = displayedObjectType

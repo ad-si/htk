@@ -15,8 +15,6 @@
 -- is passed a type parameter.
 --    
 -- Both objectTypes and objects must be instances of HasCodedValue.
--- 
--- See the file RECURSION
 module ObjectTypes(
    ObjectType(..), 
       -- the class giving ALL the methods (thank heaven for functional
@@ -174,63 +172,63 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
    => ObjectType objectType object
       | objectType -> object, object -> objectType where
    objectTypeTypeIdPrim :: objectType -> String
-      -- This function should not look at its argument but return a
+      -- ^ This function should not look at its argument but return a
       -- unique identifier for this objectType, which is totally unique
       -- across everything.  
       -- To preserve uniqueness, the string should begin with the
       -- module name where the instance is defined.  If there is further 
       -- information, the module name should be followed by a period.  So
-      -- for a module named "A", "A" and "A.B" are legal values for this
-      -- string, but not "AB" or "C".
+      -- for a module named \"A\", \"A\" and \"A.B\" are legal values for this
+      -- string, but not \"AB\" or \"C\".
 
    objectTypeIdPrim :: objectType -> GlobalKey
-      -- Returns the unique identifier for this objectType in this
+      -- ^ Returns the unique identifier for this objectType in this
       -- version.  NB - this may be changed from version to version
-      -- unlike objectTypeTypeIdPrim
+      -- unlike 'objectTypeTypeIdPrim'
    objectTypeGlobalRegistry :: objectType -> GlobalRegistry objectType
-      -- Returns a global registry associated with all objectTypes with
+      -- ^ Returns a global registry associated with all objectTypes with
       -- this Haskell value.  This function should not look at its argument.
       -- The keys in this registry should be indexed according to
-      -- objectTypeIdPrim
+      -- 'objectTypeIdPrim'
    extraObjectTypes :: IO [objectType]
-      -- Extract any extra object types not listed in the global registry.
+      -- ^ Extract any extra object types not listed in the global registry.
    getObjectTypePrim :: object -> objectType
-      -- Extracts the type of an object.
+      -- ^ Extracts the type of an object.
 
    createObjectTypeMenuItemPrim :: objectType -> Maybe (String,View -> IO ())
-      -- This is a menu item (label + creation function) which creates a new
+      -- ^ This is a menu item (label + creation function) which creates a new
       -- object type and inserts it in the global registry.  We do not
       -- look at the argument.
 
       -- This is what the outside actually calls, but the implementation may
-      -- instead choose to provide createObjectTypeMenuItemNoInsert.
+      -- instead choose to provide 'createObjectTypeMenuItemNoInsert'.
 
    createObjectTypeMenuItemNoInsert :: 
         Maybe (String,View -> IO (Maybe objectType))
-      -- This is a menu item (label + creation function) which creates a new
+      -- ^ This is a menu item (label + creation function) which creates a new
       -- object type but does NOT insert it in the global registry.
       --      
 
    createObjectMenuItemPrim :: objectType 
       -> Maybe (String,View -> LinkedObject -> IO Bool)
-      -- This is a menu item (label + creation function) which creates
+      -- ^ This is a menu item (label + creation function) which creates
       -- a link to an object of this type in the supplied linked object, and 
       -- inserts it in the folder, returning True if successful.
 
    toLinkedObjectOpt :: object -> Maybe LinkManager.LinkedObject
-      -- Extract the object's LinkedObject, if any.
+      -- ^ Extract the object's 'LinkedObject', if any.
 
    nodeTitlePrim :: object -> String
-      -- Returns a title for the object.
-      -- Either this function or nodeTitleSourcePrim should be defined.
+      -- ^ Returns a title for the object.
+      -- Either this function or 'nodeTitleSourcePrim' should be defined.
 
    nodeTitleSourcePrim :: object -> SimpleSource String
-      -- Returns a title, which may change.
+      -- ^ Returns a title, which may change.
 
    fixedLinksPrim :: View -> objectType -> IO [Link object]
-      -- Returns set of links which must be absolutely fixed for this object
+      -- ^ Returns set of links which must be absolutely fixed for this object
       -- type during merging.  The merging process starts from these links
-      -- and then uses getMergeLinks to derive other links which need to be
+      -- and then uses 'getMergeLinks' to derive other links which need to be
       -- identified.
       --
       -- The length of the list should be independent of the view.  Indeed it
@@ -247,21 +245,22 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
          arc arcType arcTypeParms)
       -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms 
             objectType object))
-      -- Get everything we need to display objects of this type.
+      -- ^ Get everything we need to display objects of this type.
       -- This will be called for each existing object type
       -- when we start a new display.
  
       -- Nothing means that this object is not displayed at all in the
       -- display.  The implementation is also responsible for making sure
-      -- it never occurs on the RHS of a getNodeLinks.
+      -- it never occurs on the RHS of a 'getNodeLinks'.
 
-      -- NB.  Although this is an IO action, the display code assumes that
+      -- NB.  Although this is an 'IO' action, the display code assumes that
       -- the result is a constant; once you've returned a value for a
-      -- particular WrappedDisplayType, it's fixed.
+      -- particular 'WrappedDisplayType', it's fixed.
 
-      -- The IO DisplayedView action returns the DisplayedView in which
+      -- The 'IO' 'DisplayedView action' returns the DisplayedView in which
       -- this node is being displayed.  However it should not be executed
-      -- to produce the NodeDisplayData or we will get deadlock; it should only
+      -- to produce the 'NodeDisplayData' or we will get deadlock; 
+      -- it should only
       -- be executed as part of the actions attached to nodes and edges, when
       -- it will return quickly (provided the displayed view has actually been
       -- set up.
@@ -276,8 +275,7 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
          arc arcType arcTypeParms)
       -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms 
             objectType object))
-      -- 
-      -- Slightly generalised version of getNodeDisplayData which also
+      -- ^ Slightly generalised version of getNodeDisplayData which also
       -- takes the enclosing graph (to be used as a display sort for
       -- opening new graphs).
 
@@ -369,9 +367,9 @@ unpackWrappedLinkWE (WrappedLink link) =
 toWrappedMergeLink :: WrappedLink -> WrappedMergeLink
 toWrappedMergeLink (WrappedLink link) = WrappedMergeLink link
 
--- This conversion requires an extra WrappedLink.  We use the type of its
+-- | This conversion requires an extra 'WrappedLink'.  We use the type of its
 -- its contents to work out what type the new WrappedLink should contain.
--- Of course that will be the same type as is inside the WrappedMergeLink,
+-- Of course that will be the same type as is inside the 'WrappedMergeLink',
 -- but we have no way of getting at that, or deducing ObjectTypes for it.
 fromWrappedMergeLink :: WrappedLink -> WrappedMergeLink -> WrappedLink
 fromWrappedMergeLink (WrappedLink (_ :: Link object)) (WrappedMergeLink link0)
@@ -437,40 +435,44 @@ instance HasKey (WrappedLink,ArcType) Location where
 data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
    NodeDisplayData {
       topLinks :: [Link object],
-         -- topLinks displays the links to start display on
-
-      -- For the time being, we assume that arc and node types are
-      -- constant.
-      -- Note that ArcType, NodeType and Arc all have local scope to
-      -- this NodeDisplayData.
+         -- ^ topLinks displays the links to start display on
 
       arcTypes :: [(ArcType,arcTypeParms ())],
+         -- ^ the 'ArcType's used by this particular object type
+         -- and the associated parameters.
+       
       nodeTypes :: [(NodeType,nodeTypeParms (Link object))],
+         -- ^ the 'NodeType's used by this particular object type
+         -- and the associated parameters.
 
-      -- getNodeType retrieves the node type for a particular node.
       getNodeType :: object -> NodeType,
+         -- ^ retrieves the node type for a particular node.
 
-      -- getNodeLinks returns the arcs from this node.
       getNodeLinks :: Link object -> IO ArcEnds,
-
-      closeDown :: IO (),
-         -- This tells the display implementation it is OK to stop
-         -- updating the variable set (though it may choose to do so
-         -- anyway, if other people are interested).
+         -- ^ the arcs out of this node.
 
       specialNodeActions :: object -> 
          SimpleSource (graph -> node (Link object) -> IO ())
-         -- The specialNodeActions allow the object to make dynamic
+         -- ^ allow the object to make dynamic
          -- modifications to graph nodes representing it.
-         -- The module SpecialNodeActions can be used to generate this type.
+         -- The module "SpecialNodeActions" can be used to generate this type.
+         --
+         -- NB.  This is not really a frightfully good way of getting the
+         -- objects to make dynamic changes to the way they are represented,
+         -- since you have to keep track of the last change if objects are
+         -- deleted and then redisplayed.  A better way is to attach a 
+         -- 'FontStyleSource' (or appropriate source for whatever the changing
+         -- appearance is) to the node.
       }
 
 type ArcEnds = VariableList.VariableList (
    LinkDrawer.ArcData WrappedLink ArcType)
 
+-- | Used for 'getNodeLinks' with no outarcs.
 emptyArcEnds :: ArcEnds
 emptyArcEnds = VariableList.emptyVariableList
 
+-- | Used for empty 'specialNodeActions' 
 emptySpecialNodeActions :: HasCodedValue object => object 
    -> SimpleSource (graph -> node (Link object) -> IO ())
 emptySpecialNodeActions _ = SimpleSource (staticSource (\ graph node -> done))
@@ -506,18 +508,21 @@ registerObjectType objectType =
 -- Processing wrapped links and wrapped versioned objects.
 -- ----------------------------------------------------------------
 
+-- | Fetch a 'WrappedLink'
 wrapFetchLink :: View -> WrappedLink -> IO WrappedVersioned
 wrapFetchLink view (WrappedLink link) =
    do
       versioned <- fetchLink view link
       return (WrappedVersioned versioned)
 
+-- | Read a 'WrappedVersioned'
 wrapReadObject :: View -> WrappedVersioned -> IO WrappedObject
 wrapReadObject view (WrappedVersioned versioned) =
    do
       object <- readObject view versioned
       return (WrappedObject object)
 
+-- | Read a 'WrappedLink'
 wrapReadLink :: View -> WrappedLink -> IO WrappedObject
 wrapReadLink view wrappedLink =
    do
@@ -525,6 +530,7 @@ wrapReadLink view wrappedLink =
       wrapReadObject view versioned 
 
 
+-- | Get on with fetching the given 'WrappedLink's concurrently.
 wrapPreFetchLinks :: View -> [WrappedLink] -> IO ()
 wrapPreFetchLinks view wrappedLinks =
    mapMConcurrent_
@@ -558,6 +564,7 @@ instance ObjectType objectType object
          return (ShortObjectType objectType)
       )
 
+-- | Retrieve an 'ObjectType' by its key.
 getObjectTypeByKey 
    :: ObjectType objectType object => View -> GlobalKey -> IO objectType
 getObjectTypeByKey view key =
@@ -572,6 +579,7 @@ getObjectTypeByKey view key =
                )
 
 
+-- | Retrieve an 'ObjectType' by its key.
 getObjectTypeByKeyOpt
    :: ObjectType objectType object => View -> GlobalKey 
    -> IO (Maybe objectType)
@@ -668,6 +676,7 @@ exportOneObjectType objectType view =
 -- Extract all object type-types.
 -- -----------------------------------------------------------------
 
+-- | Extract all object type-types.
 getAllObjectTypeTypes :: IO [WrappedObjectTypeTypeData]
 getAllObjectTypeTypes = 
    do
@@ -678,6 +687,7 @@ getAllObjectTypeTypes =
 -- Extract all ObjectTypes in a view (used for doing displays)
 -- -----------------------------------------------------------------
 
+-- | Extract all ObjectTypes in a view (used for doing displays)
 getAllObjectTypes :: View -> IO [WrappedObjectType]
 getAllObjectTypes view =
    do
@@ -747,12 +757,14 @@ instance HasBinary WrappedObjectType CodingMonad where
 -- Similarly, we make WrappedLink an instance of HasCodedValue
 -- -----------------------------------------------------------------
 
--- | The only important thing about the value returned by toObjectType is 
--- its types; the value itself are undefined.
+-- | Getting from an object link to the corresponding object type.
+-- The value of the argument is not important.
 toObjectType :: ObjectType objectType object => Link object -> objectType
 toObjectType link = error "toObjectType"
 
--- | toLinkType is similar in the other direction.
+
+-- | Getting from an object type to the corresponding object link.
+-- The value of the argument is not important.
 toLinkType :: ObjectType objectType object => objectType -> Link object
 toLinkType objectType = error "toLinkType"
 

@@ -409,7 +409,6 @@ instance ObjectType FolderType Folder where
                            folder <- readLink view link
                            toArcEnds (openContents folder) blockID
                         ),
-                     closeDown = done,
                      specialNodeActions = 
                         (\ object ->
                            fmap
