@@ -3,8 +3,11 @@
 module MMiSSExportLaTeX(
    exportMMiSSObjectLaTeX,
    exportMMiSSObjectXML,
+   pathRef
    ) where
 
+import System.IO.Unsafe(unsafePerformIO)
+import ReferenceVariables
 import Computation
 import ExtendedPrelude
 import WBFiles
@@ -40,12 +43,8 @@ exportMMiSSObjectGeneral format view link =
          do
             object <- readLink view link
 
-            top <- getTOP
-            let
-               fullName = unbreakName [top,"mmiss","test","files"]
-
 	    dialogEvent <- newFileDialog 
-               ("Export "++show format++" sources") fullName
+               ("Export "++show format++" sources") pathRef
 
             filePathOpt <- sync dialogEvent
 	    
@@ -73,3 +72,12 @@ exportMMiSSObjectGeneral format view link =
       case result of
          Right () -> done
          Left mess -> errorMess mess
+
+-- The reference in which to keep the path name in between calls of the file
+-- dialog. Shared with MMiSSPackageFolder.
+pathRef :: Ref String
+pathRef = 
+  unsafePerformIO $ do top <- getTOP 
+	  	       let fullName = unbreakName [top,"mmiss","test","files"] 
+		       newRef fullName
+{-# NOINLINE pathRef #-}

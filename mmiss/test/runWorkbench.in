@@ -71,16 +71,16 @@ UNITOP=${UNITOP:-@TOP@}
 if [ -f ${UNIWORKINGDIR}/wb.pid ]; then
   OTHERPID=`cat $UNIWORKINGDIR/wb.pid` 
   echo "Another client is running with the same working directory $UNIWORKINGDIR. 
-Exit the ither client, use kill $OTHERPID, or if there is no such process,
+Exit the other client, use kill $OTHERPID, or if there is no such process,
 delete the file ${UNIWORKINGDIR}/wb.pid and restart.
 "
   exit 0
 else
   echo $$ > ${UNIWORKINGDIR}/wb.pid
 fi
-  rm -rf ${UNIWORKINGDIR}/\#
+  command rm -rf ${UNIWORKINGDIR}/\#
 
 # Run the workbench.
 ./MMiSSWorkbench --uni-debug=w.debug
 
-rm  $UNIWORKINGDIR/wb.pid
+command rm  $UNIWORKINGDIR/wb.pid

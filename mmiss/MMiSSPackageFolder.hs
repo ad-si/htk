@@ -122,6 +122,7 @@ import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
+import MMiSSExportLaTeX(pathRef)
 
 import {-# SOURCE #-} MMiSSObjectTypeInstance
 import {-# SOURCE #-} MMiSSBundleWrite
@@ -773,10 +774,7 @@ findData filePathOpt0 =
          Just _ -> return filePathOpt0
          Nothing ->
             do
-               top <- getTOP 
-               let
-                  fullName = unbreakName [top,"mmiss","test","files"]
-               dialogEvent <- fileDialog "Import Sources" fullName
+               dialogEvent <- fileDialog "Import Sources" pathRef
                sync dialogEvent
       case filePathOpt of
          Nothing -> return Nothing
