@@ -84,6 +84,7 @@ module GraphConfigure(
    defaultAllowClose,
 
    Orientation(..),
+   ActionWrapper(..),
 
    -- ($$$?) is used for Maybe (option), where Nothing means
    -- "No change".
@@ -440,6 +441,13 @@ data Orientation = TopDown | BottomUp | LeftRight | RightLeft
 
 instance GraphConfig Orientation
 
+-- | Function to be applied to all user actions.  This is useful
+-- for exception wrappers and so on.
+newtype ActionWrapper = ActionWrapper (IO () -> IO ())
+
+
+instance GraphConfig ActionWrapper
+
 ------------------------------------------------------------------------
 -- Grouping options
 -- GraphAllConfig
@@ -451,6 +459,7 @@ class (
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
    HasConfig AllowClose graphParms,HasConfig Orientation graphParms,
+   HasConfig ActionWrapper graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )
@@ -462,6 +471,7 @@ instance (
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
    HasConfig AllowClose graphParms,HasConfig Orientation graphParms,
+   HasConfig ActionWrapper graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )

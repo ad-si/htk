@@ -127,6 +127,7 @@ data DaVinciGraphParms = DaVinciGraphParms {
    configDoImprove :: Bool,
    configAllowClose :: AllowClose,
    configGlobalMenu :: Maybe GlobalMenu,
+   configActionWrapper :: IO () -> IO (),
    graphTitleSource :: Maybe (SimpleSource GraphTitle),
    delayerOpt :: Maybe Delayer,
    configOrientation :: Maybe GraphConfigure.Orientation
@@ -201,6 +202,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          configDoImprove = configDoImprove,surveyView = surveyView,
          configAllowClose = configAllowClose,
          configGlobalMenu = configGlobalMenu,
+         configActionWrapper = configActionWrapper,
          configOrientation = configOrientation,
          graphTitleSource = graphTitleSource,delayerOpt = delayerOpt}) =
       do
@@ -220,16 +222,20 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             -- We now come to write the handler function for
             -- the context.  This is quite complex so we handle the
             -- various cases one by one, in separate functions.
+
+            handler :: DaVinciAnswer -> IO ()
+            handler daVinciAnswer 
+               = configActionWrapper (handler1 daVinciAnswer)
             --
             -- The handler needs to depend on the context, so that it
             -- can handle Close and Print events appropriately.
-            handler :: DaVinciAnswer -> IO ()
+            handler1 :: DaVinciAnswer -> IO ()
             -- In general, the rule is that if we don't find
             -- a handler function, we do nothing.  We do, however,
             -- assume that where a menuId is quoted, there is
             -- an associated handler.  If not, this is (probably)
             -- a bug in daVinci.
-            handler daVinciAnswer = case daVinciAnswer of
+            handler1 daVinciAnswer = case daVinciAnswer of
                NodeSelectionsLabels nodes -> actNodeSelections nodes
                NodeDoubleClick -> nodeDoubleClick
                EdgeSelectionLabel edge -> actEdgeSelections edge
@@ -453,6 +459,11 @@ instance GraphParms DaVinciGraphParms where
       graphConfigs = [],configDoImprove = False,surveyView = False,
       graphTitleSource = Nothing,delayerOpt = Nothing,
       configAllowClose = defaultAllowClose,
+      configActionWrapper = (\ act -> 
+         do
+            forkIODebug act
+            done
+         ),
       configOrientation = Nothing,
       configGlobalMenu = Nothing
       }
@@ -499,6 +510,11 @@ instance HasConfig Orientation DaVinciGraphParms where
    configUsed _ _  = True
    ($$) orientation daVinciGraphParms =
       daVinciGraphParms {configOrientation = Just orientation}
+
+instance HasConfig ActionWrapper DaVinciGraphParms where
+   configUsed _ _ = True
+   ($$) (ActionWrapper wrapper) daVinciGraphParms =
+      daVinciGraphParms {configActionWrapper = wrapper}
 
 instance HasConfig AllowDragging DaVinciGraphParms where
    configUsed _ _  = True

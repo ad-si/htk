@@ -125,7 +125,9 @@ module SimpleDB(
    catchAccessError,
       -- :: IO a -> IO (Maybe a)
       -- Catch any Access errors and report them to the user.
-
+   displayErrors,
+      -- :: IO () -> IO ()
+      -- Display any server errors that occur.
 
    ) where
 
@@ -503,6 +505,25 @@ catchAccessError (act :: IO a) =
          Right a -> return (Just a)
          Left mess ->
             do
-               errorMess ("Access Denied: " ++ mess)
+               errorMess (show AccessError ++ ": " ++ mess)
                return Nothing
-    
+
+-- | Catch and display any errors
+displayErrors :: IO () -> IO ()
+displayErrors act =
+   do
+      messOpt <- catchError
+         (do
+            () <- act
+            return Nothing
+            )
+         (\ errorType mess ->
+            let
+               message = show errorType ++ ": " ++ mess
+            in
+               Just message
+            )
+      case messOpt of
+         Nothing -> done
+         Just mess -> errorMess mess 
+               

@@ -11,6 +11,8 @@ module SecurityManagement(
    verifyGlobalGetPermissionsAccess,
    ) where
 
+import Maybe
+
 import Data.FiniteMap
 
 import Computation(done)
@@ -107,26 +109,24 @@ verifyAccess0 :: SimpleDB -> GroupFile -> String -> ObjectVersion
    -> Maybe Location -> Activity -> IO Bool
 verifyAccess0 simpleDB groupFile userId0 objectVersion locationOpt activity =
    do
-      let
-         examinePermissions0 = examinePermissions (versionState simpleDB)
-            groupFile userId0 objectVersion activity 
-
-      permissions0 <- getGlobalPermissions simpleDB
-      result1 <- examinePermissions0 permissions0
-      if result1
-         then
-            case locationOpt of
-               Nothing -> return True
-               Just location ->
-                  do
-                     versionData <- getVersionData simpleDB objectVersion
-                     verifyAccess1 simpleDB groupFile userId0 objectVersion 
-                        versionData location activity
-         else
-            return False 
+      allowedOpt <- case locationOpt of
+         Nothing -> return Nothing
+         Just location ->
+            do
+               versionData <- getVersionData simpleDB objectVersion
+               verifyAccess1 simpleDB groupFile userId0 objectVersion 
+                  versionData location activity
+      case allowedOpt of
+         Just allowed -> return allowed
+         Nothing ->
+            do
+               permissions0 <- getGlobalPermissions simpleDB
+               result1 <- examinePermissions (versionState simpleDB)
+                  groupFile userId0 objectVersion activity permissions0
+               return (fromMaybe True result1)
 
 verifyAccess1 :: SimpleDB -> GroupFile -> String -> ObjectVersion 
-   -> VersionData -> Location -> Activity -> IO Bool
+   -> VersionData -> Location -> Activity -> IO (Maybe Bool)
 verifyAccess1 simpleDB groupFile userId0 version versionData location1 
       activity =
    do
@@ -134,17 +134,16 @@ verifyAccess1 simpleDB groupFile userId0 version versionData location1
          plocation1 = retrievePrimitiveLocation versionData location1
 
       permissions <- getPermissions1 simpleDB plocation1
-      allowed <- examinePermissions (versionState simpleDB)
+      allowedOpt <- examinePermissions (versionState simpleDB)
          groupFile userId0 version activity permissions
-      if allowed
-         then
+      case allowedOpt of
+         Just _ -> return allowedOpt
+         Nothing ->
             case lookupFM (parentsMap versionData) location1 of
-               Nothing -> return True
+               Nothing -> return Nothing
                Just location2 ->   
                   verifyAccess1 simpleDB groupFile userId0 version versionData
                      location2 activity
-         else
-            return False
 
 verifyGlobalAccess :: User -> Permissions -> Activity -> IO ()
 verifyGlobalAccess user permissions activity =
@@ -175,8 +174,9 @@ verifyGlobalMultiAccess1 groupFile user permissions activities =
       (activity:activities1) ->
          do
             let
-               granted = examineGlobalPermissions groupFile
+               grantedOpt = examineGlobalPermissions groupFile
                   (PasswordFile.userId user) activity permissions
+               granted = fromMaybe True grantedOpt
             if granted
                then
                   done

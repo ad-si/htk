@@ -13,11 +13,11 @@ import VersionInfo
 import {-# SOURCE #-} VersionState
 
 examinePermissions :: VersionState -> GroupFile -> String
-   -> ObjectVersion -> Activity -> Permissions -> IO Bool
+   -> ObjectVersion -> Activity -> Permissions -> IO (Maybe Bool)
 examinePermissions versionState groupFile userId version activity 
       permissions0 =
    case permissions0 of
-      [] -> return True
+      [] -> return Nothing
       (permission : permissions1) ->
          do
             resultOpt <- examinePermission versionState groupFile userId 
@@ -25,7 +25,7 @@ examinePermissions versionState groupFile userId version activity
             case resultOpt of
                Nothing -> examinePermissions versionState groupFile 
                   userId version activity permissions1
-               Just result -> return result
+               Just _ -> return resultOpt
 
 examinePermission :: VersionState -> GroupFile -> String 
    -> ObjectVersion -> Activity -> Permission -> IO (Maybe Bool)
@@ -72,8 +72,8 @@ examinePermission versionState groupFile userId version activity
             return Nothing
 
 examineGlobalPermissions :: GroupFile -> String -> Activity -> Permissions 
-   -> Bool
-examineGlobalPermissions _ _ _ [] = True
+   -> Maybe Bool
+examineGlobalPermissions _ _ _ [] = Nothing
 examineGlobalPermissions groupFile userId activity (permission:permissions) =
    let
       activityIsIn = elem activity (activities permission)
@@ -85,6 +85,6 @@ examineGlobalPermissions groupFile userId activity (permission:permissions) =
    in
       if activityIsIn && userIsIn
          then
-            grant permission
+            Just (grant permission)
          else
             examineGlobalPermissions groupFile userId activity permissions

@@ -21,7 +21,23 @@ data ErrorType =
    |  InternalError
    |  MiscError 
    |  ClientError -- ^ an error thrown on the client side.
-   deriving (Enum,Show)
+   deriving (Enum)
+
+-- ------------------------------------------------------------------
+-- Show instance
+-- ------------------------------------------------------------------
+
+instance Show ErrorType where
+   showsPrec n et acc = 
+      let
+         st = case et of
+            AccessError -> "Access"
+            NotFoundError -> "Not Found"
+            InternalError -> "Server Internal"
+            MiscError -> "Server"
+            ClientError -> "Client"
+      in
+         st ++ " Error" ++ acc
 
 -- ------------------------------------------------------------------
 -- HasBinary instance

@@ -392,11 +392,7 @@ groupOrUserParser =
 
 -- | User or group-id parser
 nameParser :: Parser String
-nameParser =
-   do
-      firstLetter <- satisfy isAlpha
-      rest <- many (satisfy isAlphaNum)
-      return (firstLetter:rest)
+nameParser = many1 (satisfy isAlphaNum)
 
 -- | Allow trailing spaces
 trailingSpaces :: Parser ()

@@ -474,7 +474,7 @@ answerDispatcher (daVinci@DaVinci{
       forward daVinciAnswer context =
          do
             handler <- readIORef (handlerIORef context)
-            forkIODebug (handler daVinciAnswer)
+            handler daVinciAnswer
             case destroysContext daVinciAnswer of
                Yes -> 
                   do

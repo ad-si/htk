@@ -50,6 +50,7 @@ import Data.IORef
 
 import Dynamics
 import Computation
+import Thread(forkIODebug)
 import Sources
 import Broadcaster
 import VariableSet
@@ -71,6 +72,7 @@ import FolderStructure(getName)
 import Imports
 
 import ViewType(getViewTitleSource,importsState,delayer)
+import VersionDB(displayErrors)
 import View
 import CodedValue
 import Link
@@ -118,6 +120,11 @@ instance DisplayType FolderDisplayType where
          return (
             (toDelayer view) $$
             globalMenu $$
+            ActionWrapper (\ act ->
+               do
+                  forkIODebug (displayErrors act)
+                  done
+               ) $$
             AllowDragging True $$
             LeftRight $$            
             graphTitleSource $$

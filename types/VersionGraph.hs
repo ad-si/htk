@@ -162,11 +162,18 @@ newVersionGraph1
             (GlobalMenu (Menu Nothing [
                Button "Merge" doMerge,
                Button "Copy Versions To ..." copyVersions1,
-               Button "Select Versions to View" (setNewFilter graphClient),
-               Button "View or Edit Global Permissions" (
-                  editGlobalPermissions repository),
-               Button "Toggle Admin Status" (toggleAdminStatus adminStatus)
+               Button "Select Versions to View" 
+                  (setNewFilter graphClient),
+               Button "View or Edit Global Permissions"
+                  (editGlobalPermissions repository),
+               Button "Toggle Admin Status" 
+                  (toggleAdminStatus adminStatus)
                ])) $$
+            (ActionWrapper (\ act ->
+               do
+                  forkIODebug (displayErrors act)
+                  done
+               )) $$
             (if isInternal
                then
                   AllowClose (
