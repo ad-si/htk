@@ -80,6 +80,7 @@ module ExtendedPrelude (
    errorOurExceps, -- :: IO a -> IO a
    ourExcepToMess, -- :: Exception -> Maybe String
    breakOtherExceps, -- :: BreakFn -> IO a -> IO a
+   showException2, -- :: Exception -> String
 
    EqIO(..),OrdIO(..),
 
@@ -595,6 +596,10 @@ ourExcepToMess excep = case dynExceptions excep of
          Just fallOut -> Just ("Fall-out exception " 
             ++ show (fallOutId fallOut) ++ ": " ++ mess fallOut)
          Nothing -> Just ("Mysterious dynamic exception " ++ show dyn)
+
+showException2 :: Exception -> String
+showException2 exception = 
+   fromMaybe (show exception) (ourExcepToMess exception)
 
 catchOurExceps :: IO a -> IO (Either String a) 
 catchOurExceps act =

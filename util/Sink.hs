@@ -321,7 +321,8 @@ newParallelExec =
                act <- readChan chan
                result <- try act
                case result of
-                  Left excep -> putStrLn ("Exception detected: " ++ show excep)
+                  Left excep -> putStrLn ("Exception detected: " 
+                     ++ showException2 excep)
                   Right () -> done
                releaseLocal parallelExecVSem
 

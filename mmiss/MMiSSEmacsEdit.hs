@@ -23,6 +23,7 @@ import AtomString(toString,fromString,fromStringWE)
 import ReferenceCount
 import Sources
 import Messages
+import Broadcaster(broadcast)
 
 import Lock
 
@@ -35,7 +36,6 @@ import ViewType
 import Link
 import EntityNames
 import LinkManager
-import SpecialNodeActions
 import AttributesType
 
 import EmacsContent
@@ -469,7 +469,7 @@ addEdit object =
       addRef (editCount object)
       -- We always set the border.  Of course if it's already been done, that's
       -- harmless
-      setBorder (nodeActions object) DoubleBorder
+      broadcast (isEditedBroadcaster object) True
 
 remEdit :: MMiSSObject -> IO ()
 remEdit object =
@@ -477,7 +477,7 @@ remEdit object =
       doUnset <- remRef (editCount object)
       if doUnset
          then
-            setBorder (nodeActions object) GraphConfigure.def
+            broadcast (isEditedBroadcaster object) False
          else
             done
       

@@ -120,8 +120,7 @@ mkIncludeElement (Elem name atts contents) =
               ("include" ++ toIncludeStr includeChar) 
               [
                   ("included",AttValue [Left labelString]),
-                  ("status",AttValue [Left "present"]),
-                  ("priority",AttValue [Left "1"])
+                  ("status",AttValue [Left "present"])
                   ]
               []
             )
@@ -372,14 +371,20 @@ getPriority (Elem _ attributes _)
 
 getPriorityAttributes :: [Attribute] -> String
 getPriorityAttributes attributes
-   = fromMaybe "0" (getAttribute attributes "priority")
+   = fromMaybe "1" (getAttribute attributes "priority")
+
+setPriorityAttributes' :: [Attribute] -> String -> [Attribute]
+setPriorityAttributes' attributes priority =
+   case priority of
+      "1" -> delAttribute attributes "priority"
+      _ -> setAttribute attributes "priority" priority
 
 setPriority :: Element -> String -> Element
 setPriority elem priority =
-   setAtt "priority" elem priority
+   case priority of 
+      "1"  -> delAtt "priority" elem
+      _ -> setAtt "priority" elem priority
 
-setPriorityAttributes' attributes priority =
-   ("priority",AttValue [Left priority]) : attributes
 
 -- ----------------------------------------------------------------------
 -- Variant Attributes

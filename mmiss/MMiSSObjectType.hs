@@ -40,6 +40,7 @@ import Dynamics
 import AtomString (toString,fromString,fromStringWE)
 import ReferenceCount
 import Messages
+import Broadcaster
 
 import BSem
 
@@ -60,7 +61,6 @@ import CodedValue
 import LinkDrawer
 import LinkManager
 import EntityNames
-import SpecialNodeActions
 
 import MMiSSDTDAssumptions
 import MMiSSVariant
@@ -88,18 +88,17 @@ import {-# SOURCE #-} MMiSSPackageFolder
 data MMiSSObject = MMiSSObject {
    mmissObjectType :: MMiSSObjectType,
    linkedObject :: LinkedObject,
-   nodeActions :: NodeActionSource,
-      -- Special actions for the node, which is passed to the node display
-      -- functions.
    extraNodes :: Blocker (ArcData WrappedLink ArcType),
       -- Nodes which connect to this one but are not normally shown
       -- (Preamble, security manager and so on).
       -- (currently defunct)
    variantObject :: VariantObject Variable Cache,
-   editCount :: RefCount
+   editCount :: RefCount,
       -- This counts the number of times variants of this objects
       -- are being edited, which we need for knowing whether to display it
       -- with a double border or not.
+   isEditedBroadcaster :: SimpleBroadcaster Bool
+      -- This is Bool if the object is being edited.
    }
 
 ---
@@ -159,17 +158,17 @@ createMMiSSObject mmissObjectType linkedObject variantObject =
       (extraNodes :: Blocker (ArcData WrappedLink ArcType))
          <- newBlocker emptyVariableSetSource
 
-      nodeActions <- newNodeActionSource
       editCount <- newRefCount
+      isEditedBroadcaster <- newSimpleBroadcaster False
 
       let
          mmissObject = MMiSSObject {
             mmissObjectType = mmissObjectType,
             linkedObject = linkedObject,
-            nodeActions = nodeActions,
             extraNodes = extraNodes,
             variantObject = variantObject,
-            editCount = editCount
+            editCount = editCount,
+            isEditedBroadcaster = isEditedBroadcaster
             }
 
       return mmissObject

@@ -169,10 +169,32 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      ] 
 
                   menu = LocalMenu (Menu Nothing editOptions)
+
+                  borderSourceFn link =
+                     do
+                        object <- readLink view link
+                        let
+                           isEditedSource :: SimpleSource Bool
+                           isEditedSource = toSimpleSource (
+                              isEditedBroadcaster object)
+
+                           borderSource :: SimpleSource Border
+                           borderSource = fmap
+                              (\ isEdited -> 
+                                 if isEdited 
+                                    then
+                                       DoubleBorder
+                                    else
+                                       SingleBorder
+                                 )
+                              isEditedSource
+                        return borderSource
+
                in
                   menu $$$
                   valueTitleSource view $$$
                   fontStyleSource view $$$
+                  (BorderSource borderSourceFn) $$
                   nodeTypeParms
 
             getNodeLinks link =
@@ -300,9 +322,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   getNodeType = (\ object -> theNodeType),
                   getNodeLinks = getNodeLinks,
                   closeDown = done,
-                  specialNodeActions= (\ object
-                     -> getNodeActions (nodeActions object)
-                     )
+                  specialNodeActions= emptySpecialNodeActions
                   })
             )
 

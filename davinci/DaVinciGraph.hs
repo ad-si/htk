@@ -528,6 +528,8 @@ data DaVinciNodeType value = DaVinciNodeType {
       -- how to compute the displayed name of the node
    fontStyle :: Maybe (value -> IO (SimpleSource FontStyle)),
       -- how to compute the font style of the node
+   border :: Maybe (value -> IO (SimpleSource Border)),
+      -- how to compute the border of the node
    nodeMenuActions :: Registry MenuId (value -> IO ()),
    nodeDoubleClickAction :: value -> IO (),
    createNodeAndEdgeAction :: value -> IO (),
@@ -542,6 +544,7 @@ data DaVinciNodeTypeParms value =
       nodeAttributes :: Attributes value,
       configNodeText :: value -> IO (SimpleSource String),
       configFontStyle :: Maybe (value -> IO (SimpleSource FontStyle)),
+      configBorder :: Maybe (value -> IO (SimpleSource Border)),
       configNodeDoubleClickAction :: value -> IO (),
       configCreateNodeAndEdgeAction :: value -> IO (),
       configCreateEdgeAction :: Dyn -> value -> IO ()
@@ -558,7 +561,7 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
          (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
          (nodeType @ DaVinciNodeType {
             nodeType = daVinciNodeType,nodeText = nodeText,
-            fontStyle = fontStyle})
+            fontStyle = fontStyle,border = border})
          (value :: value) =
       do
          thisNodeTextSource <- nodeText value
@@ -568,6 +571,13 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
                do
                   fontStyleSource <- getFontStyleSource value
                   return (Just fontStyleSource)
+
+         borderSourceOpt <- case border of
+            Nothing -> return Nothing
+            Just getBorderSource -> 
+               do
+                  borderSource <- getBorderSource value
+                  return (Just borderSource)
 
          nodeId <- newNodeId context
          let
@@ -589,9 +599,18 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
                                (setFontStyle daVinciGraph daVinciNode)
                             return (fontStyleAttribute thisFontStyle 
                                : attributes1)
+               attributes3 <-
+                  case borderSourceOpt of
+                     Nothing -> return attributes2
+                     Just borderSource ->
+                        do
+                            thisBorder <- addNewAction borderSource
+                               (setBorder daVinciGraph daVinciNode)
+                            return (borderAttribute thisBorder 
+                               : attributes2)
 
                addNodeUpdate daVinciGraph (
-                  NewNode nodeId daVinciNodeType attributes2)
+                  NewNode nodeId daVinciNodeType attributes3)
             )
          return daVinciNode
 
@@ -707,6 +726,7 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
             nodeAttributes = nodeAttributes,
             configNodeText = configNodeText,
             configFontStyle = configFontStyle,
+            configBorder = configBorder,
             configNodeDoubleClickAction = configNodeDoubleClickAction,
             configCreateNodeAndEdgeAction 
                = configCreateNodeAndEdgeAction,
@@ -721,6 +741,7 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
          let
             nodeText = configNodeText
             fontStyle = configFontStyle
+            border = configBorder
             nodeDoubleClickAction = configNodeDoubleClickAction
             createNodeAndEdgeAction = configCreateNodeAndEdgeAction
             createEdgeAction = configCreateEdgeAction
@@ -728,6 +749,7 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
             nodeType = nodeType,
             nodeText = nodeText,
             fontStyle = fontStyle,
+            border = border,
             nodeMenuActions = nodeMenuActions,
             nodeDoubleClickAction = nodeDoubleClickAction,
             createNodeAndEdgeAction = createNodeAndEdgeAction,
@@ -739,6 +761,7 @@ instance NodeTypeParms DaVinciNodeTypeParms where
       nodeAttributes = emptyAttributes,
       configNodeText = const (return (staticSimpleSource "")),
       configFontStyle = Nothing,
+      configBorder = Nothing,
       configNodeDoubleClickAction = const done,
       configCreateNodeAndEdgeAction = const done,
       configCreateEdgeAction = const (const done)
@@ -749,6 +772,7 @@ instance NodeTypeParms DaVinciNodeTypeParms where
          nodeAttributes = nodeAttributes,
          configNodeText = configNodeText,
          configFontStyle = configFontStyle,
+         configBorder = configBorder,
          configNodeDoubleClickAction = configNodeDoubleClickAction,
          configCreateNodeAndEdgeAction = configCreateNodeAndEdgeAction,
          configCreateEdgeAction = configCreateEdgeAction
@@ -757,6 +781,7 @@ instance NodeTypeParms DaVinciNodeTypeParms where
          nodeAttributes = coMapAttributes coMapFn nodeAttributes,
          configNodeText = configNodeText . coMapFn,
          configFontStyle = (fmap (. coMapFn) configFontStyle),
+         configBorder = (fmap (. coMapFn) configBorder),
          configNodeDoubleClickAction = configNodeDoubleClickAction . coMapFn,
          configCreateNodeAndEdgeAction = 
             configCreateNodeAndEdgeAction . coMapFn,
@@ -794,6 +819,11 @@ instance HasConfigValue FontStyleSource DaVinciNodeTypeParms where
    configUsed' _ _ = True
    ($$$) (FontStyleSource fontStyleSource) parms = 
       parms { configFontStyle = Just fontStyleSource }
+
+instance HasConfigValue BorderSource DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (BorderSource borderSource) parms = 
+      parms { configBorder = Just borderSource }
 
 instance HasConfigValue Shape DaVinciNodeTypeParms where
    configUsed' _ _ = True
@@ -860,15 +890,6 @@ instance HasModifyValue Attribute DaVinciGraph DaVinciNode where
 instance HasModifyValue (String,String) DaVinciGraph DaVinciNode where
    modify (key,value) = modify (A key value)
 
-instance HasModifyValue Border DaVinciGraph DaVinciNode where
-   modify border =
-      let
-         borderStr = case border of
-            NoBorder -> "none"
-            SingleBorder -> "single"
-            DoubleBorder -> "double"
-      in
-         modify ("BORDER",borderStr)
 
 ------------------------------------------------------------------------
 -- Node type configs for drag and drop
@@ -1475,6 +1496,30 @@ fontStyleAttribute fontStyle =
          BoldItalicFontStyle -> "bold_italic"
    in
       A "FONTSTYLE" fontStyleStr
+
+-- | This function similarly changes the border.
+setBorder :: Typeable value => DaVinciGraph -> DaVinciNode value 
+   -> Border -> IO Bool
+setBorder daVinciGraph (daVinciNode@(DaVinciNode nodeId)) border =
+   do
+      flushPendingChanges daVinciGraph
+      nodeDataOpt <- getValueOpt (nodes daVinciGraph) nodeId
+      case nodeDataOpt of
+         Nothing -> return False
+         Just (nodeData :: NodeData) ->
+            do
+               modify (borderAttribute border) daVinciGraph daVinciNode
+               return True
+
+borderAttribute :: Border -> Attribute
+borderAttribute border =
+   let
+      borderStr = case border of
+         NoBorder -> "none"
+         SingleBorder -> "single"
+         DoubleBorder -> "double"
+   in
+      A "BORDER" borderStr
 
 -- -----------------------------------------------------------------------
 -- Miscellaneous functions
