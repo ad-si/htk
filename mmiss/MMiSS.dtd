@@ -1,8 +1,8 @@
 <!-- 
   XML Document Type Definition for MMiSSLatex 2
-  Version 0.9 
+  Version 0.91
   Initial Version: George Russell (2002-June)
-  Current Version: Achim Mahnke   (2002-08-26)
+  Current Version: Achim Mahnke   (2002-09-02)
 
   This DTD is still experimental, it is intended as a basis for discussion.
   Comments are welcome! (send mail to amahnke@tzi.de)
@@ -73,7 +73,7 @@
   ***********************************************************************
  -->
 
-<!ENTITY % structuralElement "include | link">
+<!ENTITY % structuralElement "includeTextFragment | link">
 
 <!ENTITY % semanticElement "define | reference">
 
@@ -82,9 +82,9 @@
 <!ENTITY % text         "(#PCDATA | %embeddedElement;)*">
 
 
-<!ELEMENT include EMPTY>
-<!ATTLIST include included    CDATA #REQUIRED
-                  status  (present | absent) "absent">
+<!ELEMENT includeTextFragment EMPTY>
+<!ATTLIST includeTextFragment included    CDATA #REQUIRED
+                              status  (present | absent) "absent">
 
 <!ELEMENT link (#PCDATA)>
 <!ATTLIST link linked    CDATA #REQUIRED
@@ -110,19 +110,21 @@
 
 <!-- Views are not defined yet. -->
 
-<!ENTITY % group  "package | section | paragraph | view">
+<!ENTITY % group  "package | section | paragraph | view | includeGroup">
 
-<!ENTITY % conceptualAtom  "textFragment | table | figure | glossaryEntry | bibentry">
+<!ENTITY % conceptualAtom  "textFragment | table | figure | glossaryEntry
+                           | bibentry">
 
 <!ENTITY % formalAtom  "programFragment | clause | step">
 
-<!ENTITY % atom  "%conceptualAtom; | %formalAtom;">
+<!ENTITY % atom  "%conceptualAtom; | %formalAtom; | includeAtom">
 
 <!ENTITY % conceptualUnit  "example | exercise | definition">
 
-<!ENTITY % formalUnit  "program | theory | theorem | development | proof | script">
+<!ENTITY % formalUnit  "program | theory | theorem | development | proof 
+                      | script">
 
-<!ENTITY % unit   "%conceptualUnit; | %formalUnit; | list | %atom;">
+<!ENTITY % unit   "%conceptualUnit; | %formalUnit; | list | %atom; | includeUnit">
 
 
 <!ELEMENT package (section)+>
@@ -294,6 +296,28 @@
                %title-matter;
                %formalism-matter;
                %attributes;>
+
+
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Elements for Inclusion                                           **
+  **                                                                   **
+  ***********************************************************************
+ -->
+
+<!ELEMENT includeGroup EMPTY>
+<!ATTLIST includeGroup included    CDATA #REQUIRED
+                       status  (present | absent) "absent">
+
+<!ELEMENT includeUnit EMPTY>
+<!ATTLIST includeUnit included    CDATA #REQUIRED
+                      status  (present | absent) "absent">
+
+<!ELEMENT includeAtom EMPTY>
+<!ATTLIST includeAtom included    CDATA #REQUIRED
+                      status  (present | absent) "absent">
+
 
 
 
