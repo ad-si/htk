@@ -13,6 +13,7 @@ module ReferenceVariables(
   newRef,    -- :: a -> IO (Ref a)
   setRef,    -- :: Ref a -> a -> IO ()
   changeRef, -- :: Ref a -> (a -> a) -> IO ()
+  changeRefM, -- :: Ref a-> (a-> IO a) -> IO () 
   withRef,   -- :: Ref a -> (a -> b) -> IO b
 --  updRef,
   getRef     -- :: Ref a -> IO a
@@ -48,6 +49,15 @@ changeRef (Ref mtx mvar) fn =
   do ioref <- takeMVar mvar
      val <- readIORef ioref
      writeIORef ioref (fn val)
+     putMVar mvar ioref
+
+changeRefM :: Ref a -> (a -> IO a) -> IO ()
+changeRefM (Ref mtx mvar) act =
+  synchronize mtx $
+  do ioref <- takeMVar mvar
+     val <- readIORef ioref
+     val' <- act val
+     writeIORef ioref val'
      putMVar mvar ioref
 
 withRef :: Ref a -> (a -> b) -> IO b
