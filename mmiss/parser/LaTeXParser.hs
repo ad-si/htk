@@ -9,15 +9,14 @@ module LaTeXParser (
       --    [(MMiSSLatexPreamble,PackageId)]))
    makeMMiSSLatexContent,
       -- :: Element -> Bool 
-      -- -> (MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+      -- -> [(MMiSSLatexPreamble,PackageId)]
       -- -> WithError (EmacsContent ((String,Char),[Attribute])) 
       -- needed for Emacs
    writeMMiSSLatex, 
       -- :: FileSystem -> Element -> Bool
-      -- -> [(MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+      -- -> [(MMiSSLatexPreamble,PackageId)]
       -- -> IO (WithError ()) -- needed for export
    mergePreambles, -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
-
 
    mkLaTeXString, 
       -- :: EmacsContent ((String,Char),[Attribute]) -> String
@@ -126,20 +125,20 @@ parseMMiSSLatex fileSystem filePath =
                               Just preamble -> [(preamble,packageId)]
                         return (hasValue ((el,packageId),preambleList))
                          
-makeMMiSSLatexContent :: Element -> Bool ->
-   [(MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+makeMMiSSLatexContent :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)]
    -> WithError (EmacsContent ((String,Char),[Attribute]))
 makeMMiSSLatexContent el b preambleInfos0 =
    let
       preambleInfos1 = map
-         (\ (preamble,packageId,datas) -> (preamble,datas))
+         (\ (preamble,packageId) 
+            -> (preamble,error "No preamble data supplied"))
          preambleInfos0
    in
       makeMMiSSLatex1 (el,b,preambleInfos1)
 
 
 writeMMiSSLatex :: FileSystem -> Element -> Bool ->
-   [(MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+   [(MMiSSLatexPreamble,PackageId)]
    -> IO (WithError ())
 writeMMiSSLatex fileSystem (el @ (Elem _ atts _)) b preambleInfos0 =
    do
