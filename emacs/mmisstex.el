@@ -186,14 +186,7 @@ Any other reply is used exactly as entered."
 
     (insert "\n\\begin{" 
             environment-string 
-            "}"
-            ;"[ ]"                              ;only if you want a full generic format
-            "\n"
-             ;"% LabelID, Title:\n { }"         ;only if you want a full generic format
-            "{ }\n"
-            ;"% Attribute:\n"                   ;only if you want a full generic format
-            ;"{ }\n"                            ;only if you want a full generic format
-            "\n\\end{" 
+            "}\n\n\\end{" 
             environment-string 
             "}\n")
     )

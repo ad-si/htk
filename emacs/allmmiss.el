@@ -41,6 +41,7 @@
 ; black or dark colours are bad as it makes the text impossible or hard to
 ;   read.
 ; these colours should be co-ordinated with those in mmiss/MMiSS.dtd.
+; these keys should be documented.
 (setq MMiSS-colours 
    (list
       (cons ?G  "orange")
