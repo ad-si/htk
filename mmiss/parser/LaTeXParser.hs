@@ -1,6 +1,5 @@
 module LaTeXParser (
    -- new interface.  For now, just a make-weight bolted on top of the old one.
-   FileSystem(..),
    PackageId(..),
 
    parseMMiSSLatex, 
@@ -86,11 +85,6 @@ import QuickReadShow
 -- types
 newtype PackageId = PackageId {packageIdStr :: String} deriving (Eq,Ord)
 
-data FileSystem = FileSystem {
-   readString :: FilePath -> IO (WithError String),
-   writeString :: String -> FilePath -> IO (WithError ())
-   } 
-
 -- Functions
 parseMMiSSLatex :: FileSystem -> FilePath 
    -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
@@ -103,24 +97,28 @@ parseMMiSSLatex fileSystem filePath =
             do let result = parseFrags str
                case result of
 		  Left err -> return (hasError (show err))
-		  Right fs  ->  
-		    do 
-                       aList <- mapM (expandInputs fileSystem filePath) fs  -- IO [WithError([Frag])]
-                       parsedWE <- return(listWithError aList) -- WithError [[Frag]]   
-		       case fromWithError parsedWE of
-			 Left err -> return (fail err)
-			 Right newFrags  -> 
-			   let xmlWE = makeXML (Env "Root" (LParams [] [] Nothing Nothing) (concat newFrags))
-			   in case fromWithError xmlWE of
-			     Left err -> return (fail err)
-			     Right (el @ (Elem _ atts _),preambleOpt) ->
-				do
-				   let
-				      packageId = PackageId (getParam "packageId" atts)
-				      preambleList = case preambleOpt of
-					 Nothing -> []
-					 Just preamble -> [(preamble,packageId)]
-				   return (hasValue (el,preambleList))
+		  Right fs  ->
+                    do preEl <- extractPreamble fileSystem filePath fs  
+		       case fromWithError preEl of
+			 Left err -> return(hasError(err))
+			 Right (preambleOpt, rootFrag) -> 
+			   do 
+			     aList <- mapM (expandInputs fileSystem filePath) [rootFrag]  -- IO [WithError([Frag])]
+			     parsedWE <- return(listWithError aList) -- WithError [[Frag]]   
+			     case fromWithError parsedWE of
+			       Left err -> return (fail err)
+			       Right newFrags  -> 
+				 let xmlWE = makeXML (head (concat newFrags))
+				 in case fromWithError xmlWE of
+				   Left err -> return (fail err)
+				   Right (el @ (Elem _ atts _)) ->
+				      do
+					 let
+					    packageId = PackageId (getParam "packageId" atts)
+					    preambleList = case preambleOpt of
+					       Nothing -> []
+					       Just preamble -> [(preamble,packageId)]
+					 return (hasValue (el,preambleList))
 
   where 
     -- expandInputs guckt noch nicht rekursiv in aufgelöste inputs rein
@@ -204,23 +202,9 @@ mkLaTeXString (EmacsContent dataItems) =
             "\\Include"
             ++ toIncludeStr ch
             ++ "{" ++ included ++ "}"
-            ++ toLaTeXAttributes (attributes ++ [statusAttribute])
+            ++ getAttribs  (attributes ++ [statusAttribute]) "" []
          )     
       dataItems
-
-toLaTeXAttributes :: [Attribute] -> String
-toLaTeXAttributes [] = ""
-toLaTeXAttributes attributes =
-   "{"
-   ++ unsplitByChar ',' (map
-      (\ (name,attValue) ->
-         case attValue of
-            AttValue [Left value] -> name ++ "=" ++ value
-         )
-      attributes   
-      )
-   ++
-   "}"
 
 statusAttribute :: Attribute
 statusAttribute = ("status",AttValue [Left "present"])
@@ -254,34 +238,31 @@ parseImportCommands s =
 --}
 
 
-makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble)
-makeXML frag = 
-  case fromWithError (extractPreamble [frag]) of
-    Left err -> hasError(err)
-    Right (preEl, rootFrag) -> 
-      case rootFrag of
-        (Env "package" ps@(LParams _ atts _ _) fs) -> 
-           case fromWithError (makeContent fs NoText "package") of 
-             Left(err) -> hasError(err)
-             Right contentList ->
-               let atts1 = map convertAttrib atts
-               in addFileAttributes (CElem (Elem "package" atts1 contentList)) preEl
-        
-        (Env name ps@(LParams _ atts _ _) fs) -> 
-           case fromWithError (makeContent [(Env name ps fs)] (detectTextMode name) "Root") of
-             (Left str) -> hasError(str)
-             (Right cs) -> 
-               if ((genericLength cs) == 0) 
-                 then hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
-                 else case (head cs) of
-			(CElem e) -> addFileAttributes (CElem e) preEl
-			_ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")                          
-        otherwise -> hasError("Error in function makeXML: Topmost fragment is no environment.")
+makeXML :: Frag -> WithError (Element)
+makeXML rootFrag = 
+   case rootFrag of
+     (Env "package" ps@(LParams _ atts _ _) fs) -> 
+	case fromWithError (makeContent fs NoText "package") of 
+	  Left(err) -> hasError(err)
+	  Right contentList ->
+	    let atts1 = map convertAttrib atts
+	    in addFileAttributes (CElem (Elem "package" atts1 contentList))
+
+     (Env name ps@(LParams _ atts _ _) fs) -> 
+	case fromWithError (makeContent [(Env name ps fs)] (detectTextMode name) "Root") of
+	  (Left str) -> hasError(str)
+	  (Right cs) -> 
+	    if ((genericLength cs) == 0) 
+	      then hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
+	      else case (head cs) of
+		     (CElem e) -> addFileAttributes (CElem e)
+		     _ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")                          
+     otherwise -> hasError("Error in function makeXML: Topmost fragment is no environment.")
   where 
-    addFileAttributes contentItem preamble =
+    addFileAttributes contentItem =
       let clist = (foldXml insertFileAttributes) contentItem
       in case (last clist) of
-           (CElem e) -> hasValue(e, preamble)
+           (CElem e) -> hasValue(e)
            otherwise -> hasError("Internal Error in function 'makeXML': XML filter delivered a non-element content.") 
 
 
@@ -903,20 +884,6 @@ detectTextMode name = if (name `elem` (map fst (envsWithText ++ mmissPlainTextAt
                         then TextAllowed
                         else NoText
 
-{--
--- getPathAttrib bekommt die in der Preamble aufgesammelten Fragmente und sucht darin
--- das \Import-Kommando, mit dem der Searchpath für importierte Elemente angebenen wird:
-
-getPathAttrib :: [Frag] -> Attributes
-
-getPathAttrib ((Command "Import" ps):fs) = 
-  case ps of
-    (LParams ((SingleParam ((Other str):[]) _):sps) _ _ _) -> [("path", str)]
-    otherwise -> []
-getPathAttrib (f:fs) = getPathAttrib fs
-getPathAttrib [] = []
---}
-
 
 makeAttribs :: Params -> String -> [Attribute]
 
@@ -1011,6 +978,7 @@ getEmphasisText (LParams ((SingleParam ((Other s):[]) _):ps) _ _ _) = s
 
 convertAttrib :: (String, String) -> Attribute
 convertAttrib (l, r) = ((attNameToXML l), AttValue [Left (latexToUnicode r)])
+
 
 getAttribs :: [Attribute] -> String -> [String] -> String
 getAttribs [] str _ = if ((take 1 str) == ",") 

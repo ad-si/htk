@@ -2,10 +2,11 @@ module LaTeXPreamble (
 
    MMiSSLatexPreamble,
    MMiSSExtraPreambleData(..),
+   FileSystem(..),
    emptyMMiSSLatexPreamble,
    emptyLaTeXPreamble, 
    parsePreamble,
-   extractPreamble,  -- :: [Frag] -> WithError(Maybe MMiSSLatexPreamble, Frag)
+   extractPreamble,  -- :: FileSystem -> FilePath -> [Frag] -> WithError(Maybe MMiSSLatexPreamble, Frag)
    mergePreambles,   -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
 
    importCommands, -- :: MMiSSLatexPreamble -> Maybe ImportCommands
@@ -18,13 +19,20 @@ import List
 import Computation hiding (try)
 import Dynamics
 import AtomString
+import BinaryAll(Choice5(..))
 
 import LaTeXParserCore
 import Parsec
 import ParsecError
 import EntityNames
 import CodedValue
+import FileNames
 
+
+data FileSystem = FileSystem {
+   readString :: FilePath -> IO (WithError String),
+   writeString :: String -> FilePath -> IO (WithError ())
+   } 
 
 type PackageName = String
 type Options = [String]
@@ -41,10 +49,21 @@ data MMiSSLatexPreamble = MMiSSLatexPreamble {
 
 emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, importCommands = Nothing}
 
-data LaTeXPreamble = Preamble DocumentClass [Package] String 
-   deriving (Show,Typeable)
+data LaTeXPreamble = Preamble DocumentClass [Package] LaTeXPreambleCmds
+   deriving (Typeable)
 
-emptyLaTeXPreamble = Preamble (Package [] "mmiss" "") [] ""
+type LaTeXPreambleCmds = [LaTeXPreambleCmd]
+
+data LaTeXPreambleCmd = Cmd String |  FileRef FilePath CommandString ContentString ContentType
+data ContentType = Ontology | Latex deriving (Eq, Show, Read)
+
+type ContentString = String
+type CommandString = String
+
+preambleIncludeCmds = ["input", "include", "mmissinclude"]
+
+
+emptyLaTeXPreamble = Preamble (Package [] "mmiss" "") [] []
 
 newtype MMiSSExtraPreambleData = MMiSSExtraPreambleData {
    callSite :: Maybe EntitySearchName
@@ -62,16 +81,29 @@ endInputPragma = "%% End of MMiSSLaTeX input preamble"
 
 specialTreatmentInPreamble = ["documentclass", "usepackage", "Path", "Import"]
 
+{--
+  latexPreambleCmdsEq evaluates whether two lists of PreambleCommands are identical.
+  It has to consider that preambles are equal even when there are blank lines missing in
+  one of them.
+  Dummy implementation for the moment: Allways returns False.
+--}
+
+latexPreambleCmdsEq :: LaTeXPreambleCmds -> LaTeXPreambleCmds -> Bool
+latexPreambleCmdsEq _ _ = False
+
 
 mergePreambles :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String])
-mergePreambles [preamble] = (preamble,[])
-mergePreambles (preamble:_) = (preamble,[
-   "All preambles but the first thrown away; complain to Achim!!!"])
-mergePreambles [] = (emptyMMiSSLatexPreamble,[])
+mergePreambles preambleList = 
+  let mergedPre = unionPreambles preambleList
+  in case mergedPre of
+       Nothing -> if (preambleList == []) 
+                    then (emptyMMiSSLatexPreamble, ["Internal error in function 'mergePreambles': No preambles to merge!"])
+                    else (emptyMMiSSLatexPreamble, ["Internal error in function 'mergePreambles'"])
+       Just(p) -> (p,[])
 
 
-extractPreamble :: [Frag] -> WithError(Maybe MMiSSLatexPreamble, Frag)
-extractPreamble fs = findFirstEnv fs [] True  
+extractPreamble :: FileSystem -> FilePath -> [Frag] -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
+extractPreamble fileSys filePath frags = findFirstEnv fileSys filePath frags [] True  
 
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch, extrahiert die Preamble
@@ -91,56 +123,57 @@ extractPreamble fs = findFirstEnv fs [] True
     das ohne Praeambel ausgecheckt wurde.
 --}
 
-findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Maybe MMiSSLatexPreamble, Frag)
+findFirstEnv :: FileSystem -> FilePath -> [Frag] -> [Frag] -> Bool -> IO (WithError (Maybe MMiSSLatexPreamble, Frag))
 
-findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
-findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
-findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument = 
-  let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
-      latexPre = makePreamble (filterGeneratedPreambleParts newPreambleFs)
-      importCmds = makeImportCmds newPreambleFs []
-  in case fromWithError latexPre of
-	Left str -> hasError(str)
+findFirstEnv fsys fpath ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fsys fpath fs preambleFs True
+findFirstEnv fsys fpath ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fsys fpath fs preambleFs False
+findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument = 
+  do
+    (newPreambleFs, atts1) <- return(addPropertiesFrag preambleFs packAtts)
+    latexPre <- makePreamble fsys fpath (filterGeneratedPreambleParts newPreambleFs)
+    importCmds <- return (makeImportCmds newPreambleFs [])
+    case fromWithError latexPre of
+	Left str -> return(hasError(str))
 	Right(lp) -> 
 	  case lp of 
 	     Just(p) -> 
 	       case fromWithError(importCmds) of
-		 Right(impCmds) -> hasValue (Just(MMiSSLatexPreamble {
-						   latexPreamble = p,
-						   importCommands = impCmds
-						  }),
-                                             (Env "Package" ps fs))
-		 Left str -> hasError(str)
+		 Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
+						           latexPreamble = p,
+						           importCommands = impCmds
+						         }),
+                                                   (Env "Package" ps fs)))
+		 Left str -> return (hasError(str))
 	     Nothing -> 
 	       case fromWithError(importCmds) of
 		 Right(_) -> 
-		   hasError ("Insufficient preamble: Only found import commands.")
-		 Left(err) -> hasError("Insufficient preamble: Only found import commands.\n" ++ err)
+		   return(hasError ("Insufficient preamble: Only found import commands."))
+		 Left(err) -> return (hasError("Insufficient preamble: Only found import commands.\n" ++ err))
 
-findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
+findFirstEnv fsys fpath ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (mmissPlainTextAtoms ++ envsWithText ++ envsWithoutText))) 
-    then hasValue(Nothing, (Env name ps fs))
+    then return (hasValue(Nothing, (Env name ps fs)))
     else if (name `elem` (map fst mmiss2EnvIds)) 
            -- Env must be a link or Reference-Element: ignore it
-           then findFirstEnv rest preambleFs beforeDocument
+           then findFirstEnv fsys fpath rest preambleFs beforeDocument
            -- Env ist plain LaTeX:
            else if (not beforeDocument)
 	          -- Env is in document-Env but is not MMiSSLatex: pull out content and search there as well.
                   -- Throws away this env:
-                  then findFirstEnv (fs ++ rest) preambleFs False
+                  then findFirstEnv fsys fpath (fs ++ rest) preambleFs False
                   -- We are before document env and it is no MMiSSLatex: add to preamble-Fragments
-                  else findFirstEnv rest (preambleFs ++ [(Env name ps fs)]) True
+                  else findFirstEnv fsys fpath rest (preambleFs ++ [(Env name ps fs)]) True
 
 -- Frag is no Environment: Must be Command, Other or Escaped Char.
 -- We are before \begin{document}, so add to preamble: 
-findFirstEnv (f:fs) preambleFs True = findFirstEnv fs (preambleFs ++ [f]) True
+findFirstEnv fsys fpath (f:fs) preambleFs True = findFirstEnv fsys fpath fs (preambleFs ++ [f]) True
 
 -- We are in the document but before the package env. or some other env. We decided to pull the Fragments
 -- found here out to the Preamble. So they will be listed before the \begin{document} once the user
 -- checks out the MMiSSLaTeX document:
-findFirstEnv (f:fs) preambleFs False = findFirstEnv fs (preambleFs ++ [f]) False
+findFirstEnv fsys fpath (f:fs) preambleFs False = findFirstEnv fsys fpath fs (preambleFs ++ [f]) False
 
-findFirstEnv [] _ _  = hasError("No root environment ('package' or some other env.) found!")           
+findFirstEnv _ _ [] _ _  = return(hasError("No root environment ('package' or some other env.) found!"))
 
 
 
@@ -153,17 +186,17 @@ findFirstEnv [] _ _  = hasError("No root environment ('package' or some other en
 -- auftauchen, da diese gesondert behandelt werden. Diese Kommandos werden auch nicht in den 
 -- 'rest'-String übernommen.
 
-makePreamble :: [Frag] -> WithError (Maybe LaTeXPreamble)
-makePreamble [] = hasValue(Nothing)
-makePreamble (f:fs) =
+makePreamble :: FileSystem -> FilePath -> [Frag] -> IO (WithError (Maybe LaTeXPreamble))
+makePreamble fsys fpath [] = return(hasValue(Nothing))
+makePreamble fsys fpath (f:fs) =
   case f of
     (Command "documentclass" ps) ->
-      let packages = makePrePackages fs []
-          rest = makePreRest fs ""
-          documentClass = makePrePackage f
-      in hasValue(Just(Preamble documentClass packages rest))
-    (Command _ _) -> hasError("LaTeX-Preamble must begin with \\documentclass!")
-    _ -> makePreamble fs
+      do packages <- return (makePrePackages fs [])
+         rest <- makePreRest fsys fpath fs []
+         documentClass <- return (makePrePackage f)
+         return(hasValue(Just(Preamble documentClass packages rest)))
+    (Command _ _) -> return(hasError("LaTeX-Preamble must begin with \\documentclass!"))
+    _ -> makePreamble fsys fpath fs
 
 
 makePrePackages :: [Frag] -> [Package] -> [Package]
@@ -185,24 +218,70 @@ makePrePackage (Command name (LParams _ atts _ _)) =
   in Package options packageName versiondate
 makePrePackage _ = Package [] "" ""
 
-makePreRest :: [Frag] -> String -> String
-makePreRest [] inStr = inStr
-makePreRest (f:[]) inStr =
+makePreRest :: FileSystem -> FilePath -> [Frag] -> LaTeXPreambleCmds -> IO(LaTeXPreambleCmds)
+makePreRest _ _ [] inList = return inList
+makePreRest fsys fpath (f:fs) inList =
   case f of
-    (Command name _) ->
+    (Command name ps) ->
        if (name `elem` specialTreatmentInPreamble) 
-         then inStr
-         else inStr ++ (makeTextElem [f] "")
-    _ -> inStr
+         then makePreRest fsys fpath fs inList
+         else if (name `elem` preambleIncludeCmds) 
+                then do preambleCmd <- expandIncludes fsys fpath name ps
+                        makePreRest fsys fpath fs (inList ++ [preambleCmd])
+                else makePreRest fsys fpath fs (inList ++ [(Cmd (makeTextElem [f] ""))]) 
+    otherwise -> makePreRest fsys fpath fs (inList ++ [(Cmd (makeTextElem [f] ""))]) 
 
+  where 
+    expandIncludes fsys fpath name lp@(LParams sps _ _ _) =
+      case name of
+        "input" -> 
+           do let fstr = singleParamToString(head sps)
+                  filename = delete '{' (delete '}' fstr)          
+                  cmdStr = makeTextElem [(Command name lp)] ""
+              strWE <- readString fsys (createInputPath fpath filename)
+	      case fromWithError strWE of 
+		Left err -> return(Cmd cmdStr)
+		Right str -> return(FileRef fpath str cmdStr Latex)
+        "include" -> 
+           do let fstr = singleParamToString(head sps)
+                  filename = delete '{' (delete '}' fstr)     
+                  cmdStr = makeTextElem [(Command name lp)] ""     
+              strWE <- readString fsys (createInputPath fpath filename)
+	      case fromWithError strWE of 
+		Left err -> return(Cmd cmdStr)
+		Right str -> return(FileRef fpath str cmdStr Latex)
+        "mmissinclude" -> 
+           do let fstr = singleParamToString(head sps)
+                  filename = delete '{' (delete '}' fstr)    
+                  cmdStr = makeTextElem [(Command name lp)] ""      
+              if ((genericLength sps) == 2) 
+                then 
+                  do let typeStr = singleParamToString(head (drop 1 sps))
+                     if ((typeStr == "Ontology") || (typeStr == "ontology"))                
+                       then 
+                         do strWE <- readString fsys (createInputPath fpath filename)
+	                    case fromWithError strWE of 
+		              Left err -> return(Cmd cmdStr)
+		              Right str -> return(FileRef fpath str cmdStr Ontology)
+                       else return(Cmd cmdStr) 
+                else  return(Cmd cmdStr) 
+        otherwise -> return(Cmd (makeTextElem [(Command name lp)] ""))
+
+    createInputPath filePath filename = 
+      let (dir, _) = splitName filePath
+      in case splitExtension filename of
+           Nothing -> combineNames dir (filename ++ ".tex")
+           Just(name, ext) -> combineNames dir filename
+
+
+
+{--
 makePreRest (f1:(f2:fs)) inStr =
   case f1 of
      (Command name _) -> 
         if (name == "documentclass") || (name == "usepackage") 
           then case f2 of
-                 (Other str) -> if (length (filter (not . (`elem` "\n\t ")) str) == 0)
-                                  then makePreRest fs inStr
-                                  else makePreRest fs (inStr ++ str)
+                 makePreRest fs (inStr ++ str)
                  (EscapedChar c) -> makePreRest fs inStr
                  _ -> makePreRest (f2:fs) inStr
           else 
@@ -210,7 +289,7 @@ makePreRest (f1:(f2:fs)) inStr =
               then makePreRest (f2:fs) inStr
 	      else makePreRest (f2:fs) (inStr ++ (makeTextElem [f1] ""))
      _ -> makePreRest (f2:fs) (inStr ++ (makeTextElem [f1] ""))
-
+--}
 
 unionPreambles :: [MMiSSLatexPreamble] -> Maybe MMiSSLatexPreamble
 unionPreambles [] = Nothing
@@ -238,9 +317,19 @@ eqPackage (Package opt1 name1 version1) (Package opt2 name2 version2)  =
 {--
    parsePreamble is used as fromStringWE-method in the instanciation for
    MMiSSLatexPreamble as StringClass. 
+
+   ACHTUNG: Da sich parsePreamble auf makePreamble abstützt, das nur noch
+   mit Übergabe eines Filesystem und FilePath funktioniert, was wir hier nicht haben,
+   ist die Funktion erstmal stillgelegt worden und liefert nur noch die
+   leere Präambel zurück. Das muss noch gefixt werden. Entweder dadurch, dass
+   MMiSSLatexPreamble aus der StringClass rausgenommen wird, oder durch Ergänzung der
+   FileSys und FilePath-Parameter, falls das möglich ist.
 --}
 
 parsePreamble :: String -> WithError MMiSSLatexPreamble
+
+parsePreamble _ = hasValue(emptyMMiSSLatexPreamble)
+{--
 parsePreamble s = 
   let result = parseFrags s
   in
@@ -259,7 +348,7 @@ parsePreamble s =
                   Nothing -> hasError("Strange: makePreamble returns no error and no preamble.")
 	      Left err -> hasError(show err)
       Left err -> hasError (show err)
-
+--}
 
 {-- addPropertiesFrag bekommt die Fragmente der Präambel sowie die Attribute, die am Package-Env.
 definiert wurden übergeben und erzeugt daraus eine geänderte Liste von Präambel-Fragmenten.
@@ -469,10 +558,10 @@ directivesParser ds =
 
 makePreambleText :: MMiSSLatexPreamble -> String
 makePreambleText mmissPreamble = 
-  let (Preamble documentClass packages rest) = latexPreamble mmissPreamble
+  let (Preamble documentClass packages latexPreambleCmds) = latexPreamble mmissPreamble
       str1 = (makePackageText "documentclass" documentClass)
                ++ (concat (map (makePackageText "usepackage") packages)) 
-               ++ rest
+               ++ (concat (map makePreambleCmdText latexPreambleCmds)) 
       impCmds = importCommands mmissPreamble
       str2 = case impCmds of
                Just(cmds) -> makeImportsText cmds
@@ -549,6 +638,12 @@ isRename (Rename _ _) = True
 isRename _ = False
 
 
+makePreambleCmdText :: LaTeXPreambleCmd -> String
+makePreambleCmdText cmd =
+  case cmd of
+    (Cmd str) -> str
+    (FileRef _ cmdStr _ _) -> cmdStr
+
 {--
 unionAttributes :: [Attribute] -> [Attribute] -> [Attribute]
 unionAttributes xs ys = unionBy (eqAttPair) xs ys
@@ -589,18 +684,52 @@ instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
       (\ (latexPreamble,importCommands) ->
          (MMiSSLatexPreamble latexPreamble importCommands))
 
+{--
+data LaTeXPreambleCmds = Cmd String |  FileRef FilePath ContentString ContentType
+data ContentType = Ontology
+
+type ContentString = String
+--}
+
 instance Eq LaTeXPreamble where
+   (==) = mapEq 
+      (\ (Preamble documentClass packages preambleCmds) -> 
+         (documentClass,packages,preambleCmds))   
+{--
+instance Eq LaTeXPreambleCmds where
    (==) = mapEq 
       (\ (Preamble documentClass packages string) -> 
          (documentClass,packages,string))   
+--}
 
 instance Monad m => CodedValue.HasBinary LaTeXPreamble m where
    writeBin = mapWrite
-      (\ (Preamble documentClass packages string) -> 
-         (documentClass,packages,string))
+      (\ (Preamble documentClass packages latexPreambleCmds) -> 
+         (documentClass,packages,latexPreambleCmds))
    readBin = mapRead
       (\ (documentClass,packages,string) ->
          (Preamble documentClass packages string))
+
+
+type PackedLatexPreambleCmd = Choice5 String (FilePath,CommandString,ContentString,ContentType) () () ()
+
+toPackedLatexPreambleCmd :: LaTeXPreambleCmd -> PackedLatexPreambleCmd
+toPackedLatexPreambleCmd v = 
+  case v of
+    (Cmd str) -> Choice1 str
+    (FileRef fpath contentString cmdStr contentType) -> Choice2 (fpath,contentString,cmdStr,contentType)
+
+fromPackedLatexPreambleCmd :: PackedLatexPreambleCmd -> LaTeXPreambleCmd
+fromPackedLatexPreambleCmd v =
+  case v of
+    Choice1 str -> Cmd str
+    Choice2 (fpath,contentString,cmdStr,contentType) -> (FileRef fpath contentString cmdStr contentType)
+
+instance Monad m => CodedValue.HasBinary LaTeXPreambleCmd m where
+  writeBin = mapWrite toPackedLatexPreambleCmd 
+  readBin = mapRead fromPackedLatexPreambleCmd
+
+instance  Monad m => CodedValue.HasBinary ContentType m where
 
 
 -- ----------------------------------------------------------------------------------
@@ -616,4 +745,7 @@ instance Monad m => CodedValue.HasBinary Package m where
       (\ (Package options packageName versionData) -> (options,packageName,versionData))
    readBin = mapRead
       (\ (options,packageName,versionData) -> Package options packageName versionData)
+
+instance Eq LaTeXPreambleCmds where
+   (==) = latexPreambleCmdsEq
 
