@@ -87,6 +87,7 @@ SRCS       = \
 	 toolkit/PromptWin.hs\
 	 toolkit/LogWin.hs\
 	 toolkit/MatrixBox.hs\
+	 filebrowser/TreeListPath.hs\
       
 EXTRA_HC_OPTIONS += -Onot -H30M
 

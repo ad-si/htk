@@ -68,5 +68,4 @@ putRect cnv (col, pos) = do
 					 become iact (moving r x y iact))
 	          +> (mouseEvent r (ButtonRelease Nothing)
 		     >>> become iact (notmoving r iact)))
-
-
+		     

@@ -33,7 +33,7 @@ module Canvas (
 
         screenToCanvasCoord,
 
-        ScrollRegion(..),
+        ScrollRegion,
         scrollRegion,
         getScrollRegion,
 
