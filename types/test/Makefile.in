@@ -3,7 +3,7 @@ PACKAGES = uni-types uni-htk uni-davinci
 SRCS       = TestAttributeRepresentation.hs MainServer.hs MainWorkbench.hs \
    TestGetAttributesType.hs
 
-EXTRAEXPORTS = Server berkeley_db_svc Makefile.in
+EXTRAEXPORTS = Server Makefile.in
 
 include @TOP@/mk/boilerplate.mk
 
