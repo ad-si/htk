@@ -23,6 +23,9 @@ main =
             IO (Editor String)
     pack ed [Fill Both, Expand On]
 
+    Font str <- getFont ed
+    putStrLn ("Font: "++ str)
+    
     but <- newButton ed [text "This is an embedded button widget"]
              :: IO (Button String)
 
@@ -31,7 +34,7 @@ main =
       link str = flipcolour "#4756ff" "#4c90ff"
                    [rangeaction (Just (ed # cursor arrow >> done))
                                 (Just (ed # cursor xterm >> done))
-                      [flipunderline [prose str]]]
+                   [flipunderline [prose str]]]
 
       txt :: [MarkupText]
       txt =
@@ -72,6 +75,8 @@ main =
          action (putStrLn "action1")
            [link "This is an action, click here!"],
          newline,
+	 prose "This text is ", MarkupText.offset 10 [prose "raised"], 
+	 prose " and ", MarkupText.offset (-10) [prose "lowered."], prose ".",
          newline,
          clipup
            [link "This is a clipup"]

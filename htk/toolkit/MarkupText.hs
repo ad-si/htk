@@ -22,6 +22,7 @@ module MarkupText (
   MarkupText.underline,
   italics,
   spaces,
+  MarkupText.offset,
   colour,
   bgcolour,
   flipcolour,
@@ -192,6 +193,7 @@ data MarkupText =
   | MarkupNewline
   | MarkupBold [MarkupText]
   | MarkupItalics [MarkupText]
+  | MarkupOffset Int [MarkupText]
   | MarkupColour Colour [MarkupText]
   | MarkupBgColour Colour [MarkupText]
   | MarkupFlipColour Colour Colour [MarkupText]
@@ -240,6 +242,9 @@ underline = MarkupUnderline
 
 italics :: [MarkupText] -> MarkupText
 italics = MarkupItalics
+
+offset :: Int-> [MarkupText]-> MarkupText
+offset = MarkupOffset
 
 colour :: ColourDesignator c => c -> [MarkupText] -> MarkupText
 colour c = MarkupColour (toColour c)
@@ -716,6 +721,10 @@ parseMarkupText m f =
         MarkupColour c m' -> simpleProperty ms m' txt tags wins
                                (line, char) bold italics current_font
                                [fg c]
+
+        MarkupOffset i m' -> simpleProperty ms m' txt tags wins
+                               (line, char) bold italics current_font
+                               [TextTag.offset (Distance i)]
 
         MarkupBgColour c m' -> simpleProperty ms m' txt tags wins
                                  (line, char) bold italics current_font
