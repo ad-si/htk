@@ -152,13 +152,15 @@ leftItem notepad item =
 -- Creates a new notepad item and returns a handler.
 -- @param val     - the notepad item's value.
 -- @param notepad - the concerned notepad.
+-- @param updscrollregion - <code>True</code> if the notepad's
+--                        - scrollregion should be updated.
 -- @param cnf     - the list of configuration options for this notepad
 --                - item.
 -- @return result - A notepad item.
-createNotepadItem :: CItem c => c -> Notepad c ->
+createNotepadItem :: CItem c => c -> Notepad c -> Bool ->
                                 [Config (NotepadItem c)] ->
                                 IO (NotepadItem c)
-createNotepadItem val notepad cnf =
+createNotepadItem val notepad updscrollregion cnf =
   do
     pho <- getIcon val
     img <- createImageItem (canvas notepad) [coord [(-200, -200)],
@@ -186,7 +188,7 @@ createNotepadItem val notepad cnf =
     spawnEvent (forever ((entered >>>
                             (do st <- getIntState notepad
                                 (if st /= Mov then
-                                   do putStrLn "entered"
+                                   do
                                       last <- getRef (entered_item notepad)
                                       if not (isJust last)
                                         then do setRef (entered_item notepad)
@@ -204,7 +206,7 @@ createNotepadItem val notepad cnf =
                          (left >>>
                             (do st <- getIntState notepad
                                 (if st /= Mov then
-                                   do putStrLn "left"
+                                   do
                                       last <- getRef (entered_item notepad)
                                       setRef (entered_item notepad) Nothing
                                       if isJust last
@@ -213,6 +215,7 @@ createNotepadItem val notepad cnf =
                                  else done)))))
 
     addItemToState notepad item
+    if updscrollregion then updNotepadScrollRegion notepad else done
     return item
 
 ---
@@ -774,6 +777,43 @@ newNotepad par scrolltype imgsize mstate cnf =
                              destroy rect))
           in selectByRectangle' pos rect
 
+
+        checkPositions :: [NotepadItem a] -> IO (Distance, Distance)
+        checkPositions (item : items) =
+          do
+            let (Distance iwidth, Distance iheight) = it_img_size item
+            (Distance x, Distance y) <- getPosition item
+            (Distance dx, Distance dy) <- checkPositions items
+
+            (_, (Distance sizex, Distance sizey)) <-
+              getScrollRegion (canvas notepad)
+
+            let min_x = x - (max (div iwidth 2 + 30) 40)
+                min_y = y - (div iheight 2 + 1)
+
+                dx' = max dx (-min_x)
+                    {-if dx < 0 then min min_x dx
+                      else if dx == 0 then
+                             if min_x < 0 then min_x
+                             else if max_x > sizex then max_x - sizex
+                                  else 0
+                           else if dx > 0 then
+                                  max dx (max_x - sizex)
+                                else 0-}
+                dy' = max dy (-min_y)
+                    {-if dy < 0 then min min_y dy
+                      else if dy == 0 then
+                             if min_y < 0 then min_y
+                             else if max_y > sizey then max_y - sizey
+                                  else 0
+                           else if dy > 0 then
+                                  max dy (max_y - sizey)
+                                else 0-}
+
+            return (Distance dx', Distance dy')
+        checkPositions [] = return (Distance 0, Distance 0)
+
+{-
         checkPositions :: [NotepadItem a] -> IO (Distance, Distance)
         checkPositions (item : items) =
           do
@@ -786,31 +826,28 @@ newNotepad par scrolltype imgsize mstate cnf =
                 max_x = x + (max (div iwidth 2 + 30) 40)
                 min_y = y - (div iheight 2 + 1)
                 max_y = y + (div iheight 2 + 18)
+
                 dx' = if dx < 0 then min min_x dx
                       else if dx == 0 then
                              if min_x < 0 then min_x
-                             else if min_x < 0 then min_x
-                                  else if max_x > sizex then max_x - sizex
-                                       else 0
+                             else if max_x > sizex then max_x - sizex
+                                  else 0
                            else if dx > 0 then
                                   max dx (max_x - sizex)
                                 else 0
                 dy' = if dy < 0 then min min_y dy
                       else if dy == 0 then
                              if min_y < 0 then min_y
-                             else if min_y < 0 then min_y
-                                  else if max_y > sizey then max_y - sizey
-                                       else 0
+                             else if max_y > sizey then max_y - sizey
+                                  else 0
                            else if dy > 0 then
                                   max dy (max_y - sizey)
                                 else 0
+
             return (Distance dx', Distance dy')
         checkPositions [] = return (Distance 0, Distance 0)
+-}
 
-
-
-
--- -----------------------------------------------------------------------
         grid_x :: Int
         grid_x = 10
         grid_y :: Int
@@ -919,8 +956,6 @@ newNotepad par scrolltype imgsize mstate cnf =
              mapM addNotepadItem nonselecteditems
              getRef fmref
 
---        moveSelectedItems :: FiniteMap (Int, Int) [NotepadItem a] ->
---                             Position -> Position -> CanvasTag -> Event ()
         moveSelectedItems it_map rpos@(rootx, rooty) (x0, y0) t =
              (do
                 (x, y) <- clickmotion >>>= getCoords
@@ -958,56 +993,9 @@ newNotepad par scrolltype imgsize mstate cnf =
                                      getRef selecteditemsref
                                    (dx, dy) <-
                                      checkPositions selecteditems
-                                   moveItem t (-dx) (-dy)))
-
-
-{-
-        moveSelectedItems :: Position -> Position -> CanvasTag ->
-                             Event ()
-        moveSelectedItems rpos@(rootx, rooty) (x0, y0) t =
-             (do
-                (x, y) <- clickmotion >>>= getCoords
-                always (do
-                          (dx, dy) <- getD
-                          checkDropZones notepad (x + dx) (y + dy)
-                          setRef (undo_last_motion notepad)
-                                 (ToPerform (moveItem t (rootx - x0)
-                                                        (rooty - y0)))
-                          moveItem t (x - x0) (y - y0))
-                moveSelectedItems rpos (x, y) t)
-          +> (do
-                ev_inf <- release
-                always (do
-                          sendEv notepad (ReleaseMovement ev_inf)
-                          drop <- getRef dropref
-                          case drop of
-                            Just (item, rect1, rect2) ->
-                              do
-                                act <- getRef (undo_last_motion notepad)
-                                case act of
-                                  Performed -> done
-                                  _ -> do
-                                         undoLastMotion notepad
-                                         selecteditems <-
-                                           getRef selecteditemsref
-                                         sendEv notepad
-                                                (Dropped (item,
-                                                          selecteditems))
-                                setRef dropref Nothing
-                                destroy rect1 
-                                destroy rect2
-                            _ -> do
-                                   selecteditems <-
-                                     getRef selecteditemsref
-                                   (dx, dy) <-
-                                     checkPositions selecteditems
-                                   moveItem t (-dx) (-dy)))
--}
-
-
-
--- -----------------------------------------------------------------------
-
+--                                   moveItem t (-dx) (-dy)))
+                                   moveItem t dx dy
+                                   updNotepadScrollRegion notepad))
 
         checkEnteredItem (x, y) =
           let overItem item =
@@ -1286,16 +1274,13 @@ importNotepadState :: CItem c => Notepad c -> NotepadState c -> IO ()
 importNotepadState np st =
   synchronize np (do
                     clearNotepad np
-                    addItems np st)
+                    addItems np st
+                    updNotepadScrollRegion np)
   where addItems :: CItem c => Notepad c -> NotepadState c -> IO ()
         addItems np (it : items) =
           do
-            new_it <- createNotepadItem (val it) np [position (pos it)]
+            new_it <- createNotepadItem (val it) np False
+                                        [position (pos it)]
             if selected it then selectAnotherItem np new_it else done
             addItems np items
         addItems _ _ = done
-
-printName :: CItem a => NotepadItem a -> IO ()
-printName it = do v <- getRef (it_val it)
-                  nm <- getName v
-                  putStrLn (full nm)

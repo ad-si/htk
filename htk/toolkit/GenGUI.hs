@@ -469,7 +469,8 @@ tlObjectSelected gui mobj =
                                  setItemPosition item pos
                                  return pos
                    _ -> return lastpos
-          npitem <- createNotepadItem item (notepad gui) [position pos]
+          npitem <- createNotepadItem item (notepad gui) False
+                                      [position pos]
           b <- getRef selref
           if b then selectAnotherItem (notepad gui) npitem else done
   in case mobj of
@@ -494,6 +495,7 @@ tlObjectSelected gui mobj =
                               clearNotepad (notepad gui)
                               mapM addNotepadItem
                                    (filter isItemLeaf ch)
+                              updNotepadScrollRegion (notepad gui)
                               done)
            setRef (open_obj gui) (Just (getTreeListObjectValue obj))
 
@@ -658,10 +660,6 @@ addItem :: CItem c => GenGUI c -> Item c -> NewItem c -> IO (Item c)
 addItem gui par@(IntFolderItem (FolderItem c _ _)  chref) newitem =
   synchronize gui
     (do
-       nm <- getName c
-       nm1 <- getNameFromNewItem newitem
-       putStrLn ("add to parent: " ++ full nm ++ " child: " ++ full nm1)
-
        mditem <- getRef (open_obj gui)
        ch <- getRef chref
        item <- toItem newitem
@@ -672,7 +670,6 @@ addItem gui par@(IntFolderItem (FolderItem c _ _)  chref) newitem =
          _ -> done
        (if (isItemFolder item || show_leaves_in_tree gui) then
           do
-            putStrLn "making node"
             mkNode (treelist gui) par
             nuch <- children item
             let nod = if show_leaves_in_tree gui then
@@ -692,7 +689,7 @@ addItem gui par@(IntFolderItem (FolderItem c _ _)  chref) newitem =
                          do
                            pos <- getNewItemPosition gui
                            setItemPosition item pos
-                           it <- createNotepadItem item (notepad gui)
+                           it <- createNotepadItem item (notepad gui) True
                                                    [position pos]
                            done
                        else done
@@ -702,7 +699,6 @@ addItem gui (Root chref) newitem =
   synchronize gui
     (do
        nm <- getNameFromNewItem newitem
-       putStrLn ("adding to root: " ++ full nm)
        items <- getRef chref
        item <- toItem newitem
        setRef chref (items ++ [item])
@@ -717,7 +713,6 @@ addItem gui (Root chref) newitem =
                         if Prelude.not (null ch) then Node else Leaf
                       else
                         if (any isItemFolder ch) then Node else Leaf
-            putStrLn ("as " ++ if nod == Node then "node" else "leaf")
             case newitem of
               FolderItem c _ _ ->
                 addTreeListRootObject (treelist gui)

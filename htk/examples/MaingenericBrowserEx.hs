@@ -80,7 +80,7 @@ newID = do id <- getRef idref
 
 readDir :: FilePath -> IO [FileObject]
 readDir dir =
-  do putStrLn ("readDir(" ++ dir ++ ")")
+  do
      ret <- try (do dc <- getDirectoryContents dir
                     let dc' = filter (\f -> f /= "." && f /= ".." &&
                                       not (hidden f)) dc
@@ -144,7 +144,7 @@ instance CItem FileObject where
 
 instance GBObject FileObject where
   isObjectNode = return . is_folder
-  getChildren obj = do putStrLn "getChildren"
+  getChildren obj = do
                        path <- getFileObjectFullPath obj
                        readDir path
 

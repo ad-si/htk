@@ -43,7 +43,7 @@ main =
     logwin <- createToplevel [text "log", size (500, 200)]
 
     notepad <- newNotepad win Scrolled (48, 48) Nothing
-                 [size (1000, 1000), background "white"]
+                 [background "white"]
     pack notepad [Fill Both, Expand On]
 
     (scrollbox, output) <- newScrollBox logwin
@@ -60,27 +60,27 @@ main =
     id <- newID
     item1 <- createNotepadItem (MyItem id
                                   (createName "NotepadItem1") item1_img)
-                               notepad [position (cm 2, cm 2)]
+                               notepad True [position (cm 2, cm 2)]
 
     id <- newID
     item2 <- createNotepadItem (MyItem id
                                   (createName "NotepadItem2") item2_img)
-                               notepad [position (cm 5, cm 2)]
+                               notepad True [position (cm 5, cm 2)]
 
     id <- newID
     item3 <- createNotepadItem (MyItem id
                                   (createName "NotepadItem3") item3_img)
-                               notepad [position (cm 8, cm 2)]
+                               notepad True [position (cm 8, cm 2)]
 
     id <- newID
     item4 <- createNotepadItem (MyItem id
                                   (createName "NotepadItem4") item4_img)
-                               notepad [position (cm 2, cm 5)]
+                               notepad True [position (cm 2, cm 5)]
 
     id <- newID
     item5 <- createNotepadItem (MyItem id
                                   (createName "NotepadItem5") item5_img)
-                               notepad [position (cm 5, cm 5)]
+                               notepad True [position (cm 5, cm 5)]
 
     id <- newID
     item6 <- createNotepadItem

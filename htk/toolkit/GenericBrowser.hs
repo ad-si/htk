@@ -124,7 +124,8 @@ tlObjectSelected :: GBObject o => GenericBrowser o ->
                                   Maybe (TreeListObject o) -> IO ()
 tlObjectSelected gb mtlobj =
   let addObject obj = do pos <- getPos
-                         createNotepadItem obj (notepad gb) [position pos]
+                         createNotepadItem obj (notepad gb) False
+                                           [position pos]
                          done
   in do case mtlobj of
           Just tlobj -> let obj = getTreeListObjectValue tlobj
@@ -134,7 +135,6 @@ tlObjectSelected gb mtlobj =
                               ch' <- filterM
                                        (\obj -> do b <- isObjectNode obj
                                                    return (not b)) ch
-                              putStrLn ("contains " ++ show(length ch') ++ " elements")
                               mapM addObject ch'
                               updNotepadScrollRegion (notepad gb)
                               done
