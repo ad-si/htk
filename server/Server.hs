@@ -176,7 +176,7 @@ runServer serviceList =
                                  backupTick =
                                     do
                                        cVal <- takeMVar counter
-                                       if cVal <= 0 
+                                       if cVal <= 1 
                                           then
                                              do
                                                 doBackup

@@ -41,7 +41,9 @@
 ; black or dark colours are bad as it makes the text impossible or hard to
 ;   read.
 ; these colours should be co-ordinated with those in mmiss/MMiSS.dtd.
-; these keys should be documented.
+;
+; the letters correspond to XML elements.  The correspondence is defined
+; by the functions fromIncludeStr(Opt) and toIncludeStr in LaTeXParser.hs.
 (setq MMiSS-colours 
    (list
       (cons ?G  "orange")

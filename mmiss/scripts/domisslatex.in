@@ -5,4 +5,4 @@
 # Argument 2 = misstex option(s)
 # Argument 3 = TeX file
 cd $1
-exec @MISSLATEX@ --nonstopmode $2 $3
+exec @MISSLATEX@ --nonstopmode $2 $1/$3

@@ -27,7 +27,7 @@ main =
    do
       doc <- getContents
       let
-         elEither = parseMMiSSLatex doc
+         elEither = parseMMiSSLatex Nothing doc
       el <- case  fromWithError elEither of
          Left str -> ioError (userError str)
          Right str -> return str
