@@ -2,7 +2,6 @@
 *.hi
 .depend
 Makefile
-Makefile.bak
 *%
 
 blobs
@@ -15,6 +14,7 @@ genGUIEx
 hello1
 hello2
 hello3
+iconBarEx
 listEx
 menuEx
 panedWindowEx

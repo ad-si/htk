@@ -1,0 +1,10 @@
+*.o
+*.hi
+.depend
+Makefile
+*%
+*~
+testAlwaysRules
+testGetPut
+testRegexChannel
+testSyncRec

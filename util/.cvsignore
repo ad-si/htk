@@ -1,7 +1,7 @@
-pgm
 *.o
 *.hi
 .depend
-Makefile.bak
+Makefile
 *%
-backup*
+*~
+default_options.c

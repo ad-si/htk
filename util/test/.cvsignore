@@ -1,0 +1,9 @@
+*.o
+*.hi
+.depend
+Makefile
+*%
+*~
+testObject
+testDynamics
+testOptions
