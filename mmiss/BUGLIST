@@ -4,6 +4,22 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+13) 28.08.02
+DTD needs to be modified to allow includes everywhere where atoms and other
+insertable items can appear.
+
+12) 28.08.02
+   The button inside dtd/mmiss-paragraph.1.xml is getting inserted into
+   the Emacs buffer with the wrong name.  From w.debug:
+XEmacs>(MMiSS-init)
+XEmacs>(uni-add-container-buffer "Npara1")
+XEmacs>(uni-add-button "Npara1" "Hpara1" "para1")
+XEmacs>(uni-add-text "Npara1" "<paragraph label=\"para1\"\n  >")
+XEmacs>(uni-add-button "Npara1" "Npara1" "para1")
+XEmacs>(uni-add-text "Npara1" "</paragraph>")
+XEmacs>(uni-bound-container "Npara1")
+   so it is wrongly called Npara1, duplicating the name of the container.
+
 11) 27.08.02
 For some reason the workbench has started having trouble
 starting daVinci.  If it still happens tomorrow maybe I'll have
@@ -13,6 +29,14 @@ Output is as follows:
 
 Attempt to start daVinci from path "/home/ger/bin/daVinci" failed
 Unexpected response was "Tk: can't re"
+
+28.08.02.  It happened, and is hopefully now fixed.  After extensive
+investigation, and help from Mattias, it seems that the Posix.executeFile
+function called by ChildProcess and used to start daVinci somehow pangles
+unevaluated environment and argument values.  Why this has only been noticed
+now I don't know; perhaps something to do with the large size of the 
+executable?  
+FIXED
 
 10) 27.08.02
 Need to alter MMiSSContent/MMiSSObjects to handle both links and references.

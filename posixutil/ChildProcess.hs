@@ -97,6 +97,7 @@ module ChildProcess (
 where
 
 import List
+import qualified System
 
 import qualified IO
 import qualified Posix
@@ -112,6 +113,7 @@ import Debug(debug,debugString,alwaysDebug)
 import Thread
 import FileNames
 import WBFiles
+import DeepSeq
 
 import Concurrent
 import Maybes
@@ -304,21 +306,48 @@ newChildProcess path confs  =
                Just (challenge,response) ->
                   Exception.catch
                      (do
+                        howLong <- getToolTimeOut
+                        let
+                           timedOutIO :: IO a -> IO (Maybe a)
+                           timedOutIO act
+                              = impatientIO act (msecs (fromIntegral howLong))
+
+                           -- Used when things go wrong
+                           badResponse :: String -> IO a
+                           badResponse mess =
+                              do
+                                 putStrLn ("Challenge response starting "++
+                                    toolTitle++" failed")
+                                 putStrLn mess
+                                 dumpPending
+                                 error "Challenge-Response failed"
+
+                           -- Print out pending characters, up to a maximum
+                           -- of 1000 characters and waiting up to the time-
+                           -- limit if necessary to do so.
+                           dumpPending :: IO ()
+                           dumpPending =
+                              do
+                                 pendingOpt <- timedOutIO 
+                                    (readChunk 1000 (readFrom newChild))
+                                 putStrLn (case pendingOpt of
+                                    Nothing -> "No more pending output"
+                                    Just pending -> ("Pending: "++show pending)
+                                    )
+
                         sendMsg newChild challenge
                         howLong <- getToolTimeOut
-                        resultOpt <- impatientIO
+                        resultOpt <- timedOutIO
                            (readChunkFixed (length response) 
                               (readFrom newChild))
-                           (msecs (fromIntegral howLong))
                         result <- case resultOpt of
                            Nothing ->
-                              do
-                                 error (
-                                    "Timed out waiting for initial output\n" ++
-                                    "Guess: either it's the wrong tool, " ++
-                                    "or else you need to set the option \n"
-                                    ++ "  --uni-option=" ++
-                                    "[LARGE NUMBER OF MILLISECONDS]")
+                              badResponse (
+                                 "Timed out waiting for initial output\n" ++
+                                 "Guess: either it's the wrong tool, " ++
+                                 "or else you need to set the option \n"
+                                 ++ "  --uni-option=" ++
+                                 "[LARGE NUMBER OF MILLISECONDS]")
                            Just result -> return result
 
 #ifdef DEBUG
@@ -332,9 +361,9 @@ newChildProcess path confs  =
                               if isPrefixOf result errorResponse
                                  || isPrefixOf errorResponse result
                               then
-                                 error ("Couldn't execute tool")
+                                 badResponse ("Couldn't execute tool")
                               else
-                                 error ("Unexpected response was "++
+                                 badResponse ("Unexpected response was "++
                                     show result)
                         )
                      (\ exception ->  
@@ -371,6 +400,11 @@ newChildProcess path confs  =
                   done
 
             maybeChangeWd (wdir parms)
+
+            -- The following deepSeq's seem to fix a mysterious bug.  I don't
+            -- have time to work out why.
+            deepSeq (args parms) done
+            deepSeq (env parms) done
             Exception.catch 
                (Posix.executeFile path True (args parms) (env parms))
                (\ error ->
