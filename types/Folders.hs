@@ -347,6 +347,7 @@ instance ObjectType FolderType Folder where
                   bracketForImportErrors view
                      (openBlocker (openContents folder) blockID)
 
+
             closeAction link = 
                do
                   folder <- readLink view link
@@ -692,7 +693,7 @@ getTopFolder view =
                hideFolderArcs = hideFolderArcs
                })               
          )
-      makeLink view versioned
+      return (makeLink versioned)
 
 -- ------------------------------------------------------------------
 -- Getting the FolderStructure for a view.

@@ -7,6 +7,8 @@ module SetGetSecurityData(
    getParentLocation,
    ) where
 
+import Maybe
+
 import Data.FiniteMap
 
 import PasswordFile(User)
@@ -59,11 +61,25 @@ setPermissions simpleDB user ovLocOpt permissions =
 
 -- *** NB.  Do not allow the user to SET a parent location without checking
 -- that this does not introduce cycles.
+-- 
+-- We only permit this if the user has get-permissions access (that is,
+-- either read or permissions access) to either this object's parent, or
+-- (if no parent exists) the object itself.  NB it is allowed it
+-- the object is unreadable but the parent is; this is useful for the
+-- uni-types package since it uses this function to get at the parent when 
+-- creating a replacement NoAccessObject.
 getParentLocation :: SimpleDB -> User -> (ObjectVersion,Location) 
    -> IO (Maybe Location)
 getParentLocation simpleDB user (version,location) =
    do
-      verifyGetPermissionsAccess simpleDB user version (Just location)
       versionData <- getVersionData simpleDB version
-      return (lookupFM (parentsMap versionData) location)
+      let
+         parentLocationOpt = lookupFM (parentsMap versionData) location
+
+         locationToTest = fromMaybe location parentLocationOpt
+
+      verifyGetPermissionsAccess simpleDB user version (Just locationToTest)
+
+      return parentLocationOpt
+      
  

@@ -85,6 +85,8 @@ module ObjectTypes(
 
    wrapPreFetchLinks, -- :: View -> [WrappedLink] -> IO ()
    
+   wrapToLinkedObjectOpt, -- :: WrappedObject -> Maybe LinkedObject
+
    -- Extract the object type of an object, wrapped.
    getObjectType, -- :: WrappedObject -> WrappedObjectType
    -- Extract the title of an object (the name used to describe it
@@ -144,9 +146,14 @@ module ObjectTypes(
    -- toObjectValue produces the object value corresponding to a given
    -- objectType.  This value should not be evaluated.
    toObjectValue, -- :: ObjectType objectType type :: objectType -> object
+
+   getWrappedLinkFromLocation,
+      -- :: View -> Location -> IO (Maybe WrappedLink)
+
    ) where
 
 import System.IO.Unsafe
+import qualified Data.Dynamic
 
 import Registry
 import Computation
@@ -161,6 +168,8 @@ import Thread
 import GraphDisp
 import GraphConfigure
 import Graph(ArcType,NodeType)
+
+import ServerErrors
 
 import VersionDB(Location)
 import CodedValue
@@ -569,15 +578,24 @@ wrapMoveLink view (WrappedLink parentLink) (WrappedLink thisLink) =
    moveLink view parentLink thisLink
 
 -- | Get on with fetching the given 'WrappedLink's concurrently.
+-- If there are any errors (for example, because the user lacks read access)
+-- we ignore them.
 wrapPreFetchLinks :: View -> [WrappedLink] -> IO ()
 wrapPreFetchLinks view wrappedLinks =
    mapMConcurrent_
       (\ (WrappedLink link) ->
-         do
-            fetchLink view link
-            done
+         catchError (
+            do
+               fetchLink view link
+               done
+             )
+             (\ _ _ -> ())
          ) 
       wrappedLinks
+
+-- | Get the LinkedObject for an object, if there is one.
+wrapToLinkedObjectOpt :: WrappedObject -> Maybe LinkedObject
+wrapToLinkedObjectOpt (WrappedObject object) = toLinkedObjectOpt object
 
 -- ----------------------------------------------------------------
 -- Accessing the GlobalRegistry's
@@ -715,6 +733,44 @@ getAllObjectTypeTypes =
    do
       contents <- listRegistryContents objectTypeTypeDataRegistry
       return (map snd contents)
+
+-- -----------------------------------------------------------------
+-- -----------------------------------------------------------------
+
+-- | Turn a 'Location' in a 'View' into a 'WrappedLink'.
+-- NB.  This function will have to fail if the object is not checked out.
+getWrappedLinkFromLocation :: View -> Location -> IO (Maybe WrappedLink)
+getWrappedLinkFromLocation view location =
+   do
+      objectDataOpt <- getValueOpt (objects view) location
+      let
+         versionedOpt :: Maybe Dyn
+         versionedOpt = 
+            do
+               objectData <- objectDataOpt
+               case objectData of
+                  PresentObject {thisVersioned = thisVersioned}
+                     -> return thisVersioned
+                  _ -> Nothing
+
+      case versionedOpt of
+         Nothing -> return Nothing
+         Just versioned ->
+            do
+               let
+                  tryType :: ObjectType objectType object 
+                     => objectType -> Maybe (Versioned object)
+                  tryType _ = Data.Dynamic.fromDynamic versioned
+
+                  tryLink :: WrappedObjectTypeTypeData -> Maybe WrappedLink
+                  tryLink (WrappedObjectTypeTypeData objectType) = 
+                     do
+                        versioned <- tryType objectType
+                        return (WrappedLink (makeLink versioned))
+                        
+               objectTypeTypeDatas <- getAllObjectTypeTypes
+
+               return (findJust tryLink objectTypeTypeDatas)
 
 -- -----------------------------------------------------------------
 -- Extract all ObjectTypes in a view (used for doing displays)

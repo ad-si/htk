@@ -336,7 +336,9 @@ createViewObject view parentLink getObject =
    synchronizeView view (
       do
          versioned <- newEmptyObject view parentLink
-         link <- makeLink view versioned
+         let
+            link = makeLink versioned
+
          (objectOpt,extra) <- getObject link
          case objectOpt of
             Just object -> updateObject view object versioned

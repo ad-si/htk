@@ -4,7 +4,7 @@ module NoAccessObject(
    NoAccessObject,NoAccessObjectType,
       -- Instances of ObjectType, HasLinkedObject
    createNoAccessObject,
-      -- :: WrappedLink -> IO LinkedObject
+      -- :: View -> WrappedLink -> IO LinkedObject
       -- Create a new NoAccessObject.  This will have a LinkedObject with
       -- no parent or name; these should be set if possible by the
       -- caller.
@@ -12,6 +12,9 @@ module NoAccessObject(
       -- :: WrappedLink -> Bool
       -- Returns True if this link is for a NoAccessObject.
    registerNoAccessObjectType, -- :: IO ()
+   noAccessObjectToLinkedObject,
+      -- :: NoAccessObject -> LinkedObject
+
    ) where
 
 import Maybe
@@ -23,15 +26,20 @@ import Control.Monad.Fix
 import BinaryAll 
 import AtomString
 import Computation
+import ExtendedPrelude
+import Sources
+import VariableSet (toKey)
 
 import GraphDisp
 import GraphConfigure
 
-import CodedValue
+import EntityNames
 
+import CodedValue
 import ObjectTypes
 import Link
 import LinkManager
+import ViewType
 import MergeTypes
 import GlobalRegistry
 import DisplayParms
@@ -112,28 +120,92 @@ instance ObjectType NoAccessObjectType NoAccessObject where
 -- Creating and distinguishing
 -- -------------------------------------------------------------------
 
-createNoAccessObject :: View -> WrappedLink -> IO LinkedObject
+createNoAccessObject :: View -> WrappedLink -> IO NoAccessObject
 createNoAccessObject view (wrappedLink @ (WrappedLink link)) =
    Control.Monad.Fix.mfix
-      (\ linkedObject ->
+      (\ noAccessObject ->
          do
-            let
-               noAccessObject = NoAccessObject {
-                  linkedObject = linkedObject
-                  }
             link2 <- pokeLink view link noAccessObject
             let
                wrappedLink2 = WrappedLink link2
-            linkedObjectWE <- newLinkedObject view wrappedLink2 Nothing
-            coerceWithErrorIO linkedObjectWE
+
+            insertionOpt <- getInsertion view wrappedLink
+
+            linkedObject 
+               <- newLinkedObjectNoParent view wrappedLink2 insertionOpt
+
+            return (
+               NoAccessObject {
+                  linkedObject = linkedObject
+                  }
+               )
          )
 
 isNoAccessLink :: WrappedLink -> Bool
 isNoAccessLink wrappedLink = 
    linkObjectTypeTypeId wrappedLink == noAccessObjectTypeId
 
+-- | to go into the .hi-boot file.
+noAccessObjectToLinkedObject :: NoAccessObject -> LinkedObject
+noAccessObjectToLinkedObject = linkedObject
+
 noAccessObjectTypeId :: String
 noAccessObjectTypeId = "NoAccessObject"
+
+
+-- -------------------------------------------------------------------
+-- Type hackery
+--
+-- We use some extremely unsavoury tricks for guessing the name
+-- of a WrappedLink.  Basically
+--    (1) we extract the parent location for link.
+--    (2) we get the object dictionary's entry for that parent location and,
+--        by scanning all available types, decode the Dyn into it to get the
+--        actual parent object.
+--    (3) we scan the parent object's contents, looking for a matching name.
+-- -------------------------------------------------------------------
+
+getInsertion :: View -> WrappedLink -> IO (Maybe Insertion)
+getInsertion view wrappedLink1 =
+   do
+      parentLocationOpt <- getParentLocationInView view (toKey wrappedLink1)
+      case parentLocationOpt of
+         Nothing -> return Nothing
+         Just parentLocation ->
+            do
+               parentWrappedLinkOpt 
+                  <- getWrappedLinkFromLocation view parentLocation
+               case parentWrappedLinkOpt of
+                  Nothing -> return Nothing
+                  Just parentWrappedLink ->
+                     do
+                        (parentObject :: WrappedObject) 
+                           <- wrapReadLink view parentWrappedLink
+                        let
+                           parentLinkedObjectOpt 
+                              = wrapToLinkedObjectOpt parentObject
+                        case parentLinkedObjectOpt of
+                           Nothing -> return Nothing
+                           Just parentLinkedObject ->
+                              do
+                                 (parentContents 
+                                       :: [(EntityName,WrappedLink)])
+                                    <- readContents (
+                                       listObjectContentsAsWrappedLinks 
+                                          parentLinkedObject)
+                                 return (findJust
+                                    (\ (name,wrappedLink2) ->
+                                       if toKey wrappedLink1 
+                                             == toKey wrappedLink2
+                                          then
+                                             Just (mkInsertion 
+                                                parentLinkedObject name)
+                                          else
+                                             Nothing
+                                       )
+                                    parentContents
+                                    )
+                                  
 
 -- -------------------------------------------------------------------
 -- Registering

@@ -35,12 +35,15 @@ import Events (sync)
 import GraphDisp
 import GraphConfigure
 
+
+import VersionDB (catchAccessError)
 import DisplayTypes
 import ObjectTypes
 import Link
 import LinkDrawer hiding (deleteNode)
 import qualified LinkDrawer
 import View
+import NoAccessObject
 
 -- -----------------------------------------------------------------------
 -- Data types
@@ -324,14 +327,29 @@ displayView
 
       -- (5) define the function to be passed to the LinkDrawer
       let
+         -- | newNodeAct allows restart.  If the operation (readLink) fails
+         -- with an access error, we construct a NoAccessObject for the link,
+         -- and use that instead.
          newNodeAct :: WrappedLink 
             -> IO (NodeData WrappedLink (WrappedNode node) ArcType 
                (WrappedArc arc))
-         newNodeAct (WrappedLink link) =
+         newNodeAct (wrappedLink @ (WrappedLink (link :: Link object))) =
             do
-               -- (1) get the object
-               object <- readLink view link
+               (objectOpt :: Maybe object) 
+                  <- catchAccessError (readLink view link)
+               case objectOpt of
+                  Just object -> newNodeAct1 link object
+                  Nothing ->
+                     do
+                        noAccessObject <- createNoAccessObject view wrappedLink
+                        newNodeAct1 (coerceLink link) noAccessObject
 
+         newNodeAct1 :: ObjectType objectType object
+            => Link object -> object 
+            -> IO (NodeData WrappedLink (WrappedNode node) ArcType 
+               (WrappedArc arc))
+         newNodeAct1 link object =
+            do
                -- (2) get its type
                let
                   wrappedObjectType = WrappedObjectType 

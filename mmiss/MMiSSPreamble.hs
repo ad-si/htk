@@ -266,8 +266,7 @@ createPreamble view (WrappedLink parentLink) latexPreamble =
    do
       mmissPreamble <- createPreamble1 latexPreamble
       preambleVers <- createObject view parentLink mmissPreamble
-      link <- makeLink view preambleVers
-      return link
+      return (makeLink preambleVers)
 
 createPreamble1 :: MMiSSLatexPreamble -> IO MMiSSPreamble
 createPreamble1 mmissLatexPreamble =

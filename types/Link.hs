@@ -71,7 +71,7 @@ module Link(
    -- get the current contents of the object.
 
 
-   makeLink, -- :: HasCodedValue x => View -> Versioned x -> IO (Link x)
+   makeLink, -- :: HasCodedValue x => Versioned x -> Link x
    -- makeLink is used to create a link to an object.
    fetchLink, -- :: HasCodedValue x => View -> Link x -> IO (Versioned x)
    -- look up a link to an object in the repository.
@@ -111,6 +111,8 @@ module Link(
    compareLink, -- :: Link x -> Link y -> Ordering
       -- Provide an efficient way of testing two links for equality, and
       -- ordering them.
+   coerceLink, -- :: (HasCodedValue x,HasCodedValue y) => Link x -> Link y
+      -- to be used with care (only for NoAccessObject hackery I hope) 
 
 
    getLastChange, 
@@ -176,8 +178,9 @@ instance HasKey (Link x) Location where
 topLink :: Link x
 topLink = Link specialLocation2
 
-makeLink :: HasCodedValue x => View -> Versioned x -> IO (Link x)
-makeLink _ (Versioned {location = location}) = return (Link location)
+-- | Get the 'Link' for a 'Versioned' object.
+makeLink :: HasCodedValue x => Versioned x -> Link x
+makeLink (Versioned {location = location}) = Link location
 
 -- | look up a link to an object in the repository.
 fetchLink :: HasCodedValue x => View -> Link x -> IO (Versioned x)
@@ -338,6 +341,11 @@ writeLink view link x =
       versioned <- fetchLink view link
       updateObject view x versioned
 
+
+-- | to be used with care (only for NoAccessObject hackery I hope) 
+coerceLink :: (HasCodedValue x,HasCodedValue y) => Link x -> Link y
+coerceLink (Link location) = Link location
+
 -- | Writes a value into the view's object dictionary at the given
 -- link, MARKING IT AS UP-TO-DATE.  This is used for the NoAccessObject.
 pokeLink :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
@@ -387,14 +395,14 @@ createLink :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
 createLink view parentLink x =
    do
       versioned <- createObject view parentLink x
-      makeLink view versioned
+      return (makeLink versioned)
 
 -- | Like 'newEmptyObject'; similar considerations apply.
 newEmptyLink :: HasCodedValue x => View -> Link y -> IO (Link x)
 newEmptyLink view parentLink =
    do
       versioned <- newEmptyObject view parentLink
-      makeLink view versioned
+      return (makeLink versioned)
 
 -- | Allocate a new link but don't put it in any view.
 absolutelyNewLink :: HasCodedValue x => Repository -> IO (Link x)

@@ -38,6 +38,12 @@ module LinkManager(
       -- whether after newLinkedPackageObject or decoding or merging.  
       -- The ImportCommands must be set by setCommands.
 
+   newLinkedObjectNoParent,
+      -- :: View -> WrappedLink -> Maybe Insertion
+      -- -> IO LinkedObject
+      -- Create a new LinkedObject but don't alter the parent link.
+      -- (This is used for faking the NoAccessObject)
+
    moveObject,
       -- :: LinkedObject -> Maybe Insertion -> IO (WithError ())
       -- Change the location of a LinkedObject
@@ -91,6 +97,10 @@ module LinkManager(
    listObjectContents,
       -- :: LinkedObject -> SimpleSource [(EntityName,LinkedObject)]
       -- List the contents of an object by EntityName.
+
+   listObjectContentsAsWrappedLinks, 
+      -- :: LinkedObject -> SimpleSource [(EntityName,WrappedLink)]
+      -- List the contents of an object (as WrappedLinks) by EntityName
 
    lookupObjectContents,
       -- :: LinkedObject -> EntityName -> SimpleSource (Maybe WrappedLink)
@@ -250,8 +260,7 @@ import Messages
 import FolderStructure
 import Imports
 
-import ServerErrors
-
+import VersionDB
 import LinkDrawer
 import CodedValue
 import ObjectTypes
@@ -301,6 +310,22 @@ newLinkedPackageObject view wrappedLink insertionOpt =
             }
       createLinkedObject view True frozenLinkedObject
 
+-- | Create a new LinkedObject but don't alter the parent link.
+-- (This is used for faking the NoAccessObject)
+newLinkedObjectNoParent :: View -> WrappedLink -> Maybe Insertion
+   -> IO LinkedObject
+newLinkedObjectNoParent view wrappedLink insertionOpt =
+   do
+      let
+         frozenLinkedObject = FrozenLinkedObject {
+            wrappedLink' = wrappedLink,
+            insertion' = insertionOpt,
+            contents' = [],
+            hasImportCommands = False
+            }
+      resultWE <- createLinkedObject view False frozenLinkedObject
+      coerceWithErrorIO resultWE
+
 -- | Get the contents of a LinkedObject (those objects contained in it,
 -- like elements in a folder).
 objectContents :: LinkedObject -> VariableSetSource WrappedLink
@@ -329,6 +354,20 @@ objectContentsWithName linkedObject =
          (toSimpleSource (contents linkedObject))
          )
 
+-- | List the contents of an object (as WrappedLinks) by EntityName
+listObjectContentsAsWrappedLinks 
+   :: LinkedObject -> SimpleSource [(EntityName,WrappedLink)]
+listObjectContentsAsWrappedLinks linkedObject =
+   fmap
+      (\ fm -> 
+         map
+            (\ (entityName,linkedObjectPtr) 
+               -> (entityName,wrappedLinkInPtr linkedObjectPtr)
+               )
+            (fmToList fm)
+         )
+      (toSimpleSource (contents linkedObject))
+
 
 -- | List the contents of an object by EntityName.
 listObjectContents :: LinkedObject -> SimpleSource [(EntityName,LinkedObject)]
@@ -337,9 +376,7 @@ listObjectContents linkedObject =
       (\ fm -> 
          map
             (\ (entityName,linkedObjectPtr) 
-               -> (entityName,
-                  fromLinkedObjectPtr1 linkedObject entityName 
-                     linkedObjectPtr)
+               -> (entityName,fromLinkedObjectPtr linkedObjectPtr)
                )
             (fmToList fm)
          )
@@ -468,8 +505,7 @@ lookupNameInFolder linkedObject entityName =
    do
       linkedObjectPtrOpt <- readContents (
          lookupEntityName linkedObject entityName)
-      return (fmap (fromLinkedObjectPtr1 linkedObject entityName) 
-         linkedObjectPtrOpt)
+      return (fmap fromLinkedObjectPtr linkedObjectPtrOpt)
 
 -- | Extract a full name as a sub object of a given object.
 lookupFullNameInFolder :: LinkedObject -> EntityFullName 
@@ -486,8 +522,7 @@ lookupFullNameInFolder linkedObject (EntityFullName names)
             case linkedObjectPtrOpt of
                Nothing -> return Nothing
                Just linkedObjectPtr 
-                  -> lookup1 (fromLinkedObjectPtr1 linkedObject name 
-                     linkedObjectPtr) names
+                  -> lookup1 (fromLinkedObjectPtr linkedObjectPtr) names
 
 -- | Make an insertion
 mkInsertion :: LinkedObject -> EntityName -> Insertion
@@ -750,9 +785,7 @@ toFolderStructure root =
       getContentsSource linkedObject =
          return .
             (fmap
-               (mapFM (\ entityName ptr -> 
-                  fromLinkedObjectPtr1 linkedObject entityName ptr))
-               )
+               (mapFM (\ _ ptr -> fromLinkedObjectPtr ptr)))
             . contentsSource $ linkedObject
 
       getImportCommands linkedObject = 
@@ -1090,6 +1123,7 @@ data LinkedObjectPtr = LinkedObjectPtr {
 fromLinkedObjectPtr :: LinkedObjectPtr -> LinkedObject
 fromLinkedObjectPtr = linkedObjectInPtr
 
+{-
 -- | Turning a 'LinkedObjectPtr' into the corresponding 'LinkedObject'
 -- when we can guess the parent insertion to use if it is not readable.
 fromLinkedObjectPtr1 
@@ -1109,6 +1143,7 @@ fromLinkedObjectPtr1 parentLinkedObject entityName linkedObjectPtr =
                done
          return linkedObject1
       )                        
+-}
 
 mkLinkedObjectPtr :: View -> WrappedLink -> LinkedObjectPtr
 mkLinkedObjectPtr view wrappedLink =
@@ -1142,20 +1177,22 @@ instance Ord LinkedObjectPtr where
 extractLinkedObject :: WrappedLink -> View -> IO LinkedObject
 extractLinkedObject (wrappedLink @ (WrappedLink link)) view =
    do
-      (result :: (Either (ErrorType,String) LinkedObject)) 
-         <- catchError (
+      (result :: Maybe LinkedObject) 
+         <- catchAccessError (
             do
                object <- readLink view link
                case toLinkedObjectOpt object of
-                  Nothing -> error "LinkManager: object has no linked object"
-                  Just linkedObject -> return (Right linkedObject)
+                  Nothing -> throwError ClientError 
+                     "LinkManager: object has no linked object"
+                  Just linkedObject -> return linkedObject
             )
-            (\ errorType mess -> Left (errorType,mess))
 
       case result of
-         Right linkedObject -> return linkedObject
-         Left (AccessError,_) -> createNoAccessObject view wrappedLink
-         Left (errorType,mess) -> throwError errorType mess
+         Just linkedObject -> return linkedObject
+         Nothing -> 
+            do
+               noAccessObject <- createNoAccessObject view wrappedLink
+               return (noAccessObjectToLinkedObject noAccessObject)
 
 lookupEntityName 
    :: LinkedObject -> EntityName -> SimpleSource (Maybe LinkedObjectPtr)

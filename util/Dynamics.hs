@@ -120,7 +120,7 @@ dynCast mess value = case dynCastOpt value of
    Just value2 -> value2
 
 dynCastOpt :: (Typeable a,Typeable b) => a -> Maybe b
-dynCastOpt value = fromDyn (toDyn value)
+dynCastOpt = Data.Dynamic.cast
 
 ------------------------------------------------------------------------
 -- The HasTyRep* classes are used to indicate that
@@ -329,7 +329,7 @@ instance (HasTyRep6_000111 ty,Typeable value)
       in
          appTyRep (tyRep6_000111 tC) (typeOf v)
 
-data Dummy x = Dummy x
+data Dummy x = Dummy
 
 dummy_tyRep :: TyRep
 dummy_tyRep = mkTyRep "Dynamics" "Dummy"

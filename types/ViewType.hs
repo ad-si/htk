@@ -16,6 +16,7 @@ module ViewType(
 
    parentVersions, -- :: View -> IO [ObjectVersion]
    getParentVersion, -- :: View -> Maybe ObjectVersion
+   getParentLocationInView, -- :: View -> Location -> IO (Maybe Location)
 
    ) where
 
@@ -140,6 +141,25 @@ getViewTitleSource :: View -> SimpleSource String
 getViewTitleSource view = 
    fmap (label . user) (toSimpleSource . viewInfoBroadcaster $ view)
 
+-- -----------------------------------------------------------------
+-- Get the parent location of a location in a view
+-- -----------------------------------------------------------------
+
+getParentLocationInView :: View -> Location -> IO (Maybe Location)
+getParentLocationInView view thisLocation =
+   do
+      parentLocationOpt <- getValueOpt (parentChanges view) thisLocation
+      case parentLocationOpt of
+         Just parentLocation -> return parentLocationOpt
+            -- object has been moved since last commit
+         Nothing ->
+            do
+               versionOpt <- getParentVersion view
+               case versionOpt of
+                  Nothing -> return Nothing
+                  Just version -> 
+                     getParentLocation (repository view) version thisLocation
+   
 -- -----------------------------------------------------------------
 -- Instance of HasDelayer
 -- -----------------------------------------------------------------
