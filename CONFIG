@@ -4,7 +4,7 @@
 UNIDIR=`dirname $0`
 cd $UNIDIR
 FULLUNIDIR=$PWD
-for i in `find . -type d ! -name CVS`
-do
+for i in `find . -type d ! -name CVS`; do
+   if [ -h $i/top ]; then rm -rf $i/top; fi
    ln -s $FULLUNIDIR $i/top
 done
