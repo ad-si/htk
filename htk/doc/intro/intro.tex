@@ -427,18 +427,64 @@ The information here is the x and y component of the mouse position,
 both relative to the window in which the event occurs, and the root
 window (i.e. the screen), and the button being pressed. 
 
-
 \section{Widgets}
+
+In the following, we give a brief tour around HTk's widgets. These are
+essentially Tk's widgets. We have simple widgets which are explained
+in short sentences of words with less than three syllables, menues,
+text widgets, and canvasses, which require a sllightly longer
+explanation. 
+
+There are more widgets: if you can use Tix (you should anyway, it
+looks slightly less clunky than plain Tcl/Tk), there are the useful
+tab and pane widgets. And because HTk is an abstraction on top of Tk,
+there are a variety of so-called \emph{mega-widgets} which are
+implemented in Haskell; these can be found in the toolkit
+(Sect.~\ref{sec:toolkit}).
 
 \subsection{Basic Widgets}
 
 \begin{itemize}
+  
 \item Frames
+
 \label{ssec:frames}
+
+A \href{Frame.html}{frame} is just an invisible container into which
+we can pack other widgets, grouping them together. The use of frames
+is in packing: the grouping is necessary most of the time to achieve
+the desired layout with the standard packer.
+
+Moreover, when using a frame, we can use a different packer (see
+Sect.~\ref{sec:packing}) than in the parent widget; for example, we
+can use the grid packer inside a window using the standard packer.
+
+\item Boxes
+  
+  \href{Box.html}{Boxes} are mega-widgets, implemented using frames.
+  They allow simple horizontal or vertical packing (widgets are placed
+  in the box side by side or on top of each other), and be flexible or
+  rigid (expand when the parent window is resized, or not); e.g.
+  \texttt{newVBox} creates a rigid box with vertical packing, and
+  \texttt{newHFBox} creates a flexible box with horizontal packing.
+
 \item Buttons
-\item Labels
-\item Message Boxes
-\item Scrollbars
+
+  A \href{Button.html}{button} is a simple widget which can be
+  clicked. Buttons can have bitmaps, images (class \texttt{HasPhoto}),
+  or text as labels. 
+
+\item Labels and Messages
+
+  A \href{Label.html}{label} is a simple widget for text, bitmaps or
+  images. \href{Message.html}{Messages} are slightly more
+  sophisticated widgets for longer text messages; messages line-break 
+  the text. For both, the font of the text (class
+  \texttt{HasFont}) and the justification (class
+  \texttt{HasJustified}) can be specified. 
+
+\input{MainlistEx.lhs} %% Scrollbars, List boxes.
+
 \end{itemize}
 
 \subsection{Menues}
@@ -448,6 +494,8 @@ window (i.e. the screen), and the button being pressed.
 \subsection{The Canvas Widget}
 
 \section{The Toolkit}
+
+\label{sec:toolkit}
 
 \section{Larger Examples}
 
