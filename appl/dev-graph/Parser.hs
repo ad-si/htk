@@ -1,4 +1,5 @@
-module Parser (readStructure, readStructureStr) where
+module Parser-- (readStructure, readStructureStr)
+ where
 
 import Graph
 
@@ -24,9 +25,9 @@ splitIntoLines st = line:(splitIntoLines(dropWhile (=='\n') (drop (length line) 
 -- splits a line into words by the delimiters contained in "tokens"
 splitLine :: String -> [String]
 splitLine [] = []
-splitLine st = part:(splitLine (dropWhile (elemR tokens) (drop (length(part)+1) st)))
+splitLine st = part:(splitLine (dropWhile ((flip elem) tokens) (drop (length(part)+1) st)))
 	where
-	part = takeWhile (notElemR tokens) st
+	part = takeWhile ((flip notElem) tokens) st
 
 -- tries to add a node for each line of 2 strings
 -- and an edge for each line of 7 strings.
@@ -38,12 +39,14 @@ parseLines (x:xs) = case (length x) of
 	7 -> addEdgeStr (parseLines xs) (head x) (x!!1) (x!!3) (x!!4) (x!!5) (last x)
 	_ -> parseLines xs
 
+{-
 -- notElem and elem with reversed order of arguments
 notElemR:: Eq a => [a] -> a -> Bool
 notElemR ls e = notElem e ls
 
 elemR :: Eq a => [a] -> a -> Bool
 elemR ls e = elem e ls
+-}
 
 -- list of the tokens
 tokens = [' ' , '[' , ']' , ',']

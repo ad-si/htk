@@ -1,4 +1,10 @@
-module Graph (Graph, newGraph, fromGraph,
+{- This module defines the type Graph and supplies several functions to manipulate graphs. Beside the type of the graph itself it also defines edge- and nodetypes as seen below.
+1) A graph contains nodes and edges. These nodes and edges have types. Nodes also are named.
+2) Nodes can be identified by their type and name. As no two nodes of the same type _and_ name can be created, this is an unambiguous idenfication.
+3) Edges can be identified by their type and the nodes they connect. As no two edges of the same type can be created between the same two nodes, this also is a unambiguous idenfication.
+-}
+
+module Graph (Graph, newGraph,
 	EdgeType, NodeType, LocType, ThmType,
 	mixedThmType, mixedLocType, mixedProofObl, 
 	proofObligation, 

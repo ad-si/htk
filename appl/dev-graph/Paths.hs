@@ -1,10 +1,17 @@
+{- This module supplies functions to create and replace paths:
+1) all possible paths of an graph can be created
+1) all edges leading through internal nodes can be replaced by a corresponding path (only internal nodes with no incoming edge are preserved)
+2) edges can be restored from a choosen path, if the original graph is given
+-}
+
 module Paths (hideInternalNodes, allPaths, restoreEdges, compatibleTypes) where
 
 import Graph
 import List
 
--- hides all internal nodes and their edges,
--- replacing paths between nodes of type Defined by corresponding edges
+{- hides all internal nodes and their edges,
+   (except those, which do not have any incoming edges)
+   replacing paths between nodes of type Defined by corresponding edges-}
 hideInternalNodes :: Graph -> Graph
 hideInternalNodes = defs.allPaths
 
@@ -34,10 +41,15 @@ makePaths gr tgt et = if (isDefined tgt1) then
 --			    then ((head tgt):(makePaths gr (tail tgt) et))
 --			    else ((MixedThmType,MixedLocType),snd(head tgt)):(makePaths gr (tail tgt) et)
 
--- drops all nodes that are not of type Defined
+-- drops all nodes that are not of type Defined or ...
 -- and calls function toDef
 defs :: Graph -> Graph
-defs gr = toGraph (map toDef [part| part <- (fromGraph gr), isDefined (fst part)])
+defs gr = toGraph (map toDef [part| part <- (fromGraph gr), (isDefined||isStart) (fst part)])
+
+-- checks if there is no edge leading to the given node
+isStart :: Graph -> NodeType -> Bool
+isStart (Graph gr) nd = notElem nd [snd y | y <-(concat [snd x| x <- gr])]
+
 
 -- drops all edges that do not lead to a node of type Defined
 toDef :: (NodeType,[(EdgeType,NodeType)]) -> (NodeType,[(EdgeType,NodeType)])
