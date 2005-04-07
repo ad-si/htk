@@ -1,4 +1,4 @@
 name: bdb-package
 library-dirs: "#BDBLIB"
-extra-libraries: db
+extra-libraries: db, pthread
 include-dirs: "#BDBINCLUDE"
