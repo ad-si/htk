@@ -31,11 +31,11 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSXmlBasics.hs MMiSSGetVariantAttributes.hs \
 
 
-BOOTSRCS = MMiSSReadObject.boot.hs \
-   MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \
-   MMiSSPackageFolder.boot.hs \
-   MMiSSExportLaTeX.boot.hs MMiSSExportFiles.boot.hs \
-   MMiSSObjectTypeInstance.boot.hs MMiSSBundleWrite.boot.hs
+BOOTSRCS = MMiSSReadObject.hs-boot \
+   MMiSSObjectType.hs-boot MMiSSEmacsEdit.hs-boot MMiSSEditAttributes.hs-boot \
+   MMiSSPackageFolder.hs-boot MMiSSInsertionPoint.hs-boot \
+   MMiSSExportLaTeX.hs-boot MMiSSExportFiles.hs-boot \
+   MMiSSObjectTypeInstance.hs-boot MMiSSBundleWrite.hs-boot
 
 SUBDIRS = api test
 

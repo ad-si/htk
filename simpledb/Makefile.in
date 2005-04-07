@@ -13,6 +13,6 @@ SRCS       = BDBOps.hs ServerErrors.hs \
 SUBDIRS = test
 SRCSC      = bdbclient.c bdbcommon.c
 
-BOOTSRCS = VersionState.boot.hs
+BOOTSRCS = VersionState.hs-boot
 
 include @TOP@/mk/boilerplate.mk

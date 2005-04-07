@@ -15,9 +15,9 @@ SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
 
 SUBDIRS    = test
 
-BOOTSRCS = DisplayView.boot.hs Folders.boot.hs LinkManager.boot.hs \
-   ObjectTypes.boot.hs CopyVersions.boot.hs VersionGraph.boot.hs \
-   VersionGraphClient.boot.hs NoAccessObject.boot.hs
+BOOTSRCS = DisplayView.hs-boot Folders.hs-boot LinkManager.hs-boot \
+   ObjectTypes.hs-boot CopyVersions.hs-boot VersionGraph.hs-boot \
+   VersionGraphClient.hs-boot NoAccessObject.hs-boot ViewType.hs-boot
 
 EXTRA_HC_OPTIONS += -H100M
 
