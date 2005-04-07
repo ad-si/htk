@@ -4,13 +4,11 @@ the Makefiles in the first place.)
 
 (as of 13th June)
 
-   boot - does initial compilation.  At the moment only creates .hi-boot files)
    packages - creates all packages (which means libraries but not executables)
-      boot must have been made.
    test - creates all test programs.  packages must have been made.
    main - creates all main programs.  packages must have been made.
    all - packages + test + main
-   clean - cleans everything (well, except .hi-boot files at the moment.)
+   clean - cleans everything
 
 The process of packages can be split up into two stages.  One involves
 compiling the object files and putting them into .a library archives; the
@@ -61,7 +59,6 @@ Some of the targets work recursively on subdirectories.  For these there
 is a corresponding target with name ending "here" which just works on the
 current directory.
 
-   boothere - corresponds to "boot"
    packagehere - corresponds to "packages"
    libhere - corresponds to "lib"
    mainhere - corresponds to "main"

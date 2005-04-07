@@ -254,8 +254,6 @@ on Solaris, do not work.
    
 # Configure the Makefiles
 ./configure
-# Work out what order to do compilation in
-gmake boot
 # Compile Uni
 gmake all
 
@@ -272,7 +270,6 @@ Other Make targets for UniForM developers
 
 The 
    ./configure
-   gmake boot
    gmake all
 sequence described above is just if you want to build the whole thing from
 scratch.  Once you've done this, you may want to modify a file and then
@@ -423,7 +420,6 @@ The following (should) work.
 
 # of course you can skip the next three commands if you've already done them
    ./configure
-   gmake boot
    gmake packages
 #
    gmake doc
