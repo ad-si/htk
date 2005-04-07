@@ -97,13 +97,13 @@ MAINOBJSHS = $(filter Main%.o,$(OBJSHS))
 
 HILIBFILES = $(patsubst %.o,%.hi,$(LIBOBJSHS))
 HIFILES = $(patsubst %.o,%.hi,$(OBJSHS))
-HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
+HIBOOTFILES = $(patsubst %.hs-boot,%.hi-boot,$(BOOTSRCS))
 
 LIBMODULES = $(patsubst %.o,%,$(LIBOBJSHS))
 SPLITOBJS = $(patsubst %,%/*.o,$(LIBMODULES))
 
 HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
-             $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
+             $(patsubst %.hs-boot,$$PWD/%.hs-boot,$(BOOTSRCS))
 OBJSEMACSFULL = $(patsubst %,$$PWD/%,$(OBJSEMACS))
 EXPORTSRCSFULL = $(patsubst %,$$PWD/%,$(EXPORTSRCS))
 EXPORTHIFILES = $(patsubst %,$$PWD/%,$(HILIBFILES))
@@ -181,11 +181,11 @@ libfast : libfasthere
 slow : slowhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) slow && ) echo Finished make slow
 
-slowhere : boothere dependhere
+slowhere : dependhere
 	$(MAKE) -r libhere packageherequick
 
 clean: cleanprogs
-	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.o" -o -name "*.a" -o -name ".depend" \)`
+	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.hi-boot" -o -name "*.o" -o -name "*.a" -o -name ".depend" \)`
 
 cleanprogs:
 	$(RM) -rf $(TESTPROGS) $(MAINPROGS)
@@ -222,7 +222,7 @@ display :
 depend : dependhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
-dependhere : $(SRCS) $(HIBOOTFILES)
+dependhere : $(SRCS) $(BOOTSRCS)
 
 ifneq "$(strip $(SRCS))" ""
 	$(DEPEND) $(HCFLAGS) $(SRCS)
@@ -244,7 +244,9 @@ ifneq "$(PACKAGE)" ""
 ifneq "$(strip $(LIBSRCS))" ""
 	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS)
 endif
+ifneq "$(strip $(LIBOBJS))" ""
 	$(AR) -rs $(LIB) $(LIBOBJS)
+endif
 endif
 
 packagehere : libfasthere packageherequick
@@ -331,17 +333,6 @@ $(MAINPROGS) : % :  Main%.o
 
 $(HIFILES) : %.hi : %.o
 	@:
-
-boothere : $(HIBOOTFILES)
-
-boot : boothere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) boot &&) echo $(MAKE) boot finished.
-
-$(HIBOOTFILES) : %.hi-boot : %.boot.hs
-	$(RM) $@
-# The only thing we do here is preprocess the file.
-	$(CPP) $< -o $@
-
 
 $(LIBOBJSHS) : %.o : %.hs
 ifeq "$(DOSPLIT)" ""
