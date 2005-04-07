@@ -184,17 +184,22 @@ if test -z "$WISH"; then
 fi
 #
 # Check for daVinci
-if test -n "$DAVINCIHOME"; then
+if test -n "$UDRAWGRAPHHOME"; then
+   DAVINCI=$UDRAWGRAPHHOME/bin/uDrawGraph
+   echo Assuming UDRAWGARPH=$DAVINCI because of variable \$UDRAWGRAPHHOME
+   AC_SUBST(uDrawGraph)
+else if test -n "$DAVINCIHOME"; then
    DAVINCI=$DAVINCIHOME/bin/daVinci
    echo Assuming DAVINCI=$DAVINCI because of variable \$DAVINCIHOME
    AC_SUBST(daVinci)
-else
-   AC_PATH_PROGS(DAVINCI,daVinci)
+   else
+   AC_PATH_PROGS(DAVINCI,uDrawGraph)
+   fi
 fi
 
 if test -z "$DAVINCI"; then
-    echo "Without daVinci you cannot run any of UniForM's graph-drawing programs"
-    DAVINCI="/usr/bin/davinci"
+    echo "Without uDrawGraph you cannot run any of UniForM's graph-drawing programs"
+    DAVINCI="uDrawGraph"
 fi
 #
 # 
@@ -359,13 +364,7 @@ if test "$GOAHEAD" = YES; then
          ${GMAKE} -C $HAXML -r lnsrcs
       fi
 
-      # Use GHCPKG option with --force if necessary
-      if test "$GhcMajVersion.$GhcMinVersion" = "5.02"
-      then
-         GHCPKGOPTS=
-      else
-         GHCPKGOPTS=--force
-      fi
+      GHCPKGOPTS=--force
       
       $GHCPKG $GHCPKGOPTS --package-conf=uni-package.conf.export register - <uni-package.options
 
@@ -376,7 +375,7 @@ if test "$GOAHEAD" = YES; then
 
       GMAKESHORT=`basename $GMAKE`
 
-      echo To compile UniForM type \"${GMAKESHORT} boot\" followed by \"${GMAKESHORT} packages\"
+      echo To compile UniForM type \"${GMAKESHORT} packages\"
       echo If you also want the test programs do \"${GMAKESHORT} all\" instead of \"${GMAKESHORT} packages\"
    fi
 fi
