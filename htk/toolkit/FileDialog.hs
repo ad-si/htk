@@ -380,8 +380,13 @@ fileDialog' :: Bool
 fileDialog' isNew title pathref =
   do
     fp <- getRef pathref
-    let path = if last fp == '/' then fp else fp ++ "/"
-
+    -- check wether we got a directory or directory/filename
+    isDir <- doesDirectoryExist fp
+    let (path,fn) = 
+            if isDir 
+            then (if last fp == '/' then fp else fp ++ "/","")
+            else (\ (x,y) -> (x++"/",y)) (splitName fp)
+    setRef pathref path
     childwindow <- newRef Nothing
 
     main <- createToplevel [text title]
@@ -432,7 +437,7 @@ fileDialog' isNew title pathref =
     filesscb <- newScrollBar fileslist []
     status <- newLabel boxesnmsg [text "Welcome", relief Raised,
                                   font (Lucida, 12::Int), anchor Center]
-    file_var <- createTkVariable ""
+    file_var <- createTkVariable fn
     fileEntry <- newEntry main [bg "white", variable file_var]
                    :: IO (Entry String)
     buttons <- newFrame main []
