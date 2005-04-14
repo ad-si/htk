@@ -184,23 +184,28 @@ if test -z "$WISH"; then
 fi
 #
 # Check for daVinci
-if test -n "$UDRAWGRAPHHOME"; then
-   DAVINCI=$UDRAWGRAPHHOME/bin/uDrawGraph
-   echo Assuming UDRAWGARPH=$DAVINCI because of variable \$UDRAWGRAPHHOME
+if test -n "$UDG_HOME"; then
+   UDG=$UDG_HOME/bin/uDrawGraph
+   echo Assuming uDrawGraph to be $UDG because of variable \$UDG_HOME
    AC_SUBST(uDrawGraph)
 else if test -n "$DAVINCIHOME"; then
-   DAVINCI=$DAVINCIHOME/bin/daVinci
-   echo Assuming DAVINCI=$DAVINCI because of variable \$DAVINCIHOME
+   UDG=$DAVINCIHOME/bin/daVinci
+   echo Assuming DAVINCI=$UDG because of variable \$DAVINCIHOME
    AC_SUBST(daVinci)
    else
-   AC_PATH_PROGS(DAVINCI,uDrawGraph)
+   AC_PATH_PROGS(UDG,uDrawGraph daVinci)
    fi
 fi
 
-if test -z "$DAVINCI"; then
+if test -z "$UDG"; then
     echo "Without uDrawGraph you cannot run any of UniForM's graph-drawing programs"
-    DAVINCI="uDrawGraph"
+    UDG="uDrawGraph"
 fi
+
+# for compatibility
+DAVINCI=$UDG
+AC_SUBST(DAVINCI)
+
 #
 # 
 # Check for gnu tar and for zip
@@ -306,7 +311,7 @@ AC_SUBST(HAVE_MKDTEMP)
 # and incomplete attempt to escape any funny characters so we can
 # put them into util/default_options.c.  Note that we have to double-double
 # escape \ characters, once for sed and once for sh.
-DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
+DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$UDG --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
 s+"+\\\\"+g'`
 AC_SUBST(DEFAULTOPTIONS)
 

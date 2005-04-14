@@ -272,7 +272,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="mk/suffix.mk"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS BINARY BUILDAMOUNT TOP WINDOWS OSTITLE UNIVERSION CC SED LD GMAKE GHC GhcVersion GhcMajVersion GhcMinVersion GhcPatchLevel GhcShortVersion GHCPKG GHCHTML WISH uDrawGraph daVinci DAVINCI TAR ZIP HADDOCK GFIND CP LN MKDIR BDBDIR XEMACS GNUCLIENT LATEX XDVI ACROREAD LP MISSLATEX HAXML HAXMLINT CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT HAVE_MKDTEMP DEFAULTOPTIONS GHCTOP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS BINARY BUILDAMOUNT TOP WINDOWS OSTITLE UNIVERSION CC SED LD GMAKE GHC GhcVersion GhcMajVersion GhcMinVersion GhcPatchLevel GhcShortVersion GHCPKG GHCHTML WISH uDrawGraph daVinci UDG DAVINCI TAR ZIP HADDOCK GFIND CP LN MKDIR BDBDIR XEMACS GNUCLIENT LATEX XDVI ACROREAD LP MISSLATEX HAXML HAXMLINT CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT HAVE_MKDTEMP DEFAULTOPTIONS GHCTOP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1764,27 +1764,27 @@ if test -z "$WISH"; then
 fi
 #
 # Check for daVinci
-if test -n "$UDRAWGRAPHHOME"; then
-   DAVINCI=$UDRAWGRAPHHOME/bin/uDrawGraph
-   echo Assuming UDRAWGARPH=$DAVINCI because of variable \$UDRAWGRAPHHOME
+if test -n "$UDG_HOME"; then
+   UDG=$UDG_HOME/bin/uDrawGraph
+   echo Assuming uDrawGraph to be $UDG because of variable \$UDG_HOME
 
 else if test -n "$DAVINCIHOME"; then
-   DAVINCI=$DAVINCIHOME/bin/daVinci
-   echo Assuming DAVINCI=$DAVINCI because of variable \$DAVINCIHOME
+   UDG=$DAVINCIHOME/bin/daVinci
+   echo Assuming DAVINCI=$UDG because of variable \$DAVINCIHOME
 
    else
-   for ac_prog in uDrawGraph
+   for ac_prog in uDrawGraph daVinci
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_DAVINCI+set}" = set; then
+if test "${ac_cv_path_UDG+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  case $DAVINCI in
+  case $UDG in
   [\\/]* | ?:[\\/]*)
-  ac_cv_path_DAVINCI="$DAVINCI" # Let the user override the test with a path.
+  ac_cv_path_UDG="$UDG" # Let the user override the test with a path.
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
@@ -1794,7 +1794,7 @@ do
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_DAVINCI="$as_dir/$ac_word$ac_exec_ext"
+    ac_cv_path_UDG="$as_dir/$ac_word$ac_exec_ext"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -1804,26 +1804,31 @@ done
   ;;
 esac
 fi
-DAVINCI=$ac_cv_path_DAVINCI
+UDG=$ac_cv_path_UDG
 
-if test -n "$DAVINCI"; then
-  echo "$as_me:$LINENO: result: $DAVINCI" >&5
-echo "${ECHO_T}$DAVINCI" >&6
+if test -n "$UDG"; then
+  echo "$as_me:$LINENO: result: $UDG" >&5
+echo "${ECHO_T}$UDG" >&6
 else
   echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
-  test -n "$DAVINCI" && break
+  test -n "$UDG" && break
 done
 
    fi
 fi
 
-if test -z "$DAVINCI"; then
+if test -z "$UDG"; then
     echo "Without uDrawGraph you cannot run any of UniForM's graph-drawing programs"
-    DAVINCI="uDrawGraph"
+    UDG="uDrawGraph"
 fi
+
+# for compatibility
+DAVINCI=$UDG
+
+
 #
 #
 # Check for gnu tar and for zip
@@ -3523,7 +3528,7 @@ done
 # and incomplete attempt to escape any funny characters so we can
 # put them into util/default_options.c.  Note that we have to double-double
 # escape \ characters, once for sed and once for sh.
-DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
+DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$UDG --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
 s+"+\\\\"+g'`
 
 
@@ -4220,6 +4225,7 @@ s,@GHCHTML@,$GHCHTML,;t t
 s,@WISH@,$WISH,;t t
 s,@uDrawGraph@,$uDrawGraph,;t t
 s,@daVinci@,$daVinci,;t t
+s,@UDG@,$UDG,;t t
 s,@DAVINCI@,$DAVINCI,;t t
 s,@TAR@,$TAR,;t t
 s,@ZIP@,$ZIP,;t t
