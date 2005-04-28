@@ -1,0 +1,8 @@
+#!/bin/sh
+# pkill Coupling
+ln -sf ../CouplingServer CouplingTestServer
+cd `dirname $0`
+UNISERVERDIR=`pwd`
+export UNISERVERDIR
+./CouplingTestServer --uni-couplingDir=/home/amahnke/sfb/test/coupling/sfb-repos | tee -a coupling.log
+# ../testCouplingServer -port=11391
