@@ -682,6 +682,7 @@ importMMiSSPackage1 view parentLinkedObject filePathOpt0 =
                   return True
       )
 
+
 -- Some tiresome code to work out what to call the package in which we
 -- insert a bundle.  We look for an element 
 guessName :: Bundle -> PackageId -> WithError EntityName
@@ -761,6 +762,7 @@ findData filePathOpt0 =
          Just filePath ->
             do
                formatOpt <- case splitExtension filePath of
+                  Just (_,"ptx") -> return (Just LaTeX)
                   Just (_,"tex") -> return (Just LaTeX)
                   Just (_,"xml") -> return (Just XML)
                   Just (_,"omdox") -> return (Just XML)
