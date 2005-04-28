@@ -260,6 +260,7 @@ import Messages
 import FolderStructure
 import Imports
 
+import Debug
 import VersionDB
 import LinkDrawer
 import CodedValue
@@ -640,6 +641,8 @@ lookupLinkedObject :: View -> LinkedObject -> EntitySearchName
 lookupLinkedObject view linkedObject searchName =
    do
       importsState <- getImportsState view
+--       let contentSource = getContentsSource (folders importsState)
+--       debug ("LinkManager: importsSate: " ++ (show (folders importsState)))
       bracketForImportErrors2 importsState (
          do
             source <- lookupNode importsState linkedObject searchName

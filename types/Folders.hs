@@ -15,6 +15,7 @@ module Folders(
    mkFolderInsertion,
    lookupFileName,
    newEmptyFolder,
+   newEmptyFolder1, -- :: FolderType -> View -> LinkedObject -> String -> IO Bool
 
    FolderDisplayType(FolderDisplayType),
    createWithLinkedObject,
@@ -833,6 +834,36 @@ writeEmptyFolder view folderLink typeKey =
                writeLink view folderLink folder
          else
             done
+
+
+newEmptyFolder1 :: FolderType -> View -> LinkedObject -> String
+   -> IO (Maybe LinkedObject)
+newEmptyFolder1 folderType view parentLinkedObject name =
+    do
+       hideFolderArcs <- mkArcsHiddenSource
+       emptyAttributes <- newEmptyAttributes view
+       linkOpt <- createLinkedObjectChild view parentLinkedObject (EntityName name)
+          (\ linkedObject ->
+             do
+                openContents <- newOpenContents view linkedObject
+                let
+                   folder =
+                      Folder {
+                         folderType = folderType,
+                         attributes = emptyAttributes,
+                         linkedObject = linkedObject,
+                         openContents = openContents,
+                         hideFolderArcs = hideFolderArcs
+                         }
+                return folder
+             )
+       case linkOpt of
+         Nothing -> return(Nothing)
+         Just folderLink -> 
+           do folder <- readLink view folderLink
+              return (Just(toLinkedObject folder))
+
+
 -- | Making an insertion into a folder
 mkFolderInsertion :: Folder -> EntityName -> Insertion
 mkFolderInsertion folder = mkInsertion (linkedObject folder)
