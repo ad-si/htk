@@ -1,0 +1,9 @@
+#!/bin/sh
+# Send a PS file to a printer.
+# 
+# Argument 1 = working directory
+# Argument 2 = name of PS file.
+# Argument 3 = if set, name of the printer.
+cd /home/amahnke/sfb/test/coupling/sfb-repos
+exec   svn up
+
