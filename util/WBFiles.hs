@@ -138,8 +138,12 @@ module WBFiles (
 
    getXMLPort, -- IO Int
 
+   getCouplingPort, -- IO Int
+
    -- getWorkingDir trims a right-file-separator from its argument, if any.
    getWorkingDir, -- :: IO String
+
+   getCouplingDir, -- :: IO String
 
    -- getDebugFileName returns the name of the debug file.
    getDebugFileName, -- IO String
@@ -331,6 +335,13 @@ getUser = getArgString "user"
 getPassword :: IO (Maybe String)
 getPassword = getArgString "password"
 
+getCouplingPort :: IO Int
+getCouplingPort = valOf "couplingPort" (getArgInt "couplingPort")
+
+getCouplingDir ::  IO String
+getCouplingDir = valOf "couplingDir" (getArgString "couplingDir")
+
+
 ------------------------------------------------------------------------
 -- ProgramArgument and usualProgramArguments.
 ------------------------------------------------------------------------
@@ -457,6 +468,18 @@ usualProgramArguments = [
       argType = INT
       },
    ProgramArgument{
+      optionName = "couplingPort",
+      optionHelp = "port for the coupling server",
+      defaultVal = Just (IntValue defaultCouplingPort),
+      argType = INT
+      },
+   ProgramArgument{
+      optionName = "couplingDir",
+      optionHelp = "directory where the coupling server finds the working copy of foreign repository",
+      defaultVal = Nothing,
+      argType = STRING
+      },
+   ProgramArgument{
       optionName = "debug",
       optionHelp = "file for debug output",
       defaultVal = Just (StringValue "/tmp/uniform.DEBUG"),
@@ -471,6 +494,8 @@ defaultPort = 11393
 defaultXMLPort :: Int
 defaultXMLPort = 11396
 
+defaultCouplingPort :: Int
+defaultCouplingPort = 11391
 
 ------------------------------------------------------------------------
 -- Argument Types
