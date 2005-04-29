@@ -1,0 +1,5 @@
+PACKAGES = uni-mmiss uni-davinci
+
+SRCS       = MainCouplingServer.hs TestCouplingServer.hs
+
+include @TOP@/mk/boilerplate.mk
