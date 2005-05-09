@@ -72,7 +72,13 @@ main =
       portDesc <- getCouplingPort
       portNumber <- getPortNumber portDesc
       couplingDir <- getCouplingDir
+      reposServerOpt <- getServer
+      reposPort <- getPort
+      let
+         reposServer = fromMaybe "localhost" reposServerOpt
+ 
       socket <- listenOn (PortNumber portNumber)
+
       let
          serverAction =
             do
@@ -80,21 +86,21 @@ main =
 
 --               hSetBuffering handle (BlockBuffering (Just 4096))
                hSetBuffering handle LineBuffering
-               forkIO (mainHandle handle hostName couplingDir)
+               forkIO (mainHandle handle hostName couplingDir reposServer reposPort)
                
                serverAction
  
       serverAction
 
-mainHandle :: Handle -> String -> String -> IO ()
-mainHandle handle hostName couplingDir =
+mainHandle :: Handle -> String -> String -> String -> Int -> IO ()
+mainHandle handle hostName couplingDir server port =
    do
-      userWE <- addFallOutWE (\ break -> breakOtherExceps break (
+      userPasswordWE <- addFallOutWE (\ break -> breakOtherExceps break (
          do
             service <- hGetLine handle
 --            service <- coerceWithErrorOrBreakIO break serviceWE
 
-            userId <- hGetLine handle
+            userStr <- hGetLine handle
 --            userId <- coerceWithErrorOrBreakIO break userIdWE
 
             password <- hGetLine handle
@@ -109,7 +115,7 @@ mainHandle handle hostName couplingDir =
             let
                authError = break "Unable to authenticate user"
 
-            userOpt <- getUserEntry userId
+            userOpt <- getUserEntry userStr
             user <- case userOpt of
                Nothing -> authError
                Just user -> return user
@@ -118,7 +124,7 @@ mainHandle handle hostName couplingDir =
                (encryptedPassword user)
             if passwordOK 
                then
-                  return user
+                  return (userStr,password)
                else
                   authError
          ))
@@ -128,15 +134,15 @@ mainHandle handle hostName couplingDir =
 
       Control.Exception.try ( 
          -- general wrapper to catch IO errors
-         case fromWithError userWE of
-            Right user ->
+         case fromWithError userPasswordWE of
+            Right (user,pwd) ->
                do
                   top <- getTOP
 
                   clockTime <- getClockTime
                   calendarTime <- toCalendarTime clockTime
                   putStrLn "-----------------------------------------------------------"
-                  putStrLn (userId user ++ "@" ++ hostName ++ ":"
+                  putStrLn (user ++ "@" ++ hostName ++ ":"
                              ++ calendarTimeToString calendarTime) 
                   let 
                     scriptDir = (trimDir top) `combineNames`
@@ -154,7 +160,7 @@ mainHandle handle hostName couplingDir =
                       do
                         hPutStrLn handle "OK"
                         hFlush handle
-                        versionGraph <- connectToReposServer user
+                        versionGraph <- connectToReposServer user pwd server port
                         lastVersion <- getLastVersion versionGraph 
                         let 
                           userInfo = VersionInfo.user lastVersion
@@ -179,7 +185,7 @@ mainHandle handle hostName couplingDir =
                                   putStrLn ("Update finished. New version is: " ++ (show newVersion))
                                   putStrLn "Successfully re/imported packages:"
                                   mapM_ (\ path -> putStrLn path) paths
-                                  mapM_ (doExport view couplingDir) packages
+                                  mapM_ (doExport view couplingDir couplingMess) packages
                                   mapM_ (doAddPackage scriptDir) packages 
                                   let
                                      commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
@@ -213,8 +219,8 @@ mainHandle handle hostName couplingDir =
          exitcode <- system dosvnadd
          return()
 
-     doExport :: View -> String -> EntityFullName -> IO()
-     doExport view couplingDir packagePath = 
+     doExport :: View -> String -> CouplingMessages -> EntityFullName -> IO()
+     doExport view couplingDir messages packagePath = 
         do
           linkedObjectOpt <- getLinkedObject view packagePath
           case linkedObjectOpt of
@@ -232,8 +238,10 @@ mainHandle handle hostName couplingDir =
                        case  packageLinkOpt of
                          Nothing -> importExportError "doExport: Could not find package object inside package folder."
                          Just link -> exportMMiSSObjectNoFiles  view link filename
-
-
+                       let
+                          errFilename = couplingDir `combineNames` ((toString packagePath) ++ ".ptx.err")
+                       result <- printMessages messages (Just errFilename) False
+                       done
 
 {-- doUpdates nimmt zeilenweise Namen von mmisslatex-Package-Files (mit komplettem Pfad
 zum Root-Verzeichnis entgegen und importiert diese, falls sie noch nicht im Repos. waren
@@ -335,7 +343,7 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
              dosvnadd = scriptDir `combineNames` ("dosvnadd " ++ (completePath ++ ".err"))
           hFlush handle
           hFlush stdout
-          result <- try (printMessages messages (Just (completePath ++ ".err")))
+          result <- try (printMessages messages (Just (completePath ++ ".err")) False)
           exitcode <- 
             case importedPackageOpt of
                Nothing -> return(ExitSuccess)
@@ -359,13 +367,19 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
 -- ----------------------------------------------------------------------
 
 
-connectToReposServer :: User -> IO (VersionGraph)
-connectToReposServer user =
+connectToReposServer :: String -> String -> String -> Int -> IO (VersionGraph)
+connectToReposServer user password server port =
    do
-      hostPortWE <- fromHostDescription1 "localhost:11390" 
+      putStrLn ("Repository Server is: " ++ server)
+      putStrLn ("Repository Port is: " ++ (show port))
+      putStrLn ("Repository User is: " ++ user)
+      putStrLn ("Repository Password is: " ++ password)
+      hFlush stdout
+
+      hostPortWE <- fromHostDescription1 (server ++ ":" ++ (show port)) 
                        (HostsPorts.LoginInfo {
-                        HostsPorts.user = "test01",
-                        HostsPorts.password = "test01"
+                        HostsPorts.user = user,
+                        HostsPorts.password = password
                         })
       hostPort <- coerceWithErrorOrBreakIO importExportError hostPortWE
 
@@ -574,9 +588,9 @@ newCouplingMessages =
       return (CouplingMessages mVar)
 
 
-printMessages :: CouplingMessages -> Maybe String -> IO ()
+printMessages :: CouplingMessages -> Maybe String -> Bool -> IO ()
 
-printMessages (CouplingMessages mVar) filenameOpt =
+printMessages (CouplingMessages mVar) filenameOpt append =
   do  couplingMessagesValue <- readMVar mVar
       let
          messageList = messages couplingMessagesValue
@@ -593,15 +607,19 @@ printMessages (CouplingMessages mVar) filenameOpt =
               Nothing -> done
               Just filename ->
                 do
-                  result <- try (openFile filename WriteMode)
+                  result <- if append 
+                              then try (openFile filename AppendMode)
+                              else try (openFile filename WriteMode)
                   case result of
-                    Left err -> done
+                    Left err -> do
+                                  putStrLn ("Error opening output file: " ++ filename)
+                                  hFlush stdout
                     Right handle ->
                       do 
                         mapM_ (\ (mtype, str) ->
-                                   if ((mtype == Error) || (mtype == Alert))
-                                     then hPutStrLn handle ((show mtype) ++ ": " ++ str)
-                                     else return()
+                                      if ((mtype == InfoMessage) || (mtype == Confirm))
+                                        then return()
+                                        else hPutStrLn handle ((show mtype) ++ ": " ++ str)
                               )
                               messageList
                         hClose handle
