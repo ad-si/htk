@@ -113,7 +113,8 @@ mainHandle handle hostName couplingDir server port =
                   done
 
             let
-               authError = break "Unable to authenticate user"
+               authError = break ("Unable to authenticate user: '" ++ userStr ++ "' with password '"
+                                  ++ password  ++ "' for Service '" ++ service ++ "'")
 
             userOpt <- getUserEntry userStr
             user <- case userOpt of
@@ -201,6 +202,7 @@ mainHandle handle hostName couplingDir server port =
             Left mess ->
                do
                   putStrLn (hostName ++ ": Connection failed")
+                  putStrLn mess
                   hFlush stdout
                   writeString handle ("ERROR: " ++ mess)
                   hClose handle
