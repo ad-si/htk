@@ -1,6 +1,13 @@
 module MMiSSOntologyGraph (
-  displayClassGraph 
-  -- MMiSSOntology -> IO ()
+  displayClassGraph,
+  -- :: MMiSSOntology -> IO ()
+  getPureClassGraph,
+  --  :: Gr (String,String,OntoObjectType) String -> Gr (String,String,OntoObjectType) String
+  addObjectsForGraph,
+  --  :: MMiSSOntology -> Gr (String, String, OntoObjectType) String ->
+  --                          -> Gr (String, String, OntoObjectType) String
+  graphviz,
+  Orient(..),
 )
 where
 
@@ -12,14 +19,16 @@ import IORef
 import Char
 
 import DaVinciGraph
-import GraphDisp
+import GraphDisp (emptyArcTypeParms, emptyNodeTypeParms)
 import GraphConfigure
 import qualified HTk as H
 import qualified SimpleForm as S
 import MMiSSOntology
 
-import Data.Graph.Inductive
-import Data.Graph.Inductive.Query.TransClos
+import Data.Graph.Inductive.Graph
+import Data.Graph.Inductive.Basic
+import Data.Graph.Inductive.Tree
+import Data.Graph.Inductive.Query.DFS
 
 import qualified AbstractGraphView as A
 
@@ -40,6 +49,11 @@ displayClassGraph onto startClass =
        A.makegraph (getOntologyName onto)
            [GlobalMenu (Button "Knopf2" (putStrLn "Knopf2 wurde gedrückt"))]
            [("class", Box $$$ Color "azure2" $$$
+                   createLocalMenu onto ginfo main
+                   $$$ ValueTitle ( \ (name,descr,gid) -> return name) $$$
+                   emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
+            ),
+            ("predicate", Box $$$ Color "#ffd300" $$$
                    createLocalMenu onto ginfo main
                    $$$ ValueTitle ( \ (name,descr,gid) -> return name) $$$
                    emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
@@ -138,6 +152,7 @@ updateDaVinciGraph newGraph gid gv =
 	where
           getTypeLabel OntoClass = "class"
           getTypeLabel OntoObject = "object"
+          getTypeLabel OntoPredicate = "predicate"
 	  createNode :: Int -> A.GraphInfo -> Gr (String,String,OntoObjectType) String -> 
                           A.NodeMapping -> LNode (String, String, OntoObjectType) -> IO (A.NodeMapping)
 	  createNode gid ginfo oldGraph nMap (nodeID, (name, className, objectType)) = 
@@ -160,9 +175,11 @@ updateDaVinciGraph newGraph gid gv =
 			      Just(n) -> return(n)                        
 	       if ((dNodeID_1 == -1) || (dNodeID_2 == -1))
 		 then return nMap
-		 else do A.Result eid err <- if (edgeLabel == "isa") || (edgeLabel == "instanceOf")
-					       then A.addlink gid edgeLabel edgeLabel dNodeID_2 dNodeID_1 ginfo 
-					       else A.addlink gid edgeLabel edgeLabel dNodeID_1 dNodeID_2 ginfo 
+		 else do A.Result eid err <- 
+                            if (edgeLabel == "isa") || (edgeLabel == "instanceOf") || (edgeLabel == "livesIn") || (edgeLabel == "proves")
+                              then A.addlink gid edgeLabel edgeLabel dNodeID_2 dNodeID_1 ginfo 
+--		              else A.addlink gid edgeLabel edgeLabel dNodeID_2 dNodeID_1 ginfo 
+		              else A.addlink gid edgeLabel edgeLabel dNodeID_1 dNodeID_2 ginfo 
                          case err of
                            Nothing -> return()
                            Just(str) -> putStr str
@@ -192,18 +209,28 @@ showObjectsForVisible onto gv (name,descr,gid) =
        Nothing -> return()
        Just g ->
          do oldGraph <- return(A.ontoGraph g)
-            let classesInOldGraph = map (\(_,_,(className,_,_),_) -> className)
-                                        (filter (\(_,_,(_,_,objectType),_) -> objectType == OntoClass)  
-                                             (map (context oldGraph) (nodes oldGraph)))
-                objectList = map (\(nid,_) -> nid) 
-                                 (filter (findObjectsOfClass classesInOldGraph) 
-                                            (getTypedNodes (getClassGraph onto) OntoObject))
-                objectGr = nfilter (`elem` objectList) (getClassGraph onto)
-            updateDaVinciGraph (makeObjectGraph oldGraph (getPureClassGraph (getClassGraph onto)) objectGr) gid gv
+	    newGraph <- return (addObjectsForGraph onto oldGraph)
+            updateDaVinciGraph newGraph gid gv
             A.redisplay gid gv
             return () 
-  where
-    findObjectsOfClass classList (_,(_,className,_)) = className `elem` classList
+
+
+findObjectsOfClass :: [String] -> LNode (String, String, OntoObjectType) -> Bool 
+findObjectsOfClass classList (_,(_,className,_)) = className `elem` classList
+
+
+addObjectsForGraph :: MMiSSOntology -> Gr (String, String, OntoObjectType) String
+                           -> Gr (String, String, OntoObjectType) String
+
+addObjectsForGraph onto oldGraph =
+    let classesInOldGraph = map (\(_,_,(className,_,_),_) -> className)
+				(filter (\(_,_,(_,_,objectType),_) -> objectType == OntoClass)  
+				     (map (context oldGraph) (nodes oldGraph)))
+	objectList = map (\(nid,_) -> nid) 
+			 (filter (findObjectsOfClass classesInOldGraph) 
+				    (getTypedNodes (getClassGraph onto) OntoObject))
+	objectGr = nfilter (`elem` objectList) (getClassGraph onto)
+    in makeObjectGraph oldGraph (getPureClassGraph (getClassGraph onto)) objectGr
 
 
 showWholeObjectGraph :: MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
@@ -271,13 +298,15 @@ showWholeClassGraph onto gv (name, descr, gid) =
 showRelationsToNeighbors :: MMiSSOntology -> A.GraphInfo -> Bool -> [String] -> (String, Int, Int) -> IO ()
 showRelationsToNeighbors onto gv withIncoming rels (name, _, gid) =
   do oldGv <- readIORef gv
-     (A.Result descr error) <- purgeGraph gid gv
+--     (A.Result descr error) <- purgeGraph gid gv
      updateDaVinciGraph (reduceToNeighbors (getClassGraph onto) withIncoming name rels) gid gv
-     case error of
-       Just _ -> do writeIORef gv oldGv
-		    return ()
-       Nothing -> do A.redisplay gid gv
-		     return () 
+     writeIORef gv oldGv
+     return ()
+--     case error of
+--       Just _ -> do writeIORef gv oldGv
+--		    return ()
+--       Nothing -> do A.redisplay gid gv
+--		     return () 
 
 
 reduceToNeighbors :: Gr (String,String,OntoObjectType) String -> Bool -> String -> [String] 
@@ -303,14 +332,16 @@ reduceToNeighbors g withIncoming name forbiddenRels =
 showAllRelations :: MMiSSOntology -> A.GraphInfo -> Bool -> [String] -> (String, Int, Int) -> IO ()
 showAllRelations onto gv withIncoming rels (name, _, gid) =
   do oldGv <- readIORef gv
-     (A.Result descr error) <- purgeGraph gid gv
+--     (A.Result descr error) <- purgeGraph gid gv
      newGr <- return(reduceToRelations (getClassGraph onto) empty withIncoming rels name)     
      updateDaVinciGraph newGr gid gv
-     case error of
-       Just _ -> do writeIORef gv oldGv
-		    return ()
-       Nothing -> do A.redisplay gid gv
-		     return () 
+     writeIORef gv oldGv
+     return ()
+--     case error of
+--       Just _ -> do writeIORef gv oldGv
+--		    return ()
+--      Nothing -> do A.redisplay gid gv
+--		     return () 
 
 
 {--
@@ -341,9 +372,10 @@ reduceToRelations wholeGraph g withIncoming forbiddenRels name =
           let nodeList = if (withIncoming == True) 
                            then udfs [selectedNode] g1
                            else dfs [selectedNode] g1
-              toDelete = (nodes g1) \\ nodeList
-              g2 = mergeGraphs (delNodes toDelete g1) g
-              newNodesList = (nodeList \\ (nodes g))
+              toDelete = ((nodes g1) \\ nodeList)
+              g1' = (delNodes toDelete g1)
+              g2 =  mergeGraphs g1' g
+              newNodesList = (nodeList \\ (nodes g)) 
           in if (newNodesList == [])
                then g2
                else foldl (followRelationOverSubClasses wholeGraph withIncoming forbiddenRels) g2 newNodesList 
@@ -370,7 +402,7 @@ followRelationOverSubClasses wholeGraph withIncoming forbiddenRels g selectedNod
  where 
    transClosureForNode wGraph withIncoming forbiddenRels g node =    
      let (name,_,_) = lab' (context wGraph node)
-     in  reduceToRelations wholeGraph g withIncoming forbiddenRels name
+     in reduceToRelations wholeGraph g withIncoming forbiddenRels name
 
 {--
     insEdgeSecurely gr (node1,node2,label) = 
@@ -575,10 +607,17 @@ createEdgeTypes g = map createEdgeType ((nub (map (\(_,_,l) -> l) (labEdges g)))
                Dotted
                $$$ Dir "first"
                $$$ emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
+        "contains" ->
+             (str,
+              Solid
+              $$$ Head "arrow"
+              $$$ ValueTitle (\ (name, _) -> return name)
+              $$$ emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
         otherwise ->
              (str,
               Solid
               $$$ Head "arrow"
+              $$$ Dir "first"
               $$$ ValueTitle (\ (name, _) -> return name)
 --               $$$ TitleFunc (\ (name, _) -> name)
               $$$ emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
@@ -738,3 +777,82 @@ showRelationDialog parentContainer onto gv (name,descr,gid) =
       (S.newFormEntry relname ()) S.\\
       (S.newFormEntry "" b1) S.\\
       (S.newFormEntry "" b2)
+
+
+
+{----------------------------------------------------------------------------------
+
+  Functions for generating Graphviz graphs
+----------------------------------------------------------------------------------}
+
+data Orient = Portrait | Landscape deriving (Eq, Show)
+
+o2s :: Orient -> String
+o2s Portrait = "\trotate = \"0\"\n"
+o2s Landscape = "\trotate = \"90\"\n"
+
+-- | Formats a graph for use in graphviz.
+graphviz :: (Graph g, Show a, Show b) =>    g a b   -- ^ The graph to format
+					 -> String  -- ^ The title of the graph
+					 -> (Double, Double)	-- ^ The size
+								-- of the page
+					 -> (Int, Int)	-- ^ The width and
+							-- height of the page
+							-- grid
+					 -> Orient  -- ^ The orientation of
+						    -- the graph.
+                                         -> (a -> String)   -- function for generating node attributes
+                                         -> (b -> String)   -- function for generating edge attributes
+					 -> String
+
+
+i2d :: Int -> Double
+i2d = fromInteger . toInteger
+
+graphviz g t (w, h) p@(pw', ph') o nodef edgef =
+    let n = labNodes g
+	e = labEdges g
+	ns = concatMap (sn nodef) n
+	es = concatMap (se edgef) e
+	sz w' h' = if o == Portrait then show w'++","++show h' else show h'++","++show w'
+	ps = show w++","++show h
+	(pw, ph) = if o == Portrait then p else (ph', pw')
+	--gs = show ((w*(i2d pw))-m)++","++show ((h*(i2d ph))-m)
+	gs = sz (w*(i2d pw)) (h*(i2d ph))
+    in "digraph "++t++" {\n"
+            ++"\tranksep = \"0.4 equally\""
+--	    ++"\tmargin = \"0\"\n"
+--	    ++"\tpage = \""++ps++"\"\n"
+--	    ++"\tsize = \""++gs++"\"\n"
+--	    ++o2s o
+--	    ++"\tratio = \"fill\"\n"
+	    ++ns
+	    ++es
+	++"}"
+    where sn f (n, a) | sa == ""	= ""
+		      | otherwise	= '\t':(show n ++ " " ++ sa ++ "\n")
+	    where sa = sl1 a f
+	  se f (n1, n2, b) = '\t':(show n1 ++ " -> " ++ show n2 ++ (sl1 b f) ++ "\n")
+
+-- | Format a graph for graphviz with reasonable defaults: title of \"fgl\",
+-- 8.5x11 pages, one page, landscape orientation
+-- graphviz' :: (Graph g, Show a, Show b) => g a b -> String
+-- graphviz' g = graphviz g "MMiSS Ontology Graph" (8.5,11.0) (1,1) Landscape
+
+sq :: String -> String
+sq ('"':s) | last s == '"'  = init s
+	   | otherwise	    = s
+sq ('\'':s) | last s == '\''	= init s
+	    | otherwise		= s
+sq s = s
+
+sl :: (Show a) => a -> (a -> String) -> String
+sl a f =
+    let l = sq (show a)
+        atts = f a
+    in if (l /= "()") then (" [label = \" "++l++"\"" ++ atts ++ "]") else ""
+
+sl1 :: (Show a) => a -> (a -> String) -> String
+sl1 a f =
+    let atts = f a
+    in if (atts /= "()") then (" [" ++ atts ++ "]") else ""

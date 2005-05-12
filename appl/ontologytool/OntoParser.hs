@@ -16,10 +16,9 @@ where
 
 import MMiSSOntology
 import Computation hiding (try)
-import Parsec
-import ParsecError
-import List
-import System
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Error
+import Data.Maybe
 
 type Other = String
 
@@ -99,7 +98,7 @@ generateOntology onto [] = hasValue(onto)
 generateOntology onto (f:fs) =
   let weOnto = case f of
 		ClassDeclFrag (ClassDecl name defaultText super) -> 
-		  insertClass onto name defaultText super
+		  insertClass onto name defaultText (maybeToList super) Nothing
 
 		ObjectDeclFrag (ObjectDecl name defaultText instanceOf) -> 
 		  insertObject onto name defaultText instanceOf
@@ -107,8 +106,8 @@ generateOntology onto (f:fs) =
 		RelationDeclFrag (RelationDecl cardValue name defaultText sourceClass targetClass) -> 
 		  let weOnto = insertBaseRelation onto name defaultText Nothing cardValue 
 		  in case fromWithError weOnto of
-		       Left err -> weOnto
-		       Right o -> insertRelationType o name sourceClass targetClass
+                       Left err -> weOnto
+                       Right o -> insertRelationType o name sourceClass targetClass
 
 		BaseRelationDeclFrag (BaseRelationDecl cardValue name defaultText superRel) ->
 		  insertBaseRelation onto name defaultText superRel cardValue 
@@ -121,10 +120,9 @@ generateOntology onto (f:fs) =
 
 		otherwise -> hasValue(onto)
   
-  in case fromWithError weOnto of
-       Left err -> weOnto
+  in case fromWithError weOnto of 
+       Left err -> weOnto 
        Right o -> generateOntology o fs
-
 
 
 -- frag ist der eigentliche Parser für Fragmente. Als ersten Parameter bekommt er eine Liste der

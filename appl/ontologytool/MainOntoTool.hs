@@ -8,22 +8,22 @@ import IO
 import System
 import List
 
-import Computation
-import AtomString
+-- import Computation
+-- import AtomString
 import OntoParser
 import MMiSSOntology
 import MMiSSOntologyGraph
-import Data.Graph.Inductive.Graphviz
+import Data.Graph.Inductive.Graph
 
-import Events
+-- import Events
 -- import Destructible
 -- import InfoBus
 
 import HTk
-import SimpleForm
-import DialogWin
+-- import SimpleForm
+-- import DialogWin
 
-
+main :: IO()
 main =
    do args <- System.getArgs
       if ((length (elemIndices "--help" args)) > 0)
@@ -63,7 +63,14 @@ main =
              in do putStr str 
                    done
         else if ((length (elemIndices "-dot" args)) > 0)
-               then let str = (graphviz' (getClassGraph onto))
+               then let g = addObjectsForGraph onto (getPureClassGraph (getClassGraph onto))
+                        str = (graphviz  (revdir g)
+                                         (getOntologyName onto) 
+                                         (8.5,11.0) 
+                                         (1,1) 
+                                         Landscape 
+                                         (graphvizNodeAtts onto)
+                                         (graphvizEdgeAtts onto))
                     in do putStr str 
                           done
         else done
@@ -72,3 +79,7 @@ main =
                 getLine
                 done
         else done
+
+
+revdir :: DynGraph gr => gr a b -> gr a b
+revdir = gmap (\(p,v,l,s)-> (s,v,l,p))
