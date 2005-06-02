@@ -1,6 +1,6 @@
 module MMiSSOntologyGraph (
   displayClassGraph,
-  -- :: MMiSSOntology -> IO ()
+  -- :: MMiSSOntology -> Maybe String -> Maybe String -> IO ()
   getPureClassGraph,
   --  :: Gr (String,String,OntoObjectType) String -> Gr (String,String,OntoObjectType) String
   addObjectsForGraph,
@@ -17,10 +17,16 @@ import Data.List
 import Monad
 import IORef
 import Char
+import System
+import SafeSystem
+import Maybe
 
 import DaVinciGraph
-import GraphDisp (emptyArcTypeParms, emptyNodeTypeParms)
+import DaVinciBasic
+import qualified DaVinciTypes  as D
+import qualified GraphDisp as G
 import GraphConfigure
+
 import qualified HTk as H
 import qualified SimpleForm as S
 import MMiSSOntology
@@ -33,41 +39,46 @@ import Data.Graph.Inductive.Query.DFS
 import qualified AbstractGraphView as A
 
 
-displayClassGraph :: MMiSSOntology -> Maybe String -> IO ()
-
-displayClassGraph onto startClass =
+displayClassGraph :: MMiSSOntology -> Maybe String -> Maybe String -> IO ()
+--                   Ontology  -> Name of start node -> Path to PDF file containing Defs for this ontology 
+displayClassGraph onto startClassOpt pdfFileOpt =
   do main <- H.initHTk []
      ginfo <- A.initgraphs
 --     emptyRelViewSpec <- return(map (\(relname) -> RelViewSpec relname False False)
 --                                    (getRelations onto))
-     classGraph <- case startClass of 
+     classGraph <- case startClassOpt of 
                      Nothing -> return (getPureClassGraph (getClassGraph onto))
                      Just(className) -> case (gsel (\(p,v,(l,_,_),s) -> l == className) (getClassGraph onto)) of
                                           [] -> return (getPureClassGraph (getClassGraph onto))
                                           ((p,v,l,s):_) -> return(([],v,l,[]) & empty)
      A.Result gid err <-
        A.makegraph (getOntologyName onto)
-           [GlobalMenu (Button "Knopf2" (putStrLn "Knopf2 wurde gedrückt"))]
+           [GlobalMenu (Button "Set Focus To Name" (putStrLn "Nothing"))]
            [("class", Box $$$ Color "azure2" $$$
                    createLocalMenu onto ginfo main
                    $$$ ValueTitle ( \ (name,descr,gid) -> return name) $$$
-                   emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
+                   G.emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
             ),
             ("predicate", Box $$$ Color "#ffd300" $$$
                    createLocalMenu onto ginfo main
                    $$$ ValueTitle ( \ (name,descr,gid) -> return name) $$$
-                   emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
+                   G.emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
             ),
             ("object", Box  $$$ Color "#ffffA0" $$$
                    createLocalMenu onto ginfo main
                    $$$ ValueTitle ( \ (name,descr,gid) -> return name) $$$
-                   emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
+                   G.emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
             )]
            (createEdgeTypes (getClassGraph onto))
            []
            ginfo
      updateDaVinciGraph classGraph gid ginfo
      setEmptyRelationSpecs gid ginfo onto
+     ok <- case pdfFileOpt of
+              Just(str) -> do
+                             setPDFFilename gid ginfo str
+                             return(True)
+              Nothing -> return(False)
      A.Result gid _ <- A.redisplay gid ginfo
      return()
 --     A.Result eid err2 <- addlink gid "relation" "RelationTitle" nid1 nid2 ginfo
@@ -79,6 +90,16 @@ displayClassGraph onto startClass =
 emptyNodeMap :: A.NodeMapping
 emptyNodeMap = emptyFM 
 --}
+
+setPDFFilename :: A.Descr -> A.GraphInfo -> String -> IO ()
+setPDFFilename gid gv filename =
+  do (gs,_) <- readIORef gv
+     case lookup gid gs of
+       Nothing -> return()
+       Just g ->
+	 do A.Result gid err <- A.writePDFFilename gid filename gv
+            return()
+
 
 setEmptyRelationSpecs :: A.Descr -> A.GraphInfo -> MMiSSOntology -> IO ()
 setEmptyRelationSpecs gid gv onto =
@@ -472,6 +493,58 @@ purgeThisNode onto gv (name, descr, gid) =
                                   A.redisplay gid gv        
                                   return()
 
+openPDF :: MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
+openPDF onto gv (name, desc, gid) =
+  do (gs,_) <- readIORef gv
+     case lookup gid gs of
+       Nothing -> return()
+       Just g ->
+        do filename <- return(A.pdfFilename g)
+           if (filename == "")
+             then return()
+             else do
+                    let
+                       url = "mozilla file://" ++ filename  ++ "#nameddest=" ++ name
+                    exitcode <- safeSystem url
+                    return()
+
+
+{--
+setFocusToNode :: MMiSSOntology -> String -> A.GraphInfo -> (String, Int, Int) -> IO ()
+setFocusToNode onto nodeName gv (name, desc, gid) =
+  do (gs,_) <- readIORef gv
+     case lookup gid gs of
+       Nothing -> return()
+       Just g ->
+          do daVinciGraphOpt <- A.getDaVinciGraph gid gv 
+             case daVinciGraphOpt of
+                Nothing -> return()
+                Just(d) -> 
+                  do oldGraph <- return(A.ontoGraph g)
+                     nMap <- return(A.nodeMap g)           
+                     con <- return(getDaVinciGraphContext d)
+                     nodeIDOpt <- A.getDaVinciNodeID gid desc gv
+                     case  nodeIDOpt of
+                        Nothing -> return()
+                        Just(nodeID) -> doInContext (D.Special (D.FocusNodeAnimated (D.NodeId nodeID))) con 
+--}
+
+setFocusToNode :: MMiSSOntology -> String -> A.GraphInfo -> (String, Int, Int) -> IO (Bool)
+setFocusToNode onto nodeName gv (name, desc, gid) =
+  do (gs,_) <- readIORef gv
+     case lookup gid gs of
+       Nothing -> return(False)
+       Just g -> 
+         do oldGraph <- return(A.ontoGraph g)
+            nMap <- return(A.nodeMap g)           
+            case findLNode oldGraph nodeName of
+               Nothing -> return(False)
+               Just(nodeID) -> 
+                  case lookupFM nMap nodeID of
+                    Nothing -> return(False)
+                    Just(n) ->  do
+                                   A.setFocusToNode gid n gv 
+                                   return(True)
 
 showSuperSubClasses :: MMiSSOntology -> A.GraphInfo -> Bool -> Bool -> (String, Int, Int) -> IO ()
 showSuperSubClasses onto gv showSuper transitive (name, descr, gid) =
@@ -601,18 +674,18 @@ createEdgeTypes g = map createEdgeType ((nub (map (\(_,_,l) -> l) (labEdges g)))
                Thick
                $$$ Head "oarrow"
                $$$ Dir "first"
-               $$$ emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
+               $$$ G.emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
         "instanceOf" ->
              ("instanceOf", 
                Dotted
                $$$ Dir "first"
-               $$$ emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
+               $$$ G.emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
         "contains" ->
              (str,
               Solid
               $$$ Head "arrow"
               $$$ ValueTitle (\ (name, _) -> return name)
-              $$$ emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
+              $$$ G.emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
         otherwise ->
              (str,
               Solid
@@ -620,7 +693,7 @@ createEdgeTypes g = map createEdgeType ((nub (map (\(_,_,l) -> l) (labEdges g)))
               $$$ Dir "first"
               $$$ ValueTitle (\ (name, _) -> return name)
 --               $$$ TitleFunc (\ (name, _) -> name)
-              $$$ emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
+              $$$ G.emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
 
 
 createLocalMenu onto ginfo mainWindow =
@@ -638,6 +711,7 @@ createLocalMenu onto ginfo mainWindow =
                                   Blank] ++ (createRelationMenuButtons True (getRelationNames onto) onto ginfo)))
                              ])
                            ])
+                          ,Button "Open definition in PDF file" (openPDF onto ginfo)
                           ,(Menu (Just "Show adjacent") 
                              [Button "Subclasses" (showSuperSubClasses onto ginfo False False),
                               Button "Sub/Superclasses" (showSuperSubClasses onto ginfo True False),
@@ -667,9 +741,10 @@ createLocalMenu onto ginfo mainWindow =
                       ),
                       Button "Show whole class graph" (showWholeClassGraph onto ginfo),
                       Button "Show whole object graph" (showWholeObjectGraph onto ginfo),
-                      Button "Show relations" (showRelationDialog mainWindow onto ginfo),
+--                      Button "Show relations" (showRelationDialog mainWindow onto ginfo),
                       Button "Reduce to this node" (reduceToThisNode onto ginfo),
-                      Button "Delete this node" (purgeThisNode onto ginfo)
+                      Button "Delete this node" (purgeThisNode onto ginfo),
+                      Button "Jump to ..." (showSetFocusDialog mainWindow onto ginfo)
                       ]
                      ))
 
@@ -756,6 +831,22 @@ createRelationDialog parentContainer rvs =
          H.grid cb2 [H.GridPos (2,lineNr), H.Sticky H.E]
          return(lineNr + 1)
 --}
+
+showSetFocusDialog :: H.HTk -> MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
+showSetFocusDialog parentContainer onto gv (name,descr,gid) =
+  do (gs,_) <- readIORef gv
+     case lookup gid gs of
+       Nothing -> return()
+       Just g ->
+         do valueOpt <- S.doForm "Jump to class" form
+            case valueOpt of
+              Nothing -> return()
+              Just(str) -> do ok <- setFocusToNode onto str gv (name, descr, gid)
+                              return()
+  where 
+    form = (S.newFormEntry "Classname" "")
+
+
 
 showRelationDialog :: H.HTk -> MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
 showRelationDialog parentContainer onto gv (name,descr,gid) =

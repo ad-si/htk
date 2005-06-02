@@ -58,6 +58,7 @@ data AbstractionGraph = AbstractionGraph {
        ontoGraph :: T.Gr (String,String,OntoObjectType) String,
        relViewSpecs :: [RelationViewSpec],
        nodeMap :: NodeMapping,
+       pdfFilename :: String,
        theGraph :: OurGraph,
        nodeTypes :: [(String,DaVinciNodeType (String,Int,Int))],
        edgeTypes :: [(String,DaVinciArcType (String,Int))],
@@ -174,6 +175,7 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
             ontoGraph = ontoGr,
             relViewSpecs = relViewSpecList,
             nodeMap = emptyFM,
+            pdfFilename = "",
             theGraph = graph,
             nodeTypes = zip nodetypenames nodetypes,
             edgeTypes = zip edgetypenames edgetypes,
@@ -216,6 +218,40 @@ addnode gid nodetype name gv =
 	         True -> do return (g,0,ev_cnt, Just("addnode: node \"" ++ name ++ "\" of type " ++ nodetype ++ " already exists in graph " ++ (show gid)))
    )
 
+{--
+getDaVinciGraph :: Descr -> GraphInfo -> IO (Maybe DaVinciGraph)
+getDaVinciGraph gid gv =
+  do (gs,ev_cnt) <- readIORef gv
+     case lookup gid gs of
+       Just g ->  do 
+                     let (Graph graph :: Graph graph graphParms node nodeType 
+                                               nodeTypeParms arc arcType arcTypeParms) = theGraph g
+                     return (Just graph)
+       Nothing -> return(Nothing)
+--}
+{--
+getDaVinciNodeID :: Descr -> Descr -> GraphInfo -> IO (Maybe (DaVinciNode (String,Int,Int)))
+getDaVinciNodeID gid node gv =
+  do (gs,ev_cnt) <- readIORef gv
+     case lookup gid gs of
+       Just g ->  
+         do 
+           case lookup node (nodes g) of
+             Just n -> return(Just(snd n))
+             Nothing -> return(Nothing)
+--}
+setFocusToNode :: Descr -> Descr -> GraphInfo -> IO ()
+setFocusToNode gid node gv =
+  do (gs,ev_cnt) <- readIORef gv
+     case lookup gid gs of
+       Just g ->  
+         do 
+           case lookup node (nodes g) of
+             Just n -> do
+                         setNodeFocus (theGraph g) (snd n)
+                         return()
+             Nothing -> return()
+
 
 writeOntoGraph :: Descr -> T.Gr (String,String,OntoObjectType) String -> GraphInfo -> IO Result
 writeOntoGraph gid graph gv =
@@ -234,6 +270,12 @@ writeNodeMap :: Descr -> NodeMapping -> GraphInfo -> IO Result
 writeNodeMap gid nMap gv =
   fetch_graph gid gv False (\(g,ev_cnt) ->
     return (g{nodeMap = nMap},0,ev_cnt+1,Nothing)
+  )
+
+writePDFFilename :: Descr -> String -> GraphInfo -> IO Result
+writePDFFilename gid filename gv =
+  fetch_graph gid gv False (\(g,ev_cnt) ->
+    return (g{pdfFilename = filename},0,ev_cnt+1,Nothing)
   )
 
 

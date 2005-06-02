@@ -5,8 +5,10 @@ module Main(main) where
 
 
 import IO
+import System.Directory
 import System
 import List
+import Maybe
 
 -- import Computation
 -- import AtomString
@@ -26,25 +28,36 @@ import HTk
 main :: IO()
 main =
    do args <- System.getArgs
+      currentDir <- getCurrentDirectory
+
       if ((length (elemIndices "--help" args)) > 0)
-        then do putStr "Tool for checking and converting MMiSS ontologies"
-		putStr "usage:\n  ontotool [OPTIONS] [STARTNODENAME] INPUTFILE\n"
-		putStr "Options are:\n"
-		putStr " -owl     : print out OWL representation\n"
-		putStr " -daVinci : start daVinci and show ontology as graph\n"
+        then do showUsage
 		exitWith ExitSuccess
         else done
+
       filename <- if ((length args) == 0) 
-                    then do putStr "Tool for checking and converting MMiSS ontologies"
-		            putStr "usage:\n  ontotool [OPTIONS] [STARTNODENAME] INPUTFILE\n"
-		            putStr "Options are:\n"
-		            putStr " -owl     : print out OWL representation\n"
-		            putStr " -daVinci : start daVinci and show ontology as graph\n"
+                    then do showUsage
                             exitWith (ExitFailure 1)
-                    else return (last args)
-      startNodeName <- if ((length args) > 2)
-                         then return(Just(head (drop 1 (reverse args))))
-                         else return(Nothing)
+                    else return(last args)
+
+      startNodeOpt <- case findIndex (== "-startnode") args of
+                          Nothing -> return(Nothing)
+                          Just(index) -> if ((length args)-1) > index
+                                           then return(Just(args !! (index+1)))
+                                           else return(Nothing)
+
+-- TODO: Filename concatenation depends on platform !
+      pdfFileOpt  <- case findIndex (== "-pdf") args of
+                       Nothing -> return(Nothing)
+                       Just(index) -> 
+                          if ((length args)-1) > index
+                            then do
+                                   let pdfFile = args !! (index+1)
+                                   case (head pdfFile) of
+                                      '/' -> return(Just(pdfFile))
+                                      _ -> return(Just(currentDir ++ "/" ++ pdfFile))
+                            else return(Nothing)
+
       weOntology <- parseMMiSSOntologyFile filename
 
       onto <- case fromWithError weOntology of
@@ -74,8 +87,8 @@ main =
                     in do putStr str 
                           done
         else done
-      if ((length (elemIndices "-daVinci" args)) > 0)
-        then do displayClassGraph onto startNodeName
+      if ((length (elemIndices "-graph" args)) > 0)
+        then do displayClassGraph onto startNodeOpt pdfFileOpt
                 getLine
                 done
         else done
@@ -83,3 +96,14 @@ main =
 
 revdir :: DynGraph gr => gr a b -> gr a b
 revdir = gmap (\(p,v,l,s)-> (s,v,l,p))
+
+
+showUsage :: IO()
+showUsage =
+  do
+     putStr "Tool for checking and converting MMiSS ontologies"
+     putStr "usage:\n  ontotool [OPTIONS] INPUTFILE\n"
+     putStr "Options are:\n"
+     putStr " -owl     : print out OWL representation\n"
+     putStr " -graph : start uDraw and show ontology as graph\n"
+     putStr " -startnode <name> : start graph view showing this node\n"
