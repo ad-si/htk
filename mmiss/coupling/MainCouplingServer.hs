@@ -10,6 +10,7 @@ import Time
 import System
 import Maybe
 
+import Data.List
 import Control.Concurrent
 import qualified Control.Exception
 import Network
@@ -28,6 +29,7 @@ import EntityNames
 import Folders
 import Messages
 import CopyFile
+import Sources
 
 import CallServer(tryConnect)
 import qualified VersionInfo
@@ -35,6 +37,7 @@ import qualified VersionDB
 import VersionGraph
 import VersionGraphClient
 import View
+-- import Aliases
 
 import BlockSigPIPE
 import Destructible
@@ -52,7 +55,7 @@ import MMiSSObjectExtract
 import MMiSSFormat(Format(..))
 import MMiSSObjectType
 import {-# SOURCE #-} MMiSSExportFiles
-
+import OntologyImport
 
 
 main :: IO ()
@@ -155,7 +158,7 @@ mainHandle handle hostName couplingDir server port =
                   if (exitcode /= ExitSuccess)
                     then 
                       do 
-                        writeString handle ("ERROR: SVN update failed with exit code " ++ (show exitcode))
+                        writeStringH handle ("ERROR: SVN update failed with exit code " ++ (show exitcode))
                         hClose handle
                     else
                       do
@@ -182,12 +185,12 @@ mainHandle handle hostName couplingDir server port =
                                   hFlush stdout
                                   done
                            else do
+                                  mapM_ (exportPackage view couplingDir couplingMess) packages
+                                  mapM_ (doAddPackage scriptDir) packages 
                                   newVersion <- commitView view
                                   putStrLn ("Update finished. New version is: " ++ (show newVersion))
                                   putStrLn "Successfully re/imported packages:"
                                   mapM_ (\ path -> putStrLn path) paths
-                                  mapM_ (doExport view couplingDir couplingMess) packages
-                                  mapM_ (doAddPackage scriptDir) packages 
                                   let
                                      commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
                                   exitcode <- system (scriptDir `combineNames` ("dosvncommit " ++ commitMess))
@@ -204,7 +207,7 @@ mainHandle handle hostName couplingDir server port =
                   putStrLn (hostName ++ ": Connection failed")
                   putStrLn mess
                   hFlush stdout
-                  writeString handle ("ERROR: " ++ mess)
+                  writeStringH handle ("ERROR: " ++ mess)
                   hClose handle
          )
 
@@ -216,34 +219,41 @@ mainHandle handle hostName couplingDir server port =
      doAddPackage scriptDir packagePath =
        do
          let 
-           filename = ((toString packagePath) ++ "_gen.tex")
-           dosvnadd = scriptDir `combineNames` ("dosvnadd " ++ filename)
-         exitcode <- system dosvnadd
+           filename1 = ((toString packagePath) ++ ".tex")
+           filename2 = ((toString packagePath) ++ ".imp")
+           dosvnadd1 = scriptDir `combineNames` ("dosvnadd " ++ filename1)
+           dosvnadd2 = scriptDir `combineNames` ("dosvnadd " ++ filename2)
+         exitcode <- system dosvnadd1
+         exitcode <- system dosvnadd2
          return()
 
-     doExport :: View -> String -> CouplingMessages -> EntityFullName -> IO()
-     doExport view couplingDir messages packagePath = 
-        do
-          linkedObjectOpt <- getLinkedObject view packagePath
-          case linkedObjectOpt of
-            Nothing -> return()
-            Just(linkedObject) ->
-              do 
-                let 
-                   filename = couplingDir `combineNames` ((toString packagePath) ++ "_gen.tex")
-                   packageNameOpt = entityBase packagePath
-                case packageNameOpt of
-                   Nothing -> importExportError "doExport: Could not find package name in EntityFullName."
-                   Just(packageName) ->
-                     do
-                       packageLinkOpt <- lookupObjectInFolder linkedObject packageName
-                       case  packageLinkOpt of
-                         Nothing -> importExportError "doExport: Could not find package object inside package folder."
-                         Just link -> exportMMiSSObjectNoFiles  view link filename
-                       let
-                          errFilename = couplingDir `combineNames` ((toString packagePath) ++ ".ptx.err")
-                       result <- printMessages messages (Just errFilename) False
-                       done
+
+exportPackage :: View -> String -> CouplingMessages -> EntityFullName -> IO()
+exportPackage view couplingDir messages packagePath = 
+  do
+    linkedObjectOpt <- getLinkedObject view packagePath
+    case linkedObjectOpt of
+      Nothing -> return()
+      Just(linkedObject) ->
+        do 
+          let 
+             filename = couplingDir `combineNames` ((toString packagePath) ++ ".tex")
+             packageNameOpt = entityBase packagePath
+          case packageNameOpt of
+             Nothing -> importExportError "doExport: Could not find package name in EntityFullName."
+             Just(packageName) ->
+               do
+                 packageLinkOpt <- lookupObjectInFolder linkedObject packageName
+                 case  packageLinkOpt of
+                   Nothing -> importExportError "doExport: Could not find package object inside package folder."
+                   Just packageLink -> exportMMiSSObjectNoFiles  view packageLink filename (toString packageName)
+                 let
+                    errFilename = couplingDir `combineNames` ((toString packagePath) ++ ".ptx.err")
+                 result <- printMessages messages (Just errFilename) False
+                 ok <- printImports linkedObject couplingDir packagePath view
+                 return()
+
+
 
 {-- doUpdates nimmt zeilenweise Namen von mmisslatex-Package-Files (mit komplettem Pfad
 zum Root-Verzeichnis entgegen und importiert diese, falls sie noch nicht im Repos. waren
@@ -276,6 +286,9 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
         do 
           let
              completePath = unbreakName ((breakName couplingDir) ++ (breakName line))
+             packagePathStripped = if (isSuffixOf "_ptx.tex" line)
+                                     then (take ((genericLength line) - 8) line) ++ ".tex"
+                                     else line
           ok <- case splitExtension completePath of
                   Nothing -> return(False)
                   Just(_,_) -> doesFileExist completePath
@@ -287,16 +300,21 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
               else  
                 do
                   fullPackagePath <-
-                    case fromWithError (fromStringWE line) of
+                    case fromWithError (fromStringWE packagePathStripped) of
                        Left mess -> do
                                       putStrLn ("  " ++ mess)
                                       fail ""
-                       Right fullPackage -> return(fullPackage)
+                       Right fullPackage -> do putStrLn ("fullPackage: " ++ (toString fullPackage) ++ "\n")
+                                               hFlush stdout
+                                               return(fullPackage)
 
                   (fullPackageName, ext) <-
                      case splitFullName fullPackagePath of
                        Nothing -> return (fullPackagePath,"")
                        Just f -> return(f)
+
+                  putStrLn ("fullPackageName: " ++ (toString fullPackageName) ++ "\n")
+                  hFlush stdout
 
                   linkedObjectOpt <- getLinkedObject view fullPackageName
 
@@ -338,18 +356,17 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
                            return(Just(fullPackageName))
                   return(importedPackageOpt)
 
-          let
-             newPackageList = case importedPackageOpt of
-                                Nothing -> packages
-                                Just(name) -> packages ++ [name]
-             dosvnadd = scriptDir `combineNames` ("dosvnadd " ++ (completePath ++ ".err"))
+          (newPackageList, fullPathWithoutExt) <- 
+             case importedPackageOpt of
+               Nothing -> return((packages,""))
+               Just(name) -> return((packages ++ [name]), (couplingDir `combineNames` (toString name)))
           hFlush handle
           hFlush stdout
-          result <- try (printMessages messages (Just (completePath ++ ".err")) False)
+          result <- try (printMessages messages (Just (fullPathWithoutExt ++ ".err")) False)
           exitcode <- 
             case importedPackageOpt of
                Nothing -> return(ExitSuccess)
-               Just(_) -> system dosvnadd
+               Just(_) -> system (scriptDir `combineNames` ("dosvnadd " ++ (fullPathWithoutExt ++ ".err")))
           case result of
              Left err -> do 
                            putStrLn (show err)
@@ -493,8 +510,8 @@ createNewFolder view parentLinkedObject folderName newFoldersFullName =
   newEmptyFolder1 plainFolderType view parentLinkedObject folderName
 
 
-exportMMiSSObjectNoFiles :: View -> Link MMiSSObject -> FilePath -> IO ()
-exportMMiSSObjectNoFiles view link filePath =
+exportMMiSSObjectNoFiles :: View -> Link MMiSSObject -> FilePath -> String -> IO ()
+exportMMiSSObjectNoFiles view link filePath packageName =
    do
       result <- addFallOut (\ break ->
          do
@@ -505,7 +522,6 @@ exportMMiSSObjectNoFiles view link filePath =
             let
                (string,_) 
                   = coerceWithErrorOrBreak break result1WE
-
             -- Write to the file
             resultWE <- copyStringToFileCheck string filePath
             coerceWithErrorOrBreakIO break resultWE
@@ -525,8 +541,8 @@ readString :: Handle -> IO (WithError String)
 readString = hReadLtd (maxLen + 1)
 --}
 
-writeString :: Handle -> String -> IO ()
-writeString handle str = hWrite handle str
+writeStringH :: Handle -> String -> IO ()
+writeStringH handle str = hWrite handle str
 
 {--
 maxLen :: Int
@@ -635,4 +651,4 @@ deleteMessages (CouplingMessages mVar) =
             return (couplingValue {messages = []})
          )
 
-  
+
