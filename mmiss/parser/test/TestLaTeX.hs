@@ -74,8 +74,8 @@ main =
       -- Parse LaTeX input
       --
       elEither <- if oldDTD 
-                    then parseMMiSSLatex standardFileSystem fileName True 
-                    else parseMMiSSLatexOldDTD standardFileSystem fileName True 
+                    then parseMMiSSLatexOldDTD standardFileSystem fileName True 
+                    else parseMMiSSLatex standardFileSystem fileName True 
       (el, preambleList) <- case fromWithError elEither of
                           Left message -> let str = "The following errors occured during parsing:\n" 
                                           in error (str ++ message)

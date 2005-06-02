@@ -1,6 +1,6 @@
 module LaTeXPreamble (
 
-   MMiSSLatexPreamble,
+   MMiSSLatexPreamble(..),
    MMiSSExtraPreambleData(..),
    FileSystem(..),
    emptyMMiSSLatexPreamble,
@@ -10,6 +10,7 @@ module LaTeXPreamble (
    mergePreambles,   -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
 
    importCommands, -- :: MMiSSLatexPreamble -> Maybe ImportCommands
+   insertCommandInFront, -- :: MMiSSLatexPreamble -> String -> MMiSSLatexPreamble 
    mmissNoParsingPragma -- :: String
   )
 where
@@ -45,10 +46,13 @@ type DocumentClass = Package
 
 data MMiSSLatexPreamble = MMiSSLatexPreamble { 
   latexPreamble :: LaTeXPreamble,
-  importCommands :: Maybe ImportCommands
+  importCommands :: Maybe ImportCommands,
+  ontologyFrags :: [String]
 } deriving (Typeable)
 
-emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, importCommands = Nothing}
+emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, 
+                                              importCommands = Nothing, 
+                                              ontologyFrags = []}
 
 data LaTeXPreamble = Preamble DocumentClass [Package] LaTeXPreambleCmds
    deriving (Typeable)
@@ -96,19 +100,76 @@ latexPreambleCmdsEq :: LaTeXPreambleCmds -> LaTeXPreambleCmds -> Bool
 latexPreambleCmdsEq _ _ = False
 
 
+latexPreambleCmdEq ::  LaTeXPreambleCmd -> LaTeXPreambleCmd -> Bool
+latexPreambleCmdEq (Cmd str1) (Cmd str2) = str1 == str2
+latexPreambleCmdEq (FileRef path1 str11 str12 type1) (FileRef path2 str21 str22 type2) =
+  (path1 == path2) && (str11 == str21) && (str12 == str22) && (type1 == type2)
+
+
+-- mergePreambles geht davon aus, dass die erste Preamble diejenige ist, die zu dem Paket gehört,
+-- das rausgeschrieben werden soll bzw, wenn nur ein Objekt innerhalb eines Paketes rausgeschrieben
+-- wird, dann muss es die Preamble des Paketes sein, in dem das Objekt als 'Home' angelegt wurde.
+-- In dieser (Home-)Preamble bleibt die Ontologie drin, während sie in allen anderen rausgeworfen wird.
+-- Dies passiert, weil beim Export eines Paketes eine _imp.tex Datei erzeugt wird, in der die
+-- Ontologie-Deklarationen der importieren Pakete abgelegt sind. Würden sie hier also nicht herausgefiltert,
+-- dann würden sie in LaTeX doppelt definierte Labels erzeugen.
+
 mergePreambles :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String])
 mergePreambles preambleList = 
-  let mergedPre = unionPreambles preambleList
-  in case mergedPre of
-       Nothing -> if (preambleList == []) 
-                    then (emptyMMiSSLatexPreamble, ["Internal error in function 'mergePreambles': No preambles to merge!"])
-                    else (emptyMMiSSLatexPreamble, ["Internal error in function 'mergePreambles'"])
-       Just(p) -> (p,[])
+  case preambleList of
+    [] -> (emptyMMiSSLatexPreamble, ["Internal error in function 'mergePreambles': No preambles to merge!"])
+    (p:[]) -> (p,[])
+    (p:rest) -> 
+      let rest1 = map filteroutOntology rest
+          mergedPre = unionPreambles (rest1 ++ [p])
+      in case mergedPre of
+         Nothing -> if (preambleList == []) 
+                      then (emptyMMiSSLatexPreamble, ["Internal error in function 'mergePreambles': No preambles to merge!"])
+                      else (emptyMMiSSLatexPreamble, ["Internal error in function 'mergePreambles'"])
+         Just(p) -> (p,[])
+  where 
+     filteroutOntology :: MMiSSLatexPreamble -> MMiSSLatexPreamble
+     filteroutOntology lp = 
+        let (Preamble dc packages cmds) = latexPreamble lp 
+            newcmds = filter filterOnto cmds
+        in MMiSSLatexPreamble{ 
+              latexPreamble = (Preamble dc packages newcmds),
+              importCommands = importCommands lp,
+              ontologyFrags = ontologyFrags lp
+           }
+
+     filterOnto :: LaTeXPreambleCmd ->  Bool
+     filterOnto (Cmd str) = if ((findInString str "\\Class") || 
+                                (findInString str "\\Object") ||
+                                (findInString str "\\Relation") ||
+                                (findInString str "\\RelType") ||
+                                (findInString str "\\OpType") ||
+                                (findInString str "\\Properties") ||
+                                (findInString str "\\Relate"))
+                               then False
+                               else True
+     filterOnto _ = True
 
 
-extractPreamble :: FileSystem -> FilePath -> [Frag] -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
-extractPreamble fileSys filePath frags = 
-  findFirstEnv fileSys filePath frags [] True 
+
+extractPreamble :: FileSystem -> FilePath -> [Frag] -> [String] -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
+extractPreamble fileSys filePath frags oFrags = 
+  do 
+    resultOpt <- findFirstEnv fileSys filePath frags [] True
+    case fromWithError resultOpt of
+      Left mess -> return(hasError(mess))
+      Right (preambleOpt, f) ->
+        case preambleOpt of
+          Nothing -> return(hasValue((Nothing, f)))
+          Just(p) -> do
+                       let
+                         newP = MMiSSLatexPreamble {
+                                   latexPreamble = latexPreamble p,
+                                   importCommands = importCommands p,
+                                   ontologyFrags = oFrags
+                                }
+                       return(hasValue((Just newP), f))
+   
 
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch, extrahiert die Preamble
@@ -148,13 +209,27 @@ findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) pream
               in
 	        case fromWithError(importCmds) of
 		  Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
-			  				  latexPreamble = p,
-							  importCommands = impCmds
+			  				    latexPreamble = p,
+							    importCommands = impCmds,
+                                                            ontologyFrags = []
 							}),
 						    (Env "Package" ps fs)))
 		  Left str -> return (hasError(str))
 	    Nothing -> return(hasValue(Nothing, (Env "Package" ps fs)))
-             
+  where 
+{--     createInput oldp@(Preamble documentClass packageList cmds) impCmds ps =
+       case impCmds of
+         Nothing -> oldp
+         Just(_) -> let label = getLabelFromParams ps
+                        newCmd = Cmd ("\n\\input{" ++ label ++ ".imp}\n")
+                    in (Preamble documentClass packageList (newCmd:cmds))
+
+     getLabelFromParams :: Params -> String
+     getLabelFromParams (LParams _ atts _ _) =
+       case (find ((== "Label") . fst) atts) of
+       Just((_, label)) -> label
+       Nothing -> ""
+--}
 
 findFirstEnv fsys fpath ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (mmissPlainTextAtoms ++ envsWithText ++ envsWithoutText))) 
@@ -332,7 +407,8 @@ unionPreambles (p1:p2:ps) =
       latexPre2 = latexPreamble p2
       unionPre = union2Preambles latexPre1 latexPre2
       newPreamble = MMiSSLatexPreamble {latexPreamble = unionPre, 
-                                        importCommands = (importCommands p1)}
+                                        importCommands = (importCommands p1),
+                                        ontologyFrags = []}
   in unionPreambles (newPreamble:ps)
 
 
@@ -350,8 +426,16 @@ union2Preambles (Preamble (Package classOpt1 className versiondate) packages1 re
                 (Preamble (Package classOpt2 _ _) packages2 rest2) = 
     Preamble (Package (nub (classOpt1 ++ classOpt2)) className versiondate) 
              (unionPackages packages1 packages2) rest 
-  where rest = (rest1 ++ [Cmd startImportPragma] ++ rest2 ++ [Cmd endImportPragma])
-
+  where rest = (rest1 ++ rest2)
+--  where 
+--    rest = (rest1 ++ [Cmd startImportPragma] ++ (withoutDups rest1 rest2 []) ++ [Cmd endImportPragma])
+{--    withoutDups :: LaTeX
+    withoutDups l1 [] result = result
+    withoutDups l1 l2 result = 
+      if findIndex (== (head l2)) l1 > 0
+        then withoutDups l1 (tail l2) result
+        else withoutDups l1 (tail l2) (result ++ (head l2))
+--}        
 
 {--
 unionPackages konkateniert die beiden übergebenen Listen mit Package-Referenzen und filtert gleiche Referenzen
@@ -367,6 +451,17 @@ eqPackage :: Package -> Package -> Bool
 eqPackage (Package opt1 name1 version1) (Package opt2 name2 version2)  = 
   (opt1 == opt2) && (name1 == name2) && (version1 == version2)
              
+
+insertCommandInFront  :: MMiSSLatexPreamble -> String -> MMiSSLatexPreamble 
+insertCommandInFront p "" = p
+insertCommandInFront p str =
+       let (Preamble documentClass packageList cmds) = latexPreamble p
+           newLatexPre = (Preamble documentClass packageList ((Cmd str):cmds))
+       in MMiSSLatexPreamble {
+            latexPreamble = newLatexPre,
+	    importCommands = importCommands p,                                                
+            ontologyFrags = ontologyFrags p
+          }
 
 
 {--
@@ -728,16 +823,16 @@ instance StringClass MMiSSLatexPreamble where
 
 instance Eq MMiSSLatexPreamble where
    (==) = mapEq 
-      (\ (MMiSSLatexPreamble latexPreamble importCommands) ->
-         (latexPreamble,importCommands))
+      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
+         (latexPreamble,importCommands,ontologyFrags))
 
 instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
    writeBin = mapWrite
-      (\ (MMiSSLatexPreamble latexPreamble importCommands) ->
-         (latexPreamble,importCommands))
+      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
+         (latexPreamble,importCommands,ontologyFrags))
    readBin = mapRead
-      (\ (latexPreamble,importCommands) ->
-         (MMiSSLatexPreamble latexPreamble importCommands))
+      (\ (latexPreamble,importCommands,ontologyFrags) ->
+         (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags))
 
 {--
 data LaTeXPreambleCmds = Cmd String |  FileRef FilePath ContentString ContentType
@@ -805,3 +900,5 @@ instance Monad m => CodedValue.HasBinary Package m where
 instance Eq LaTeXPreambleCmds where
    (==) = latexPreambleCmdsEq
 
+instance Eq LaTeXPreambleCmd where
+  (==) = latexPreambleCmdEq

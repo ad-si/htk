@@ -11,12 +11,18 @@ module LaTeXParser (
       -- returns the corresponding XML-Element and (if the boolean parameter
       -- is true) the list of Preambles found in the mmisslatex file. If the bool
       -- parameter is false, it will throw away anything which preceeds the first
-      -- mmiss environent found.
-   
+      -- mmiss environment found.
+
+   parseMMiSSLatexOldDTD, 
+      -- :: FileSystem -> FilePath -> Bool
+      -- -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+      -- Does the same as parseMMiSSLaTeX, but doesn't convert the parsed
+      -- document into the new core DTD.   
+
    makeMMiSSLatexContent,
       -- :: Element -> Bool 
       -- -> [(MMiSSLatexPreamble,PackageId)]
-      -- -> WithError (EmacsContent ((String,Char),Element)) 
+      -- -> WithError (EmacsContent ((String,Char),IncludeInfo)) 
       -- This is used for Emacs and also for other consumers of LaTeX text
       -- expecting a single file, for example the MMiSS checker and the
       -- XML API.
@@ -34,7 +40,7 @@ module LaTeXParser (
       -- a file system, and may split up the element.
 
    mkLaTeXString, 
-      -- :: EmacsContent ((String,Char),[Attribute]) -> String
+      -- :: EmacsContent ((String,Char),IncludeInfo) -> String
       -- Convert the contents of an Emacs buffer representing a particular
       -- LaTeX file into a String.
 
@@ -68,6 +74,7 @@ module LaTeXParser (
 import List
 import Char
 import Monad
+import System.IO
 
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Combinators hiding (find)
@@ -79,6 +86,7 @@ import EmacsContent
 import AtomString
 import FileNames
 import QuickReadShow
+import OntoParser
 -- import EmacsEdit(TypedName)
 
 -- ---------------------------------------------------------------------------
@@ -104,17 +112,33 @@ newtype PackageId = PackageId {packageIdStr :: String} deriving (Eq,Ord)
 -- Functions
 parseMMiSSLatex :: FileSystem -> FilePath -> Bool
                    -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
-parseMMiSSLatex fileSystem filePath searchPreamble =
+parseMMiSSLatex fileSystem filePath searchPreamble = 
+  parseMMiSSLatex11 fileSystem filePath searchPreamble True
+
+
+parseMMiSSLatexOldDTD :: FileSystem -> FilePath -> Bool
+                           -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+parseMMiSSLatexOldDTD fileSystem filePath searchPreamble = 
+  parseMMiSSLatex11 fileSystem filePath searchPreamble False 
+
+
+
+parseMMiSSLatex11 :: FileSystem -> FilePath -> Bool -> Bool
+                       -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+parseMMiSSLatex11 fileSystem filePath searchPreamble convToCoreDTD =
    do
       strWE <- readString fileSystem filePath 
       case fromWithError strWE of
          Left err -> return (fail err)
          Right str ->
-            do let result = parseFrags str
+            do let 
+                  result = parseFrags str
+               ontology <- readOntology str
+               putStrLn (concat ontology)
                case result of
 		  Left err -> return (hasError (show err))
 		  Right fs  ->
-                    do preEl <- extractPreamble fileSystem filePath fs
+                    do preEl <- extractPreamble fileSystem filePath fs ontology
 		       case fromWithError preEl of
 			 Left err -> return(hasError(err))
 			 Right (preambleOpt, rootFrag) -> 
@@ -135,9 +159,22 @@ parseMMiSSLatex fileSystem filePath searchPreamble =
 					    preambleList = case preambleOpt of
 					       Nothing -> []
 					       Just preamble -> [(preamble,packageId)]
-					 return (hasValue ((toElem (toCoreDTD "" cElem)), preambleList))
-
+                                         if convToCoreDTD 
+                                           then return (hasValue ((toElem (toCoreDTD "" cElem)), preambleList))
+                                           else return (hasValue (el, preambleList))
   where 
+    readOntology str = 
+      do 
+         let    
+           ontoFragsOpt = parseOntology str
+         case ontoFragsOpt of
+           Left mess -> return([])
+           Right ontoFrags -> return(map show (filter isNoOtherFrag ontoFrags))
+
+    isNoOtherFrag :: OFrag -> Bool
+    isNoOtherFrag (OtherFrag _) = False
+    isNoOtherFrag _ = True
+ 
     -- expandInputs guckt noch nicht rekursiv in aufgelöste inputs rein
     --
     expandInputs :: FileSystem -> FilePath -> Frag -> IO ( WithError([Frag]) )
@@ -339,7 +376,7 @@ getFileCommand c =
      extractFilenames l c@(Command name (LParams singlePs _ _ _)) =
        if ((isPrefixOf "includegraphics" name) 
             || (isSuffixOf "includegraphics" name)
-            || (name == "includeExternalFile")
+            || (name == "IncludeExternalFile")
             && ((length singlePs) > 0))
          then let param = singleParamToString(last singlePs)
                   fileStr = genericTake ((length param) - 2) (genericDrop 1 param)
@@ -1018,10 +1055,16 @@ makeMMiSSLatex11 :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsCon
 makeMMiSSLatex :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)] 
    -> WithError (EmacsContent ((String, Char), IncludeInfo))
 
-makeMMiSSLatex (Elem name atts content) preOut preambles = 
-  let items = fillLatex preOut [(CElem (Elem name atts content))] []
-      (p,_) = mergePreambles (map fst (sortPreambles preambles))
-      preambleItem = [(EditableText (toString p))]
+makeMMiSSLatex (Elem name direktatts content) preOut preambles = 
+  let items = fillLatex preOut [(CElem (Elem name direktatts content))] []
+      atts = attElemToAtts content
+      sortedPreambles = (sortPreambles preambles atts)
+      (p1,_) =  mergePreambles (map fst sortedPreambles)
+      cmd = case sortedPreambles of
+               [] -> ""
+               (p:rest) -> createInputCommand (fst p) (getLabel name atts)
+      p2 = insertCommandInFront p1 cmd
+      preambleItem = [(EditableText (toString p2))]
   in if preOut 
         then 
           let beginDocument = [EditableText "\\begin{document}\n"]
@@ -1029,13 +1072,30 @@ makeMMiSSLatex (Elem name atts content) preOut preambles =
            in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)))
         else hasValue((EmacsContent items))
   where
-    sortPreambles preambles
+    sortPreambles preambles atts
        | name == "Package" = sortP (getParam "label" atts) preambles []
        | otherwise = sortP (getParam "packageId" atts) preambles []
     sortP label (p:rest) inList 
        | label == ((packageIdStr.snd) p) = sortP label rest (p:inList)
        | otherwise = sortP label rest (inList ++ [p])
     sortP label [] inList = inList
+
+    getLabel :: String -> [Attribute] -> String
+    getLabel elemName elemAtts
+       | elemName == "group" = 
+            case (getParam "object-class" elemAtts) of
+               "package" -> getParam "label" elemAtts
+               _ -> ""
+       | otherwise = ""
+
+    createInputCommand :: MMiSSLatexPreamble -> String -> String
+    createInputCommand _ "" = ""
+    createInputCommand p label =
+      let impCmds = importCommands p
+      in case impCmds of
+           Nothing -> ""
+           Just(_) -> "\n\\input{" ++ label ++ ".imp}\n"
+
 
 
 fillLatex :: Bool -> [Content] -> [EmacsDataItem ((String, Char), IncludeInfo)] 
@@ -1094,7 +1154,11 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList
         items = [(EditableText (s1 ++ phrase ++ s2 ++ s3))]
     in fillLatex out cs (inList ++ items)
   | (name `elem` (map snd refCommands)) =  
-    let s1 = "\\" ++ (elemNameToLaTeX name) 
+    let elemName = case (getParam "type" atts) of
+                     "" -> (elemNameToLaTeX name)  
+                     "short" -> "Ref"
+                     _ -> "Reference"
+        s1 = "\\" ++ elemName
         phrase = if (length(contents) == 0) 
                    then "" 
                    else let c = head contents
@@ -1120,8 +1184,10 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList
 fillLatex out ((CElem (Elem name atts contents)):cs) inList = 
   case getObjectClass contents of
     "text" ->  
-      let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
-				   then ("\\begin{Included}\n", "\n\\end{Included}")
+      let (b_insert, e_insert) = if (out && ((getParam "packageId" atts) /= ""))
+				   then ("\\begin{Included}\n%Included from package '" 
+                                            ++ (getParam "packageId" atts) ++ "'\n"
+                                         , "\n\\end{Included}")
 				   else ("","")
 	  s1 = "\\begin{Text}" 
 	  s2 = "[" ++ (getAttribs (atts ++ (attElemToAtts contents)) "" []) ++ "]"
@@ -1164,8 +1230,10 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList =
       in fillLatex out cs (inList ++ items)
 
     objClass ->
-      let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
-				   then ("\\begin{Included}\n", "\n\\end{Included}")
+      let (b_insert, e_insert) = if (out && ((getParam "packageId" atts) /= ""))
+				   then ("\\begin{Included}\n%Included from package '" 
+                                            ++ (getParam "packageId" atts) ++ "'\n"
+                                         , "\n\\end{Included}")
 				   else ("","")
 	  s1 = "\\begin{" ++ (elemNameToLaTeX objClass) ++ "}" 
 	  attrStr = getAttribs (atts ++ (attElemToAtts contents)) "" []

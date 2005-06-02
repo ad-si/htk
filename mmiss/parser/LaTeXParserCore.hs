@@ -251,14 +251,14 @@ latexAtomFormulaEnvs =  [("\\[", "shortDisplaymath"), ("equation", "equation"), 
 -- XML.
 
 glAttribsExclude :: [String]
-glAttribsExclude = ["files","object-class"]
+glAttribsExclude = ["files","object-class","version"]
 
 
 mmissSystemAttribs :: [String]
 mmissSystemAttribs = [ "object-class","label","priority","packageId","packagePath","files"]
 
 mmissVariantAttribs :: [String]
-mmissVariantAttribs = ["xml:lang","format","formalism","levelOfDetail","interactionLevel"]
+mmissVariantAttribs = ["xml:lang","format","formalism","levelOfDetail","interactionLevel","version"]
 
 mmissIncludeAttribs :: [String]
 mmissIncludeAttribs = ["included","status","priority","object-class"]
@@ -539,8 +539,11 @@ lParams id l
 	 labelId <-  try(between (char '{') (char '}') idParser)
 	             <?> (appendSourcePos pos ("[phrase]{referenced LabelID} for Command <" ++ id ++ ">"))
          linkTextAttrs <- if (phrase == []) then return([]) else return([("LinkText", phrase)])
+         refTypeAttrs <- case id of
+                           "Reference" -> return([("type","long")])
+                           _ -> return([("type","short")])
          return (LParams [(SingleParam [(Other labelId)] '{')] 
-                         ([("status","absent")] ++ linkTextAttrs) Nothing Nothing)
+                         ([("status","absent")] ++ linkTextAttrs ++ refTypeAttrs) Nothing Nothing)
 
   | id `elem` (map fst linkCommands) =
       do pos <- getPosition
