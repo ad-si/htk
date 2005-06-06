@@ -8,6 +8,8 @@
 module ChildProcess (
    ChildProcess,
    PosixProcess, -- holds information about a process to be created
+
+   ChildProcessStatus(ChildExited,ChildTerminated),
    
    -- linemode, arguments, &c encode configuration options for
    -- a process to be created.  Various functions for creating new
@@ -42,6 +44,9 @@ module ChildProcess (
    -- to the child process.  It does not append a newline.
 
    readMsg, -- :: ChildProcess -> IO String
+
+   waitForChildProcess, -- :: ChildProcess -> IO ChildProcessStatus
+    -- waits until the ChildProcess exits or is terminated
    ) 
 where
 
@@ -49,9 +54,11 @@ import IO
 import Monad
 
 import Foreign.C.String
+import System.Exit
 import System.Process
 import Control.Concurrent
 import Control.Concurrent.Chan
+import qualified Control.Exception as Exception
 import GHC.IO(hPutBuf)
 
 
@@ -154,6 +161,11 @@ data ChildProcess = ChildProcess {
       -- supplied by the toolName function,
       -- used in the debugging file.
    }
+
+-- | Status if a process
+data ChildProcessStatus = ChildExited ExitCode
+                        | ChildTerminated
+   deriving (Eq, Ord, Show)
 
 -- -------------------------------------------------------------------------
 -- Initialising
@@ -322,6 +334,18 @@ sendMsgRaw childProcess (cStrLn@(ptr,len)) =
 readMsg :: ChildProcess -> IO String
 readMsg childProcess = readChan (processOutput childProcess)
    
+-- -------------------------------------------------------------------------
+-- Waiting for a process
+-- -------------------------------------------------------------------------
+
+-- | Waits for the ChildProcess to exit or be terminated
+waitForChildProcess :: ChildProcess -> IO ChildProcessStatus
+waitForChildProcess p =
+  Exception.catch (waitForChild p) (\_ -> return ChildTerminated)
+  where
+    waitForChild p = do
+      exitCode <- waitForProcess (processHandle p)
+      return (ChildExited exitCode)
 
 -- -------------------------------------------------------------------------
 -- Writing debugging information to a file
