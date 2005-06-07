@@ -268,9 +268,7 @@ ifneq "$(PACKAGE)" ""
 	   $(GFIND) lib$(PACKAGE).a -maxdepth 0 -newer $(PACKAGE).o -exec \
 	      $(RM) $(PACKAGE).o \; ; fi
 	$(GHCPKG) --config-file $(PACKAGECONF) --remove-package $(PACKAGE) ; echo ""
-	$(SED) -e 's+PACKAGELIB+$(PACKAGELIB)+g;s+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --force --add-package
-	if [ -f lib$(PACKAGE).a ]; then \
-           $(LD) -r $(WHOLEARCHIVE) lib$(PACKAGE).a -o $(PACKAGE).o ; fi
+	$(SED) -e 's+PACKAGELIB+$(PACKAGELIB)+g;s+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --force --add-package --auto-ghci-libs
 endif
 
 packagesquick : packageherequick
