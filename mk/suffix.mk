@@ -441,7 +441,7 @@ ifneq "$(strip $(LIBOBJS))" ""
 	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`; \
            $(foreach src,$(LIBSRCS), \
 	      mkdir -p `dirname $(TOP)/www/$$SUFFIX/sources/$(src)` && \
-	      ln -f $(src) $(TOP)/www/$$SUFFIX/sources/$(src) &&) echo 
+	      cp -f $(src) $(TOP)/www/$$SUFFIX/sources/$(src) &&) echo 
 endif
 
 
