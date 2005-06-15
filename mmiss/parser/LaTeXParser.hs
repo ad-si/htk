@@ -132,12 +132,13 @@ parseMMiSSLatex11 fileSystem filePath searchPreamble convToCoreDTD =
          Left err -> return (fail err)
          Right str ->
             do let 
-                  result = parseFrags str
-               ontology <- readOntology str
-               putStrLn (concat ontology)
+                  parseResult = parseFrags str
+                  ontologyOpt = readOntology str
+                  result = (parseResult, ontologyOpt)
                case result of
-		  Left err -> return (hasError (show err))
-		  Right fs  ->
+		  (Left err, _) -> return (hasError (show err))
+                  (Right _, Left err) -> return(hasError (show err))
+		  (Right fs, Right ontology)  ->
                     do preEl <- extractPreamble fileSystem filePath fs ontology
 		       case fromWithError preEl of
 			 Left err -> return(hasError(err))
@@ -164,12 +165,11 @@ parseMMiSSLatex11 fileSystem filePath searchPreamble convToCoreDTD =
                                            else return (hasValue (el, preambleList))
   where 
     readOntology str = 
-      do 
          let    
            ontoFragsOpt = parseOntology str
-         case ontoFragsOpt of
-           Left mess -> return([])
-           Right ontoFrags -> return(map show (filter isNoOtherFrag ontoFrags))
+         in case ontoFragsOpt of
+              Left mess -> Left ("Error during ontology parsing: " ++ (show mess))
+              Right ontoFrags -> Right (map show (filter isNoOtherFrag ontoFrags))
 
     isNoOtherFrag :: OFrag -> Bool
     isNoOtherFrag (OtherFrag _) = False
@@ -716,10 +716,11 @@ makeTextFragment parentEnv name params [] content =
                          (Just (LParams _ _ _ (Just delimStr))) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                          otherwise -> []
       newContent = beginDelimElem ++ (concatTextElems(content)) ++ endDelimElem
-  in if (parentEnv == "Section") 
-       then (CElem (Elem "paragraph" [] 
-                      [(CElem (Elem name (makeTextFragmentAttribs params) newContent))]))
-       else (CElem (Elem name (makeTextFragmentAttribs params) newContent))
+  in (CElem (Elem name (makeTextFragmentAttribs params) newContent))
+--  in if (parentEnv == "Section") 
+--       then (CElem (Elem "paragraph" [] 
+--                      [(CElem (Elem name (makeTextFragmentAttribs params) newContent))]))
+--       else (CElem (Elem name (makeTextFragmentAttribs params) newContent))
 
 makeTextFragment parentEnv name params (f:frags) content =
   case f of
@@ -1032,6 +1033,11 @@ getAttribs ((name, (AttValue [(Left value)])):as) str excludeList =
             else getAttribs as (str ++ "," ++ attNameToLatex(name) 
                                     ++ "={" ++ (unicodeToLatex value) ++ "}") excludeList 
 
+getDescItemFromAttribs :: [Attribute] -> String
+getDescItemFromAttribs atts =
+  case (find ((== "descItem") . fst) atts) of
+    Just((_,(AttValue[(Left value)]))) -> value
+    otherwise -> ""
 
 {-- makeMMiSSLatex1 erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
     Element ist das Root-Element des auszugebenden Dokumentbaumes, der Bool-Wert legt fest,
@@ -1201,7 +1207,7 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList =
 
     "item" ->
       let s1 = "\\item" 
-	  attrStr = (getAttribs (atts ++ (attElemToAtts contents)) "" [])
+	  attrStr = getDescItemFromAttribs (atts ++ (attElemToAtts contents))
 	  s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "] "
 	  items = [EditableText (s1 ++ s2)] ++ (fillLatex out contents [])
       in fillLatex out cs (inList ++ items)

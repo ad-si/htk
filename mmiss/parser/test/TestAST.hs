@@ -7,35 +7,34 @@ module Main(main) where
 
 import IO
 
-import Pretty
-
 import Computation
-import AtomString
+--import AtomString
 
-import CodedValue
+--import CodedValue
 
 --import LaTeXParser
 import LaTeXParserCore
-import EmacsContent
+-- import EmacsContent
 
-import Text.XML.HaXml.Types
-import Text.XML.HaXml.Parse
-import Text.XML.HaXml.Pretty
+--import Text.XML.HaXml.Types
+--import Text.XML.HaXml.Parse
+--import Text.XML.HaXml.Pretty
 -- import MMiSSContent
 -- import MMiSSDTD
 -- import MMiSSObjects
-import MMiSSEditXml
-import Parsec
-import ParsecError
+--import MMiSSEditXml
+import Text.ParserCombinators.Parsec
+
 
 main =
    do
       doc <- getContents
       let result = parseFrags doc
       str <- case result of
-               Left err -> ioError (userError (concat (map messageString (errorMessages(err)))))
+--               Left err -> ioError (userError (concat (map messageString (errorMessages(err)))))
+               Left err -> return(show err)
                Right fs -> return(show (Env "Root" (LParams [] [] Nothing Nothing) fs))
-      putStr str
+      putStrLn str
 
 
 {-

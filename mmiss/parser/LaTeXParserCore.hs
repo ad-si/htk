@@ -171,8 +171,8 @@ envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract",
                [("Proof","proof"), ("Script","script"), ("item", "item"), ("ListItem", "item")] ++
                [("Conjecture", "conjecture"), ("Lemma", "lemma"), ("Corollary", "corollary")] ++
                [("Assertion", "assertion"), ("Text","text"), ("Assignment", "assignment")] ++
-               [("Solution", "solution"),("Itemize", "itemize"), ("Enumerate","enumerate")] ++
-               [("Description", "description"), ("Proposition", "proposition"), ("FalseConjecture", "falseConjecture")] ++
+               [("Solution", "solution")] ++
+               [("Proposition", "proposition"), ("FalseConjecture", "falseConjecture")] ++
                [("Item","item"), ("Comment","comment"),("Note","note"),("Warning","warning")] ++
                [("Error","error"), ("Glossary", "glossary")] ++ listEnvs
 
@@ -208,7 +208,8 @@ embeddedElements = [("Emphasis","emphasis"), ("IncludeText","includeText")] ++
 
 
 listEnvs :: [(String, String)]
-listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate"), ("List","list")]
+listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate"), ("List","list")] ++
+           [("description", "description"),("itemize", "itemize"),("enumerate", "enumerate")]
 
 itemNames :: [String]
 itemNames = ["ListItem", "item", "Item"]
@@ -230,7 +231,7 @@ mmissEmbeddedEnvs = ["emphasis", "cite", "link", "reference", "define","refRelat
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
 latexPlainTextEnvs :: [String]
 latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math", "displaymath", "equation"] ++
-                     ["alltt", "lstlisting", "array"] ++ (map fst plainTextAtoms)
+                     ["alltt", "lstlisting", "array", "tabularx"] ++ (map fst plainTextAtoms)
 
 
 -- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
@@ -649,6 +650,8 @@ command = do c <- try (many1 letter)
              star <- option "" (try (string "*"))
              l <- do braceDelim <- try (string "{}")
                      return (LParams [] [] (Just(braceDelim)) Nothing)
+                  <|> do blankDelim <- try (string "\n")
+                         return (LParams [] [] (Just(blankDelim)) Nothing)
                   <|> do blankDelim <- try (many1 space)
                          return (LParams [] [] (Just(blankDelim)) Nothing)
                   <|> do p <- (lParams c [])
