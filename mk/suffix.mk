@@ -407,31 +407,27 @@ ifneq "$(strip $(LIBOBJS))" ""
 # PWD=/home/spqr/uni/foo/bar
 # SUFFIX=foo/bar
 # TOPRELATIVE=../.. (so location of top directory relative to this one)
-# HADDOCKINTERFACES=--read-interface=../../baz,/home/spqr/uni/baz/interface.haddock
+
 	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`; \
 	TOPRELATIVE=`echo $$SUFFIX | sed -e 's/[^/][^/]*/../g'`; \
-	rm -f interface.haddock; \
-	HADDOCKINTERFACES0=`$(GFIND) $(TOP) -name interface.haddock \
-           -printf "--read-interface=$$TOPRELATIVE/%P,%p "`; \
-	HADDOCKINTERFACES=`echo $$HADDOCKINTERFACES0 | sed -e s+/interface.haddock,+,+g` ;\
-	GHCINTERFACES0=`$(GFIND) $(TOP)/www/ghc/html -name '*.haddock' \
-           -printf "--read-interface=$$TOPRELATIVE/ghc/html/%P,%p "` \
-	GHCINTERFACES=`echo $$GHCINTERFACES0 | sed -e 's+/[^/]*.haddock,+,+g'` ;\
+	rm -f $(TOP)/www/$$SUFFIX/interface.haddock; \
+	HINTERFACES0=`$(GFIND) $(TOP)/www -name '*.haddock' \
+           -printf "--read-interface=$$TOPRELATIVE/%P,%p "` \
+	HINTERFACES=`echo $$HINTERFACES0 | sed -e 's+/[^/]*.haddock,+,+g'` ;\
         mkdir -p $(TOP)/www/$$SUFFIX ; \
 	cd haddock; \
 	PROLOGUE=`if [ -r ../haddock.prologue ]; then echo -p ../haddock.prologue; fi`; \
-	$(HADDOCK) -h --package $(PACKAGE) -o $(TOP)/www/$$SUFFIX \
-           -s sources --dump-interface=../interface.haddock \
-	   $$PROLOGUE $$GHCINTERFACES $$HADDOCKINTERFACES \
-           $(LIBSRCS)
+	$(HADDOCK) -v -h --package $(PACKAGE) -o $(TOP)/www/$$SUFFIX \
+           -s sources/%F -D $(TOP)/www/$$SUFFIX/interface.haddock \
+	   $$PROLOGUE $$HINTERFACES $(LIBSRCS)
 endif
 
 haddockgenindex:
 ifdef THISISTOP
-	HADDOCKINTERFACES0=`$(GFIND) $(TOP) -name interface.haddock \
+	HADDOCKINTERFACES0=`$(GFIND) $(TOP)/www -name interface.haddock \
            -printf "--read-interface=%P,%p "`; \
 	HADDOCKINTERFACES=`echo $$HADDOCKINTERFACES0 | sed -e s+/interface.haddock,+,+g` ;\
-	$(HADDOCK) -o $(TOP)/www \
+	$(HADDOCK) -v -o $(TOP)/www \
 	   $$HADDOCKINTERFACES \
           --gen-index --gen-contents
 endif
