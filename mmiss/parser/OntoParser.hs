@@ -64,7 +64,6 @@ data ObjectLink = ObjectLink {
 data OFrag = 
    ClassDeclFrag ClassDecl 
  | ObjectDeclFrag ObjectDecl
--- | RelationDeclFrag RelationDecl
  | BaseRelationDeclFrag BaseRelationDecl
  | RelationTypeDeclFrag RelationTypeDecl
  | ObjectLinkFrag ObjectLink
