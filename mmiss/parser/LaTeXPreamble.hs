@@ -50,9 +50,6 @@ data MMiSSLatexPreamble = MMiSSLatexPreamble {
   ontologyFrags :: [String]
 } deriving (Typeable)
 
-emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, 
-                                              importCommands = Nothing, 
-                                              ontologyFrags = []}
 
 data LaTeXPreamble = Preamble DocumentClass [Package] LaTeXPreambleCmds
    deriving (Typeable)
@@ -65,8 +62,119 @@ data ContentType = Ontology | Latex deriving (Eq, Show, Read,Enum)
 type ContentString = String
 type CommandString = String
 
+preambleIncludeCmds :: [String]
 preambleIncludeCmds = ["input", "include", "mmissinclude"]
 
+
+---------------------------------------------------------------------------------------------
+--
+-- MMiSSLatexPreamble is an instance of StringClass
+--
+---------------------------------------------------------------------------------------------
+
+instance StringClass MMiSSLatexPreamble where
+   fromStringWE string = parsePreamble string
+   toString preamble = makePreambleText preamble
+
+
+-- ----------------------------------------------------------------------------------
+-- Instances of HasCodedValue and Eq for MMiSSLatexPreamble (added by George)
+-- ----------------------------------------------------------------------------------
+
+instance Eq MMiSSLatexPreamble where
+   (==) = mapEq 
+      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
+         (latexPreamble,importCommands,ontologyFrags))
+
+instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
+   writeBin = mapWrite
+      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
+         (latexPreamble,importCommands,ontologyFrags))
+   readBin = mapRead
+      (\ (latexPreamble,importCommands,ontologyFrags) ->
+         (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags))
+
+{--
+data LaTeXPreambleCmds = Cmd String |  FileRef FilePath ContentString ContentType
+data ContentType = Ontology
+
+type ContentString = String
+--}
+
+instance Eq LaTeXPreamble where
+   (==) = mapEq 
+      (\ (Preamble documentClass packages preambleCmds) -> 
+         (documentClass,packages,preambleCmds))   
+{--
+instance Eq LaTeXPreambleCmds where
+   (==) = mapEq 
+      (\ (Preamble documentClass packages string) -> 
+         (documentClass,packages,string))   
+--}
+
+instance Monad m => CodedValue.HasBinary LaTeXPreamble m where
+   writeBin = mapWrite
+      (\ (Preamble documentClass packages latexPreambleCmds) -> 
+         (documentClass,packages,latexPreambleCmds))
+   readBin = mapRead
+      (\ (documentClass,packages,string) ->
+         (Preamble documentClass packages string))
+
+
+type PackedLatexPreambleCmd = Choice5 String (FilePath,CommandString,ContentString,ContentType) () () ()
+
+toPackedLatexPreambleCmd :: LaTeXPreambleCmd -> PackedLatexPreambleCmd
+toPackedLatexPreambleCmd v = 
+  case v of
+    (Cmd str) -> Choice1 str
+    (FileRef fpath contentString cmdStr contentType) -> Choice2 (fpath,contentString,cmdStr,contentType)
+
+fromPackedLatexPreambleCmd :: PackedLatexPreambleCmd -> LaTeXPreambleCmd
+fromPackedLatexPreambleCmd v =
+  case v of
+    Choice1 str -> Cmd str
+    Choice2 (fpath,contentString,cmdStr,contentType) -> (FileRef fpath contentString cmdStr contentType)
+
+instance Monad m => CodedValue.HasBinary LaTeXPreambleCmd m where
+  writeBin = mapWrite toPackedLatexPreambleCmd 
+  readBin = mapRead fromPackedLatexPreambleCmd
+
+instance  Monad m => CodedValue.HasBinary ContentType m where
+  writeBin = mapWrite fromEnum
+  readBin = mapRead toEnum
+
+-- ----------------------------------------------------------------------------------
+-- Instances of HasCodedValue and Eq for Package (added by George)
+-- ----------------------------------------------------------------------------------
+
+instance Eq Package where
+   (==) = mapEq
+      (\ (Package options packageName versionData) -> (options,packageName,versionData))
+
+instance Monad m => CodedValue.HasBinary Package m where
+   writeBin = mapWrite 
+      (\ (Package options packageName versionData) -> (options,packageName,versionData))
+   readBin = mapRead
+      (\ (options,packageName,versionData) -> Package options packageName versionData)
+
+instance Eq LaTeXPreambleCmds where
+   (==) = latexPreambleCmdsEq
+
+instance Eq LaTeXPreambleCmd where
+  (==) = latexPreambleCmdEq
+
+
+
+-- ----------------------------------------------------------------------------------
+-- Functions
+-- ----------------------------------------------------------------------------------
+
+emptyMMiSSLatexPreamble :: MMiSSLatexPreamble
+emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, 
+                                              importCommands = Nothing, 
+                                              ontologyFrags = []}
+
+emptyLaTeXPreamble :: LaTeXPreamble 
 
 emptyLaTeXPreamble = Preamble (Package [] "mmiss" "") [] []
 
@@ -81,12 +189,16 @@ newtype MMiSSExtraPreambleData = MMiSSExtraPreambleData {
 -- von MMiSS generierten Input-Preamble markiert. Zum Vergleich wird der gesamte String
 -- verwendet:
 
+startImportPragma :: String
 startImportPragma = "%%MMiSSLaTeX imported preamble START"
+
+endImportPragma :: String
 endImportPragma = "%%MMiSSLaTeX imported preamble END"
 
+mmissNoParsingPragma :: String
 mmissNoParsingPragma = "%%MMISS: no parse"
 
-
+specialTreatmentInPreamble :: [String]
 specialTreatmentInPreamble = ["documentclass", "usepackage", "Path", "Import"]
 
 {--
@@ -805,100 +917,3 @@ unionAttributes xs ys = unionBy (eqAttPair) xs ys
 eqAttPair :: Eq a => (a, b) -> (a, b) -> Bool 
 eqAttPair x y = (fst x) == (fst y)
 
-
----------------------------------------------------------------------------------------------
---
--- MMiSSLatexPreamble is an instance of StringClass
---
----------------------------------------------------------------------------------------------
-
-instance StringClass MMiSSLatexPreamble where
-   fromStringWE string = parsePreamble string
-   toString preamble = makePreambleText preamble
-
-
--- ----------------------------------------------------------------------------------
--- Instances of HasCodedValue and Eq for MMiSSLatexPreamble (added by George)
--- ----------------------------------------------------------------------------------
-
-instance Eq MMiSSLatexPreamble where
-   (==) = mapEq 
-      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
-         (latexPreamble,importCommands,ontologyFrags))
-
-instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
-   writeBin = mapWrite
-      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
-         (latexPreamble,importCommands,ontologyFrags))
-   readBin = mapRead
-      (\ (latexPreamble,importCommands,ontologyFrags) ->
-         (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags))
-
-{--
-data LaTeXPreambleCmds = Cmd String |  FileRef FilePath ContentString ContentType
-data ContentType = Ontology
-
-type ContentString = String
---}
-
-instance Eq LaTeXPreamble where
-   (==) = mapEq 
-      (\ (Preamble documentClass packages preambleCmds) -> 
-         (documentClass,packages,preambleCmds))   
-{--
-instance Eq LaTeXPreambleCmds where
-   (==) = mapEq 
-      (\ (Preamble documentClass packages string) -> 
-         (documentClass,packages,string))   
---}
-
-instance Monad m => CodedValue.HasBinary LaTeXPreamble m where
-   writeBin = mapWrite
-      (\ (Preamble documentClass packages latexPreambleCmds) -> 
-         (documentClass,packages,latexPreambleCmds))
-   readBin = mapRead
-      (\ (documentClass,packages,string) ->
-         (Preamble documentClass packages string))
-
-
-type PackedLatexPreambleCmd = Choice5 String (FilePath,CommandString,ContentString,ContentType) () () ()
-
-toPackedLatexPreambleCmd :: LaTeXPreambleCmd -> PackedLatexPreambleCmd
-toPackedLatexPreambleCmd v = 
-  case v of
-    (Cmd str) -> Choice1 str
-    (FileRef fpath contentString cmdStr contentType) -> Choice2 (fpath,contentString,cmdStr,contentType)
-
-fromPackedLatexPreambleCmd :: PackedLatexPreambleCmd -> LaTeXPreambleCmd
-fromPackedLatexPreambleCmd v =
-  case v of
-    Choice1 str -> Cmd str
-    Choice2 (fpath,contentString,cmdStr,contentType) -> (FileRef fpath contentString cmdStr contentType)
-
-instance Monad m => CodedValue.HasBinary LaTeXPreambleCmd m where
-  writeBin = mapWrite toPackedLatexPreambleCmd 
-  readBin = mapRead fromPackedLatexPreambleCmd
-
-instance  Monad m => CodedValue.HasBinary ContentType m where
-  writeBin = mapWrite fromEnum
-  readBin = mapRead toEnum
-
--- ----------------------------------------------------------------------------------
--- Instances of HasCodedValue and Eq for Package (added by George)
--- ----------------------------------------------------------------------------------
-
-instance Eq Package where
-   (==) = mapEq
-      (\ (Package options packageName versionData) -> (options,packageName,versionData))
-
-instance Monad m => CodedValue.HasBinary Package m where
-   writeBin = mapWrite 
-      (\ (Package options packageName versionData) -> (options,packageName,versionData))
-   readBin = mapRead
-      (\ (options,packageName,versionData) -> Package options packageName versionData)
-
-instance Eq LaTeXPreambleCmds where
-   (==) = latexPreambleCmdsEq
-
-instance Eq LaTeXPreambleCmd where
-  (==) = latexPreambleCmdEq
