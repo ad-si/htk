@@ -25,7 +25,7 @@ endif
 endif
 endif
 
-COMMONEXTRAEXPORTS = VERSION uni-package.conf.export includes/*.h mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk configure
+COMMONEXTRAEXPORTS = VERSION uni-package.conf.export includes/*.h includes/uni-config.h.in mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk configure
 
 ifeq "@WINDOWS@" "1"
 EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS) 
