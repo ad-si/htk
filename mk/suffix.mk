@@ -278,7 +278,7 @@ packagesquick : packageherequick
 prepareexportshere : 
 ifneq "$(PACKAGE)" ""
 	$(GHCPKG) --config-file $(PACKAGECONF).export --remove-package $(PACKAGE) ; echo ""
-	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --force --add-package 
+	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;$(SED) -e 's+PACKAGELIB+$(PACKAGELIB)+g;s+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --force --add-package 
 endif
 
 prepareexports : prepareexportshere
