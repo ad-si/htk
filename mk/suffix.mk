@@ -285,11 +285,11 @@ prepareexports : prepareexportshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) prepareexports && ) echo Finished make prepareexports
 
 displayexportshere :
-ifeq "$(PACKAGE)" ""
-	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL)
-else
+ifneq "$(strip $(LIBOBJS))" ""
 	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL) $$PWD/$(LIB) $$PWD/$(GHCIOBJ) $(OBJSEMACSFULL)
 	@PWD=`pwd`;echo $(EXPORTHIFILES)
+else
+	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL)
 endif
 
 displayexports : displayexportshere
