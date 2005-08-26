@@ -26,7 +26,7 @@ which are listed in the order they are compiled.
    HaXml        |  We compile HaXml, if necessary, in this directory.
    server       |  Stuff for client-server relationships
    graphs       |  General framework for shared graphs.
-   davinci      |  This is an encapsulation of DaVinci in Haskell
+   davinci      |  This is an encapsulation of uDra(Graph) in Haskell
    simpledb     |  A very simple database system.
    imports      | 
    types        |  Repository
@@ -45,19 +45,15 @@ FreeBSD.
 
 The following things are specifically required if you want to compile 
 everything.  If you just want HTk, you only need (1)-(3).  If you just want
-HTk + daVinci + HaXml, you only need (1)-(4).  
+HTk + uDraw(Graph) formerly daVinci + HaXml, you only need (1)-(4).  
 
 (1) Glasgow Haskell.   
     
     http://www.haskell.org/ghc/docs/latest/html/building/sec-port-info.html
 
-    This release specifically requires version 6.3 of Glasgow Haskell or
-    later.  At the time of writing (14th December 2004) there is no
-    official release on this branch; instead the code has been compiled
-    with a version of GHC compiled from source.  However the code should
-    work with version 6.4, which will be officially released shortly.
-
-    If that hasn't happened yet or you like living dangerously, you can get
+    This release specifically requires version 6.4 of Glasgow Haskell or
+    later. If you haven't got a binary release or you like living
+    dangerously,  you can get
     detailed instructions for compiling GHC from source from here:
 
        http://research.microsoft.com/%7Esimonpj/tmp/building/
@@ -99,14 +95,10 @@ HTk + daVinci + HaXml, you only need (1)-(4).
     If you want another look-and-feel, try tixwish 
     ( http://tix.sourceforge.net ).
 
-(4) daVinci.  This is what the Workbench uses to display graphs.  You can
-    get version 2.1 from 
+(4) uDraw(Graph) formerly daVinci.  This is what the Workbench uses to
+    display graphs.  You can get version 3.1.1 from 
 
-       http://www.informatik.uni-bremen.de/daVinci/
-
-    The commercial version of daVinci, daVinci Presenter, is no longer
-    available, but also works with the Workbench.  A new, free, version
-    of daVinci is hopefully on the way.
+       http://www.informatik.uni-bremen.de/uDrawGraph
 
 (5) The Berkeley Database is used for all storage by the repository.
     You can get this from
@@ -205,14 +197,13 @@ type (in bash or sh)
 export CVSROOT=:pserver:cvsread@cvs-agbkb.informatik.uni-bremen.de:/repository
 cvs login
 # when cvs login asks for a password, type "cvsread"   
-cvs checkout -rghc-6-04 uni
+cvs checkout uni
 
 This will create a directory uni in your current directory containing
 the latest sources for uni.
 
-NB.  The "-rghc-6-04" is specific to this release, and indicates that
-you specifically want the branch that works for ghc-6.4 style versions of the
-Glasgow Haskell compiler.  (Or, perhaps, later ones.)
+NB.  With the tag "-rghc-6-02" you may get the old branch that worked for
+ghc-6.2.x style versions of the Glasgow Haskell compiler.
 
 Type "man cvs" to find out other CVS commands.
 
@@ -228,13 +219,14 @@ What To Do Before Compiling
 2) How much do you want to compile?  The default is everything,
    but you can give configure the option --enable-HTk, if all you
    want to compile is HTk or --enable-Het if you just want to 
-   compile the things needed for HetCATS (HTk + daVinci + HaXml).
+   compile the things needed for HetCATS (HTk + uDraw(Graph) + HaXml).
    If ./configure can't find the files it needs it may decide not
-   to compile everything anyway; for example if it can't find daVinci
+   to compile everything anyway; for example if it can't find uDrawGraph
    it will just compile HTk.
-3) The programs (ghc, wish, daVinci, gnuclient) need to be in your PATH
-   when you run ./configure.  (After that, ./configure makes sure they
-   are remembered.)   If you want to compile everything, you will also 
+3) The programs (ghc, wish, uDrawGraph or daVinci, gnuclient) need
+   to be in your PATH  when you run ./configure.  (After that,
+   ./configure makes sure they are remembered.)    
+   If you want to compile everything, you will also 
    need to tell ./configure where to find the Berkeley Data Base, see 
    (5) in the "Requirements section".
 
@@ -322,12 +314,12 @@ then we include the general Make magic.
 
 SRCS contains all the Haskell source files in this directory.
    The Makefiles interpret these specially according to name.
-   Files with names of the type "Test*.hs" or "Test*.lhs" are test programs,
+   Files with names of the type "Test*.hs" are test programs,
       should contain a module Main, and will be compiled to an executable
       with name "test*", or "test*.exe" on Windows, for example "TestFoo.hs"
       will go to "Foo" or "Foo.exe"
-   Files with names "Main*.hs" or "Main*.lhs" are just the same
-      as files "Test*.hs" or "Test*.hs", except that the final executable
+   Files with names "Main*.hs" are just the same
+      as files "Test*.hs", except that the final executable
       is just called "*", so "MainFoo.hs" goes to "Foo".
    All other files are package files.  They should contain a module with the
       name of the file (so the file Foo.hs must contain the module Foo; the
@@ -380,14 +372,9 @@ haven't added any new Makefiles.)
 Making documentation
 --------------------
 
-You need to use Haddock, which is available from 
+You need to use Haddock 0.7, which is available from 
 
    http://www.haskell.org/haddock/
-
-We are using Haddock 0.6 with some extra extensions which will hopefully
-make it into Haddock 0.7.  Haddock 0.6 should however work, but the output
-will not look as good; the "Description" fields will not appear in the
-contents lists as they should.
 
 Make sure Haddock is in your path and then type
 
@@ -397,7 +384,10 @@ Make sure Haddock is in your path and then type
 The output may be even better if you can find where Glasgow Haskell installs
 its HTML documentation and, instead of "./configure", use 
 "./configure --with-ghc-html=[directory]".  ./configure tries to figure out
-where the HTML documentation is anyway, but it doesn't always get it right.
+where the HTML documentation is anyway, but it doesn't always get it
+right. (GHC's HTML documentation should have been generated with the
+same haddock version, which should be the case for ghc-6.4.1)
+
 
 
 Other Specific Issues for Windows
@@ -411,6 +401,7 @@ to make them look more Unix-y.  The solution is to specify the file names
 directly, by setting the environment variables UNIWISH, UNIDAVINCI and
 UNIGNUCLIENT to the location of the executables.  If they are in your PATH,
 you can in fact just set them to "wish", "daVinci" and "gnuclient".
+(The renaming of daVinci to uDrawGraph has not been tested yet under windows)
 
 
 How to Make a Binary Distribution
@@ -488,8 +479,7 @@ present, and can be used to change the options and provide extra targets.
 Conclusion
 ----------
 
-Please report problems to me.  I am George Russell and my e-mail
-address is ger@tzi.de .
+Please report problems to uniform@tzi.de .
 
 Good luck!
 
