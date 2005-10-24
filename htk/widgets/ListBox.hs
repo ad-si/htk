@@ -124,6 +124,8 @@ instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a] where
 -- | A listbox can have a tooltip (only displayed if you are using tixwish).
 instance HasTooltip (ListBox a)
 
+-- | A listbox widget has an X selection.
+instance HasXSelection (ListBox a)
 
 -- --------------------------------------------------------
 -- A list box widget can be a subwidget, e.g. in a combo box

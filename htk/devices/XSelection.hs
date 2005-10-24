@@ -33,8 +33,8 @@ class HasSelection w => HasXSelection w where
   exportSelection         :: Bool -> Config w
   -- Gets the current selection export setting.
   getExportSelection      :: w -> IO Bool
-  exportSelection b w     = cset w "exportSelection" b
-  getExportSelection w    = cget w "exportSelection"
+  exportSelection b w     = cset w "exportselection" b
+  getExportSelection w    = cget w "exportselection"
 
 
 -- -----------------------------------------------------------------------
