@@ -149,6 +149,10 @@ instance DeleteNode EmptyGraph EmptyNode where
          a <- getA never
          return a
 
+instance SetNodeFocus EmptyGraph EmptyNode where
+   setNodeFocusPrim _ _ = done
+
+
 instance NewNodeType EmptyGraph EmptyNodeType EmptyNodeTypeParms where
    newNodeTypePrim _ _ = return EmptyNodeType
 
