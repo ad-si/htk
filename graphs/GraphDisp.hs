@@ -127,6 +127,7 @@ module GraphDisp(
    newNode,      -- :: Graph ... -> nodeType value -> value -> IO (node value)
    setNodeType,  -- :: Graph ... -> node value -> nodeType value -> IO ()
    deleteNode,   -- :: Graph ... -> node value -> IO ()
+   setNodeFocus,  -- :: Graph ... -> node value -> IO ()
    getNodeValue, -- :: Graph ... -> node value -> IO value
    setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
       -- WARNING.  setNodeValue should not be used with nodes with
@@ -170,6 +171,7 @@ module GraphDisp(
 
    NewNode(..),
    DeleteNode(..),
+   SetNodeFocus(..),
    NodeClass,
    NodeTypeClass,
    NewNodeType(..),
@@ -309,6 +311,18 @@ deleteNode
    ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
       arcType arcTypeParms))
    (node :: node value) = deleteNodePrim graph node
+
+setNodeFocus :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+                 arc arcType arcTypeParms,Typeable value) => 
+   (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms)
+   -> node value -> IO ()
+setNodeFocus
+   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+      arcType arcTypeParms))
+   (node :: node value) = setNodeFocusPrim graph node
+
+
 
 -- | get the value associated with a node
 getNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
@@ -460,7 +474,7 @@ class ArcTypeParms arcTypeParms where
 -- graph-displaying functionality we need.
 -- 
 class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
-   NewNode graph node nodeType,DeleteNode graph node,
+   NewNode graph node nodeType,DeleteNode graph node,SetNodeFocus graph node,
    NodeClass node,Typeable1 node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
@@ -480,7 +494,7 @@ class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    -- be given . . .   
 
 instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
-   NewNode graph node nodeType,DeleteNode graph node,
+   NewNode graph node nodeType,DeleteNode graph node,SetNodeFocus graph node,
    NodeClass node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
@@ -547,6 +561,13 @@ class (GraphClass graph,NodeClass node) =>
    -- Using this event we execute the given action, until it terminates,
    -- when we restore normal user interaction.
    -- NB.  This function must not be nested, or it will block.
+
+
+class (GraphClass graph,NodeClass node) =>
+      SetNodeFocus graph node where
+   setNodeFocusPrim :: Typeable value =>
+      graph -> node value -> IO ()
+
 
 class (Typeable1 node,Ord1 node) => NodeClass node
 
