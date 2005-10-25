@@ -12,6 +12,5 @@ SRCS = AbstractGraphView.hs MainLispInterface.hs
 
 XHCDIRS= $(HTKDIRS)
 
-include /home/till/CASL/uni/mk/boilerplate.mk
-
+include @TOP@/mk/boilerplate.mk
 
