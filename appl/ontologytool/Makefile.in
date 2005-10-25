@@ -1,16 +1,11 @@
-PACKAGES = uni-davinci uni-server
-PACKAGE = Main
+PACKAGES = uni-util uni-posixutil uni-davinci uni-htk fgl text lang-1.0
+PACKAGE = uni-ontology
 
-# LIBS = $(TOP)/davinci/libdavinci.a $(TOP)/graphs/test/libtestgraph.a \
-#   $(TOP)/graphs/libgraphs.a $(TOP)/htk/libhtk.a \
-#   $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
-#   $(TOP)/events/libevents.a $(TOP)/util/libutil.a
-
-# LIB = lib.a
-
-SRCS = AbstractGraphView.hs MainLispInterface.hs
+SRCS = AbstractGraphView.hs MMiSSOntology.hs MMiSSOntologyGraph.hs OntoParser.hs MainOntoTool.hs MainLispInterface.hs
 
 XHCDIRS= $(HTKDIRS)
+
+EXTRA_HC_OPTIONS = -ignore-package uni-mmiss -ignore-package uni-mmiss-parser
 
 include @TOP@/mk/boilerplate.mk
 
