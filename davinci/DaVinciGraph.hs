@@ -17,6 +17,7 @@ module DaVinciGraph(
    DaVinciArc,
    DaVinciArcType,
    DaVinciArcTypeParms,
+   getDaVinciGraphContext -- :: DaVinciGraph -> Context
    ) where
 
 import Maybe
@@ -157,6 +158,9 @@ instance Destroyable DaVinciGraph where
 instance Destructible DaVinciGraph where
    destroyed (DaVinciGraph {destructionChannel = destructionChannel}) = 
       receive destructionChannel
+
+getDaVinciGraphContext :: DaVinciGraph -> Context
+getDaVinciGraphContext g = context g
 
 signalDestruct :: DaVinciGraph -> IO ()
 signalDestruct daVinciGraph = 
@@ -902,6 +906,19 @@ instance DeleteNode DaVinciGraph DaVinciNode where
             act = mkAct (receive channel)
             
          withHandler newHandler (context daVinciGraph) act
+
+instance SetNodeFocus DaVinciGraph DaVinciNode where
+   setNodeFocusPrim (daVinciGraph @ 
+            DaVinciGraph {context = context,nodes = nodes})
+         (DaVinciNode nodeId) = 
+      transformValue nodes nodeId (\ nodeDataOpt ->
+         case nodeDataOpt of
+            Nothing -> return (nodeDataOpt,())
+            Just (NodeData nodeDataData) ->
+               do
+                  doInContext (Special (FocusNodeAnimated nodeId)) context
+                  return (Nothing,())
+            )
 
 
 instance NodeClass DaVinciNode
