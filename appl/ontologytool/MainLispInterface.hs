@@ -15,7 +15,7 @@ import DaVinciGraph
 import GraphDisp
 import GraphConfigure
 import AbstractGraphView
-import IORef
+import Data.IORef
 
 
 -- Auxiliary stuff for graph display commands
