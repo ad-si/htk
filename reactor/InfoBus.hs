@@ -8,6 +8,7 @@ module InfoBus (
    deregisterTool,   
    shutdown,
    registerDestroyAct,
+   encapsulateWaitTermAct,
    ) where
 
 
@@ -107,6 +108,15 @@ registerDestroyAct act =
 
       registerTool simpleTool
       return (deregisterTool simpleTool)
+
+-- | encapsulate an action such that shutdown waits for its termination
+encapsulateWaitTermAct :: IO () -> IO ()
+encapsulateWaitTermAct act =
+   do sync <- newEmptyMVar
+      registerDestroyAct (readMVar sync)
+      act
+      putMVar sync ()
+
 
 data SimpleTool = SimpleTool {
    oID :: ObjectID,
