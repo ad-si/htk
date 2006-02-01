@@ -10,8 +10,6 @@ module TextDisplay(
 import HTk
 import Core
 import ScrollBox
-import MarkupText 
-
 
 -- | Display some (longish) text in an uneditable, scrollable editor.
 -- Returns immediately-- the display is forked off to separate thread.
@@ -31,10 +29,10 @@ createTextDisplayExt title txt conf unpost =
      t   <- newLabel b [text title, HTk.font (Helvetica, Roman, 18::Int)]
      q   <- newButton b [text "Close", width 12]
      (sb, ed) <- newScrollBox b (\p-> newEditor p (state Normal:conf)) []
-     pack b [Side AtTop, Fill X, Expand On]
+     pack b [Side AtTop, Expand On, Fill Both]
      pack t [Side AtTop, Expand Off, PadY 10]
-     pack sb [Side AtTop, Expand On]
-     pack ed [Side AtTop, Expand On, Fill X]
+     pack sb [Side AtTop, Expand On, Fill Both]
+     pack ed [Side AtTop, Expand On, Fill Both]
      pack q [Side AtRight, PadX 5, PadY 5] 		 
 
      ed # value txt
