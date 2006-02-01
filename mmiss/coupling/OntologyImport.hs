@@ -25,9 +25,10 @@ import OntoParser
 
 
 printImports :: LinkedObject -> String -> EntityFullName -> View -> IO(Bool)
-printImports link couplingDir packageFullName view = 
+printImports sourcePackageLinkedObject couplingDir packageFullName view = 
   do
-     folderLink1Opt <- case splitLinkedObject link of
+     -- Link to PackageFolder des importierenden Paketes:
+     folderLink1Opt <- case splitLinkedObject sourcePackageLinkedObject of
                            MMiSSPackageFolderC folderLink -> return (Just folderLink)
                            _ -> do
                                   putStrLn "Link is not a PackageFolder."
@@ -42,6 +43,7 @@ printImports link couplingDir packageFullName view =
             mmisslatexPreamble <- readPreamble view preambleLink
             let importCmdsOpt = importCommands mmisslatexPreamble
                 ontFilename = couplingDir `combineNames` ((toString packageFullName) ++ ".imp")
+            -- Gibt es Import-Kommandos in diesem Paket?:
             case importCmdsOpt of
               Nothing -> do resultWE <- copyStringToFileCheck " " ontFilename
                             return(False)
@@ -58,8 +60,9 @@ printImports link couplingDir packageFullName view =
                       do 
 --                        let
 --                           expandedImports = map (expandAliases aliases) globalImports
-
-                        resultList <- mapM (printImportedPackage view packageFolder packageFullName aliases) globalImports 
+                        -- Über alle importierten Packages hinweg die Ontologien zusammensammeln: 
+                        resultList <- mapM (printImportedPackage view packageFolder
+                                                                 packageFullName aliases) globalImports 
                         let (latexStrings,commandStrings) = unzip resultList
                             cmdStr = concat commandStrings
                             ontStr = concat latexStrings
@@ -79,17 +82,21 @@ printImports link couplingDir packageFullName view =
 
 
 printImportedPackage :: View -> MMiSSPackageFolder -> EntityFullName -> Aliases -> EntitySearchName -> IO(String,String)
-printImportedPackage view folder packageFullName aliases name =
+printImportedPackage view packageFolder packageFullName aliases name =
   do 
-     result <- lookupMMiSSPackageFolder view folder name
+--     result <- lookupLinkedObject view sourcePackageLinkedObject name
+      -- -> IO (WithError (Maybe LinkedObject))
+     result <- lookupMMiSSPackageFolder view packageFolder name
       -- -> IO (WithError (Maybe (Link MMiSSPackageFolder)))
+
      case fromWithError result of
-        Left mess -> do putStrLn mess
+        Left mess -> do putStrLn ("printImportedPackage: lookupMMiSSPackageFolder returned an error in Package\n  '" 
+                                  ++ (toString packageFullName) ++ "': " ++ mess)
                         hFlush stdout
                         return("","")
         Right packageLinkOpt ->
           case packageLinkOpt of
-             Nothing -> do putStrLn ("Imported Package " ++ (toString name) ++ " could not be found")
+             Nothing -> do putStrLn ("    Imported Package " ++ (toString name) ++ " could not be found")
                            hFlush stdout
                            return("","")
              Just link -> 
@@ -99,9 +106,9 @@ printImportedPackage view folder packageFullName aliases name =
                       relative = case (toRelativeSearchName packageFullName expanded) of
                                     Nothing -> ""
                                     Just(s) -> toString s
+                  putStrLn ("    Imported Package with fullName " ++ (toString expanded) ++ " found")
+                  hFlush stdout
                   pairResult <- generateExternalOntStr view link relative
-                  putStrLn ("Imported Package with fullName " ++ (toString expanded) ++ " and relative name "
-                           ++ relative ++ " found")
                   hFlush stdout
                   return(pairResult)
 
@@ -123,9 +130,9 @@ generateExternalOntStr view folderLink relativePath =
      let preambleLink = toMMiSSPreambleLink packageFolder
      mmisslatexPreamble <- readPreamble view preambleLink
      case (ontologyFrags mmisslatexPreamble) of
-        [] -> do putStrLn "No Ontology found!"
+        [] -> do putStrLn "     No Ontology found!"
                  hFlush stdout
-        list -> putStrLn (concat list)
+        list -> putStrLn "      Ontology found."
      let ontoFrags = map read (ontologyFrags mmisslatexPreamble)
          ifStatements = map (createLaTeX (newRelativePath ++ ".pdf")) ontoFrags
          (latexStrings, cmdStrings) =  unzip ifStatements
@@ -149,9 +156,9 @@ createLaTeX filename (ClassDeclFrag (classDecl)) =
   let name = className classDecl
       latexStr = "\\Class{" ++ name ++ "}{" ++ (classText classDecl) ++ "}{" 
                     ++ (fromMaybe "" (super classDecl)) ++ "}\n"
-      commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}\n"
-                   ++ "                                 {\\def\\Basis{" ++ filename ++ "}}\n"
-                   ++ "                                 {}\n"
+      commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}%\n"
+                   ++ "                                 {\\def\\Basis{" ++ filename ++ "}}%\n"
+                   ++ "                                 {}%\n"
   in
     (latexStr,commandStr)
 
@@ -159,20 +166,33 @@ createLaTeX filename (ObjectDeclFrag objectDecl) =
   let name = objName objectDecl
       latexStr = "\\Object{" ++ name ++ "}{" ++ (objectText objectDecl) ++ "}{" 
                     ++ (instanceOf objectDecl) ++ "}\n"
-      commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}\n"
-                   ++ "                                 {\\def\\Basis{" ++ filename ++ "}}\n"
-                   ++ "                                 {}\n"
+      commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}%\n"
+                   ++ "                                 {\\def\\Basis{" ++ filename ++ "}}%\n"
+                   ++ "                                 {}%\n"
   in
     (latexStr,commandStr)
 
 createLaTeX filename (BaseRelationDeclFrag relDecl) =
   let name = baseRelName relDecl
-      card = fromMaybe "" (baseMultiplicities relDecl)
-      latexStr = "\\Relation[" ++ card ++ "]{" ++ name ++ "}{" ++ (baseRelationText relDecl) ++ "}{"
-                 ++ (fromMaybe "" (superRel relDecl)) ++ "}\n"
-      commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}\n"
-                   ++ "                                 {\\def\\Basis{" ++ filename ++ "}}\n"
-                   ++ "                                 {}\n"
+      latexStr = "\\RelationName{" ++ name ++ "}{" ++ (baseRelationText relDecl) ++ "}\n"
+      commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}%\n"
+                   ++ "                                 {\\def\\Basis{" ++ filename ++ "}}%\n"
+                   ++ "                                 {}%\n"
+  in
+    (latexStr,commandStr)
+
+
+createLaTeX filename (RelationTypeDeclFrag relTypeDecl) =
+  let name = nameOfRel relTypeDecl
+      card = case fromMaybe "" (multiplicities relTypeDecl) of
+               "" -> ""
+               str -> "[" ++ str ++ "]"
+      source = nameOfSource relTypeDecl
+      target = nameOfTarget relTypeDecl
+      superRelation = fromMaybe "" (superRel relTypeDecl)
+      latexStr = "\\Relation" ++ card ++ "{" ++ name ++ "}{" ++ source ++ "}{" ++ target ++ "}{"
+                    ++ superRelation ++ "}\n"
+      commandStr = ""
   in
     (latexStr,commandStr)
 
