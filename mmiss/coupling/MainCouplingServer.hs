@@ -9,7 +9,6 @@ import IO
 import Time
 import System
 import Maybe
-import System.IO.Unsafe
 
 import Data.List
 import Control.Concurrent
@@ -30,7 +29,6 @@ import EntityNames
 import Folders
 import Messages
 import CopyFile
-import Sources
 
 import CallServer(tryConnect)
 import qualified VersionInfo
@@ -48,6 +46,7 @@ import HostsPorts
 
 import Registrations
 
+import MMiSSRunCommand
 import MMiSSRegistrations
 import MMiSSImportExportErrors
 import MMiSSPackageFolder
@@ -87,10 +86,9 @@ main =
          serverAction =
             do
                (handle,hostName,_) <- accept socket
-
---               hSetBuffering handle (BlockBuffering (Just 4096))
                hSetBuffering handle LineBuffering
-               forkIO (mainHandle handle hostName couplingDir reposServer reposPort)
+--               forkIO (mainHandle handle hostName couplingDir reposServer reposPort)
+               mainHandle handle hostName couplingDir reposServer reposPort
                
                serverAction
  
@@ -165,6 +163,10 @@ mainHandle handle hostName couplingDir server port =
                       do
                         hPutStrLn handle "OK"
                         hFlush handle
+
+                        calendarTime2 <- toCalendarTime clockTime
+                        putStrLn (calendarTimeToString calendarTime2) 
+
                         versionGraph <- connectToReposServer user pwd server port
                         lastVersion <- getLastVersion versionGraph 
                         let 
@@ -178,12 +180,14 @@ mainHandle handle hostName couplingDir server port =
 
                         packages <- doUpdates handle versionGraph view couplingDir scriptDir couplingMess []
                         let
-                            paths = map toString packages
+                            paths = map (toString . fst)  packages
                         if (packages == [])
                            then do
                                   putStrLn "No Packages have been updated."
                                   putStrLn "-----------------------------------------------------------------------"
                                   hFlush stdout
+                                  closeServer versionGraph
+                                  hClose handle
                                   done
                            else do
                                   mapM_ (exportPackage view couplingDir couplingMess) packages
@@ -192,17 +196,20 @@ mainHandle handle hostName couplingDir server port =
                                   putStrLn ("Update finished. New version is: " ++ (show newVersion))
                                   putStrLn "Successfully re/imported packages:"
                                   mapM_ (\ path -> putStrLn path) paths
+
+                                  calendarTime3 <- toCalendarTime clockTime
+                                  putStrLn (calendarTimeToString calendarTime3) 
+
                                   let
                                      commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
                                   exitcode <- system (scriptDir `combineNames` 
                                                         ("dosvncommit " ++ couplingDir ++ " " ++ commitMess))
                                   putStrLn "-----------------------------------------------------------------------"
                                   hFlush stdout
+                                  closeServer versionGraph
+                                  hFlush stdout
+                                  hClose handle
                                   done
---                        let 
---                          dosvncommit = (trimDir top) `combineNames`
---                                ("mmiss" `combineNames` ("scripts" `combineNames` "dosvncommit"))
---                        exitcode <- return (ExitSuccess) -- system dosvncommit
                         
             Left mess ->
                do
@@ -217,12 +224,12 @@ mainHandle handle hostName couplingDir server port =
       done
 
   where
-     doAddPackage :: String -> EntityFullName -> IO()
-     doAddPackage scriptDir packagePath =
+     doAddPackage :: String -> (EntityFullName, String) -> IO()
+     doAddPackage scriptDir (packagePath, packageFSPath) =
        do
          let 
-           filename1 = ((toString packagePath) ++ ".tex")
-           filename2 = ((toString packagePath) ++ ".imp")
+           filename1 = packageFSPath ++ ".tex"
+           filename2 = packageFSPath ++ ".imp"
            dosvnadd1 = scriptDir `combineNames` ("dosvnadd " ++ couplingDir ++ " " ++ filename1)
            dosvnadd2 = scriptDir `combineNames` ("dosvnadd " ++ couplingDir ++ " " ++ filename2)
          exitcode <- system dosvnadd1
@@ -230,11 +237,11 @@ mainHandle handle hostName couplingDir server port =
          return()
 
 
-exportPackage :: View -> String -> CouplingMessages -> EntityFullName -> IO()
-exportPackage view couplingDir messages packagePath = 
+exportPackage :: View -> String -> CouplingMessages -> (EntityFullName,String) -> IO()
+exportPackage view couplingDir messages (packagePath, packageFSPath) = 
   do
     putStrLn "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    putStrLn ("  Exporting Package " ++ (toString packagePath))
+    putStrLn ("  Exporting Package " ++ (toString packagePath) ++ "\n    into file " ++ packageFSPath)
     putStrLn "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     linkedObjectOpt <- getLinkedObject view packagePath
     case linkedObjectOpt of
@@ -242,8 +249,8 @@ exportPackage view couplingDir messages packagePath =
       Just(linkedObject) ->
         do 
           let 
-             filename = couplingDir `combineNames` ((toString packagePath) ++ ".tex")
-             errFilename = couplingDir `combineNames` ((toString packagePath) ++ ".err")
+             filename = couplingDir `combineNames` (packageFSPath ++ ".tex") 
+             errFilename = couplingDir `combineNames` (packageFSPath ++ ".err")
              packageNameOpt = entityBase packagePath
           case packageNameOpt of
              Nothing -> importExportError "  doExport: Could not find package name in EntityFullName."
@@ -283,7 +290,7 @@ TODO: In die Files reingucken und den Packagenamen extrahieren.
 --}
 
 doUpdates :: Handle -> VersionGraph -> View -> String -> String -> CouplingMessages 
-              -> [EntityFullName] -> IO ([EntityFullName])
+              -> [(EntityFullName,String)] -> IO ([(EntityFullName,String)])
 doUpdates handle versionGraph view couplingDir scriptDir messages packages =
   do
     line <- hGetLine handle
@@ -295,98 +302,109 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
         do 
           let
              completePath = unbreakName ((breakName couplingDir) ++ (breakName line))
-             packagePathStripped = if (isSuffixOf "_ptx.tex" line)
-                                     then (take ((genericLength line) - 8) line) ++ ".tex"
-                                     else line
-          ok <- case splitExtension completePath of
-                  Nothing -> return(False)
-                  Just(_,_) -> doesFileExist completePath
-          importedPackageOpt <-
-            if not ok 
-              then do
-                     putStrLn "No valid package file or file not found!"
-                     return(Nothing)
-              else  
-                do
-                  fullPackagePath <-
-                    case fromWithError (fromStringWE packagePathStripped) of
-                       Left mess -> do
-                                      putStrLn ("  " ++ mess)
-                                      fail ""
-                       Right fullPackage -> return(fullPackage)
+             packagePathWOExt = if (isSuffixOf "_ptx.tex" line)
+                                     then take ((genericLength line) - 8) line
+                                     else if (isSuffixOf ".tex" line)
+                                            then take ((genericLength line) - 4) line
+                                            else line
 
-                  (fullPackageName, ext) <-
-                     case splitFullName fullPackagePath of
-                       Nothing -> return (fullPackagePath,"")
-                       Just f -> return(f)
+          packagePathStripped <- filenameToPackagename completePath line
+          fullPackageName <-
+            case (fromWithError packagePathStripped) of
+               Left mess ->  do putStrLn ("fromWithError packagePathStripped:  " ++ mess)
+                                hFlush stdout
+			        fail "Error: Can't create package path!"
+               Right packagePathStr ->
+		 case fromWithError (fromStringWE packagePathStr) of
+		   Left mess -> do
+				  putStrLn ("fromStringWE:  " ++ mess)
+                                  hFlush stdout
+				  fail "Error: Can't create package path!"
+		   Right fullPackage -> return(fullPackage)
 
---                  putStrLn ("  fullPackageName: " ++ (toString fullPackageName) ++ "\n")
---                  hFlush stdout
+          putStrLn ("fullPackageName: " ++ (toString fullPackageName))
+	  linkedObjectOpt <- getLinkedObject view fullPackageName
+	  importedPackageOpt <-
+	    case linkedObjectOpt of
+	      Nothing ->
+		do
+		   let
+		     dirPart = fromMaybe trivialFullName (entityDir fullPackageName)
 
-                  linkedObjectOpt <- getLinkedObject view fullPackageName
+		   parentFolderLinkWE <- findOrCreateFolder view dirPart
 
-                  importedPackageOpt <-
-                    case linkedObjectOpt of
-                      Nothing ->
-                        do
-                           let
-                             dirPart = fromMaybe trivialFullName (entityDir fullPackageName)
+		   case fromWithError parentFolderLinkWE of
+		     Left mess -> do
+				    putStrLn ("  " ++ mess)
+				    errorMess ("Error:\n" ++ mess)
+				    return(Nothing)
+		     Right parentFolderLink ->
+		       do 
+			 ok <- importMMiSSPackage1 view parentFolderLink (Just completePath)
+			 case ok of
+			    True -> return(Just(fullPackageName))
+			    False -> do
+				       putStrLn "Error: Import has failed!"
+				       return(Nothing)
 
-                           parentFolderLinkWE <- findOrCreateFolder view dirPart
+             --   Package has been found:
+             --
+	      (Just linkedObject)  -> 
+		   do 
+		     folderLink1 <- case splitLinkedObject linkedObject of
+			MMiSSPackageFolderC folderLink -> return folderLink
+			_ -> do
+				putStrLn ("  " ++ (toString fullPackageName) ++ " is not a package!")
+				errorMess ("Error: " ++ (toString fullPackageName)
+					     ++ " is not a package!")
+				fail ""
+		     reimportMMiSSPackage1 view folderLink1 (Just completePath)
+		     return(Just(fullPackageName))
 
-                           case fromWithError parentFolderLinkWE of
-                             Left mess -> do
-                                            putStrLn ("  " ++ mess)
-                                            errorMess ("Internal error:\n" ++ mess)
-                                            return(Nothing)
-                             Right parentFolderLink ->
-                               do 
-                                 ok <- importMMiSSPackage1 view parentFolderLink (Just completePath)
-                                 case ok of
-                                    True -> return(Just(fullPackageName))
-                                    False -> do
-                                               putStrLn "  Import has failed!"
-                                               return(Nothing)
-         --
-         --              Package has been found:
-         --
-                      (Just linkedObject)  -> 
-                           do 
-                             folderLink1 <- case splitLinkedObject linkedObject of
-                                MMiSSPackageFolderC folderLink -> return folderLink
-                                _ -> do
-                                        putStrLn ("  " ++ (toString fullPackageName) ++ " is not a package!")
-                                        errorMess ("Internal error:\n" ++ (toString fullPackageName)
-                                                     ++ " is not a package!")
-                                        fail ""
-                             reimportMMiSSPackage1 view folderLink1 (Just completePath)
-                             return(Just(fullPackageName))
-                  return(importedPackageOpt)
+	  (newPackageList, fullPathWithoutExt) <- 
+	     case importedPackageOpt of
+	       Nothing -> return((packages,""))
+	       Just(name) -> return((packages ++ [(name, packagePathWOExt)]), 
+                                    (couplingDir `combineNames` packagePathWOExt))
+	  hFlush handle
+	  hFlush stdout
+	  result <- try (printMessages messages (Just (fullPathWithoutExt ++ ".err")) False)
+	  exitcode <- 
+	    case importedPackageOpt of
+	       Nothing -> return(ExitSuccess)
+	       Just(_) -> system (scriptDir `combineNames` 
+				    ("dosvnadd " ++ couplingDir ++ " " ++ (fullPathWithoutExt ++ ".err")))
+	  case result of
+	     Left err -> do 
+			   putStrLn (show err)
+			   hFlush stdout
+			   deleteMessages messages
+			   doUpdates handle versionGraph view couplingDir scriptDir
+				     messages newPackageList
 
-          (newPackageList, fullPathWithoutExt) <- 
-             case importedPackageOpt of
-               Nothing -> return((packages,""))
-               Just(name) -> return((packages ++ [name]), (couplingDir `combineNames` (toString name)))
-          hFlush handle
-          hFlush stdout
-          result <- try (printMessages messages (Just (fullPathWithoutExt ++ ".err")) False)
-          exitcode <- 
-            case importedPackageOpt of
-               Nothing -> return(ExitSuccess)
-               Just(_) -> system (scriptDir `combineNames` 
-                                    ("dosvnadd " ++ couplingDir ++ " " ++ (fullPathWithoutExt ++ ".err")))
-          case result of
-             Left err -> do 
-                           putStrLn (show err)
-                           hFlush stdout
-                           deleteMessages messages
-                           doUpdates handle versionGraph view couplingDir scriptDir
-                                     messages newPackageList
-                           
-             Right _ -> do
-                          deleteMessages messages
-                          doUpdates handle versionGraph view couplingDir scriptDir
-                                    messages newPackageList
+	     Right _ -> do
+			  deleteMessages messages
+			  doUpdates handle versionGraph view couplingDir scriptDir
+				    messages newPackageList
+  where
+    filenameToPackagename :: String -> String -> IO (WithError String)
+    filenameToPackagename cpath reppath = 
+      do 
+        ok <- doesFileExist cpath
+	case ok of
+	  False -> return (hasError ("File " ++ cpath ++ " doesn't exist!"))
+	  True -> 
+	    do 
+               let cmdStr = (scriptDir `combineNames` ("dopackagelabel " ++ couplingDir ++ " " ++ reppath))
+               (exitcode, output) <- runTool "PackageNameExtraction" cmdStr
+					     
+	       case exitcode of
+		 ExitSuccess ->
+		    do let 
+			 (repdir,_) = splitName reppath
+			 newpath = filter (/= '\n') (unbreakName ((breakName repdir) ++ (breakName output)))
+		       return(hasValue(newpath)) 
+		 otherwise -> return(hasError ("Package name extraction returned: " ++ (show exitcode)))            
 
 
 -- ----------------------------------------------------------------------
@@ -659,3 +677,5 @@ deleteMessages (CouplingMessages mVar) =
       (\ couplingValue ->
             return (couplingValue {messages = []})
          )
+
+
