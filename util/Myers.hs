@@ -122,8 +122,8 @@ diff2 a b = runST (diffST2 a b)
 
 -- NB. diffST does not work if both arguments are null, so that
 -- case should be handled separately.
-diffST2 :: Eq v => [v] -> [v] -> ST s [DiffElement v]
-diffST2 (a :: [v]) (b :: [v]) =
+diffST2 :: forall v s . Eq v => [v] -> [v] -> ST s [DiffElement v]
+diffST2 a b =
    do
       let
          m = length a

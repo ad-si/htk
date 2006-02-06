@@ -127,10 +127,12 @@ emptyVariableList =
    in
       VariableList attachListOp
 
-singletonList :: a -> VariableList a
+singletonList :: forall a . a -> VariableList a
 singletonList a =
    let
-      attachListOp parallelX (listDrawer :: ListDrawer a pos) =
+      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos 
+	-> IO (IO ())
+      attachListOp parallelX listDrawer =
          do
             parallelExec parallelX (
                do
@@ -141,10 +143,13 @@ singletonList a =
    in
       VariableList attachListOp
 
-newVariableListFromSet :: Ord a => VariableSetSource a -> VariableList a
+newVariableListFromSet :: forall a . Ord a => VariableSetSource a 
+    -> VariableList a
 newVariableListFromSet (variableSetSource :: VariableSetSource a) =
    let
-      attachListOp parallelX (listDrawer :: ListDrawer a pos) =
+      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos 
+	-> IO (IO ())
+      attachListOp parallelX listDrawer =
          do
             (posRegistry :: Registry a pos) <- newRegistry
 
@@ -201,10 +206,13 @@ newVariableListFromSet (variableSetSource :: VariableSetSource a) =
    in
       VariableList attachListOp   
             
-newVariableListFromList :: Ord a => SimpleSource [a] -> VariableList a
+newVariableListFromList :: forall a . Ord a => SimpleSource [a] 
+    -> VariableList a
 newVariableListFromList (simpleSource :: SimpleSource [a]) = 
    let
-      attachListOp parallelX (listDrawer :: ListDrawer a pos) =
+      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos 
+	-> IO (IO ())
+      attachListOp parallelX listDrawer =
          do
             -- state stores the current a values and a list of the same length
             -- containing their pos values.
