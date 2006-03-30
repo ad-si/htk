@@ -1,8 +1,9 @@
 #!/bin/sh
 #pkill Coupling
+cd /home/amahnke/uni/mmiss/coupling/test
 ln -sf ../CouplingServer CouplingTestServer
 cd `dirname $0`
 UNISERVERDIR=`pwd`
 export UNISERVERDIR
-./CouplingTestServer --uni-server=localhost --uni-port=11393 --uni-couplingDir=/home/amahnke/sfb/test/coupling | tee -a coupling.log &
+/home/amahnke/uni/mmiss/coupling/test/CouplingTestServer --uni-server=localhost --uni-port=11393 --uni-couplingDir=/home/amahnke/sfb/test/local-svn | tee -a coupling.log &
 # ../testCouplingServer -port=11391

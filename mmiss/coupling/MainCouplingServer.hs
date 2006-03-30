@@ -15,6 +15,7 @@ import Control.Concurrent
 import qualified Control.Exception
 import Network
 import System.Directory
+import Debug(debugString)
 
 import ExtendedPrelude
 import BinaryAll
@@ -67,6 +68,7 @@ main =
          "couplingDir"
          ]
 
+      debugString "Start of Coupling-Server"
       blockSigPIPE
 
       doRegistrations
@@ -89,7 +91,7 @@ main =
                hSetBuffering handle LineBuffering
 --               forkIO (mainHandle handle hostName couplingDir reposServer reposPort)
                mainHandle handle hostName couplingDir reposServer reposPort
-               
+--               sClose socket
                serverAction
  
       serverAction
@@ -135,93 +137,99 @@ mainHandle handle hostName couplingDir server port =
       couplingMess <- newCouplingMessages
       setMessFns (apiMessFns couplingMess)
 
-      Control.Exception.try ( 
-         -- general wrapper to catch IO errors
-         case fromWithError userPasswordWE of
-            Right (user,pwd) ->
-               do
-                  top <- getTOP
+      result <-
+	Control.Exception.try ( 
+	   -- general wrapper to catch IO errors
+	   case fromWithError userPasswordWE of
+	      Right (user,pwd) ->
+		 do
+		    top <- getTOP
 
-                  clockTime <- getClockTime
-                  calendarTime <- toCalendarTime clockTime
-                  putStrLn "----------------------------------------------------------------------"
-                  putStrLn (user ++ "@" ++ hostName ++ ":"
-                             ++ calendarTimeToString calendarTime) 
-                  let 
-                    scriptDir = (trimDir top) `combineNames`
-                                ("mmiss" `combineNames` "scripts")
-                    dosvnup = (scriptDir `combineNames` "dosvnup ") ++ couplingDir
+		    clockTime <- getClockTime
+		    calendarTime <- toCalendarTime clockTime
+		    putStrLn "----------------------------------------------------------------------"
+		    putStrLn (user ++ "@" ++ hostName ++ ":"
+			       ++ calendarTimeToString calendarTime) 
+		    let 
+		      scriptDir = (trimDir top) `combineNames`
+				  ("mmiss" `combineNames` "scripts")
+		      dosvnup = (scriptDir `combineNames` "dosvnup ") ++ couplingDir
 
-                  exitcode <- system dosvnup
+		    exitcode <- system dosvnup
 
-                  if (exitcode /= ExitSuccess)
-                    then 
-                      do 
-                        writeStringH handle ("ERROR: SVN update failed with exit code " ++ (show exitcode))
-                        hClose handle
-                    else
-                      do
-                        hPutStrLn handle "OK"
-                        hFlush handle
+		    if (exitcode /= ExitSuccess)
+		      then 
+			do 
+			  writeStringH handle ("ERROR: SVN update failed with exit code " ++ (show exitcode))
+			  hClose handle
+		      else
+			do
+			  hPutStrLn handle "OK"
+			  hFlush handle
 
-                        calendarTime2 <- toCalendarTime clockTime
-                        putStrLn (calendarTimeToString calendarTime2) 
+			  calendarTime2 <- toCalendarTime clockTime
+			  putStrLn (calendarTimeToString calendarTime2) 
 
-                        versionGraph <- connectToReposServer user pwd server port
-                        lastVersion <- getLastVersion versionGraph 
-                        let 
-                          userInfo = VersionInfo.user lastVersion
-                          objectVersion = VersionInfo.version userInfo
-                        view <- checkout versionGraph objectVersion
+			  versionGraph <- connectToReposServer user pwd server port
+			  lastVersion <- getLastVersion versionGraph 
+			  let 
+			    userInfo = VersionInfo.user lastVersion
+			    objectVersion = VersionInfo.version userInfo
+			  view <- checkout versionGraph objectVersion
 
-                        hPutStrLn stdout ("  Last Version is " ++ (show objectVersion))
-                        hFlush stdout
-                        hFlush handle         
+			  hPutStrLn stdout ("  Last Version is " ++ (show objectVersion))
+			  hFlush stdout
+			  hFlush handle         
 
-                        packages <- doUpdates handle versionGraph view couplingDir scriptDir couplingMess []
-                        let
-                            paths = map (toString . fst)  packages
-                        if (packages == [])
-                           then do
-                                  putStrLn "No Packages have been updated."
-                                  putStrLn "-----------------------------------------------------------------------"
-                                  hFlush stdout
-                                  closeServer versionGraph
-                                  hClose handle
-                                  done
-                           else do
-                                  mapM_ (exportPackage view couplingDir couplingMess) packages
-                                  mapM_ (doAddPackage scriptDir) packages 
-                                  newVersion <- commitView view
-                                  putStrLn ("Update finished. New version is: " ++ (show newVersion))
-                                  putStrLn "Successfully re/imported packages:"
-                                  mapM_ (\ path -> putStrLn path) paths
+			  packages <- doUpdates handle versionGraph view couplingDir scriptDir couplingMess []
+			  let
+			      paths = map (toString . fst)  packages
+			  if (packages == [])
+			     then do
+				    putStrLn "No Packages have been updated."
+				    putStrLn "-----------------------------------------------------------------------"
+				    hFlush stdout
+				    closeServer versionGraph
+				    hClose handle
+				    done
+			     else do
+				    mapM_ (exportPackage view couplingDir couplingMess) packages
+				    mapM_ (doAddPackage scriptDir) packages 
+				    newVersion <- commitView view
+				    -- printMessages couplingMess Nothing True
+				    putStrLn ("Update finished. New version is: " ++ (show newVersion))
+				    putStrLn "Successfully re/imported packages:"
+				    mapM_ (\ path -> putStrLn path) paths
 
-                                  calendarTime3 <- toCalendarTime clockTime
-                                  putStrLn (calendarTimeToString calendarTime3) 
+				    calendarTime3 <- toCalendarTime clockTime
+				    putStrLn (calendarTimeToString calendarTime3) 
 
-                                  let
-                                     commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
-                                  exitcode <- system (scriptDir `combineNames` 
-                                                        ("dosvncommit " ++ couplingDir ++ " " ++ commitMess))
-                                  putStrLn "-----------------------------------------------------------------------"
-                                  hFlush stdout
-                                  closeServer versionGraph
-                                  hFlush stdout
-                                  hClose handle
-                                  done
-                        
-            Left mess ->
-               do
-                  putStrLn (hostName ++ ": Connection failed")
-                  putStrLn mess
-                  hFlush stdout
-                  writeStringH handle ("ERROR: " ++ mess)
-                  hClose handle
-         )
+				    let
+				       commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
+				    exitcode <- system (scriptDir `combineNames` 
+							  ("dosvncommit " ++ couplingDir ++ " " ++ commitMess))
+				    putStrLn "-----------------------------------------------------------------------"
+				    hFlush stdout
+				    closeServer versionGraph
+				    hFlush stdout
+				    hClose handle
+				    done
 
-      hClose handle
-      done
+	      Left mess ->
+		 do
+		    putStrLn (hostName ++ ": Connection failed")
+		    putStrLn mess
+		    hFlush stdout
+		    writeStringH handle ("ERROR: " ++ mess)
+		    hClose handle
+	   )
+
+      case result of
+        Left e -> do putStrLn (show e)
+        Right _ -> do hClose handle
+                      done
+--      hClose handle
+--      done
 
   where
      doAddPackage :: String -> (EntityFullName, String) -> IO()
@@ -240,10 +248,10 @@ mainHandle handle hostName couplingDir server port =
 exportPackage :: View -> String -> CouplingMessages -> (EntityFullName,String) -> IO()
 exportPackage view couplingDir messages (packagePath, packageFSPath) = 
   do
-    putStrLn "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    putStrLn "  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     putStrLn ("  Exporting Package " ++ (toString packagePath) ++ "\n    into file " ++ packageFSPath)
-    putStrLn "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    linkedObjectOpt <- getLinkedObject view packagePath
+    putStrLn "  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    linkedObjectOpt <- lookupLinkedObjectByFullName view packagePath
     case linkedObjectOpt of
       Nothing -> return()
       Just(linkedObject) ->
@@ -265,7 +273,8 @@ exportPackage view couplingDir messages (packagePath, packageFSPath) =
                         result <- printMessages messages (Just errFilename) False
                         deleteMessages messages
                         if ok 
-                          then do ok <- printImports linkedObject couplingDir packagePath view
+                          then do ok <- displayImportExportErrors True 
+                                           (printImports linkedObject couplingDir (packagePath, packageFSPath) view)
                                   return()
                           else return()
 
@@ -294,7 +303,7 @@ doUpdates :: Handle -> VersionGraph -> View -> String -> String -> CouplingMessa
 doUpdates handle versionGraph view couplingDir scriptDir messages packages =
   do
     line <- hGetLine handle
-    hPutStrLn stdout ("- " ++ line)
+    hPutStrLn stdout ("- Socket:       " ++ line)
     hFlush stdout
     if (line == "commit")
       then return(packages)
@@ -313,24 +322,24 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
             case (fromWithError packagePathStripped) of
                Left mess ->  do putStrLn ("fromWithError packagePathStripped:  " ++ mess)
                                 hFlush stdout
-			        fail "Error: Can't create package path!"
+			        fail ""
                Right packagePathStr ->
 		 case fromWithError (fromStringWE packagePathStr) of
 		   Left mess -> do
 				  putStrLn ("fromStringWE:  " ++ mess)
                                   hFlush stdout
-				  fail "Error: Can't create package path!"
+				  fail ""
 		   Right fullPackage -> return(fullPackage)
 
-          putStrLn ("fullPackageName: " ++ (toString fullPackageName))
-	  linkedObjectOpt <- getLinkedObject view fullPackageName
+          putStrLn ("  fullPackageName: " ++ (toString fullPackageName))
+	  linkedObjectOpt <- lookupLinkedObjectByFullName view fullPackageName
 	  importedPackageOpt <-
 	    case linkedObjectOpt of
 	      Nothing ->
 		do
 		   let
 		     dirPart = fromMaybe trivialFullName (entityDir fullPackageName)
-
+                   putStrLn ("Can't find linked object for " ++ (toString fullPackageName))
 		   parentFolderLinkWE <- findOrCreateFolder view dirPart
 
 		   case fromWithError parentFolderLinkWE of
@@ -397,12 +406,14 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
 	    do 
                let cmdStr = (scriptDir `combineNames` ("dopackagelabel " ++ couplingDir ++ " " ++ reppath))
                (exitcode, output) <- runTool "PackageNameExtraction" cmdStr
-					     
 	       case exitcode of
 		 ExitSuccess ->
 		    do let 
 			 (repdir,_) = splitName reppath
-			 newpath = filter (/= '\n') (unbreakName ((breakName repdir) ++ (breakName output)))
+			 newpath1 = filter (/= '\n') (unbreakName ((breakName repdir) ++ (breakName output)))
+                         newpath = if (isPrefixOf "./" newpath1) 
+                                     then (drop 2 newpath1)
+                                     else newpath1
 		       return(hasValue(newpath)) 
 		 otherwise -> return(hasError ("Package name extraction returned: " ++ (show exitcode)))            
 
@@ -486,11 +497,11 @@ checkout versionGraph objectVersion =
          Nothing -> importExportError "Version not found"
          Just view -> return view
 
-
+{--
 getLinkedObject :: View -> EntityFullName -> IO (Maybe LinkedObject)
 getLinkedObject view fullName =
    lookupLinkedObjectByFullName view fullName
-
+--}
 
 findOrCreateFolder :: View -> EntityFullName -> IO (WithError LinkedObject)
 findOrCreateFolder view (EntityFullName entityNames) =
@@ -679,3 +690,6 @@ deleteMessages (CouplingMessages mVar) =
          )
 
 
+-- catchErrors also catches other Haskell exceptions.
+-- catchErrors :: IO a -> IO (Either String a)
+-- catchErrors act = catchImportExportErrors (makeOtherExcepsToOurs act)

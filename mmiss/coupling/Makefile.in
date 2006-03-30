@@ -1,5 +1,6 @@
+PACAKGE  = uni-mmiss-coupling
 PACKAGES = uni-mmiss uni-davinci
 
-SRCS       = MainCouplingServer.hs TestCouplingServer.hs
+SRCS       = OntologyImport.hs MainCouplingServer.hs TestCouplingServer.hs
 
 include @TOP@/mk/boilerplate.mk
