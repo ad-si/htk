@@ -12,6 +12,11 @@ module MMiSSPreamble(
    writePreamble, 
       -- :: Link MMiSSPreamble -> View -> MMiSSLaTeXPreamble -> IO ()
 
+   readOntology, -- :: View -> Link MMiSSPreamble -> IO MMiSSOntology
+   writeOntology, -- :: Link MMiSSPreamble -> View -> MMiSSOntologyFlat -> IO ()
+
+   readImportedByList, -- :: View -> Link MMiSSPreamble -> IO [EntityFullName]
+   writeImportedByList, -- :: Link MMiSSPreamble -> View -> [EntityFullName] -> IO ()
 
    toImportCommands, -- :: MMiSSPreamble -> SimpleSource ImportCommands
 
@@ -31,7 +36,7 @@ import Messages
 
 import BSem
 
-import Graph(NodeType)
+--import Graph(NodeType)
 import GraphDisp
 import GraphConfigure
 
@@ -58,6 +63,7 @@ import MMiSSImportExportErrors
 import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
+import MMiSSOntologyStore
 
 -- -------------------------------------------------------------------
 -- MMiSSPreambleType
@@ -75,15 +81,19 @@ instance Monad m => HasBinary MMiSSPreambleType m where
 
 data MMiSSPreamble = MMiSSPreamble {
    preamble :: SimpleBroadcaster MMiSSLatexPreamble,
+   ontology :: SimpleBroadcaster MMiSSOntologyFlat,
+   importedBy :: [EntityFullName],
    editLock :: BSem
    } deriving (Typeable)
 
 instance HasBinary MMiSSPreamble CodingMonad where
    writeBin = mapWriteIO
-      (\ (MMiSSPreamble {preamble = preamble}) ->
+      (\ (MMiSSPreamble {preamble = preamble, ontology = ontology, importedBy = importedBy}) ->
          do
             latexPreamble <- readContents preamble
-            return latexPreamble
+            mmissOntology <- readContents ontology
+            let importedByPackages = importedBy
+            return (latexPreamble,mmissOntology,importedByPackages)
          )
    readBin = mapReadIO createPreamble1
 
@@ -117,7 +127,8 @@ instance HasMerging MMiSSPreamble where
                         cloneLink headView headLink newView newLink 
                      else
                         do
-                           preamble1 <- createPreamble1 mergedPreamble
+-- TODO: Merging of Ontologies and importedByLists!!!! :
+                           preamble1 <- createPreamble1 (mergedPreamble, emptyMMiSSOntologyFlat,[])
                            setLink newView preamble1 newLink
                            done 
                   return (return ())
@@ -184,13 +195,14 @@ editPreamble view link =
 mkPreambleFS :: View -> Link MMiSSPreamble -> EmacsFS MMiSSPreamble
 mkPreambleFS view link =
    let
-      editFS (MMiSSPreamble {preamble = preamble,editLock = editLock}) =
+      editFS (MMiSSPreamble {preamble = preamble, ontology = ontology, editLock = editLock}) =
          addFallOutWE (\ break ->
             do
                lockGot <- tryAcquire editLock
                if lockGot then done else
                   break "Preamble is already being edited"
                latexPreamble <- readContents preamble
+               mmissOntology <- readContents ontology
                let
                   latexPreambleStr = toString latexPreamble
                   emacsContent = EmacsContent [EditableText latexPreambleStr]
@@ -203,6 +215,7 @@ mkPreambleFS view link =
                               do
                                  bracketForImportErrors view (
                                     broadcast preamble latexPreamble)
+                                 broadcast ontology mmissOntology
                                  dirtyLink view link
                                  return Nothing
                               )
@@ -239,41 +252,81 @@ instance Ord MMiSSPreamble where
 -- Creating and Reading Preambles
 -- -------------------------------------------------------------------
 
-writePreamble :: Link MMiSSPreamble -> View -> MMiSSLatexPreamble -> IO ()
-writePreamble preambleLink view latexPreamble =
+writePreamble :: Link MMiSSPreamble -> View -> MMiSSLatexPreamble -> MMiSSOntologyFlat 
+                   -> IO ()
+writePreamble preambleLink view latexPreamble mmissOntology =
    do
       isNew <- isEmptyLink view preambleLink
       if isNew 
          then
             do   
-               mmissPreamble <- createPreamble1 latexPreamble
+               mmissPreamble <- createPreamble1 (latexPreamble, mmissOntology, [])
                writeLink view preambleLink mmissPreamble
          else
             do
                oldPreamble <- readLink view preambleLink
                oldLaTeXPreamble <- readContents (preamble oldPreamble)
-               if oldLaTeXPreamble /= latexPreamble
+               oldMMiSSOntology <- readContents (ontology oldPreamble)
+               if (oldLaTeXPreamble /= latexPreamble) || (oldMMiSSOntology /= mmissOntology)
                   then
                      do
                         broadcast (preamble oldPreamble) latexPreamble
+                        broadcast (ontology oldPreamble) mmissOntology
                         dirtyLink view preambleLink
                   else
                      done
+
+
+writeOntology :: Link MMiSSPreamble -> View -> MMiSSOntologyFlat -> IO ()
+
+writeOntology preambleLink view onto =
+   do
+      isNew <- isEmptyLink view preambleLink
+      if isNew 
+         then return()
+         else
+            do 
+               oldPreamble <- readLink view preambleLink
+               oldMMiSSOntology <- readContents (ontology oldPreamble)
+               broadcast (ontology oldPreamble) onto
+               dirtyLink view preambleLink
+
+
+
+writeImportedByList :: Link MMiSSPreamble -> View -> [EntityFullName] -> IO ()
+
+writeImportedByList preambleLink view list =
+   do
+      isNew <- isEmptyLink view preambleLink
+      if isNew 
+         then return()
+         else
+            do 
+               oldPreamble <- readLink view preambleLink
+               let oldLock = editLock oldPreamble
+                   newPreamble = MMiSSPreamble {preamble = preamble oldPreamble,
+                                                ontology = ontology oldPreamble,
+                                                importedBy = list,
+                                                editLock = oldLock}
+               writeLink view preambleLink newPreamble
+
+
 
 createPreamble :: View -> WrappedLink -> MMiSSLatexPreamble 
    -> IO (Link MMiSSPreamble)
 createPreamble view (WrappedLink parentLink) latexPreamble =
    do
-      mmissPreamble <- createPreamble1 latexPreamble
+      mmissPreamble <- createPreamble1 (latexPreamble, emptyMMiSSOntologyFlat, [])
       preambleVers <- createObject view parentLink mmissPreamble
       return (makeLink preambleVers)
 
-createPreamble1 :: MMiSSLatexPreamble -> IO MMiSSPreamble
-createPreamble1 mmissLatexPreamble =
+createPreamble1 :: (MMiSSLatexPreamble, MMiSSOntologyFlat, [EntityFullName]) -> IO MMiSSPreamble
+createPreamble1 (mmissLatexPreamble, mmissOntology, importedByList) =
    do
       preamble <- newSimpleBroadcaster mmissLatexPreamble
+      ontology <- newSimpleBroadcaster mmissOntology
       editLock <- newBSem
-      return (MMiSSPreamble {preamble = preamble,editLock = editLock})
+      return (MMiSSPreamble {preamble = preamble, ontology = ontology, importedBy = importedByList, editLock = editLock})
 
 readPreamble :: View -> Link MMiSSPreamble -> IO MMiSSLatexPreamble
 readPreamble view link =
@@ -281,6 +334,20 @@ readPreamble view link =
       mmissPreamble <- readLink view link
       latexPreamble <- readContents (preamble mmissPreamble)
       return latexPreamble
+
+readOntology :: View -> Link MMiSSPreamble -> IO MMiSSOntology
+readOntology view link =
+   do
+      mmissPreamble <- readLink view link
+      ontologyFlat <- readContents (ontology mmissPreamble)
+      return (fromFlat ontologyFlat)
+
+readImportedByList :: View -> Link MMiSSPreamble -> IO [EntityFullName]
+readImportedByList view link =
+   do
+      mmissPreamble <- readLink view link
+      return (importedBy mmissPreamble)
+
 
 instance HasBundleNodeWrite MMiSSPreamble where
    bundleNodeWrite view bundleNode preambleLink =
@@ -290,7 +357,7 @@ instance HasBundleNodeWrite MMiSSPreamble where
 
          preamble <- coerceWithErrorOrBreakIO importExportError
                (fromBundleTextWE preambleText)
-         writePreamble preambleLink view preamble
+         writePreamble preambleLink view preamble emptyMMiSSOntologyFlat
        
 
 -- -------------------------------------------------------------------
