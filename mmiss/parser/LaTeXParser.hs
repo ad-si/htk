@@ -78,6 +78,8 @@ import System.IO
 
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Combinators hiding (find)
+import Text.XML.HaXml.Pretty(element)
+import Text.PrettyPrint(render)
 
 import LaTeXParserCore
 import LaTeXPreamble
@@ -86,7 +88,6 @@ import EmacsContent
 import AtomString
 import FileNames
 import QuickReadShow
-import OntoParser
 -- import EmacsEdit(TypedName)
 
 -- ---------------------------------------------------------------------------
@@ -100,7 +101,7 @@ data IncludeInfo = IncludeInfo {
    otherAttributes :: [Attribute]
       -- ^ The priority, and maybe other things if the DTD gets extended.
    }
-   
+
 
 -- ---------------------------------------------------------------------------
 -- New Interface
@@ -133,13 +134,12 @@ parseMMiSSLatex11 fileSystem filePath searchPreamble convToCoreDTD =
          Right str ->
             do let 
                   parseResult = parseFrags str
-                  ontologyOpt = readOntology str
-                  result = (parseResult, ontologyOpt)
-               case result of
-		  (Left err, _) -> return (hasError (show err))
-                  (Right _, Left err) -> return(hasError (show err))
-		  (Right fs, Right ontology)  ->
-                    do preEl <- extractPreamble fileSystem filePath fs ontology
+--                  ontologyOpt = readOntology str
+--                  result = (parseResult, ontologyOpt)
+               case parseResult of
+		  (Left err) -> return (hasError (show err))
+		  (Right fs) ->
+                    do preEl <- extractPreamble fileSystem filePath fs
 		       case fromWithError preEl of
 			 Left err -> return(hasError(err))
 			 Right (preambleOpt, rootFrag) -> 
@@ -164,6 +164,7 @@ parseMMiSSLatex11 fileSystem filePath searchPreamble convToCoreDTD =
                                            then return (hasValue ((toElem (toCoreDTD "" cElem)), preambleList))
                                            else return (hasValue (el, preambleList))
   where 
+{--
     readOntology str = 
          let    
            ontoFragsOpt = parseOntology str
@@ -174,7 +175,7 @@ parseMMiSSLatex11 fileSystem filePath searchPreamble convToCoreDTD =
     isNoOtherFrag :: OFrag -> Bool
     isNoOtherFrag (OtherFrag _) = False
     isNoOtherFrag _ = True
- 
+--} 
     -- expandInputs guckt noch nicht rekursiv in aufgelöste inputs rein
     --
     expandInputs :: FileSystem -> FilePath -> Frag -> IO ( WithError([Frag]) )
@@ -272,7 +273,7 @@ mkLaTeXString (EmacsContent dataItems) =
             ++ getIncludeType ch includeInfo
             ++ "{" ++ included ++ "}"
             ++ "{" ++ (getAttribs  ((otherAttributes includeInfo) 
-                                     ++ [statusAttribute]) "" ["included","status"])
+                                     ++ [statusAttribute]) "" ["included","object-class"])
             ++ "}"
          )     
       dataItems
@@ -321,8 +322,14 @@ makeXML rootFrag =
 	  Left(err) -> hasError(err)
 	  Right contentList ->
 	    let atts1 = map convertAttrib atts
-	    in addFileAttributes (CElem (Elem "package" atts1 contentList))
-
+	        newRootElem = addFileAttributes (CElem (Elem "package" atts1 contentList))
+            in case (fromWithError newRootElem) of
+                 Left err -> hasError(err)
+                 Right e -> let newclist = (foldXml xmlEscapeInPI) (CElem e)
+                            in case (last newclist) of
+                                 (CElem e) -> hasValue(e)
+                                 otherwise -> hasError("Internal Error in function 'makeXML': XML filter xmlEscapeInPI delivered a non-element content.") 
+   
      (Env name ps@(LParams _ atts _ _) fs) -> 
 	case fromWithError (makeContent [(Env name ps fs)] (detectTextMode name) "Root") of
 	  (Left str) -> hasError(str)
@@ -393,6 +400,7 @@ getFileCommand c =
     the given Content element and adds a 'files'-Attribute with a list of filenames referenced.
 --}
 
+
 insertFileAttributes :: CFilter
 
 insertFileAttributes c@(CElem(Elem name attribs clist)) =
@@ -412,6 +420,13 @@ concatFilenames [] = ""
 concatFilenames (filename:[]) = filename
 concatFilenames (filename:rest) = filename ++ "," ++ concatFilenames rest
 
+
+xmlEscapeInPI :: CFilter
+
+xmlEscapeInPI c@(CMisc (PI (target, str))) = 
+ if (target == piInsertLaTeX)
+    then [CMisc (PI (target, (latexToUnicode str)))]
+    else [c]
 
 
 makeContent :: [Frag] -> Textmode -> String -> WithError [Content]
@@ -1127,7 +1142,13 @@ fillLatex out ((CElem (Elem ('i':'n':'c':'l':'u':'d':'e':unit) atts contentList)
        in fillLatex out cs (inList ++ items)
      else
        let labelId = getParam "included" atts
-           item = [EmacsLink ((labelId, (fromIncludeStr unit)), (mkIncludeInfo atts contentList))]
+           ch = case classifyLabelledTag unit of
+                   Just c -> c
+                   Nothing -> 'G'
+--           objClassStr = if (objClass == "")
+--                           then toUpperStr unit
+--                           else toUpperStr objClass
+           item = [EmacsLink ((labelId, ch), (mkIncludeInfo atts contentList))]
        in fillLatex out cs (inList ++ item)
   where
     -- getVarEl bekommt die Content-Liste eines Include-Elementes - diese Element
@@ -1434,7 +1455,7 @@ fromIncludeStr str = case fromIncludeStrOpt str of
 -- \"include\")
 mapLabelledTag :: String -> String
 mapLabelledTag s = 
-   case s of
+   case s of 
       "group" -> "Group"
       "unit" -> "Unit"
       "atom" -> "Atom"
@@ -1518,3 +1539,21 @@ instance StringClass PackageId where
 
 instance Show PackageId where
    showsPrec = qShow
+
+instance Show IncludeInfo where
+  show i = 
+    let 
+      showAttr (name, AttValue []) = "Name: " ++ name ++ " / No value" 
+      showAttr (name, AttValue (val:rest)) =
+        case val of
+          Left str -> "Name: " ++ name ++ " / Value: " ++ str
+          otherwise -> "Name: " ++ name ++ " / Reference"
+      vstr = case (variantOpt i) of
+                Just(e) -> (render . element) e
+                Nothing -> "No variant element"
+      astr = concat (map (showAttr) (otherAttributes i))
+    in  vstr ++ " / " ++ astr
+
+instance Show Element where
+  show e = (render . element) e
+
