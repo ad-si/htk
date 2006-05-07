@@ -45,10 +45,15 @@ type DocumentClass = Package
 
 
 data MMiSSLatexPreamble = MMiSSLatexPreamble { 
-  latexPreamble :: LaTeXPreamble,
-  importCommands :: Maybe ImportCommands,
-  ontologyFrags :: [String]
+  latexPreamble :: LaTeXPreamble,           -- Parsed LaTeX preamble found in file before \begin{document}
+  importCommands :: Maybe ImportCommands,   -- Import commands 
+  importedBy :: Maybe PackageEntityNames    -- List of Packages which imports this packages.
+  texfilename :: String                     -- Name of LaTeX-File without extension (++ ".pdf" gives PDF-Filename)
 } deriving (Typeable)
+
+
+type PackageEntityNames = [PackageEntityName]
+type PackageEntityName = EntityFullName
 
 
 data LaTeXPreamble = Preamble DocumentClass [Package] LaTeXPreambleCmds
@@ -83,16 +88,16 @@ instance StringClass MMiSSLatexPreamble where
 
 instance Eq MMiSSLatexPreamble where
    (==) = mapEq 
-      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
-         (latexPreamble,importCommands,ontologyFrags))
+      (\ (MMiSSLatexPreamble latexPreamble importCommands texfilename) ->
+         (latexPreamble,importCommands,texfilename))
 
 instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
    writeBin = mapWrite
-      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags) ->
-         (latexPreamble,importCommands,ontologyFrags))
+      (\ (MMiSSLatexPreamble latexPreamble importCommands importedBy texfilename) ->
+         (latexPreamble,importCommands,texfilename))
    readBin = mapRead
-      (\ (latexPreamble,importCommands,ontologyFrags) ->
-         (MMiSSLatexPreamble latexPreamble importCommands ontologyFrags))
+      (\ (latexPreamble,importCommands,texfilename) ->
+         (MMiSSLatexPreamble latexPreamble importCommands texfilename))
 
 {--
 data LaTeXPreambleCmds = Cmd String |  FileRef FilePath ContentString ContentType
@@ -171,8 +176,8 @@ instance Eq LaTeXPreambleCmd where
 
 emptyMMiSSLatexPreamble :: MMiSSLatexPreamble
 emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, 
-                                              importCommands = Nothing, 
-                                              ontologyFrags = []}
+                                              importCommands = Nothing,
+                                              texfilename = ""}
 
 emptyLaTeXPreamble :: LaTeXPreamble 
 
@@ -247,13 +252,14 @@ mergePreambles preambleList =
         in MMiSSLatexPreamble{ 
               latexPreamble = (Preamble dc packages newcmds),
               importCommands = importCommands lp,
-              ontologyFrags = ontologyFrags lp
+              texfilename = texfilename lp
            }
 
      filterOnto :: LaTeXPreambleCmd ->  Bool
      filterOnto (Cmd str) = if ((findInString str "\\Class") || 
                                 (findInString str "\\Object") ||
                                 (findInString str "\\Relation") ||
+                                (findInString str "\\RelationName") ||
                                 (findInString str "\\RelType") ||
                                 (findInString str "\\OpType") ||
                                 (findInString str "\\Properties") ||
@@ -263,9 +269,8 @@ mergePreambles preambleList =
      filterOnto _ = True
 
 
-
-extractPreamble :: FileSystem -> FilePath -> [Frag] -> [String] -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
-extractPreamble fileSys filePath frags oFrags = 
+extractPreamble :: FileSystem -> FilePath -> [Frag] -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
+extractPreamble fileSys filePath frags = 
   do 
     resultOpt <- findFirstEnv fileSys filePath frags [] True
     case fromWithError resultOpt of
@@ -278,10 +283,9 @@ extractPreamble fileSys filePath frags oFrags =
                          newP = MMiSSLatexPreamble {
                                    latexPreamble = latexPreamble p,
                                    importCommands = importCommands p,
-                                   ontologyFrags = oFrags
+                                   texfilename = snd (splitName filePath)
                                 }
                        return(hasValue((Just newP), f))
-   
 
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch, extrahiert die Preamble
@@ -323,7 +327,7 @@ findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) pream
 		  Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
 			  				    latexPreamble = p,
 							    importCommands = impCmds,
-                                                            ontologyFrags = []
+                                                            texfilename = ""
 							}),
 						    (Env "Package" ps fs)))
 		  Left str -> return (hasError(str))
@@ -520,7 +524,7 @@ unionPreambles (p1:p2:ps) =
       unionPre = union2Preambles latexPre1 latexPre2
       newPreamble = MMiSSLatexPreamble {latexPreamble = unionPre, 
                                         importCommands = (importCommands p1),
-                                        ontologyFrags = []}
+                                        texfilename = texfilename p1}
   in unionPreambles (newPreamble:ps)
 
 
@@ -572,7 +576,7 @@ insertCommandInFront p str =
        in MMiSSLatexPreamble {
             latexPreamble = newLatexPre,
 	    importCommands = importCommands p,                                                
-            ontologyFrags = ontologyFrags p
+            texfilename = texfilename p
           }
 
 
