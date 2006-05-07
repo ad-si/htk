@@ -9,8 +9,10 @@ import IO
 import Time
 import System
 import Maybe
+import Monad
 
 import Data.List
+import Data.Graph.Inductive
 import Control.Concurrent
 import qualified Control.Exception
 import Network
@@ -30,6 +32,7 @@ import EntityNames
 import Folders
 import Messages
 import CopyFile
+import Aliases
 
 import CallServer(tryConnect)
 import qualified VersionInfo
@@ -56,7 +59,15 @@ import MMiSSObjectExtract
 import MMiSSFormat(Format(..))
 import MMiSSObjectType
 import {-# SOURCE #-} MMiSSExportFiles
-import OntologyImport
+import MMiSSPreamble
+import MMiSSOntologyStore
+import MMiSSOntologyParser
+import LaTeXPreamble
+
+-- import OntologyImport
+
+type ImportDepGraph = Gr EntityFullName String
+
 
 
 main :: IO ()
@@ -125,8 +136,7 @@ mainHandle handle hostName couplingDir server port =
                Nothing -> authError
                Just user -> return user
 
-            passwordOK <- verifyPassword password 
-               (encryptedPassword user)
+            passwordOK <- verifyPassword password (encryptedPassword user)
             if passwordOK 
                then
                   return (userStr,password)
@@ -147,7 +157,8 @@ mainHandle handle hostName couplingDir server port =
 
 		    clockTime <- getClockTime
 		    calendarTime <- toCalendarTime clockTime
-		    putStrLn "----------------------------------------------------------------------"
+		    putStrLn "======================================================================="
+		    putStrLn "======================================================================="
 		    putStrLn (user ++ "@" ++ hostName ++ ":"
 			       ++ calendarTimeToString calendarTime) 
 		    let 
@@ -171,7 +182,13 @@ mainHandle handle hostName couplingDir server port =
 			  putStrLn (calendarTimeToString calendarTime2) 
 
 			  versionGraph <- connectToReposServer user pwd server port
-			  lastVersion <- getLastVersion versionGraph 
+
+                          lastVersionMaybe <- getLastVersion versionGraph
+			  lastVersion <- case lastVersionMaybe of
+                                            Just(o) -> return(o)
+                                            Nothing -> do
+                                                         putStrLn "There is no version to check out! PANIC!\n"
+                                                         fail "CouplingServer can't work without a checked out version.\n"
 			  let 
 			    userInfo = VersionInfo.user lastVersion
 			    objectVersion = VersionInfo.version userInfo
@@ -180,23 +197,40 @@ mainHandle handle hostName couplingDir server port =
 			  hPutStrLn stdout ("  Last Version is " ++ (show objectVersion))
 			  hFlush stdout
 			  hFlush handle         
-
+                       -- packages :: ([(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])])
 			  packages <- doUpdates handle versionGraph view couplingDir scriptDir couplingMess []
 			  let
-			      paths = map (toString . fst)  packages
-			  if (packages == [])
+			      paths = map (\(p,_,_,_) -> (toString p))  packages
+                              packageFullNames = map (\(p,_,_,_) -> p) packages
+			  if (isEmptyPList packages)
 			     then do
 				    putStrLn "No Packages have been updated."
-				    putStrLn "-----------------------------------------------------------------------"
+       		                    putStrLn "======================================================================="
 				    hFlush stdout
 				    closeServer versionGraph
 				    hClose handle
 				    done
 			     else do
+                                    -- Änderungen der Importbeziehungen in den Präambeln nachziehen
+                                    --
+                                    mapM_ (updateImportInfo view couplingMess) packages
+                                    -- Sortieren der geänderten Packages nach Abhängigkeit
+                                    --
+                                    dependGraph <- foldM (importDependencies view couplingMess packageFullNames) 
+                                                         empty 
+                                                         (zip packageFullNames packageFullNames)
+                                    putStrLn ("\n  Dependency graph:\n" ++ (show dependGraph))
+                                    sortedToUpdateList <- return(toSortedList dependGraph "vor" )
+                                    putStrLn ("\n  UpdateList:\n" ++ (show sortedToUpdateList))
+                                    hFlush stdout
+
+                                    -- Update der Ontologien gemäß der Reihenfolge im Abhängigkeitsgraphen
+--                                    mapM_ updateOntology view couplingMess packages sortedToUpdateList
+
 				    mapM_ (exportPackage view couplingDir couplingMess) packages
 				    mapM_ (doAddPackage scriptDir) packages 
 				    newVersion <- commitView view
-				    -- printMessages couplingMess Nothing True
+				    printMessages couplingMess Nothing True
 				    putStrLn ("Update finished. New version is: " ++ (show newVersion))
 				    putStrLn "Successfully re/imported packages:"
 				    mapM_ (\ path -> putStrLn path) paths
@@ -208,7 +242,7 @@ mainHandle handle hostName couplingDir server port =
 				       commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
 				    exitcode <- system (scriptDir `combineNames` 
 							  ("dosvncommit " ++ couplingDir ++ " " ++ commitMess))
-				    putStrLn "-----------------------------------------------------------------------"
+       		                    putStrLn "======================================================================="
 				    hFlush stdout
 				    closeServer versionGraph
 				    hFlush stdout
@@ -232,8 +266,12 @@ mainHandle handle hostName couplingDir server port =
 --      done
 
   where
-     doAddPackage :: String -> (EntityFullName, String) -> IO()
-     doAddPackage scriptDir (packagePath, packageFSPath) =
+     isEmptyPList :: [(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])] -> Bool
+     isEmptyPList [] = True
+     isEmptyPList _ = False
+
+     doAddPackage :: String -> (EntityFullName, String, Maybe MMiSSOntology, [EntityFullName]) -> IO()
+     doAddPackage scriptDir (packagePath, packageFSPath, _, _) =
        do
          let 
            filename1 = packageFSPath ++ ".tex"
@@ -245,8 +283,8 @@ mainHandle handle hostName couplingDir server port =
          return()
 
 
-exportPackage :: View -> String -> CouplingMessages -> (EntityFullName,String) -> IO()
-exportPackage view couplingDir messages (packagePath, packageFSPath) = 
+exportPackage :: View -> String -> CouplingMessages -> (EntityFullName,String,Maybe MMiSSOntology, [EntityFullName]) -> IO()
+exportPackage view couplingDir messages (packagePath, packageFSPath, onto, _) = 
   do
     putStrLn "  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     putStrLn ("  Exporting Package " ++ (toString packagePath) ++ "\n    into file " ++ packageFSPath)
@@ -272,13 +310,174 @@ exportPackage view couplingDir messages (packagePath, packageFSPath) =
                      do ok <- exportMMiSSObjectNoFiles  view packageLink filename (toString packageName)
                         result <- printMessages messages (Just errFilename) False
                         deleteMessages messages
+                        return()
+{--
                         if ok 
                           then do ok <- displayImportExportErrors True 
                                            (printImports linkedObject couplingDir (packagePath, packageFSPath) view)
                                   return()
                           else return()
+--}
+{--
+updateOntology :: View -> CouplingMessages ->  [(EntityFullName, String, Maybe MMiSSOntology)] 
+                   -> EntityFullName -> IO()
+
+updateOntology view messages updatedPackages p =
+  do
+     folderLinkOpt <- findPackageByFullName view messages p
+     case folderLinkOpt of
+       Nothing -> return()
+       Just(folderLink) ->
+         do 
+           importedPackages <- getImportedPackages view folderLink p
+--}
+  
+ 
+
+{--
+
+updatedPackages : Liste der Pakete, die in diesem Commit geändert wurden
+g : Der kumulierte DependencyGraph. In diesem Graphen ist am Ende für jedes Paar (Paket A, Paket B)
+    (A und B aus updatedPackages) für das gilt: A importiert B (auch transitiv über ein nicht geändertes
+    Paket) eine Kante 'B vor A'. Das 'vor' meint, dass beim Updaten der Ontologien in den Paketen
+    das Paket B vor dem Paket A bearbeitet werden muss.
+p:  Das Paket, das gerade aktuell betrachtet wird, d.h. die Import-Beziehungen, die von p ausgehen
+    werden daraufhin überprüft, ob ein geändertes Paket importiert wird.
+x:  x dient zur Speicherung des Vorgängers im Import-Graphen, zu dem eine Kante eingefügt werden soll.
+    Der Algotihmus geht rekursiv vor und betrachtet von p aus alles p's, die dort importiert werden.
+    Stösst er auf ein Paket, dass nicht geändert wurde, steigt er aber auch in dessen Import-Beziehungen
+    ab, da dort ja noch geänderte Pakete auftauchen können. Trifft er also irgendwann auf ein
+    geändertes Paket i, dann muss eine Kante zwischen i und p in den Graphen eingefügt werden, auch wenn
+    zwischendrin andere Pakete auf dem Import-Pfad liegen. x dient zur Speicherung von p, wenn rekursiv
+    in die Importbeziehungen abgestiegen wird.
+     
+--}
+
+importDependencies :: View -> CouplingMessages -> [EntityFullName] -> ImportDepGraph 
+                        -> (EntityFullName, EntityFullName) -> IO (ImportDepGraph)
+
+importDependencies view messages updatedPackages g (p,x) =
+  case (findLNode g p) of
+    Just(_) -> return(g)
+    Nothing ->  
+      do
+         let g' = if (p `elem` updatedPackages)
+                    then insNode ((head (newNodes 1 g)), p) g
+                    else g 
+         folderLinkOpt <- findPackageByFullName view messages p
+         case folderLinkOpt of
+           Nothing -> return(g')
+           Just(folderLink) ->
+             do importedPackagesOpt <- getImportedPackages view folderLink p
+                case importedPackagesOpt of
+                  Nothing -> return(g')
+                  Just(impPackages) -> foldM insertAndDecend g' impPackages
+
+  where                  
+    insertAndDecend :: ImportDepGraph -> EntityFullName -> IO (ImportDepGraph)
+    insertAndDecend graph p' =
+      if (p' `elem` updatedPackages) 
+        then do 
+                graph' <- importDependencies view messages updatedPackages graph (p',p')
+                return(insertDepLink graph' p' x)
+        else importDependencies view messages updatedPackages graph (p',x)
+
+    insertDepLink thisGraph p1 p2 =
+      let (thisGraph1, n1) = getInsNode thisGraph p1
+          (thisGraph2, n2) = getInsNode thisGraph1 p2
+      in insEdge (n1,n2,"vor") thisGraph2
+
+    getInsNode gra label  =
+        maybe (let n = head (newNodes 1 gra)
+               in ((insNode (n,label) gra), n))
+              (\node -> (gra, node))
+              (findLNode gra label)
 
 
+
+getImportedPackages :: View -> Link MMiSSPackageFolder -> EntityFullName -> IO(Maybe [EntityFullName])
+getImportedPackages view folderLink thisPackage =
+   do
+     packageFolder <- readLink view folderLink
+     let preambleLink = toMMiSSPreambleLink packageFolder
+     mmisslatexPreamble <- readPreamble view preambleLink
+     let importCmdsOpt = importCommands mmisslatexPreamble
+     case importCmdsOpt of
+       Nothing -> return(Nothing)
+       (Just (ImportCommands cmdList)) -> 
+         do
+--                       putStrLn ("\n  importDependencies: List of import commands for " ++ toString(p) ++ ":\n")
+--                       putStrLn ("    " ++ (show cmdList))
+            let allImports = map snd (mapMaybe matchAnyImport cmdList)
+            case fromWithError (mkAliases (ImportCommands cmdList)) of
+              Left mess -> do errorMess ("  Error: getImportedPackages: mkAliases returned: " ++ mess)
+                              return(Nothing)
+              Right aliases -> 
+                do 
+                  importedPackages <- mapM (assemblePackagePath aliases thisPackage) allImports
+                  return(Just(filter (/= trivialFullName) importedPackages))
+--                             putStrLn ("\n  importDependencies: List of filtered imported Packages for " ++ toString(p) ++ ":\n")
+--                             putStrLn ("    " ++ (show filteredImpPackages))
+  where
+    assemblePackagePath :: Aliases -> EntityFullName -> EntitySearchName -> IO (EntityFullName)
+    assemblePackagePath aliases packageFullName name =
+      do 
+        let expandedName = expandAliases aliases name
+        case (fromWithError (toEntityFullName packageFullName expandedName)) of
+          Left mess -> do errorMess ("  Error: assemblePackagePath: " ++ mess)
+                          return(trivialFullName)
+          Right (a) -> return(a)
+
+
+{--
+  updateImportInfo bekommt die Infos zu einem geänderten oder neu importieren Package,
+  sucht aus der LaTeX-Präambel die Import-Kommandos heraus und trägt in den importierten
+  Packages die Beziehung zum improtierenden Package nach. 
+  Wenn also 'A importiert B' gegeben ist, dann enthält hinterher die Präambel von B die Info
+  'B wird importiert von A'.
+--}
+
+updateImportInfo :: View -> CouplingMessages -> (EntityFullName,String,Maybe MMiSSOntology, [EntityFullName]) -> IO()
+updateImportInfo view messages (packageFullName, packagePath, ontologyMB, oldImpPackages) =
+  do 
+     folderLinkOpt <- findPackageByFullName view messages packageFullName
+     case folderLinkOpt of
+       Nothing -> return()
+       Just(folderLink) ->
+         do 
+            importedPackagesOpt <- getImportedPackages view folderLink packageFullName
+            case importedPackagesOpt of
+              Nothing -> if (null oldImpPackages)
+                           then  return()
+                           else  mapM_ (updateImportInfo1 view messages (filter (/= packageFullName))) oldImpPackages
+              Just (importedPackages) ->
+                do 
+                   deletedImports <- return(filter (`notElem` importedPackages) oldImpPackages)
+                   mapM_ (updateImportInfo1 view messages (filter (/= packageFullName))) deletedImports
+                   mapM_ (updateImportInfo1 view messages (++ [packageFullName])) importedPackages
+
+  where 
+    updateImportInfo1 :: View -> CouplingMessages -> ([EntityFullName] -> [EntityFullName]) -> EntityFullName -> IO ()
+    updateImportInfo1 view messages operation importedPackagePath =
+      do
+         importedFolderLinkOpt <- findPackageByFullName view messages importedPackagePath
+         case importedFolderLinkOpt of
+           Nothing -> return()
+           Just(importedFolderLink) ->
+             do
+                importedPackageFolder <- readLink view importedFolderLink
+                let 
+                   preambleLink = toMMiSSPreambleLink importedPackageFolder
+                importedByList <- readImportedByList view preambleLink
+                let 
+                   newImportedByList = nub (operation importedByList)
+                writeImportedByList preambleLink view newImportedByList
+                return()
+
+
+matchAnyImport :: ImportCommand -> Maybe ([Directive],EntitySearchName)
+matchAnyImport (Import directives searchName) = Just((directives, searchName))
+matchAnyImport _ = Nothing
 
 {-- doUpdates nimmt zeilenweise Namen von mmisslatex-Package-Files (mit komplettem Pfad
 zum Root-Verzeichnis entgegen und importiert diese, falls sie noch nicht im Repos. waren
@@ -299,11 +498,14 @@ TODO: In die Files reingucken und den Packagenamen extrahieren.
 --}
 
 doUpdates :: Handle -> VersionGraph -> View -> String -> String -> CouplingMessages 
-              -> [(EntityFullName,String)] -> IO ([(EntityFullName,String)])
+              -> [(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])] 
+              -> IO ([(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])])
+
 doUpdates handle versionGraph view couplingDir scriptDir messages packages =
+  -- packages = [(package entity name within repos., original file path within Repos. without ext.)]
   do
     line <- hGetLine handle
-    hPutStrLn stdout ("- Socket:       " ++ line)
+    hPutStrLn stdout ("\nSOCKET:   " ++ line)
     hFlush stdout
     if (line == "commit")
       then return(packages)
@@ -311,14 +513,14 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
         do 
           let
              completePath = unbreakName ((breakName couplingDir) ++ (breakName line))
-             packagePathWOExt = if (isSuffixOf "_ptx.tex" line)
+             filePathWOExt = if (isSuffixOf "_ptx.tex" line)
                                      then take ((genericLength line) - 8) line
                                      else if (isSuffixOf ".tex" line)
                                             then take ((genericLength line) - 4) line
                                             else line
 
           packagePathStripped <- filenameToPackagename completePath line
-          fullPackageName <-
+          fullPackageEntityName <-
             case (fromWithError packagePathStripped) of
                Left mess ->  do putStrLn ("fromWithError packagePathStripped:  " ++ mess)
                                 hFlush stdout
@@ -331,31 +533,60 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
 				  fail ""
 		   Right fullPackage -> return(fullPackage)
 
-          putStrLn ("  fullPackageName: " ++ (toString fullPackageName))
-	  linkedObjectOpt <- lookupLinkedObjectByFullName view fullPackageName
-	  importedPackageOpt <-
+          putStrLn ("  fullPackageEntityName: " ++ (toString fullPackageEntityName))
+	  linkedObjectOpt <- lookupLinkedObjectByFullName view fullPackageEntityName
+	  (importedPackageOpt, oldOntology, oldImportedPackages) <-
 	    case linkedObjectOpt of
+              --
+              -- Package is new:
+              --
 	      Nothing ->
-		do
-		   let
-		     dirPart = fromMaybe trivialFullName (entityDir fullPackageName)
-                   putStrLn ("Can't find linked object for " ++ (toString fullPackageName))
+		do     
+		   (dirAndPackageOpt :: Maybe (EntityFullName, EntityName)) <- return(entityDirBase fullPackageEntityName)
+                   (dirPart, packagePart) <- 
+                      case dirAndPackageOpt of
+                        Nothing -> fail "  Internal error: Can't decompose path" 
+                        Just(n) -> return(n)
+                   putStrLn ("   Can't find linked object for " ++ (toString fullPackageEntityName) 
+                            ++ "\n   -> Importing it now.")
 		   parentFolderLinkWE <- findOrCreateFolder view dirPart
-
 		   case fromWithError parentFolderLinkWE of
 		     Left mess -> do
 				    putStrLn ("  " ++ mess)
 				    errorMess ("Error:\n" ++ mess)
-				    return(Nothing)
+				    return((Nothing,Nothing,[]))
 		     Right parentFolderLink ->
-		       do 
-			 ok <- importMMiSSPackage1 view parentFolderLink (Just completePath)
-			 case ok of
-			    True -> return(Just(fullPackageName))
+                          -- Import the new Package
+		       do ok <- importMMiSSPackage1 view parentFolderLink (Just completePath)
+			  case ok of
+			    True -> 
+                               do  
+                                  newPackageLinkOpt <- lookupObjectInFolder parentFolderLink packagePart
+                                  case newPackageLinkOpt of
+                                    Nothing -> return((Nothing,Nothing,[]))
+                                    Just newPackageLink -> 
+                                      do
+                                        newPackageFolder <- readLink view newPackageLink
+                                        preambleLink <- return(toMMiSSPreambleLink newPackageFolder)
+                                        mmisslatexPreamble <- readPreamble view preambleLink 
+                                        ontoWE <- parseMMiSSOntologyFile completePath
+                                        importedPackagesOpt <- (getImportedPackages view 
+                                                                                    newPackageLink 
+                                                                                    fullPackageEntityName)
+                                        importedPackages <- return(fromMaybe [] importedPackagesOpt)
+                                        case (fromWithError ontoWE) of
+                                           Left mess -> 
+                                             do putStr ("  Error while parsing ontology:")
+                                                putStrLn mess
+                                                errorMess ("Error:\n" ++ mess)
+                                                return((Just(fullPackageEntityName), Nothing, importedPackages))
+                                           Right onto ->
+                                               do writeOntology preambleLink view (toFlat onto)
+                                                  return((Just(fullPackageEntityName), Nothing, importedPackages))
 			    False -> do
-				       putStrLn "Error: Import has failed!"
-				       return(Nothing)
-
+				       putStrLn "  Error: Import has failed!"
+				       return((Nothing,Nothing,[]))
+             --
              --   Package has been found:
              --
 	      (Just linkedObject)  -> 
@@ -363,26 +594,47 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
 		     folderLink1 <- case splitLinkedObject linkedObject of
 			MMiSSPackageFolderC folderLink -> return folderLink
 			_ -> do
-				putStrLn ("  " ++ (toString fullPackageName) ++ " is not a package!")
-				errorMess ("Error: " ++ (toString fullPackageName)
+				putStrLn ("  " ++ (toString fullPackageEntityName) ++ " is not a package!")
+				errorMess ("Error: " ++ (toString fullPackageEntityName)
 					     ++ " is not a package!")
 				fail ""
-		     reimportMMiSSPackage1 view folderLink1 (Just completePath)
-		     return(Just(fullPackageName))
+                     packageFolder <- readLink view folderLink1
+                     preambleLink <- return(toMMiSSPreambleLink packageFolder)
+                     mmisslatexPreamble <- readPreamble view preambleLink 
+                     importedPackagesOpt <- getImportedPackages view folderLink1 fullPackageEntityName
+                     importedPackages <- return(fromMaybe [] importedPackagesOpt)
+                     importedByList <- readImportedByList view preambleLink
+--                     putStrLn ("  ImportedByList: " ++ (show importedByList))
 
-	  (newPackageList, fullPathWithoutExt) <- 
+                     oldOnto <- readOntology view preambleLink
+--                     putStrLn "  Ontology found:"
+--                     putStrLn ("    " ++ (show (toFlat oldOnto)))
+		     reimportMMiSSPackage1 view folderLink1 (Just completePath)
+                     ontoWE <- parseMMiSSOntologyFile completePath
+                     case (fromWithError ontoWE) of
+                       Left mess -> 
+                         do putStr ("  Error while parsing ontology:")
+                            putStrLn mess
+                            errorMess ("Error:\n" ++ mess)
+                            return((Just(fullPackageEntityName)), (Just oldOnto), importedPackages)
+                       Right onto ->
+                         do writeOntology preambleLink view (toFlat onto)
+                            putStrLn "  Written back new preamble successfully."
+		            return(Just(fullPackageEntityName),(Just oldOnto), importedPackages)
+
+	  (newPackageList, completeFilePathWOExt) <- 
 	     case importedPackageOpt of
 	       Nothing -> return((packages,""))
-	       Just(name) -> return((packages ++ [(name, packagePathWOExt)]), 
-                                    (couplingDir `combineNames` packagePathWOExt))
+	       Just(name) -> return((packages ++ [(name, filePathWOExt, oldOntology, oldImportedPackages)]), 
+                                    (couplingDir `combineNames` filePathWOExt))
 	  hFlush handle
 	  hFlush stdout
-	  result <- try (printMessages messages (Just (fullPathWithoutExt ++ ".err")) False)
+	  result <- try (printMessages messages (Just (completeFilePathWOExt ++ ".err")) False)
 	  exitcode <- 
 	    case importedPackageOpt of
 	       Nothing -> return(ExitSuccess)
 	       Just(_) -> system (scriptDir `combineNames` 
-				    ("dosvnadd " ++ couplingDir ++ " " ++ (fullPathWithoutExt ++ ".err")))
+				    ("dosvnadd " ++ couplingDir ++ " " ++ (completeFilePathWOExt ++ ".err")))
 	  case result of
 	     Left err -> do 
 			   putStrLn (show err)
@@ -396,6 +648,9 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
 			  doUpdates handle versionGraph view couplingDir scriptDir
 				    messages newPackageList
   where
+    -- cpath = Complete file path
+    -- reppath = File path within Repository
+    -- returns: File path within Repository but with Package label as filename at the end.
     filenameToPackagename :: String -> String -> IO (WithError String)
     filenameToPackagename cpath reppath = 
       do 
@@ -416,6 +671,23 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
                                      else newpath1
 		       return(hasValue(newpath)) 
 		 otherwise -> return(hasError ("Package name extraction returned: " ++ (show exitcode)))            
+
+
+
+findPackageByFullName :: View -> CouplingMessages -> EntityFullName -> IO (Maybe (Link MMiSSPackageFolder))
+findPackageByFullName view messages packageFullName  =
+  do
+     linkedObjectOpt <- lookupLinkedObjectByFullName view packageFullName
+     case linkedObjectOpt of
+       Nothing -> do errorMess ("  Error: updateImportInfo: Could not find package '" ++ toString(packageFullName) ++ "'")
+                     return(Nothing)
+       Just(linkedObject) ->
+         case splitLinkedObject linkedObject of
+            MMiSSPackageFolderC folderLink -> return (Just folderLink)
+	    _ -> do errorMess ("  Error: updateImportInfo: " ++ (toString packageFullName)
+	                       ++ " is not a package!")
+		    return(Nothing)
+           
 
 
 -- ----------------------------------------------------------------------
@@ -468,7 +740,7 @@ closeServer versionGraph = destroy versionGraph
 -- the coupling mechanism, the maximum ObjectVersion number always give the
 -- last checked in version:
 
-getLastVersion :: VersionGraph -> IO (VersionInfo.VersionInfo)
+getLastVersion :: VersionGraph -> IO (Maybe VersionInfo.VersionInfo)
 getLastVersion versionGraph =
    do
      let
@@ -480,8 +752,10 @@ getLastVersion versionGraph =
      let
          versionInfos2 :: [VersionInfo.VersionInfo]
          versionInfos2 = map toVersionInfo versionInfos1
-
-     return(maximum versionInfos2)
+ 
+     if (versionInfos2 == []) 
+       then return(Nothing)
+       else return(Just(maximum versionInfos2))
 
 
 checkout :: VersionGraph -> VersionInfo.ObjectVersion -> IO (View)
@@ -690,6 +964,53 @@ deleteMessages (CouplingMessages mVar) =
          )
 
 
+-- toEntityFullName bekommt den FullName eines PackageFolders und einen relativen
+-- Pfad aus einem Import-Statement und liefert den FullName zum importieren Package zurück.
+-- Beispiel: 
+--     ProposalsAndReports/ProposalPhase2/I4_SPIN_Proposal/P1_Package
+--     importiert Parent/P2_Package
+--     liefert dann:  ProposalsAndReports/ProposalPhase2/I4_SPIN_Proposal/P2_Package
+--
+-- FromCurrent und FromHere dürfen eigentlich nicht als Präfix des Searchnames auftauchen,
+-- weil der folgende FullName nur noch Objekte innerhalb des impotierenden Packages bezeichnen
+-- können. Import-Statements dürfen aber nur Pfade auf ausserhalb liegende Packages enthalten,
+-- müssen also mit FromParent oder FromRoot anfangen. FromAbsoulte ist auch nicht zu erwarten, 
+-- weil dieses nur intern eingesetzt wird.
+
+toEntityFullName :: EntityFullName -> EntitySearchName -> WithError(EntityFullName)
+
+toEntityFullName _ (FromRoot fullName) = hasValue(fullName)
+toEntityFullName _ (FromAbsolute fullName) = hasError("toEntityFullName: FromAbsolute is no valid path element for an imported Package.")
+toEntityFullName (EntityFullName []) (FromParent _) = hasError("toEntityFullName: Can't add EntitySearchName to an empty EntityFullName")
+toEntityFullName (EntityFullName fullName1) (FromHere (EntityFullName fullName2)) =  
+  hasValue(EntityFullName (fullName1 ++ fullName2))
+toEntityFullName (EntityFullName fullName1) (FromCurrent (EntityFullName fullName2)) = 
+  hasValue(EntityFullName (fullName1 ++ fullName2))
+toEntityFullName (EntityFullName fullName) (FromParent s) =
+  toEntityFullName (EntityFullName (take ((genericLength fullName)-1) fullName)) s
+
 -- catchErrors also catches other Haskell exceptions.
 -- catchErrors :: IO a -> IO (Either String a)
 -- catchErrors act = catchImportExportErrors (makeOtherExcepsToOurs act)
+
+
+
+findLNode :: Gr EntityFullName String -> EntityFullName -> Maybe Node
+
+findLNode gr label = case (gsel (\(p,v,l,s) -> l == label) gr) of
+                      [] -> Nothing
+                      conList -> Just(node' (head conList))               
+
+
+
+toSortedList :: Eq b => Gr a b -> b -> [a]
+
+toSortedList graph edgeLabel = mapMaybe (lab graph) (foldl insertOrdNode [] (nodes graph))
+  where
+    insertOrdNode :: [Node] -> Node -> [Node]
+    insertOrdNode ordList node =
+      if (node `elem` ordList)
+        then ordList
+        else let newList = foldl insertOrdNode ordList (successors node)
+             in (node:newList)
+    successors n = map fst (filter (\(_,b) -> (b == edgeLabel)) (lsuc graph n))
