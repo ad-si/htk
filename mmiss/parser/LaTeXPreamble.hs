@@ -46,14 +46,11 @@ type DocumentClass = Package
 
 data MMiSSLatexPreamble = MMiSSLatexPreamble { 
   latexPreamble :: LaTeXPreamble,           -- Parsed LaTeX preamble found in file before \begin{document}
-  importCommands :: Maybe ImportCommands,   -- Import commands 
-  importedBy :: Maybe PackageEntityNames    -- List of Packages which imports this packages.
+  importCommands :: Maybe ImportCommands,    -- Import commands stated with \Import 
+  ontologyImports :: Maybe ImportCommands,   -- Import commands stated with \ImportOntology
   texfilename :: String                     -- Name of LaTeX-File without extension (++ ".pdf" gives PDF-Filename)
 } deriving (Typeable)
 
-
-type PackageEntityNames = [PackageEntityName]
-type PackageEntityName = EntityFullName
 
 
 data LaTeXPreamble = Preamble DocumentClass [Package] LaTeXPreambleCmds
@@ -88,16 +85,16 @@ instance StringClass MMiSSLatexPreamble where
 
 instance Eq MMiSSLatexPreamble where
    (==) = mapEq 
-      (\ (MMiSSLatexPreamble latexPreamble importCommands texfilename) ->
-         (latexPreamble,importCommands,texfilename))
+      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyImports texfilename) ->
+         (latexPreamble,importCommands,ontologyImports,texfilename))
 
 instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
    writeBin = mapWrite
-      (\ (MMiSSLatexPreamble latexPreamble importCommands importedBy texfilename) ->
-         (latexPreamble,importCommands,texfilename))
+      (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyImports texfilename) ->
+         (latexPreamble,importCommands,ontologyImports,texfilename))
    readBin = mapRead
-      (\ (latexPreamble,importCommands,texfilename) ->
-         (MMiSSLatexPreamble latexPreamble importCommands texfilename))
+      (\ (latexPreamble,importCommands,ontologyImports,texfilename) ->
+         (MMiSSLatexPreamble latexPreamble importCommands ontologyImports texfilename))
 
 {--
 data LaTeXPreambleCmds = Cmd String |  FileRef FilePath ContentString ContentType
@@ -176,6 +173,7 @@ instance Eq LaTeXPreambleCmd where
 
 emptyMMiSSLatexPreamble :: MMiSSLatexPreamble
 emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, 
+                                              ontologyImports = Nothing,
                                               importCommands = Nothing,
                                               texfilename = ""}
 
@@ -204,7 +202,7 @@ mmissNoParsingPragma :: String
 mmissNoParsingPragma = "%%MMISS: no parse"
 
 specialTreatmentInPreamble :: [String]
-specialTreatmentInPreamble = ["documentclass", "usepackage", "Path", "Import"]
+specialTreatmentInPreamble = ["documentclass", "usepackage", "Path", "Import","ImportOntology"]
 
 {--
   latexPreambleCmdsEq evaluates whether two lists of PreambleCommands are identical.
@@ -252,6 +250,7 @@ mergePreambles preambleList =
         in MMiSSLatexPreamble{ 
               latexPreamble = (Preamble dc packages newcmds),
               importCommands = importCommands lp,
+              ontologyImports = ontologyImports lp,
               texfilename = texfilename lp
            }
 
@@ -280,10 +279,15 @@ extractPreamble fileSys filePath frags =
           Nothing -> return(hasValue((Nothing, f)))
           Just(p) -> do
                        let
+                         texFileName = snd (splitName filePath)
+                         texFileNameWOExt = case (splitExtension texFileName) of
+                                              Nothing -> texFileName
+                                              Just((name,_)) -> name
                          newP = MMiSSLatexPreamble {
                                    latexPreamble = latexPreamble p,
                                    importCommands = importCommands p,
-                                   texfilename = snd (splitName filePath)
+                                   ontologyImports = ontologyImports p,
+                                   texfilename = texFileNameWOExt
                                 }
                        return(hasValue((Just newP), f))
 
@@ -321,12 +325,14 @@ findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) pream
        Right(lp) -> 
 	 case lp of 
 	    Just(p) ->
-              let importCmds = makeImportCmds newPreambleFs []
+              let importsWE = makeImportCmds newPreambleFs ([],[])
               in
-	        case fromWithError(importCmds) of
-		  Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
+	        case fromWithError(importsWE) of
+		  Right((importCmdsOpt,ontologyImpsOpt)) -> 
+                                  return(hasValue (Just(MMiSSLatexPreamble {
 			  				    latexPreamble = p,
-							    importCommands = impCmds,
+							    importCommands = importCmdsOpt,
+                                                            ontologyImports = ontologyImpsOpt,
                                                             texfilename = ""
 							}),
 						    (Env "Package" ps fs)))
@@ -509,10 +515,12 @@ UnionPreambles vereinigt die Präambeln indem es die beiden Präambeln am Anfang
 der Liste mittels der Funktion union2Preambles zusammenführt, diese stattdessen 
 an die Spitze der Liste setzt und sich rekursiv aufruft.
 
-
 Die Funktion muss nur die latexPreamble-Teile einer MMiSSLatexPreamble zusammenführen, 
 weil das Ergebnis nicht mehr für das Auflösen von Importen benutzt wird - dies geschieht
 vorher. Die ImportCommands werden einfach von der ersten Präambel der Liste übernommen.
+
+TODO: Hier wird noch nicht viel sinnvolles gemacht. Die importCommands und ontologyImports
+werden noch gar nicht gemerged.
 --}
 
 unionPreambles :: [MMiSSLatexPreamble] -> Maybe MMiSSLatexPreamble
@@ -524,6 +532,7 @@ unionPreambles (p1:p2:ps) =
       unionPre = union2Preambles latexPre1 latexPre2
       newPreamble = MMiSSLatexPreamble {latexPreamble = unionPre, 
                                         importCommands = (importCommands p1),
+                                        ontologyImports = (ontologyImports p1),
                                         texfilename = texfilename p1}
   in unionPreambles (newPreamble:ps)
 
@@ -575,7 +584,8 @@ insertCommandInFront p str =
            newLatexPre = (Preamble documentClass packageList ((Cmd str):cmds))
        in MMiSSLatexPreamble {
             latexPreamble = newLatexPre,
-	    importCommands = importCommands p,                                                
+	    importCommands = importCommands p,
+            ontologyImports = ontologyImports p,                                                
             texfilename = texfilename p
           }
 
@@ -670,12 +680,12 @@ stringInFrag _ _ = False
 
 
 -- makeImportCmds bekommt die Präambel-Fragmente übergeben, sucht darin die
--- Import-Kommandos (\Path und \Import), parsed deren Argumente und generiert
+-- Import-Kommandos (\Path und \Import und \ImportOntology), parsed deren Argumente und generiert
 -- daraus die ImportCommands:
 
-makeImportCmds :: [Frag] -> [ImportCommand] -> WithError (Maybe ImportCommands)
+makeImportCmds :: [Frag] -> ([ImportCommand],[ImportCommand]) -> WithError (Maybe ImportCommands, Maybe ImportCommands)
 
-makeImportCmds (cmd@(Command "Path" (LParams singleParams _ _ _)):fs) importCmds =
+makeImportCmds (cmd@(Command "Path" (LParams singleParams _ _ _)):fs) (importCmds, ontologyImps) =
   case singleParams of
     (SingleParam ((Other aliasStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
       -> let aliasEl = parse entityNameParser1 "" aliasStr
@@ -683,7 +693,9 @@ makeImportCmds (cmd@(Command "Path" (LParams singleParams _ _ _)):fs) importCmds
          in case aliasEl of
                Right alias  -> 
                  case packageNameEl of 
-                   Right packageName -> makeImportCmds fs (importCmds ++ [(PathAlias alias packageName)])
+                   Right packageName -> makeImportCmds fs ( (importCmds ++ [(PathAlias alias packageName)])
+                                                           ,(ontologyImps ++ [(PathAlias alias packageName)])
+                                                          )
                    Left err -> hasError ("Parse error in second argument of Path-Command:\n"
                                      ++ ((show cmd) ++ "\nError:\n")
                                      ++ show err)
@@ -692,50 +704,63 @@ makeImportCmds (cmd@(Command "Path" (LParams singleParams _ _ _)):fs) importCmds
                                    ++ show err)
     otherwise -> hasError("The following Path-Command in the Import-preamble has to few or wrong arguments:\n"                      ++ (show cmd))
 
-makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCmds =
-  case singleParams of
-    -- Matcht auf \Import[]{packageName}: Der leere optionale Parameter führt beim Parsen
-    -- zu einem SingleParam mit leerem String:
-    (SingleParam [] _) : (SingleParam ((Other packageNameStr):_) _)  : _
-       -> genPackageName packageNameStr
+makeImportCmds (cmd@(Command cmdName (LParams singleParams _ _ _)):fs) (importCmds, ontologyImps)
+  | (cmdName == "Import") || (cmdName == "ImportOntology") =
+      case singleParams of
+        -- Matcht auf \Import[]{packageName}: Der leere optionale Parameter führt beim Parsen
+        -- zu einem SingleParam mit leerem String:
+    --    (SingleParam [] _) : (SingleParam ((Other packageNameStr):_) _)  : _
+    --       -> genPackageName packageNameStr
 
-    -- Matcht \Import{packageName}  (keine Direktiven angegeben): 
-    (SingleParam ((Other packageNameStr):_) _) : []
-       -> genPackageName packageNameStr
+        -- Matcht \Import{packageName}  (keine Direktiven angegeben): 
+        (SingleParam ((Other packageNameStr):_) _) : []
+           -> genPackageName packageNameStr
 
-    -- Matcht auf \Import[directives]{packageName}:
-    (SingleParam ((Other directivesStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
-      -> let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
-             directivesEl = parse (directivesParser []) "" directivesStr
-         in case directivesEl of
-               Right directives  -> 
-                 case packageNameEl of 
-                   Right packageName -> makeImportCmds fs (importCmds ++ [(Import directives packageName)])
-                   Left err -> hasError ("Parse error in second argument of Import-Command:\n"
-                                     ++ ((show cmd) ++ "\nError:\n")
-                                     ++ show err)
-               Left err -> hasError ("Parse error in directives of Import-Command:\n"
-                                   ++ ((show cmd) ++ "\nError:\n")
+        -- Matcht auf \Import[directives]{packageName}:
+        (SingleParam ((Other directivesStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
+          -> let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
+                 directivesEl = parse (directivesParser []) "" directivesStr
+             in case directivesEl of
+                   Right directives  -> 
+                     case packageNameEl of 
+                       Right packageName -> 
+                          if (cmdName == "Import")
+                            then makeImportCmds fs ((importCmds ++ [(Import directives packageName)]),ontologyImps)
+                            else makeImportCmds fs ((importCmds,ontologyImps ++ [(Import directives packageName)]))
+                       Left err -> hasError ("Parse error in second argument of Import-Command:\n"
+                                         ++ ((show cmd) ++ "\nError:\n")
+                                         ++ show err)
+                   Left err -> hasError ("Parse error in directives of Import-Command:\n"
+                                       ++ ((show cmd) ++ "\nError:\n")
+                                       ++ show err)
+        otherwise -> hasError("The following Import-Command in the Import-preamble has to few or wrong arguments:\n"
+                              ++ (show cmd))
+  | otherwise = makeImportCmds fs (importCmds, ontologyImps)
+
+  where
+     genPackageName :: String -> WithError (Maybe ImportCommands, Maybe ImportCommands)
+     genPackageName packageNameStr = 
+       let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
+           cmdStr = makeTextElem [cmd] ""
+       in case packageNameEl of 
+            Right packageName -> 
+               if (cmdName == "Import")
+                 then  makeImportCmds fs ((importCmds ++ [(Import [] packageName)]),ontologyImps)
+                 else makeImportCmds fs (importCmds, ontologyImps ++ [(Import [] packageName)])
+            Left err -> hasError ("Parse error in Package-name argument of Import-Command:\n"
+                                   ++ cmdStr ++ "\nError:\n"
                                    ++ show err)
-    otherwise -> hasError("The following Import-Command in the Import-preamble has to few or wrong arguments:\n"
-                          ++ (show cmd))
-    where
-       genPackageName :: String -> WithError (Maybe ImportCommands)
-       genPackageName packageNameStr = 
-         let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
-             cmdStr = makeTextElem [cmd] ""
-         in case packageNameEl of 
-              Right packageName -> makeImportCmds fs (importCmds ++ [(Import [] packageName)])
-              Left err -> hasError ("Parse error in Package-name argument of Import-Command:\n"
-                                     ++ cmdStr ++ "\nError:\n"
-                                     ++ show err)
 
-makeImportCmds (f:fs) importCmds = makeImportCmds fs importCmds
+makeImportCmds (f:fs) (importCmds, ontologyImps) = makeImportCmds fs (importCmds, ontologyImps)
 
-makeImportCmds [] importCmds = if ((genericLength importCmds) == 0)
-                                 then hasValue(Nothing)
-                                 else hasValue(Just((ImportCommands importCmds)))
-
+makeImportCmds [] (importCmds, ontologyImps) = 
+   let importCmdsOpt = if ((genericLength importCmds) == 0)
+                         then Nothing
+                         else Just(ImportCommands importCmds)
+       ontologyImpsOpt = if ((genericLength ontologyImps) == 0)
+                           then Nothing
+                           else Just(ImportCommands ontologyImps)
+   in hasValue((importCmdsOpt,ontologyImpsOpt))
 
 -- -------------------------------------------------------------------------------------------
 --
@@ -829,10 +854,14 @@ makePreambleText mmissPreamble =
                ++ (concat (map (makePackageText "usepackage") packages)) 
                ++ (concat (map makePreambleCmdText latexPreambleCmds)) 
       impCmds = importCommands mmissPreamble
+      ontoImps = ontologyImports mmissPreamble
       str2 = case impCmds of
-               Just(cmds) -> makeImportsText cmds
+               Just(cmds) -> makeImportsText "Import" cmds
                Nothing -> ""
-  in str1 ++ "\n" ++ str2 ++ "\n"
+      str3 = case ontoImps of
+               Just(cmds) -> makeImportsText "ImportOntology" cmds
+               Nothing -> ""
+  in str1 ++ "\n" ++ str2 ++ str3 ++ "\n"
 
 makePackageText :: String -> Package -> String
 makePackageText commandName (Package options name versiondate) =
@@ -845,13 +874,13 @@ makePackageText commandName (Package options name versiondate) =
   in "\\" ++ commandName ++ optStr ++ "{" ++ name ++ "}" ++ versionStr ++ "\n"
 
 
-makeImportsText :: ImportCommands -> String
-makeImportsText (ImportCommands cmds) = 
-  let impStrs = map makeImportCmdText cmds
+makeImportsText :: String -> ImportCommands -> String
+makeImportsText cmdName (ImportCommands cmds) = 
+  let impStrs = map (makeImportCmdText cmdName) cmds
   in concat (map (++ "\n") impStrs)
 
-makeImportCmdText :: ImportCommand -> String
-makeImportCmdText (Import ds packageFullName) =
+makeImportCmdText :: String -> ImportCommand -> String
+makeImportCmdText cmdName (Import ds packageFullName) =
   let renStr = collectRenames ds ""
       newDs = filter (not.isRename) ds
       dirStr = if ((genericLength newDs) > 0)
@@ -864,9 +893,9 @@ makeImportCmdText (Import ds packageFullName) =
       directivesStr = if (dirStr ++ tmpStr ++ renStr) == "" 
                         then ""
                         else "[" ++ (dirStr ++ tmpStr ++ renStr) ++ "]"
-  in "\\Import" ++ directivesStr ++ "{" ++ packageNameStr ++ "}"    
+  in "\\" ++ cmdName ++ directivesStr ++ "{" ++ packageNameStr ++ "}"    
 
-makeImportCmdText (PathAlias alias searchName) =
+makeImportCmdText _ (PathAlias alias searchName) =
   "\\Path{" ++ toString alias ++ "}{" ++ toString searchName ++ "}"
 
 
