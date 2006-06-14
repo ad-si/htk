@@ -29,7 +29,7 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSBundleWrite.hs MMiSSEditLocks.hs \
    MMiSSBundleNodeEditLocks.hs MMiSSUpdateVariantObject.hs \
    MMiSSXmlBasics.hs MMiSSGetVariantAttributes.hs \
-   MMiSSOntologyStore.hs
+   MMiSSOntologyStore.hs MMiSSOntologyParser.hs
 
 BOOTSRCS = MMiSSReadObject.hs-boot \
    MMiSSObjectType.hs-boot MMiSSEmacsEdit.hs-boot MMiSSEditAttributes.hs-boot \
