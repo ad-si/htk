@@ -17,6 +17,14 @@ Font parsing [ludi, 17.08.01]
  widgets where the font is not specified explicitly-- 
  see examples/MainmarkupTextEx.hs
 
+doFormMust can be closed [amahnke, 28.07.06]
+ In toolkit/SimpleForm.hs, the doFormMust function can't deal with
+ a close event. When the user doesn't use the OK button but closes the
+ window, there is no value to return, so the ghc runtime engine is
+ throwing:
+ (Pattern match failure in do expression at SimpleForm.hs:376:6-17)
+ This kind of form is used in uni/mmiss/test/MainMMiSSWorkbench
+
 ---------------------------------------------------------------------------
 
 Fixed bugs:
