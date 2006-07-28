@@ -1,5 +1,5 @@
 PACKAGE = uni-mmiss
-PACKAGES = uni-types uni-emacs uni-mmiss-parser
+PACKAGES = uni-types uni-emacs uni-mmiss-parser fgl
 
 SRCS = MMiSSDTDAssumptions.hs \
    MMiSSInsertionPoint.hs \

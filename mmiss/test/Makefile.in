@@ -1,4 +1,4 @@
-PACKAGES = uni-mmiss uni-davinci
+PACKAGES = uni-mmiss uni-davinci fgl
 
 SRCS       = TestStructure.hs TestLaTeXStructure.hs MainMMiSSWorkbench.hs
 SRCSC      = MainTempDir.c
