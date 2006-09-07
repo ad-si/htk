@@ -1,0 +1,279 @@
+\RelationName{abstractsFrom}{abstracts from}
+\RelationName{after}{after}
+\RelationName{annotates}{annotates}
+\RelationName{cites}{cites}
+\RelationName{comprises}{comprises}
+\RelationName{contains}{contains}
+\RelationName{defines}{defines}
+\RelationName{designates}{designates}
+\RelationName{develops}{develops}
+\RelationName{embeds}{embeds}
+\RelationName{explains}{explains}
+\RelationName{extends}{extends}
+\RelationName{follows}{follows}
+\RelationName{hasAbstract}{has abstract}
+\RelationName{hasAffiliation}{has affiliation}
+\RelationName{hasIntroduction}{has introduction}
+\RelationName{hasSummary}{has summary}
+\RelationName{illustrates}{illustrates}
+\RelationName{imports}{imports}
+\RelationName{includes}{includes}
+\RelationName{instantiates}{instantiates}
+\RelationName{languageVariantOf}{language variant of}
+\RelationName{linksTo}{links to}
+\RelationName{livesIn}{lives in}
+\RelationName{moreAdvanced}{more advanced}
+\RelationName{pointsTo}{points to}
+\RelationName{proves}{proves}
+\RelationName{references}{references}
+\RelationName{relatesDocConstructs}{relates document constructs}
+\RelationName{reliesOn}{relies on}
+\RelationName{solves}{solves}
+\RelationName{variantOf}{variant of}
+
+\Class{DocumentConstruct}{document construct}{}
+  \Class{Attribute}{Attribute}{DocumentConstruct}
+    \Class{AnimationAttribute}{Animation\-Attribute}{Attribute}
+      \Class{MatrixAnimationAttribute}{Animation}{AnimationAttribute}
+      \Class{ListAnimationAttribute}{Animation}{AnimationAttribute}
+      \Class{ScriptAnimationAttribute}{Animation}{AnimationAttribute}
+    \Class{LayoutAttribute}{Layout\-Attribute}{Attribute}
+      \Class{HeightScaleAttribute}{Height}{LayoutAttribute}
+      \Class{WidthScaleAttribute}{Width}{LayoutAttribute}
+      \Class{PageLayoutAttribute}{PageLayout}{LayoutAttribute}
+      \Class{ListLayoutAttribute}{ListLayout}{LayoutAttribute}
+      \Class{MediumAttribute}{Medium}{LayoutAttribute}
+    \Class{RevisionAttribute}{Revision}{Attribute}
+    \Class{SystemAttribute}{Structure\-Attribute}{Attribute}
+      \Class{PriorAuthorsAttribute}{PriorAuthors}{SystemAttribute}
+      \Class{PreviousVersionAttribute}{PreviousVersion}{SystemAttribute}
+      \Class{VersionAttribute}{Version}{SystemAttribute}
+      \Class{DateAttribute}{Date}{SystemAttribute}
+    \Class{StructureAttribute}{Structure\-Attribute}{Attribute}
+      \Class{ShortAuthorsAttribute}{ShortAuthors}{StructureAttribute}
+      \Class{AuthorsAttribute}{Authors}{StructureAttribute}
+      \Class{ShortTitleAttribute}{ShortTitle}{StructureAttribute}
+      \Class{TitleAttribute}{Title}{StructureAttribute}
+      \Class{LabelAttribute}{Label}{StructureAttribute}
+    \Class{KindAttribute}{Kind}{Attribute}
+    \Class{VariantAttribute}{Variant\-Attribute}{Attribute}
+      \Class{PedagogicAttribute}{Pedagogic\-Attribute}{VariantAttribute}
+        \Class{PedagogicLevelAttribute}{PedagogicLevel}{PedagogicAttribute}
+          \Relation{moreAdvanced}{PedagogicLevelAttribute}{PedagogicLevelAttribute}{reliesOn}
+          \Class{KnowledgeAttribute}{Knowledge}{PedagogicLevelAttribute}
+          \Class{TransferAttribute}{Transfer}{PedagogicLevelAttribute}
+          \Class{ApplicationAttribute}{Application}{PedagogicLevelAttribute}
+          \Class{ComprehensionAttribute}{Comprehension}{PedagogicLevelAttribute}
+        \Class{LearningContextAttribute}{LearningContext}{PedagogicAttribute}
+          \Class{ProfessionalFormationAttribute}{ProfessionalFormation}{LearningContextAttribute}
+            \Relation{moreAdvanced}{ProfessionalFormationAttribute}{BasicAttribute}{reliesOn}
+          \Class{SpecialAttribute}{Special}{LearningContextAttribute}
+            \Relation{moreAdvanced}{SpecialAttribute}{AdvancedAttribute}{reliesOn}
+          \Class{AdvancedAttribute}{Advanced}{LearningContextAttribute}
+            \Relation{moreAdvanced}{AdvancedAttribute}{BasicAttribute}{reliesOn}
+          \Class{BasicAttribute}{Basic}{LearningContextAttribute}
+      \Class{AudienceAttribute}{Audience\-Attribute}{VariantAttribute}
+      \Class{FormalismAttribute}{Formalism}{VariantAttribute}
+      \Class{FormatAttribute}{Format\-Attribute}{VariantAttribute}
+        \Class{ScriptFormatAttribute}{Format}{FormatAttribute}
+        \Class{XMLFormatAttribute}{Format}{FormatAttribute}
+        \Class{HTMLFormatAttribute}{Format}{FormatAttribute}
+        \Class{TextFormatAttribute}{Format}{FormatAttribute}
+        \Class{MovieFormatAttribute}{Format}{FormatAttribute}
+        \Class{PictureFormatAttribute}{Format}{FormatAttribute}
+        \Class{DocFormatAttribute}{Format}{FormatAttribute}
+      \Class{LanguageAttribute}{Language}{VariantAttribute}
+  \Class{StructuralEntity}{structural entity}{DocumentConstruct}
+    \Relation[>]{reliesOn}{StructuralEntity}{StructuralEntity}{relatesDocConstructs}
+    \Relation{after}{StructuralEntity}{StructuralEntity}{reliesOn}
+    \Class{InstantiationSE}{instantiation}{StructuralEntity}
+      \Class{IncludedSE}{included \StructuralEntity}{InstantiationSE}
+        \Relation[*-*]{includes}{IncludedSE}{StructuralEntity}{comprises}
+    \Class{UnitComponentSE}{unit component}{StructuralEntity}
+      \Class{AnnotationSE}{annotation}{UnitComponentSE}
+        \Relation[<-]{contains}{AnnotationSE}{CompositeUnitSE}{comprises}
+        \Relation{annotates}{AnnotationSE}{StructuralEntity}{pointsTo}
+        \Relation{annotates}{AnnotationSE}{AnchorDef}{pointsTo}
+        \Class{GlossarySE}{Glossary}{AnnotationSE}
+          \Relation{explains}{GlossarySE}{OntologyDef}{pointsTo}
+        \Class{MessageSE}{Message}{AnnotationSE}
+          \Class{ErrorSE}{Error}{MessageSE}
+          \Class{WarningSE}{Warning}{MessageSE}
+        \Class{NoteSE}{Note}{AnnotationSE}
+        \Class{CommentSE}{Comment}{AnnotationSE}
+      \Class{ItemSE}{Item}{UnitComponentSE}
+        \Relation[<-]{contains}{ItemSE}{ListSE}{comprises}
+        \Relation[<-]{contains}{ItemSE}{AtomSE}{comprises}
+    \Class{AtomSE}{atom}{StructuralEntity}
+      \Class{ProgramFragmentSE}{program fragment}{AtomSE}
+        \Class{CodeSE}{Code}{ProgramFragmentSE}
+      \Class{StepSE}{Step}{AtomSE}
+        \Relation{follows}{StepSE}{StepSE}{pointsTo}
+      \Class{TheoryFragmentSE}{theory fragment}{AtomSE}
+        \Class{AxiomSE}{Axiom}{TheoryFragmentSE}
+        \Class{DeclarationSE}{Declaration}{TheoryFragmentSE}
+        \Class{TermSE}{term}{TheoryFragmentSE}
+          \Class{RuleSE}{Rule}{TermSE}
+          \Class{FormulaSE}{Formula}{TermSE}
+      \Class{TableSE}{Table}{AtomSE}
+      \Class{FigureSE}{Figure}{AtomSE}
+      \Class{TextFragmentSE}{text fragment}{AtomSE}
+        \Class{SourceSE}{Source}{TextFragmentSE}
+        \Class{TextSE}{Text}{TextFragmentSE}
+          \Relation[<-]{embeds}{TextSE}{EmbeddedOp}{comprises}
+    \Class{UnitSE}{unit}{StructuralEntity}
+      \Class{CompositeUnitSE}{composite unit}{UnitSE}
+        \Relation[<-]{contains}{CompositeUnitSE}{TextFragmentSE}{comprises}
+        \Relation[<-]{contains}{CompositeUnitSE}{AnnotationSE}{comprises}
+        \Class{DevelopmentSE}{Development}{CompositeUnitSE}
+          \Relation[<-]{contains}{DevelopmentSE}{DevelopmentSE}{comprises}
+          \Relation[<-]{contains}{DevelopmentSE}{StepSE}{comprises}
+          \Relation{develops}{DevelopmentSE}{ProgramSE}{reliesOn}
+        \Class{ProofSE}{Proof}{CompositeUnitSE}
+          \Relation[<-]{contains}{ProofSE}{ProofSE}{comprises}
+          \Relation[<-]{contains}{ProofSE}{StepSE}{comprises}
+          \Relation{proves}{ProofSE}{AssertionSE}{reliesOn}
+        \Class{AssertionSE}{assertion}{CompositeUnitSE}
+          \Relation[<-]{contains}{AssertionSE}{TermSE}{comprises}
+          \Relation{livesIn}{AssertionSE}{TheorySE}{reliesOn}
+          \Class{FalseConjectureSE}{FalseConjecture}{AssertionSE}
+          \Class{ConjectureSE}{Conjecture}{AssertionSE}
+          \Class{CorrollarySE}{Corrollary}{AssertionSE}
+          \Class{LemmaSE}{Lemma}{AssertionSE}
+          \Class{PropositionSE}{Proposition}{AssertionSE}
+          \Class{TheoremSE}{Theorem}{AssertionSE}
+        \Class{DefinitionSE}{Definition}{CompositeUnitSE}
+          \Relation[<-]{contains}{DefinitionSE}{TheoryFragmentSE}{comprises}
+          \Relation[<-]{contains}{DefinitionSE}{ListSE}{comprises}
+          \Relation{defines}{DefinitionSE}{OntologyDef}{pointsTo}
+          \Relation{livesIn}{DefinitionSE}{TheorySE}{reliesOn}
+        \Class{ListSE}{list}{CompositeUnitSE}
+          \Relation[<-]{contains}{ListSE}{ItemSE}{comprises}
+          \Class{EnumerateSE}{Enumerate}{ListSE}
+          \Class{ItemizeSE}{Itemize}{ListSE}
+          \Class{DescriptionSE}{Description}{ListSE}
+        \Class{SolutionSE}{Solution}{CompositeUnitSE}
+          \Relation[<-]{contains}{SolutionSE}{CompositeUnitSE}{comprises}
+          \Relation{solves}{SolutionSE}{ProblemSE}{reliesOn}
+        \Class{ProblemSE}{Problem}{CompositeUnitSE}
+          \Relation[<-]{contains}{ProblemSE}{CompositeUnitSE}{comprises}
+          \Relation{illustrates}{ProblemSE}{CompositeUnitSE}{reliesOn}
+          \Class{AssignmentSE}{Assignment}{ProblemSE}
+          \Class{ExerciseSE}{Exercise}{ProblemSE}
+        \Class{ExampleSE}{Example}{CompositeUnitSE}
+          \Relation[<-]{contains}{ExampleSE}{CompositeUnitSE}{comprises}
+          \Relation{illustrates}{ExampleSE}{CompositeUnitSE}{reliesOn}
+        \Class{IllustrationSE}{Illustration}{CompositeUnitSE}
+          \Relation{illustrates}{IllustrationSE}{CompositeUnitSE}{reliesOn}
+          \Relation[<-]{contains}{IllustrationSE}{FigureSE}{comprises}
+          \Relation[<-]{contains}{IllustrationSE}{TableSE}{comprises}
+      \Class{ClosedUnitSE}{closed unit}{UnitSE}
+        \Relation[<-]{contains}{ClosedUnitSE}{CompositeUnitSE}{comprises}
+        \Relation[<-]{contains}{ClosedUnitSE}{AtomSE}{comprises}
+        \Relation[<-]{contains}{ClosedUnitSE}{AnnotationSE}{comprises}
+        \Class{ProgramSE}{Program}{ClosedUnitSE}
+          \Relation{extends}{ProgramSE}{ProgramSE}{reliesOn}
+        \Class{TheorySE}{Theory}{ClosedUnitSE}
+          \Relation{extends}{TheorySE}{TheorySE}{reliesOn}
+        \Class{ParagraphSE}{Paragraph}{ClosedUnitSE}
+          \Class{IntroductionSE}{Introduction}{ParagraphSE}
+          \Class{SummarySE}{Summary}{ParagraphSE}
+          \Class{AbstractSE}{Abstract}{ParagraphSE}
+    \Class{SectionSE}{Section}{StructuralEntity}
+      \Relation[<-]{contains}{SectionSE}{SectionSE}{comprises}
+      \Relation[<-]{contains}{SectionSE}{UnitSE}{comprises}
+      \Relation[<-]{contains}{SectionSE}{AtomSE}{comprises}
+      \Relation[<->]{hasAbstract}{SectionSE}{SectionSE}{contains}
+      \Relation[<->]{hasAbstract}{SectionSE}{AbstractSE}{contains}
+      \Relation[<->]{hasIntroduction}{SectionSE}{SectionSE}{contains}
+      \Relation[<->]{hasIntroduction}{SectionSE}{AbstractSE}{contains}
+      \Relation[<->]{hasSummary}{SectionSE}{SectionSE}{contains}
+      \Relation[<->]{hasSummary}{SectionSE}{SummarySE}{contains}
+    \Class{PackageSE}{Package}{StructuralEntity}
+      \Relation[<-]{contains}{PackageSE}{Prelude}{comprises}
+      \Relation[<-]{contains}{PackageSE}{SectionSE}{comprises}
+      \Relation[<->]{hasAbstract}{PackageSE}{SectionSE}{contains}
+      \Relation[<->]{hasIntroduction}{PackageSE}{SectionSE}{contains}
+      \Relation[<->]{hasSummary}{PackageSE}{SectionSE}{contains}
+  \Class{ViewSelection}{ViewSelection}{DocumentConstruct}
+    \Class{StructureSelection}{Structure\-Selection}{ViewSelection}
+      \Class{DetailSelection}{Detail\-Selection}{StructureSelection}
+        \Class{OutlineSelection}{Outline}{DetailSelection}
+          \Relation{abstractsFrom}{OutlineSelection}{BodySelection}{reliesOn}
+        \Class{TableOfContentsSelection}{TOC}{DetailSelection}
+          \Relation{abstractsFrom}{TableOfContentsSelection}{OutlineSelection}{reliesOn}
+        \Class{AllDetailSelection}{ALL}{DetailSelection}
+        \Class{NotesSelection}{Notes}{DetailSelection}
+        \Class{BodySelection}{Body}{DetailSelection}
+          \Relation{abstractsFrom}{BodySelection}{AllDetailSelection}{reliesOn}
+    \Class{VariantSelection}{Variant\-Selection}{ViewSelection}
+  \Class{Prelude}{prelude}{DocumentConstruct}
+    \Class{IncludedPrelude}{IncludedPrelude}{Prelude}
+      \Relation[<-]{contains}{IncludedPrelude}{SettingsPrelude}{comprises}
+      \Relation[<-]{contains}{IncludedPrelude}{AuthorsPrelude}{comprises}
+      \Relation[<-]{contains}{IncludedPrelude}{BibliographyPrelude}{comprises}
+      \Relation[<-]{contains}{IncludedPrelude}{OntologyPrelude}{comprises}
+      \Relation[<-]{contains}{IncludedPrelude}{IncludedPrelude}{comprises}
+    \Class{ImportPrelude}{ImportPrelude}{Prelude}
+    \Class{BibliographyPrelude}{BibliographyPrelude}{Prelude}
+    \Class{AuthorsPrelude}{AuthorsPrelude}{Prelude}
+    \Class{SettingsPrelude}{SettingsPrelude}{Prelude}
+    \Class{OntologyPrelude}{OntologyPrelude}{Prelude}
+\Class{OntologyDef}{}{}
+\Class{AnchorDef}{}{}
+\Class{EmbeddedOp}{}{}
+
+\Object{ASCIIAttribute}{ASCII}{TextFormatAttribute}
+\Object{AnyFormalismAttribute}{ANY}{FormalismAttribute}
+\Object{AnyFormatAttribute}{ANY}{FormatAttribute}
+\Object{AnyKindAttribute}{ANY}{KindAttribute}
+\Object{AnyLanguageAttribute}{ANY}{LanguageAttribute}
+\Object{ArticleAttribute}{Article}{KindAttribute}
+\Object{BoardAttribute}{Board}{ScriptAnimationAttribute}
+\Object{BookAttribute}{Book}{KindAttribute}
+\Object{CaslXMLAttribute}{CaslXML}{XMLFormatAttribute}
+\Object{ColumnsAttribute}{Columns}{PageLayoutAttribute}
+\Object{CourseAttribute}{Course}{KindAttribute}
+\Object{DOCAttribute}{DOC}{DocFormatAttribute}
+\Object{DeleteAttribute}{Delete}{RevisionAttribute}
+\Object{DownAttribute}{Down}{MatrixAnimationAttribute}
+\Object{DownLeftAttribute}{DownLeft}{MatrixAnimationAttribute}
+\Object{EPSAttribute}{EPS}{DocFormatAttribute}
+\Object{FlipAttribute}{Flip}{ListAnimationAttribute}
+\Object{HyperAttribute}{Hyper}{MediumAttribute}
+\Object{ISOLatinOneAttribute}{ISOLatinOne}{TextFormatAttribute}
+\Object{InsertAttribute}{Insert}{RevisionAttribute}
+\Object{InteractiveAttribute}{Interactive}{ScriptAnimationAttribute}
+\Object{LaTeXAttribute}{LaTeX}{TextFormatAttribute}
+\Object{LectureAttribute}{Lecture}{KindAttribute}
+\Object{LeftAttribute}{Left}{MatrixAnimationAttribute}
+\Object{MMiSSXMLAttribute}{MMiSSXML}{XMLFormatAttribute}
+\Object{MatrixAttribute}{Matrix}{ListLayoutAttribute}
+\Object{NestedAttribute}{Nested}{ListLayoutAttribute}
+\Object{NoFormalismAttribute}{NONE}{FormalismAttribute}
+\Object{NoFormatAttribute}{NONE}{FormatAttribute}
+\Object{NoListAnimationAttribute}{NONE}{ListAnimationAttribute}
+\Object{NoMatrixAnimationAttribute}{NONE}{MatrixAnimationAttribute}
+\Object{NoScriptAnimationAttribute}{NONE}{ScriptAnimationAttribute}
+\Object{PDFAttribute}{PDF}{DocFormatAttribute}
+\Object{PICTAttribute}{PICT}{PictureFormatAttribute}
+\Object{PNGAttribute}{PNG}{PictureFormatAttribute}
+\Object{PPTAttribute}{PPT}{DocFormatAttribute}
+\Object{PSAttribute}{PS}{DocFormatAttribute}
+\Object{PaperAttribute}{Paper}{MediumAttribute}
+\Object{RTFAttribute}{RTF}{DocFormatAttribute}
+\Object{ReplayAttribute}{Replay}{ScriptAnimationAttribute}
+\Object{ReportAttribute}{Report}{KindAttribute}
+\Object{RightAttribute}{Right}{MatrixAnimationAttribute}
+\Object{RollOutAttribute}{RollOut}{ListAnimationAttribute}
+\Object{RowsAttribute}{Rows}{PageLayoutAttribute}
+\Object{ScriptAttribute}{Script}{ScriptFormatAttribute}
+\Object{WesternHTMLAttribute}{WesternHTML}{HTMLFormatAttribute}
+\Object{deAttribute}{de}{LanguageAttribute}
+\Object{enAttribute}{en}{LanguageAttribute}
+\Object{enGBAttribute}{en-GB}{LanguageAttribute}
+\Object{enUSAttribute}{en-US}{LanguageAttribute}
+\Object{frAttribute}{fr}{LanguageAttribute}
+
+
+

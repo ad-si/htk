@@ -1,0 +1,20 @@
+\documentclass{mmissarticle}
+\usepackage{ontology}
+
+\Import[Global]{PlantPackage}
+
+
+\RelationName{comesFrom}{comes from}{}
+\RelationName{madeOf}{made of}{}
+
+\Class{Animal}{animal}{}
+	\Class{Cow}{cow}{Animal}
+	\RelType{comesFrom}{Milk}{Cow}
+		\Class{Milk}{milk}{}
+		\RelType{madeOf}{Cheese}{Milk}
+		\Class{Cheese}{cheese}{}
+
+
+\begin{Package}[Label=AnimalPackage]
+
+\end{Package}

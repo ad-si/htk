@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ELEMENT config (nodes,relations,packages)>
+
+<!ELEMENT nodes (node*)>
+
+<!ELEMENT relations (relation*)>
+
+<!ELEMENT packages (package*)>
+
+<!ELEMENT node EMPTY>
+<!ATTLIST node type CDATA #REQUIRED 
+						fontStyle CDATA #REQUIRED
+						fontFamily CDATA #REQUIRED
+						border CDATA #REQUIRED
+						shape CDATA #REQUIRED>
+
+<!ELEMENT relation EMPTY>
+<!ATTLIST relation label CDATA #REQUIRED
+                        showLabel CDATA #REQUIRED
+						fontStyle CDATA #REQUIRED
+						fontFamily CDATA #REQUIRED
+						color CDATA #REQUIRED
+                        edgepattern CDATA #REQUIRED
+                        head CDATA #REQUIRED>
+
+<!ELEMENT package EMPTY>
+<!ATTLIST package label CDATA #REQUIRED
+						color CDATA #REQUIRED>

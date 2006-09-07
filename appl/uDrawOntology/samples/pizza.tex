@@ -1,0 +1,19 @@
+\documentclass{mmissarticle}
+\usepackage{ontology}
+
+\RelationName{includes}{includes}{}
+\Class{Pizza}{pizza}{}
+	\RelType{includes}{Pizza}{Base}
+	\Class{Base}{base}{}
+		\Class{ThinAndCrispy}{thinandcrispy}{Base}
+		\Class{DeepPan}{deeppan}{Base}
+	\RelType{includes}{Pizza}{Topping}
+	\Class{Topping}{topping}{}
+		\Class{Magherita}{magherita}{Topping}
+		\RelType{includes}{Magherita}{Tomato}
+		\RelType{includes}{Magherita}{Cheese}
+
+
+\begin{Package}[Label=PizzaPackage]
+
+\end{Package}

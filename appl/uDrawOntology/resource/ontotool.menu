@@ -1,0 +1,109 @@
+message_bar
+status_bar
+
+menubar
+ menu "#%File" "#%File.mne"
+   menu_entry "#%open" "#%File.Open" "#%File.Open.mne" "#%File.Open.mod" "#%File.Open.acc"
+   blank
+   sys_menu_entry "File.Connect" "#%File.Connect" "#%File.Connect.mne" "#%File.Connect.mod" "#%File.Connect.acc"
+   sys_menu_entry "File.Disconnect" "#%File.Disconnect" "#%File.Disconnect.mne" "#%File.Disconnect.mod" "#%File.Disconnect.acc"
+   blank
+   sys_menu_entry "File.Close" "#%File.Close" "#%File.Close.mne" "#%File.Close.mod" "#%File.Close.acc"
+   menu_entry "#%exit" "#%File.Exit" "#%File.Exit.mne" "#%File.Exit.mod" "#%File.Exit.acc"
+   finish_menu
+ menu "#%Edit" "#%Edit.mne"
+   finish_menu
+ menu "#%View" "#%View.mne"
+   sys_menu_entry "View.New" "#%View.New" "#%View.New.mne" "#%View.New.mod" "#%View.New.acc"
+   sys_menu_entry "View.Survey" "#%View.Survey" "#%View.Survey.mne" "#%View.Survey.mod" "#%View.Survey.acc"
+   blank
+   sys_menu_entry "View.Full" "#%View.Full" "#%View.Full.mne" "#%View.Full.mod" "#%View.Full.acc"
+   sys_menu_entry "View.Fit" "#%View.Fit" "#%View.Fit.mne" "#%View.Fit.mod" "#%View.Fit.acc"
+   sys_menu_entry "View.Scale" "#%View.Scale" "#%View.Scale.mne" "#%View.Scale.mod" "#%View.Scale.acc"
+   blank
+   sys_menu_entry "View.Graph" "#%View.Graph" "#%View.Graph.mne" "#%View.Graph.mod" "#%View.Graph.acc"
+   sys_menu_entry "View.udg" "#%View.udg" "#%View.udg.mne" "#%View.udg.mod" "#%View.udg.acc"
+   finish_menu
+ menu "#%Navigation" "#%Navigation.mne"
+   sys_menu_entry "Navigation.Parents" "#%Navigation.Parents" "#%Navigation.Parents.mne" "#%Navigation.Parents.mod" "#%Navigation.Parents.acc"
+   sys_menu_entry "Navigation.Siblings" "#%Navigation.Siblings" "#%Navigation.Siblings.mne" "#%Navigation.Siblings.mod" "#%Navigation.Siblings.acc"
+   sys_menu_entry "Navigation.Children" "#%Navigation.Children" "#%Navigation.Children.mne" "#%Navigation.Children.mod" "#%Navigation.Children.acc"
+   sys_menu_entry "Navigation.Navigator" "#%Navigation.Navigator" "#%Navigation.Navigator.mne" "#%Navigation.Navigator.mod" "#%Navigation.Navigator.acc"
+   blank
+   sys_menu_entry "Navigation.Find" "#%Navigation.Find" "#%Navigation.Find.mne" "#%Navigation.Find.mod" "#%Navigation.Find.acc"
+   sys_menu_entry "Navigation.Again" "#%Navigation.Again" "#%Navigation.Again.mne" "#%Navigation.Again.mod" "#%Navigation.Again.acc"
+   finish_menu
+ menu "#%Abstraction" "#%Abstraction.mne"
+   sys_menu_entry "Abstraction.HideSub" "#%Abstraction.HideSub" "#%Abstraction.HideSub.mne" "#%Abstraction.HideSub.mod" "#%Abstraction.HideSub.acc"
+   sys_menu_entry "Abstraction.ShowSub" "#%Abstraction.ShowSub" "#%Abstraction.ShowSub.mne" "#%Abstraction.ShowSub.mod" "#%Abstraction.ShowSub.acc"
+   sys_menu_entry "Abstraction.RestoreSub" "#%Abstraction.RestoreSub" "#%Abstraction.RestoreSub.mne" "#%Abstraction.RestoreSub.mod" "#%Abstraction.RestoreSub.acc"
+   blank
+   sys_menu_entry "Abstraction.HideEdge" "#%Abstraction.HideEdge" "#%Abstraction.HideEdge.mne" "#%Abstraction.HideEdge.mod" "#%Abstraction.HideEdge.acc"
+   sys_menu_entry "Abstraction.ShowEdge" "#%Abstraction.ShowEdge" "#%Abstraction.ShowEdge.mne" "#%Abstraction.ShowEdge.mod" "#%Abstraction.ShowEdge.acc"
+   sys_menu_entry "Abstraction.RestoreEdge" "#%Abstraction.RestoreEdge" "#%Abstraction.RestoreEdge.mne" "#%Abstraction.RestoreEdge.mod" "#%Abstraction.RestoreEdge.acc"
+   finish_menu
+ menu "#%Layout" "#%Layout.mne"
+   sys_menu_entry "Layout.All" "#%Layout.All" "#%Layout.All.mne" "#%Layout.All.mod" "#%Layout.All.acc"
+   sys_menu_entry "Layout.Edges" "#%Layout.Edges" "#%Layout.Edges.mne" "#%Layout.Edges.mod" "#%Layout.Edges.acc"
+   sys_menu_entry "Layout.Spacing" "#%Layout.Spacing" "#%Layout.Spacing.mne" "#%Layout.Spacing.mod" "#%Layout.Spacing.acc"
+   sys_menu_entry "Layout.Selected" "#%Layout.Selected" "#%Layout.Selected.mne" "#%Layout.Selected.mod" "#%Layout.Selected.acc"
+   blank
+   submenu_entry "#%Layout.Orientation" "#%Layout.Orientation.mne"
+     radio_menu_entry "orient"
+       sys_menu_entry "Layout.Orientation.TD" "#%Layout.Orientation.TD" "#%Layout.Orientation.TD.mne" "#%Layout.Orientation.TD.mod" "#%Layout.Orientation.TD.acc"
+       sys_menu_entry "Layout.Orientation.BU" "#%Layout.Orientation.BU" "#%Layout.Orientation.BU.mne" "#%Layout.Orientation.BU.mod" "#%Layout.Orientation.BU.acc"
+       sys_menu_entry "Layout.Orientation.LR" "#%Layout.Orientation.LR" "#%Layout.Orientation.LR.mne" "#%Layout.Orientation.LR.mod" "#%Layout.Orientation.LR.acc"
+       sys_menu_entry "Layout.Orientation.RL" "#%Layout.Orientation.RL" "#%Layout.Orientation.RL.mne" "#%Layout.Orientation.RL.mod" "#%Layout.Orientation.RL.acc"
+       finish_radio_menu_entry
+     finish_submenu_entry
+   finish_menu
+ menu "#%Options" "#%Options.mne"
+   sys_menu_entry "Options.Algorithm" "#%Options.Algorithm" "#%Options.Algorithm.mne" "#%Options.Algorithm.mod" "#%Options.Algorithm.acc"
+   sys_menu_entry "Options.Dimensions" "#%Options.Dimensions" "#%Options.Dimensions.mne" "#%Options.Dimensions.mod" "#%Options.Dimensions.acc"
+   sys_menu_entry "Options.General" "#%Options.General" "#%Options.General.mne" "#%Options.General.mod" "#%Options.General.acc"
+   blank
+   sys_menu_entry "Options.Save" "#%Options.Save" "#%Options.Save.mne" "#%Options.Save.mod" "#%Options.Save.acc"
+   finish_menu
+ help_menu
+   sys_menu_entry "Help.Overview" "#%Help.Overview" "#%Help.Overview.mne" "#%Help.Overview.mod" "#%Help.Overview.acc"
+   sys_menu_entry "Help.Intro" "#%Help.Intro" "#%Help.Intro.mne" "#%Help.Intro.mod" "#%Help.Intro.acc"
+   sys_menu_entry "Help.Tutorial" "#%Help.Tutorial" "#%Help.Tutorial.mne" "#%Help.Tutorial.mod" "#%Help.Tutorial.acc"
+   sys_menu_entry "Help.Help" "#%Help.Help" "#%Help.Help.mne" "#%Help.Help.mod" "#%Help.Help.acc"
+   sys_menu_entry "View.udg" "#%Help.udg" "#%Help.udg.mne" "#%Help.udg.mod" "#%Help.udg.acc"
+   blank
+   menu_entry "S:H" "#%Help.Ontotool" "#%Help.Ontotool.mne" "#%Help.Ontotool.mod" "#%Help.Ontotool.acc"
+   finish_menu
+finish_menubar
+
+popup_menu
+   sys_menu_entry "Layout.All" "#%Layout.All"
+   blank
+   sys_menu_entry "View.New" "#%View.New"
+   sys_menu_entry "View.Survey" "#%View.Survey"
+   blank
+   sys_menu_entry "View.Fit" "#%View.Fit"
+   sys_menu_entry "View.Full" "#%View.Full"
+   sys_menu_entry "View.Scale" "#%View.Scale"
+   blank
+   sys_menu_entry "Navigation.Find" "#%Navigation.Find"
+   submenu_entry "#%Abstraction"
+     sys_menu_entry "Abstraction.HideSub" "#%Abstraction.HideSub"
+     sys_menu_entry "Abstraction.ShowSub" "#%Abstraction.ShowSub"
+     sys_menu_entry "Abstraction.HideEdge" "#%Abstraction.HideEdge"
+     sys_menu_entry "Abstraction.ShowEdge" "#%Abstraction.ShowEdge"
+     finish_submenu
+   submenu_entry "#%PopUp.Selection"
+     sys_menu_entry "Navigation.Parents" "#%PopUp.Parents"
+     sys_menu_entry "Navigation.Siblings" "#%PopUp.Siblings"
+     sys_menu_entry "Navigation.Children" "#%PopUp.Children"
+     finish_submenu
+   blank
+   sys_menu_entry "Help.Overview" "#%Help"
+finish_popup_menu
+
+iconbar first
+   icon_entry "#%open" "#%File.Open" "#%Icon.Help.File.Open"
+finish_iconbar
+
+close_window_event #%close context
+

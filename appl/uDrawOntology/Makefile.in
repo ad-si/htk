@@ -1,0 +1,32 @@
+PACKAGES = uni-util uni-posixutil uni-davinci uni-htk fgl text lang-1.0 wx
+PACKAGE = uni-ontology-new
+
+SRCS = \
+	MainUDrawOntology.hs \
+	OntoCore.hs \
+	MMiSS/MMiSSOntology.hs \
+	MMiSS/OntoParser.hs \
+	MMiSS/OntologyGraph.hs \
+	UDraw/Util.hs \
+	UDraw/OntoSideConfig.hs \
+	UDraw/Communication.hs
+
+#SRCS = \
+	AbstractGraphView.hs \
+	MMiSSOntology.hs \
+	MMiSSOntologyGraph.hs \
+	OntoParser.hs \
+	MainOntoTool.hs \
+	MainOntoSide.hs \
+	UDraw/Answers.hs \
+	UDraw/Commands.hs \
+	UDraw/Communication.hs
+
+XHCDIRS= $(HTKDIRS)
+
+EXTRA_HC_OPTIONS += -ignore-package uni-mmiss -ignore-package uni-mmiss-parser -ignore-package uni-ontology
+
+include @TOP@/uni/mk/boilerplate.mk
+
+#clear: 
+	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.hi-boot" -o -name "*.o" -o -name "*.a" -o -name ".depend" \)`

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+	<nodes>
+		<node type="class" fontStyle="bold" fontFamily="lucida" border="single" shape="box"/>
+		<node type="object" fontStyle="bold" fontFamily="lucida" border="single" shape="ellipse"/>
+	</nodes>
+	<relations/>
+	<packages/>
+</config>

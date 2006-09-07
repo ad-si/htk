@@ -1,0 +1,6 @@
+Fehler in Simons Endversion:
+---------------------------
+
+- Wenn man in uDraw einen Knoten anwählt und 'Show Parents' macht, wird dies zwar
+korrekt ausgeführt, aber nicht die Checkbox in der Sidebar gesetzt.
+

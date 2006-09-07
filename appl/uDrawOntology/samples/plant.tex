@@ -1,0 +1,12 @@
+\documentclass{mmissarticle}
+\usepackage{ontology}
+
+\Class{Plant}{plant}{}
+	\Class{Vegetable}{vegetable}{Plant}
+		\Class{Tomato}{tomato}{Vegetable}
+		\Class{Onion}{onion}{Vegetable}
+		\Class{Maize}{maize}{Vegetable}
+
+\begin{Package}[Label=PlantPackage]
+
+\end{Package}
