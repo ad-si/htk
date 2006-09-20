@@ -188,19 +188,19 @@ nChildren (PureGraph fm :: PureGraph nodeInfo arcInfo) =
 -- NB.  We don't have to worry about this being applied recursively provided
 -- zTrans has already been applied, since that removes chains of hidden
 -- vertices.
-removeOneHiddenParent :: Ord nodeInfo
+removeOneHiddenParent :: forall nodeInfo arcInfo . Ord nodeInfo
    => (nodeInfo -> Bool)
    -> PureGraph nodeInfo (Maybe arcInfo)
    -> PureGraph nodeInfo (Maybe arcInfo)
 removeOneHiddenParent isHidden (pureGraph @ (PureGraph fm0) 
-      ::  PureGraph nodeInfo arcInfo) =
+      ::  PureGraph nodeInfo (Maybe arcInfo)) =
    let
       nc = nChildren pureGraph
 
-      candidates0 :: [(nodeInfo,NodeData nodeInfo arcInfo)]
+      candidates0 :: [(nodeInfo,NodeData nodeInfo (Maybe arcInfo))]
       candidates0 = fmToList fm0
 
-      deletions :: [(nodeInfo,nodeInfo,NodeData nodeInfo arcInfo)]
+      deletions :: [(nodeInfo,nodeInfo,NodeData nodeInfo (Maybe arcInfo))]
       deletions = mapMaybe
          (\ (a,nodeData) -> case parentNodes nodeData of
            [parent] -> 

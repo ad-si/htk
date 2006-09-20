@@ -316,7 +316,7 @@ displayView
                         noAccessObject <- createNoAccessObject view wrappedLink
                         newNodeAct1 (coerceLink link) noAccessObject
 
-         newNodeAct1 :: ObjectType objectType object
+         newNodeAct1 :: forall objectType object . ObjectType objectType object
             => Link object -> object 
             -> IO (NodeData WrappedLink (WrappedNode node) ArcType 
                (WrappedArc arc))

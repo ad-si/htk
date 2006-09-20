@@ -1260,7 +1260,7 @@ createLinkSourceGeneral view linkedObject
          targetsSource :: SimpleSource [Maybe (LinkedObject,value)]
          targetsSource =
             fmap
-               (\ (list :: [(LookupResult linkedObject,value)]) ->
+               (\ (list :: [(LookupResult LinkedObject,value)]) ->
                   map
                      (\ (lr,value) -> case lr of
                         Found linkedObject -> Just (linkedObject,value)

@@ -147,7 +147,8 @@ doDecodeIO codedValue view =
        undefinedIO _ = error "CodedValue.undefinedIO"
 
 
-doDecodeIO1 :: HasBinary a CodingMonad => String -> CodedValue -> View -> IO a
+doDecodeIO1 :: forall a . HasBinary a CodingMonad => String -> CodedValue 
+            -> View -> IO a
 doDecodeIO1 desc icsl view =
    do
       (decodeResult :: Either Exception a) <- Control.Exception.try (

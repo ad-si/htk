@@ -371,21 +371,23 @@ unpackWrappedLink :: ObjectType objectType object =>
    WrappedLink -> Maybe (Link object)
 unpackWrappedLink (WrappedLink link) = fromDynamic (toDyn link) 
 
-unpackWrappedLinkWE :: ObjectType objectType object =>
-   WrappedLink -> WithError (Link object) 
+unpackWrappedLinkWE :: forall objectType object .
+   ObjectType objectType object => WrappedLink -> WithError (Link object) 
 unpackWrappedLinkWE (WrappedLink link) =
    case fromDynamic (toDyn link) of
       Just link2 -> hasValue link2
-      (Nothing :: Maybe link2Type) ->
+      (Nothing :: Maybe (Link object)) ->
          hasError ("Type failure: looking for a " 
-            ++ showLink (undefined :: link2Type)
+            ++ showLink (undefined :: Link object)
             ++ " but found a " ++ showLink link
             )
    where
-      showLink :: ObjectType objectType object => Link object -> String
+      showLink :: forall objectType object .
+          ObjectType objectType object => Link object -> String
       showLink link = objectTypeTypeIdPrim (typeHack link)
  
-      typeHack :: ObjectType objectType object => Link object -> objectType
+      typeHack :: forall objectType object .
+          ObjectType objectType object => Link object -> objectType
       typeHack = undefined
    
 

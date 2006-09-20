@@ -60,15 +60,15 @@ data WrappedObjectNode = forall object key .
    => WrappedObjectNode (ObjectNode object key)
    deriving (Typeable)
 
-toObjectNode :: (HasMerging object,Typeable key,Ord key) 
+toObjectNode :: forall object key . (HasMerging object,Typeable key,Ord key) 
    => WrappedObjectNode -> WithError (ObjectNode object key)
 toObjectNode (WrappedObjectNode (objectNode0 :: ObjectNode fromObject key1)) =
    case dynCastOpt objectNode0 of
       Just objectNode -> hasValue objectNode
-      (Nothing :: Maybe (ObjectNode toObject key2)) -> 
+      (Nothing :: Maybe (ObjectNode object key)) -> 
          let
             (objFrom :: fromObject) = error "MergeReAssign.1"
-            (objTo :: toObject) = error "MergeReAssign.2"
+            (objTo :: object) = error "MergeReAssign.2"
          in
             hasError ("Merge reassignment - mismatched types; cannot unify " ++
                "an object of type "++show (typeOf objFrom)++" with an " ++
