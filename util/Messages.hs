@@ -42,7 +42,7 @@ import IO
 import Char
 import qualified List
 
-import Data.Set
+import DeprecatedSet
 import Control.Concurrent.MVar
 import System.IO.Unsafe
 

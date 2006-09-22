@@ -16,7 +16,7 @@ module MMiSSGetVariantAttributes(
 import Maybe
 import qualified List
 
-import Data.Set
+import DeprecatedSet
 
 import Computation
 import ExtendedPrelude

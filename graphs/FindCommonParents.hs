@@ -21,7 +21,7 @@ module FindCommonParents(
 import Maybe
 
 import Data.FiniteMap
-import Data.Set
+import DeprecatedSet
 
 import TopSort
 

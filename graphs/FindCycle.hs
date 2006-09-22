@@ -6,7 +6,7 @@ module FindCycle (
       -- List of all nodes, and a successor function.
    ) where
 
-import Data.Set
+import DeprecatedSet
 
 data DFSOut a =
       NoCycle (Set a) -- set of nodes *not* visited

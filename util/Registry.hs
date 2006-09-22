@@ -63,7 +63,7 @@ import Maybe
 import Control.Monad.Trans
 import System.IO.Unsafe
 import Data.FiniteMap
-import Data.Set
+import DeprecatedSet
 import Control.Concurrent
 import Control.Exception
 import GHC.Prim(unsafeCoerce#)

@@ -19,7 +19,7 @@ import Monad
 
 import Data.FiniteMap
 import Data.IORef
-import Data.Set
+import DeprecatedSet
 
 import ExtendedPrelude
 import Registry

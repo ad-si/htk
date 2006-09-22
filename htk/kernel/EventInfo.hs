@@ -25,7 +25,7 @@ module EventInfo(
    defaultEventInfoSet
    ) where
 
-import Data.Set
+import DeprecatedSet
 
 import Geometry(Distance)
 

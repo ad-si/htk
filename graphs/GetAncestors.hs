@@ -37,7 +37,7 @@ module GetAncestors(
 import Monad
 import Maybe
 
-import Data.Set
+import DeprecatedSet
 
 import Graph
 

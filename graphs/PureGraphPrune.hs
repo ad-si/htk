@@ -11,7 +11,7 @@ module PureGraphPrune(
 import Maybe
 
 import Data.FiniteMap
-import Data.Set
+import DeprecatedSet
 
 import ExtendedPrelude
 

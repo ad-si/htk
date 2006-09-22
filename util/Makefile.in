@@ -14,6 +14,7 @@ PACKAGES = uni-options $(TEMPLATEHASKELLPACKAGE) network parsec
 # Text.ParserCombinators.Parsec seems to depend on it.
 
 SRCS       = \
+  DeprecatedSet.hs \
   TemplateHaskellHelps.hs CompileFlags.hs \
   Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   WBFiles.hs Object.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \

@@ -22,7 +22,7 @@ module GraphConnection(
 
 import Monad(filterM)
 
-import Data.Set
+import DeprecatedSet
 import Control.Concurrent
 
 import Computation (done)

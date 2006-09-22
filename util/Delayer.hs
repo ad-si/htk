@@ -33,7 +33,7 @@ module Delayer(
 import Control.Concurrent.MVar
 import Control.Exception
 
-import Data.Set
+import DeprecatedSet
 
 import Object
 import Computation(done)

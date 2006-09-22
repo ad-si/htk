@@ -108,7 +108,7 @@ import Monad
 import Maybe
 import qualified Data.FiniteMap
 
-import Data.Set
+import DeprecatedSet
 import Control.Exception
 import System.IO.Unsafe
 
@@ -806,4 +806,3 @@ generalisedMerge as bs (compareFn :: a -> b -> Ordering)
          EQ -> mergeFn (Just a) (Just b) : gm as1 bs1
    in
       mkAC (gm as bs)
-      

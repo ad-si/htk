@@ -8,7 +8,7 @@ module VisitedSet(
    ) where
 
 import Control.Concurrent
-import Data.Set
+import DeprecatedSet
 
 newtype VisitedSet key = VisitedSet (MVar (Set key))
 

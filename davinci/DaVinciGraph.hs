@@ -23,7 +23,7 @@ module DaVinciGraph(
 import Maybe
 
 import Data.IORef
-import Data.Set
+import DeprecatedSet
 import Data.FiniteMap
 import Control.Concurrent
 import qualified Data.Dynamic

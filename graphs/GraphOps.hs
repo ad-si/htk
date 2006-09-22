@@ -8,7 +8,7 @@ module GraphOps(
       -- generic version
    ) where
 
-import Data.Set
+import DeprecatedSet
 
 import Queue
 

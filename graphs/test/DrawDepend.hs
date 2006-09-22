@@ -8,7 +8,7 @@ import Maybe
 import IO
 import System
 
-import Data.Set
+import DeprecatedSet
 import Data.FiniteMap
 
 import Debug
