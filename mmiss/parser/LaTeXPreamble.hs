@@ -159,8 +159,8 @@ instance Monad m => CodedValue.HasBinary Package m where
    readBin = mapRead
       (\ (options,packageName,versionData) -> Package options packageName versionData)
 
-instance Eq LaTeXPreambleCmds where
-   (==) = latexPreambleCmdsEq
+--instance Eq LaTeXPreambleCmds where
+--   (==) = latexPreambleCmdsEq
 
 instance Eq LaTeXPreambleCmd where
   (==) = latexPreambleCmdEq

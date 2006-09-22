@@ -1087,9 +1087,10 @@ instance Eq (Gr String String) where
 --  readsPrec 0 t = let (nodes, edges) = read t
 --                  in [(mkGraph nodes edges, "")]
 
-instance (Ord k, Read k, Read e) => Read (Map.Map k e) where
-    readPrec = do elements <- set (readPair readPrec readPrec)
-                  return $ Map.fromList elements
+--instance (Ord k, Read k, Read e) => Read (Map.Map k e) where
+--    readPrec = do elements <- set (readPair readPrec readPrec)
+--                  return $ Map.fromList elements
+
 
 -- ^ @(readPrec p1 p2)@ parses a pair of things with the syntax @a:=b@
 --  where @a@ is parsed by @p1@,
