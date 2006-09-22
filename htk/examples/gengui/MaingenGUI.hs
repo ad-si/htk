@@ -29,7 +29,7 @@ imgref = unsafePerformIO (newRef folderImg)
 
 data Col = Red | Green | Blue | Yellow deriving Eq
 
-type Obj = (Name, IO Image, MyObject)
+data Obj = Obj Name (IO Image) MyObject
 
 type Id = Int
 
@@ -51,12 +51,11 @@ instance Eq MyObject where
   myobj1 == myobj2 = getID myobj1 == getID myobj2
 
 instance CItem Obj where
-  getIcon (_, ic, _) = ic
-  getName (nm, _, _) = return nm
+  getIcon (Obj _ ic _) = ic
+  getName (Obj nm _ _) = return nm
 
 instance Eq Obj where
-  (_, _, myobj1) == (_, _, myobj2) = myobj1 == myobj2
-
+  Obj _ _ myobj1 == Obj _ _ myobj2 = myobj1 == myobj2
 
 ----------------------------------------
 -- external adding of folders / items --
@@ -76,7 +75,7 @@ addTxt newID gui name ent =
           let nm = createName name
               ic = txtImg
               val = MyTxt id ent
-          addItem gui par (LeafItem (nm, ic, val) Nothing)
+          addItem gui par (LeafItem (Obj nm ic val) Nothing)
           done
       _ -> done
 
@@ -97,7 +96,7 @@ addCol newID gui name ent =
                                             "Blue" -> Blue
                                             "Green" -> Green
                                             "Yellow" -> Yellow)
-          addItem gui par (LeafItem (nm, ic, val) Nothing)
+          addItem gui par (LeafItem (Obj nm ic val) Nothing)
           done
       _ -> done
 
@@ -152,7 +151,7 @@ addExampleFolders newID gui =
           id <- newID
           let val = MyNum id num
               nm = createName (name ++ show i) 
-          return (LeafItem (nm, ic, val) Nothing)
+          return (LeafItem (Obj nm ic val) Nothing)
 
       addNumFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
                       IO Image -> String -> [(Int, IO Image)] -> Int ->
@@ -163,7 +162,7 @@ addExampleFolders newID gui =
           items <- mapM (mkNumItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
-          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+          addItem gui par (FolderItem (Obj nm ic $ MyContainer id) items
                                       Nothing)
           done
 
@@ -174,7 +173,7 @@ addExampleFolders newID gui =
           id <- newID
           let val = MyTxt id str
               nm = createName (name ++ show i)
-          return (LeafItem (nm, ic, val) Nothing)
+          return (LeafItem (Obj nm ic val) Nothing)
 
       addTxtFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
                       IO Image -> String -> [(String, IO Image)] -> Int ->
@@ -185,7 +184,7 @@ addExampleFolders newID gui =
           items <- mapM (mkTxtItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
-          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+          addItem gui par (FolderItem (Obj nm ic $ MyContainer id) items
                                       Nothing)
           done
 
@@ -196,7 +195,7 @@ addExampleFolders newID gui =
           id <- newID
           let val = MyImage id img
               nm = createName (name ++ show i)
-          return (LeafItem (nm, ic, val) Nothing)
+          return (LeafItem (Obj nm ic val) Nothing)
 
       addImgFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
                       IO Image -> String -> [(IO Image, IO Image)] ->
@@ -207,7 +206,7 @@ addExampleFolders newID gui =
           items <- mapM (mkImgItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
-          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+          addItem gui par (FolderItem (Obj nm ic $ MyContainer id) items
                                       Nothing)
           done
 
@@ -218,7 +217,7 @@ addExampleFolders newID gui =
           id <- newID
           let val = MyColor id col
               nm = createName (name ++ show i)
-          return (LeafItem (nm, ic, val) Nothing)
+          return (LeafItem (Obj nm ic val) Nothing)
 
       addColFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
                       IO Image -> String -> [(Col, IO Image)] -> Int ->
@@ -229,7 +228,7 @@ addExampleFolders newID gui =
           items <- mapM (mkColItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
-          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+          addItem gui par (FolderItem (Obj nm ic $ MyContainer id) items
                                       Nothing)
           done
   in do
@@ -239,14 +238,14 @@ addExampleFolders newID gui =
        exfolder1 <- do
                       id <- newID
                       addItem gui guiroot
-                        (FolderItem (nm1, folderImg, MyContainer id) []
+                        (FolderItem (Obj nm1 folderImg $ MyContainer id) []
                                     Nothing)
 
        let nm2 = createName "example_folder.2"
        exfolder2 <- do
                       id <- newID
                       addItem gui guiroot
-                        (FolderItem (nm2, folderImg, MyContainer id) []
+                        (FolderItem (Obj nm2 folderImg $ MyContainer id) []
                                     Nothing)
 
        mapM (addTxtFolder newID gui exfolder2 "texts." txtfolderImg
@@ -597,14 +596,14 @@ selectedTl foldlab mitem =
   case mitem of
     Nothing -> foldlab # text "no folder selected" >> done
     Just item -> let val = content item
-                     (nm, _, _) = val
+                     Obj nm _ _ = val
                  in do
                       foldlab # text ("'" ++ full nm ++ "'")
                       setRef foldref (Just item)
 
 doubleClickNp :: Item Obj -> IO ()
 doubleClickNp item =
-  let (_, _, myobj) = content item
+  let Obj _ _ myobj = content item
   in case myobj of
        MyImage _ ioimg -> do
                             main <- createToplevel [text "Image"]
