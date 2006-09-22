@@ -119,7 +119,8 @@ getAllDisplayedObjectTypes
 -- top links
 -- -----------------------------------------------------------------------
 
-addNewObjectTypeInner ::
+addNewObjectTypeInner :: forall graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms .
    GraphAllConfig graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms
    => (Graph graph graphParms node nodeType nodeTypeParms
@@ -143,8 +144,7 @@ addNewObjectTypeInner
          wrappedDisplayType objectType displayedViewAction
       case nodeDisplayDataOpt of
          Nothing -> return []
-         Just (nodeDisplayData :: NodeDisplayData graph node nodeTypeParms 
-               arcTypeParms objectType object) ->
+         Just (nodeDisplayData) ->
             do
                -- Create node types map
                let 
@@ -171,10 +171,6 @@ addNewObjectTypeInner
                   arcTypesList
                let 
                   arcTypes' = listToFM graphArcTypes
-
-                  displayedObjectType :: DisplayedObjectType 
-                        object 
-                        graph node nodeType arcType
                   displayedObjectType = DisplayedObjectType {
                      nodeTypes' = nodeTypes',
                      arcTypes' = arcTypes',
