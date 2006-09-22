@@ -82,7 +82,7 @@ data ObjectLink = ObjectLink {
 data Frag = 
    ClassDeclFrag ClassDecl 
  | ObjectDeclFrag ObjectDecl
--- | RelationDeclFrag RelationDecl
+-- RelationDeclFrag RelationDecl
  | BaseRelationDeclFrag BaseRelationDecl
  | RelationTypeDeclFrag RelationTypeDecl
  | ObjectLinkFrag ObjectLink
