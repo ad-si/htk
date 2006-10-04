@@ -4,8 +4,6 @@ import MMiSSPackageFolder
 import EntityNames
 import MMiSSVariant
 import ViewType
-import GHC.Base
-import GHC.IOBase
 
 type ExportFiles = 
    [(MMiSSPackageFolder.MMiSSPackageFolder,EntityNames.EntityFullName,
@@ -13,7 +11,7 @@ type ExportFiles =
 
 exportFiles :: 
    ViewType.View 
-   -> GHC.Base.String 
+   -> FilePath
    -> ExportFiles 
-   -> GHC.IOBase.IO () 
+   -> IO () 
 
