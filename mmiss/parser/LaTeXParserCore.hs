@@ -131,27 +131,19 @@ piInsertLaTeX = "mmissInsertLaTeX"
 piSpecial :: String
 piSpecial = "mmissSpecial"
 
--- The search/replace strings listed in latexToUnicodeTranslations are applied to attribute values when
--- they are stored in XML-attribute instances:
+{- The search/replace strings listed in latexToUnicodeTranslations are
+applied to attribute values when they are stored in XML-attribute
+instances: -}
 
 latexToUnicodeTranslations :: [(String, String)]
-latexToUnicodeTranslations = [("\\\"a", "\x00e4"), ("\\\"u", "\x00fc"), ("\\\"o", "\x00f6")]
-                          ++ [("\\\"A", "\x00c4"), ("\\\"U", "\x00dc"), ("\\\"O", "\x00d6")] 
-                          ++ [("\\ss{}", "\x00df"), ("\\ss", "\x00df")]
-
-{--
-latexToUnicodeTranslations = [("\\\"a", "ä"), ("\\\"u", "ü"), ("\\\"o", "ö")]
-                          ++ [("\\\"A", "Ä"), ("\\\"U", "Ü"), ("\\\"O", "Ö")] 
-                          ++ [("\\ss{}", "ß"), ("\\ss", "ß")]
---}
+latexToUnicodeTranslations = ("\\ss", "\223") :
+    map ( \ (a, b) -> (b, a)) unicodeToLatexTranslations
 
 unicodeToLatexTranslations :: [(String, String)]
-unicodeToLatexTranslations = [("ä", "\\\"a"), ("ü", "\\\"u"), ("ö","\\\"o")]
-                          ++ [("Ä", "\\\"A"), ("Ü", "\\\"U"), ("Ö", "\\\"O")] 
-                          ++ [("ß", "\\ss{}")]
-                          ++ [("\x00e4", "\\\"a"), ("\x00fc", "\\\"u"), ("\x00f6","\\\"o")]
-                          ++ [("\x00c4", "\\\"A"), ("\x00dc", "\\\"U"), ("\x00d6", "\\\"O")]
-                          ++ [("\x00df","\\ss{}")] 
+unicodeToLatexTranslations = 
+    [("\196", "\\\"A"), ("\214", "\\\"O"), ("\220", "\\\"U")]
+    ++ ("\223", "\\ss{}")
+    : [("\228", "\\\"a"), ("\246","\\\"o"), ("\252", "\\\"u")]
 
 mmissPlainTextAtoms :: [(String, String)]
 mmissPlainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
