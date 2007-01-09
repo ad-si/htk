@@ -77,7 +77,7 @@ import Maybe
 import Monad
 
 import Control.Concurrent.MVar
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Text.XML.HaXml.Types hiding (VersionInfo)
 
 import Computation(done,fromWithError,WithError,mapWithError)

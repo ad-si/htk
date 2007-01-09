@@ -27,7 +27,7 @@ module MMiSSSessionState(
    ) where
 
 import Control.Concurrent.MVar
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import UniqueString
 import Computation

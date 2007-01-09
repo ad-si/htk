@@ -7,7 +7,7 @@ module MMiSSBundleNodeWriteClass(
    BundleNodeExtraData(..),
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import AtomString
 import Computation

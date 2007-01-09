@@ -1,7 +1,7 @@
-PACKAGES = uni-util uni-posixutil uni-davinci uni-htk fgl text lang-1.0
+PACKAGES = uni-util uni-posixutil uni-davinci uni-htk fgl
 PACKAGE = uni-ontology
 
-SRCS = AbstractGraphView.hs MMiSSOntology.hs MMiSSOntologyGraph.hs OntoParser.hs MainOntoTool.hs MainLispInterface.hs
+SRCS = AbstractGraphView.hs MMiSSOntology.hs MMiSSOntologyGraph.hs OntoParser.hs
 
 XHCDIRS= $(HTKDIRS)
 

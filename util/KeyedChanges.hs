@@ -22,7 +22,7 @@ module KeyedChanges(
    -- instance Ord key => HasSource (KeyedChanges key delta) [delta] delta
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Sources
 import Broadcaster

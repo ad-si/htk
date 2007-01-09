@@ -27,7 +27,7 @@ module PrimitiveLocation(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import ExtendedPrelude
 

@@ -8,7 +8,7 @@ module MMiSSBundleNodeWrite(
       -- :: View -> InsertionPoint -> BundleNode -> IO ()
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Control.Monad.State
 import Control.Monad.Trans
 

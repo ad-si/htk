@@ -1,18 +1,20 @@
 PACKAGE = uni-mmiss-api
-PACKAGES = uni-mmiss
+PACKAGES = uni-mmiss uni-HaXml HaXml
 
 SRCS = MMiSSAPI.hs MMiSSRequest.hs \
    MMiSSAPIBasics.hs MMiSSSessionState.hs MMiSSAPIBlock.hs \
    MMiSSMapVersionInfo.hs MMiSSToFromBundle.hs \
    MMiSSCallServer.hs MMiSSCheckOutCommit.hs MMiSSGetPut.hs \
-   MMiSSMessages.hs MMiSSDoXml.hs MainMMiSSServer.hs \
-   TestMMiSSServer.hs MMiSSSecurityOps.hs \
+   MMiSSMessages.hs MMiSSDoXml.hs MMiSSSecurityOps.hs \
+
+SUBDIRS = test
 
 include @TOP@/mk/boilerplate.mk
 
 MMiSSRequest.hs : MMiSSRequest.dtd
-	@TOP@/HaXml/tools/DtdToHaskell $< $@
+	DtdToHaskell $< $@
 
 EXTRAEXPORTS = MMiSSRequest.dtd MMiSSServer$(EXESUFFIX)
 
 prepareexports : MMiSSServer
+

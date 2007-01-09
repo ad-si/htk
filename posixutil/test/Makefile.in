@@ -1,6 +1,3 @@
-PACKAGE = uni-posixutil-test
 PACKAGES = uni-posixutil
-SRCS = ChildProcessTest.hs TestChildProcess.hs
-
+SRCS = TestChildProcess.hs
 include @TOP@/mk/boilerplate.mk
-

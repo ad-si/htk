@@ -6,7 +6,7 @@ module Hasse(
 
 import List hiding (intersect,union)
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import DeprecatedSet
 
 import TopSort

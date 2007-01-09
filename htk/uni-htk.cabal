@@ -1,0 +1,35 @@
+name:           uni-htk
+version:        1.1
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/htk/
+category:       GUI
+synopsis:       Graphical User Interface for Haskell Programs
+description:    GUI toolkit based on Tcl/Tk
+exposed-modules: BaseClasses, ButtonWidget, CallWish, Colour, Configuration,
+  Core, Cursor, EventInfo, Font, GUIObject, GUIObjectKind, GUIObjectName,
+  GUIValue, Geometry, GridPackOptions, PackOptions, Packer, Resources,
+  TkVariables, Tooltip, Wish, Box, Frame, Toplevel, Window,
+  BitMap, Focus, ICursor, Icon, Image, Index, Selection, Slider,
+  Bell, Printer, Screen, XSelection,
+  LabelFrame, NoteBook, PanedWindow, Subwidget,
+  Indicator, Menu, MenuCascade, MenuCheckButton, MenuCommand,
+  MenuItem, MenuRadioButton, MenuSeparator,
+  Button, Canvas, CheckButton, ComboBox, Editor, Entry, Label,
+  ListBox, MenuButton, Message, OptionMenu, RadioButton, Scale,
+  ScrollBar, Space, Arc, BitMapItem, CanvasItem, CanvasItemAux, CanvasTag,
+  EmbeddedCanvasWin, ImageItem, Line, Oval, Polygon, Rectangle,
+  TextItem, EmbeddedTextWin, Mark, TextTag, HTk,
+  CItem, DialogWin, FileDialog, GenGUI, GenericBrowser, HTkMenu,
+  IconBar, InputForm, InputWin, LogWin, MarkupText, MenuType,
+  ModalDialog, Name, Notepad, Prompt, ScrollBox, SelectBox,
+  Separator, SimpleForm, SimpleListBox, SpinButton, TextDisplay,
+  TreeList
+hs-source-dirs: kernel, containers, components, devices, tix, menuitems,
+  widgets, canvasitems, textitems, toplevel, toolkit
+build-depends: base, haskell98, uni-util, uni-events, uni-posixutil,
+  uni-reactor
+ghc-options: -O -fglasgow-exts -fallow-overlapping-instances
+  -fallow-undecidable-instances
+extensions: CPP

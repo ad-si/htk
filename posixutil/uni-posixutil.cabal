@@ -1,0 +1,14 @@
+name:           uni-posixutil
+version:        1.1
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       Posix utilities for the uniform workbench
+description:    posix utilities
+exposed-modules: CopyFile, ProcessClasses, ChildProcess,
+  Expect, SafeSystem, BlockSigPIPE
+include-dirs: ../includes
+build-depends: base, haskell98, template-haskell, uni-util, uni-events
+ghc-options: -O -fglasgow-exts -fth 

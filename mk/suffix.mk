@@ -146,7 +146,7 @@ LIBMODULENAMESCOMMAS = $(LIBMODULENAMESCOMMAS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : dependhere depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere copyhaddocksources haddockgenindex slow slowhere
+.PHONY : dependhere depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere copyhaddocksources haddockgenindex slow slowhere cabal cabalhere
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -248,6 +248,24 @@ ifneq "$(strip $(LIBOBJS))" ""
 	$(AR) -rs $(LIB) $(LIBOBJS)
 endif
 endif
+
+
+SETUP = runhaskell $(GHCTOP)/Setup.hs
+CABALGHCPKG = --with-hc-pkg=$(TOP)/mk/cabal-ghc-pkg
+
+CABAL = $(SETUP) configure $(CABALGHCPKG) \
+        -w $(GHCTOP)/mk/cabal-ghc --prefix=$(TOP); \
+    $(SETUP) build; \
+    $(SETUP) copy; \
+    $(SETUP) register $(CABALGHCPKG) --gen-script; \
+    ./register.sh
+
+CABALFILE = $(wildcard *.cabal)
+cabalhere : 
+	if [ -n "$(CABALFILE)" ]; then $(CABAL) ; fi
+
+cabal : cabalhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) cabal && ) echo Finished make cabal
 
 packagehere : libfasthere packageherequick
 

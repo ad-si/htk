@@ -106,7 +106,7 @@ module ExtendedPrelude (
 import Char
 import Monad
 import Maybe
-import qualified Data.FiniteMap
+import qualified DeprecatedFiniteMap
 
 import DeprecatedSet
 import Control.Exception
@@ -672,14 +672,14 @@ uniqOrd = setToList . mkSet
 uniqOrdByKey :: Ord b => (a -> b) -> [a] -> [a]
 uniqOrdByKey (getKey :: a -> b) (as :: [a]) =
    let
-      fm :: Data.FiniteMap.FiniteMap b a
-      fm = Data.FiniteMap.listToFM
+      fm :: DeprecatedFiniteMap.FiniteMap b a
+      fm = DeprecatedFiniteMap.listToFM
          (fmap
             (\ a -> (getKey a,a))
             as
             )
   in
-     fmap snd (Data.FiniteMap.fmToList fm)
+     fmap snd (DeprecatedFiniteMap.fmToList fm)
 
 -- | Remove duplicate elements from a list where the key function is supplied.
 -- The list order is preserved and of the duplicates, it is the first in the
@@ -761,14 +761,14 @@ allEq (a:as) = all (== a) as
 -- ------------------------------------------------------------------------
 
 fmToList_GE_1 :: Ord key 
-   => Data.FiniteMap.FiniteMap key elt -> key ->  [(key,elt)]
-maxFM_1 :: Ord key => Data.FiniteMap.FiniteMap key elt -> Maybe key
-keysFM_GE_1 :: Ord key => Data.FiniteMap.FiniteMap key elt -> key -> [key]
+   => DeprecatedFiniteMap.FiniteMap key elt -> key ->  [(key,elt)]
+maxFM_1 :: Ord key => DeprecatedFiniteMap.FiniteMap key elt -> Maybe key
+keysFM_GE_1 :: Ord key => DeprecatedFiniteMap.FiniteMap key elt -> key -> [key]
 
 
-fmToList_GE_1 = Data.FiniteMap.fmToList_GE
-maxFM_1 = Data.FiniteMap.maxFM
-keysFM_GE_1 = Data.FiniteMap.keysFM_GE
+fmToList_GE_1 = DeprecatedFiniteMap.fmToList_GE
+maxFM_1 = DeprecatedFiniteMap.maxFM
+keysFM_GE_1 = DeprecatedFiniteMap.keysFM_GE
 
 -- ------------------------------------------------------------------------
 -- Generalised Merge

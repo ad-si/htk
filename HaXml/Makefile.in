@@ -1,53 +1,12 @@
-#! This directory exists merely to be a pointer to the
-#  current sources for HaXml.  We need to make an additional target,
-#  lnsrcs, called from ./configure, which creates symbolic links to the
-#  srcs in the HaXml directory. 
-
+# This directory existed merely to be a pointer to the
+# old sources for HaXml. Now HaXml (version 1.13.2) is 
+# assumed to be installed as cabal package for ghc (6.6).
 
 PACKAGE = uni-HaXml
-PACKAGES = uni-util
+PACKAGES = uni-util HaXml
 
-HAXML = @TOP@/HaXml-1.11/src
+SRCS = XmlExtras.hs
 
-# Disable DEBUG mode.  This is because Malcolm Wallace uses the same
-# flag, and so if it's left it I get lots and lots of Malcolm's trace
-# messages, which I don't want.  Also enable -cpp, which HaXml needs.
-DOCPP = YES
-EXTRA_HC_OPTIONS += -UDEBUG
-
-
-SRCS = $(HAXMLSRCS) XmlFix.hs XmlExtras.hs
-
-# Taken from the setting for LIBSRCS in $(HAXML)/../Makefile.
-HAXMLSRCS = \
-	Text/XML/HaXml.hs Text/XML/HaXml/Combinators.hs \
-	Text/XML/HaXml/Lex.hs \
-	Text/XML/HaXml/Parse.hs Text/XML/HaXml/Pretty.hs \
-	Text/XML/HaXml/Types.hs Text/XML/HaXml/Validate.hs \
-	Text/XML/HaXml/Wrappers.hs Text/XML/HaXml/OneOfN.hs \
-	Text/XML/HaXml/Verbatim.hs Text/XML/HaXml/Escape.hs \
-	Text/XML/HaXml/Xml2Haskell.hs Text/XML/HaXml/Haskell2Xml.hs \
-	Text/XML/HaXml/Html/Generate.hs Text/XML/HaXml/Html/Parse.hs \
-	Text/XML/HaXml/Html/Pretty.hs \
-	Text/XML/HaXml/Xtract/Combinators.hs \
-	Text/XML/HaXml/Xtract/Lex.hs \
-	Text/XML/HaXml/Xtract/Parse.hs \
-	Text/XML/HaXml/DtdToHaskell/TypeDef.hs \
-	Text/XML/HaXml/DtdToHaskell/Convert.hs \
-	Text/XML/HaXml/DtdToHaskell/Instance.hs \
-	Text/ParserCombinators/HuttonMeijerWallace.hs \
-
-#	Text/PrettyPrint/HughesPJ.hs 
-# Commented out as it is now in GHC.
-
-SUBDIRS = tools
+SUBDIRS =
 
 include @TOP@/mk/boilerplate.mk
-
-lnsrcs : Makefile
-	$(RM) -rf Text tools/MainDtdToHaskell.hs
-	$(foreach file,$(HAXMLSRCS),\
-           $(MKDIR) -p `dirname $(file)` \
-           && $(LN) -s $(HAXML)/$(file) $(file) &&) \
-        $(LN) -sf $(HAXML)/tools/DtdToHaskell.hs tools/MainDtdToHaskell.hs && \
-        echo "Don't copy again" >lnsrcs

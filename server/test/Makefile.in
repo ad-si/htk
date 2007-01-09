@@ -1,0 +1,3 @@
+SRCS = Testserver.hs
+PACKAGES = uni-server
+include @TOP@/mk/boilerplate.mk

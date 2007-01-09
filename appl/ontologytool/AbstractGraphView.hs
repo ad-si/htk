@@ -17,10 +17,10 @@ import GraphConfigure
 
 import Destructible
 
-import List(nub)
-import Data.FiniteMap
+import Data.List(nub)
+import DeprecatedFiniteMap
 
-import IORef
+import Data.IORef
 
 import MMiSSOntology
 

@@ -3,7 +3,7 @@ module TopSort(
    topSort1, -- :: Ord a => [(a,a)] -> [a] -> [a]
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 -- Based on the Art of Computer Programming
 -- Chapter 1, 2.2.3.

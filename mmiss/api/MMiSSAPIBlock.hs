@@ -25,7 +25,7 @@ module MMiSSAPIBlock(
 
 import IO
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Data.Word
 
 import Bytes(Byte)

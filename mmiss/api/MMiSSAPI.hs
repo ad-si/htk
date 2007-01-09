@@ -138,7 +138,7 @@ import System
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import qualified Control.Exception
 
 import Object

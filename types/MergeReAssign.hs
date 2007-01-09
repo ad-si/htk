@@ -17,7 +17,7 @@ module MergeReAssign(
 import Maybe
 import Monad
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Data.IORef
 import DeprecatedSet
 

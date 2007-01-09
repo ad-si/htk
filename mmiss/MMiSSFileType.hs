@@ -45,7 +45,7 @@ import Maybe
 import Char
 
 import System.IO.Unsafe
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import WBFiles
 import ICStringLen

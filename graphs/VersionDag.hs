@@ -28,7 +28,7 @@ module VersionDag(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Sources
 import Broadcaster

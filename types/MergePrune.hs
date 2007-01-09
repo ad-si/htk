@@ -17,7 +17,7 @@ module MergePrune(
 
 import Monad
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import FindCommonParents(GraphBack(..))
 import RemoveAncestors

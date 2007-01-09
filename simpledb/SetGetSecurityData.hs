@@ -9,7 +9,7 @@ module SetGetSecurityData(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import PasswordFile(User)
 

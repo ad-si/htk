@@ -17,7 +17,7 @@ module CopyVersionInfos(
 import Maybe
 import Monad
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation(done)
 import AtomString(toString)

@@ -90,7 +90,7 @@ import Time
 import List (intersperse)
 
 import Data.Typeable
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 import BinaryAll

@@ -9,7 +9,7 @@ module FolderStructure(
    getName,
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Sources
 

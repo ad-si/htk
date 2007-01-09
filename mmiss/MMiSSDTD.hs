@@ -31,9 +31,9 @@ import IO
 import Maybe
 import qualified List
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import System.IO.Unsafe
-import qualified Control.Exception
+import qualified Control.Exception (try)
 
 import WBFiles
 import IOExtras
@@ -159,7 +159,7 @@ xmlParseCheck fName contents =
    do
       result <- catchErrorCalls (
          let
-            (Document _ _ el) = xmlParse fName contents
+            (Document _ _ el _) = xmlParse fName contents
          in
             el `deepSeq` return el
          )

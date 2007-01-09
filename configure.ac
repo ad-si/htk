@@ -282,22 +282,6 @@ else
    MISSLATEX="$TOP/mmiss/scripts/notfound MMiSS-LaTeX "
 fi
 AC_SUBST(MISSLATEX)
-#
-# Decide whether to compile in HaXml or not.
-# (Change: we ALWAYS do this)
-# if test $GhcShortVersion -gt 504
-# then
-#    HAXML=HaXml
-#    HAXMLINT=1
-# else
-#    HAXML=""
-#    HAXMLINT=0
-# fi
-HAXML=HaXml
-HAXMLINT=1
-
-AC_SUBST(HAXML)
-AC_SUBST(HAXMLINT)
 
 # Check for mkdtemp in stdlib (used by mmiss/test/MainTempDir.c).  We can get 
 # along without it, and have to on Solaris.
@@ -314,6 +298,15 @@ AC_SUBST(HAVE_MKDTEMP)
 DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$UDG --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
 s+"+\\\\"+g'`
 AC_SUBST(DEFAULTOPTIONS)
+
+# test for HaXml package
+HAXMLVERSION=`$GHCPKG field HaXml version`
+if test "$HAXMLVERSION" = "version: 1.13.2"; then
+   echo $HAXMLVERSION of HaXml found
+else
+   echo Without HaXml-1.13.2 you cannot compile UniForM.
+   GOAHEAD=NO
+fi  
 
 # Find all files Makefile.in
 MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
@@ -338,7 +331,7 @@ if test "$GOAHEAD" = YES; then
    echo ''
    echo '------------------- Configuration Successful ------------------'
    if test "$BINARY" = NO; then
-      SCRIPTS="mmiss/test/runWorkbench mmiss/test/runServer posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer util/CompileFlags.hs runhaddock.sh"
+      SCRIPTS="mmiss/test/runWorkbench mmiss/test/runServer posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer util/CompileFlags.hs runhaddock.sh mk/cabal-ghc mk/cabal-ghc-pkg"
    else
       SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp posixutil/daVinci.debug posixutil/wish.debug"
    fi
@@ -363,16 +356,9 @@ if test "$GOAHEAD" = YES; then
       echo @<:@@:>@ >uni-package.conf.export
       mk/FixFileNames <uni-package.options | $GHCPKG --package-conf=uni-package.conf register -      
 
-      if test -n "$HAXML"
-      then
-         echo Linking to HaXml sources.
-         ${GMAKE} -C $HAXML -r lnsrcs
-      fi
-
       GHCPKGOPTS=--force
       
       $GHCPKG $GHCPKGOPTS --package-conf=uni-package.conf.export register - <uni-package.options
-
       if test -n "$BDBDIR"; then
          ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf register - 
          ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf.export register - 
@@ -380,7 +366,7 @@ if test "$GOAHEAD" = YES; then
 
       GMAKESHORT=`basename $GMAKE`
 
-      echo To compile UniForM type \"${GMAKESHORT} packages\"
+      echo To compile UniForM type \"${GMAKESHORT} packages\" or \"${GMAKESHORT} cabal\"
       echo If you also want the test programs do \"${GMAKESHORT} all\" instead of \"${GMAKESHORT} packages\"
    fi
 fi

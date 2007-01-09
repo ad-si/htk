@@ -29,10 +29,10 @@ else
 endif
 
 HCSHORTFLAGS = \
-   $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) \
+   $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) -fno-mono-pat-binds \
    -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances \
    -fwarn-unused-imports -fwarn-missing-signatures -fwarn-unused-binds \
-   -fwarn-deprecations -recomp \
+   -fwarn-deprecations -recomp -fth \
    -package-conf $(PACKAGECONF) $($*_HC_OPTIONS)
 
 PACKAGESARGS = $(PACKAGES:%=-package %)

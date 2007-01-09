@@ -15,7 +15,7 @@ import Char
 import Time
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import DeprecatedSet
 import System.IO.Unsafe
 import Control.Concurrent.MVar

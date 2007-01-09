@@ -12,14 +12,14 @@ module MMiSSOntologyGraph (
 where
 
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Data.List
-import Monad
-import IORef
-import Char
+import Control.Monad
+import Data.IORef
+import Data.Char
 import System
 import SafeSystem
-import Maybe
+import Data.Maybe
 
 import DaVinciGraph
 import DaVinciBasic

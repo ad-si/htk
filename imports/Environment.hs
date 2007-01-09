@@ -64,7 +64,7 @@ module Environment(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 import Sources

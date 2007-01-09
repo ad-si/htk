@@ -83,7 +83,7 @@ module MMiSSBundleSimpleUtils(
    describeLocInfo, -- :: LocInfo -> String
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Maybe
 import IO

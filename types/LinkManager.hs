@@ -245,7 +245,7 @@ import Maybe
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 import ExtendedPrelude

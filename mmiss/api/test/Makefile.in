@@ -1,0 +1,5 @@
+SRCS = TestMMiSSServer.hs MainMMiSSServer.hs
+
+PACKAGES = uni-mmiss uni-mmiss-api
+
+include @TOP@/mk/boilerplate.mk

@@ -8,7 +8,7 @@ module MMiSSExportFiles(
 
 import Monad
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import FileNames
 import Computation

@@ -10,7 +10,7 @@ module PureGraphPrune(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import DeprecatedSet
 
 import ExtendedPrelude

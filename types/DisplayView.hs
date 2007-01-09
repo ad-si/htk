@@ -14,7 +14,7 @@ module DisplayView(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Control.Concurrent.MVar
 
 import Dynamics

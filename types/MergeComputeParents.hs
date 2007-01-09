@@ -6,7 +6,7 @@ module MergeComputeParents(
 import Monad
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import VariableSet(HasKey(..))
 

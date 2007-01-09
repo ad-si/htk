@@ -55,7 +55,7 @@ data Dialog a = Dialog {
                         fLabel     :: Label,
                         fSelectBox :: SelectBox,
                         fEvents    :: (Event a)
-                        } deriving Eq
+                        }
 
 -- --------------------------------------------------------------------------
 --  Instances 

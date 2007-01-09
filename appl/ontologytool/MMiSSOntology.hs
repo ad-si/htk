@@ -98,7 +98,7 @@ module MMiSSOntology (
   -- :: (String, String, OntoObjectType) -> String
 
   graphvizEdgeAtts,
-  --:: String -> String
+  -- :: String -> String
 
   hasError, hasValue  
 )
@@ -107,7 +107,7 @@ where
 
 import Computation hiding (try)
 import Data.List
-import Data.FiniteMap 
+import DeprecatedFiniteMap 
 
 import Data.Graph.Inductive
 import Data.Graph.Inductive.Tree
@@ -673,5 +673,5 @@ graphvizEdgeAtts _ str =
     "instanceOf" -> "style = \"dashed\", arrowsize = 1.5, style = \"bold\", fontname=\"Helvetica\", fontsize=10.0"
     otherwise ->"label = \" " ++ str ++ "\", dir = \"back\", arrowsize = 1.5, style = \"bold\", fontname=\"Helvetica\", fontsize=12.0"
 
-instance Show (String, String, OntoObjectType) where
-  show (name,_,t) = show name
+--instance Show (String, String, OntoObjectType) where
+--  show (name,_,t) = show name

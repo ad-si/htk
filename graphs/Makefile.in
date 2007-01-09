@@ -4,7 +4,7 @@ PACKAGES = uni-server uni-htk
 
 SRCS       = GraphDisp.hs GraphConfigure.hs NewNames.hs Graph.hs \
      SimpleGraph.hs GetAttributes.hs DisplayGraph.hs GraphEditor.hs \
-     GraphEditorService.hs MainGraphEditorServer.hs GraphEditorRemote.hs \
+     GraphEditorService.hs GraphEditorRemote.hs \
      GraphConnection.hs RemoveAncestors.hs GraphOps.hs TopSort.hs \
      FindCommonParents.hs FindCycle.hs GetAncestors.hs EmptyGraphSort.hs \
      PureGraph.hs PureGraphPrune.hs PureGraphToGraph.hs VersionDag.hs \

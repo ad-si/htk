@@ -1,6 +1,3 @@
-
-PACKAGE = uni-events-test
 PACKAGES = uni-events
-
-SRCS = TestAlwaysRules.hs GetPut.hs TestGetPut.hs TestRegexChannel.hs TestSyncRec.hs
+SRCS = TestAlwaysRules.hs TestGetPut.hs TestRegexChannel.hs TestSyncRec.hs
 include @TOP@/mk/boilerplate.mk

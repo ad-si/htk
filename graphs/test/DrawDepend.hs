@@ -9,7 +9,7 @@ import IO
 import System
 
 import DeprecatedSet
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Debug
 import Computation

@@ -1,0 +1,31 @@
+name:           uni-events
+version:        1.1
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       Event handling for the uniform workbench
+description:    uni events
+exposed-modules: Toggle,
+             Events,
+             After,
+             Cells,
+             GuardedEvents,
+             GuardedChannels,
+             DeleteQueue,
+             NullGuard,
+             FMQueue,
+             EqGuard,
+             Spawn,
+             WrapIO,
+             Destructible,
+             Channels,
+             Examples,
+             RefQueue,
+             MatchChannel,
+             RegexChannel,
+             Synchronized
+build-depends: base, haskell98, uni-util
+ghc-options: -O -fglasgow-exts -fallow-undecidable-instances
+

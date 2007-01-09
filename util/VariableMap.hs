@@ -23,7 +23,7 @@ module VariableMap(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Dynamics
 import Broadcaster

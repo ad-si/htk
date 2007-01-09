@@ -14,7 +14,7 @@ module SecurityManagement(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation(done)
 

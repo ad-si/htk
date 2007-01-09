@@ -9,7 +9,7 @@ module MMiSSObjectTypeType(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Dynamics
 

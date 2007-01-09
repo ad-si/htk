@@ -5,7 +5,7 @@ module GetDiffs(
 
 import Monad
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation(done)
 

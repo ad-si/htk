@@ -17,7 +17,7 @@ module Examples(
 
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Events
 import Channels

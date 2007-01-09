@@ -13,7 +13,7 @@ module InfoBus (
 
 
 import Control.Concurrent.MVar
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import System.IO.Unsafe
 import System.Mem(performGC)
 

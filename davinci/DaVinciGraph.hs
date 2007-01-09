@@ -24,7 +24,7 @@ import Maybe
 
 import Data.IORef
 import DeprecatedSet
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Control.Concurrent
 import qualified Data.Dynamic
 import qualified List

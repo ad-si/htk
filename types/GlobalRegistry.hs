@@ -43,7 +43,7 @@ module GlobalRegistry(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 import Dynamics

@@ -1,0 +1,32 @@
+name:           uni-util
+version:        1.1
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       Utilities for the uniform workbench
+description:    uni utilities
+exposed-modules:
+  DeprecatedFiniteMap, DeprecatedSet, Huffman, 
+  TemplateHaskellHelps, CompileFlags, 
+  Queue, ExtendedPrelude, Computation, Dynamics, 
+  WBFiles, Object, Debug, Maybes, LineShow, Cache, FileNames, 
+  IOExtras, QuickReadShow, AtomString, SmallSet, Registry, 
+  RegularExpression, DelSet, Thread, UniqueString, UniqueFile, 
+  TempFile, Sink, VariableSet, VariableMap, 
+  CommandStringSub, WaitOnN, FileSystem, CacheTable, 
+  DeepSeq, NameMangle, KeyedChanges, 
+  Sources, Broadcaster, ReferenceCount, Delayer, VariableList, 
+  Myers, VariableSetBlocker, IntPlus, UnionFind, 
+  ICStringLen, VisitedSet, StrError, HostName, 
+  Bytes, Binary, BinaryUtils, BinaryInstances, BinaryExtras, 
+  BinaryAll, StringSkip, ThreadDict, TSem, Store, Messages, 
+  ClockTimeToString, UTF8, VSem
+include-dirs: ../includes
+c-sources: new_object.c, default_options.c, copy_file.c
+build-depends: base, haskell98, parsec, template-haskell, mtl, network,
+  regex-compat
+ghc-options: -fglasgow-exts -fth -fallow-undecidable-instances 
+  -fno-mono-pat-binds -fallow-overlapping-instances -O
+extensions: CPP

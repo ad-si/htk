@@ -9,7 +9,7 @@ module Merging(
 import Maybe
 import List
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import System.IO.Unsafe
 import Control.Exception
 

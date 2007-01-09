@@ -7,7 +7,7 @@ module CopyVersion(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 import VariableSet(HasKey(..))

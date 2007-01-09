@@ -1,15 +1,17 @@
 PACKAGE = uni-server
 
 PACKAGES = uni-reactor uni-posixutil uni-htk \
-   $(CRYPTPACKAGES) $(if @HAXML@,uni-HaXml) 
+   $(CRYPTPACKAGES) HaXml 
 
 
-SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
+SRCS       = HostsPorts.hs ServiceClass.hs Server.hs \
    EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
    Crypt.hs PasswordFile.hs MultiPlexer.hs LogFile.hs Hosts.hs \
    HostsList.hs GroupFile.hs
 
 SRCSC      = dipperstein_crypt.c
+
+SUBDIRS = test
 
 EXTRAEXPORTS = Hosts.xml
 
@@ -20,4 +22,4 @@ include @TOP@/mk/boilerplate.mk
 
 
 Hosts.hs : Hosts.dtd
-	@TOP@/HaXml/tools/DtdToHaskell $< $@
+	DtdToHaskell $< $@

@@ -1,20 +1,10 @@
 PACKAGE = uni-util
 
-ifeq "$(sort 603A @GhcShortVersion@B)" "603A @GhcShortVersion@B"
-# We are using ghc6.3 or later, which requires the template-haskell
-# and mtl packages to be specified.  The A and B prevent $(sort) from removing
-# the duplicate element when we are using 6.3.
-TEMPLATEHASKELLPACKAGE = template-haskell mtl
-else
-TEMPLATEHASKELLPACKAGE = haskell-src
-endif
-
-PACKAGES = uni-options $(TEMPLATEHASKELLPACKAGE) network parsec
-# Sadly can't do without parsec package for ghc-6.2, since 
-# Text.ParserCombinators.Parsec seems to depend on it.
+# We are using ghc6.t or later
+PACKAGES = uni-options template-haskell mtl network regex-compat
 
 SRCS       = \
-  DeprecatedSet.hs \
+  DeprecatedFiniteMap.hs DeprecatedSet.hs Huffman.hs \
   TemplateHaskellHelps.hs CompileFlags.hs \
   Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   WBFiles.hs Object.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \

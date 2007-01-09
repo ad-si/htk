@@ -13,7 +13,7 @@ module Aliases(
       -- Expand all aliases in the given EntitySearchName
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 import AtomString

@@ -2,6 +2,7 @@ module MMiSSRequest where
 
 import Text.XML.HaXml.Xml2Haskell
 import Text.XML.HaXml.OneOfN
+import Char (isSpace)
 
 
 {-Type decls-}
@@ -224,6 +225,7 @@ instance XmlContent Request where
                                                                                                 (_,_) ->
                                                                                                     (Nothing, c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (RequestConnect a) = [CElem (Elem "request" [] (toElem a) )]
     toElem (RequestCloseServer a) = [CElem (Elem "request" [] (toElem a) )]
@@ -245,6 +247,7 @@ instance XmlContent Response where
            (fromElem ca))
         (definite fromElem "<messages>" "response" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Response a b) =
         [CElem (Elem "response" [] (toElem a ++ maybe [] toElem b))]
@@ -254,6 +257,7 @@ instance XmlContent Connect where
            (Just (Connect (fromAttrs as) a), rest))
         (fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Connect as a) =
         [CElem (Elem "connect" (toAttrs as) (maybe [] toElem a))]
@@ -275,6 +279,7 @@ instance XmlContent ConnectResponse where
            (Just (ConnectResponse a), rest))
         (definite fromElem "<serverRef>" "connectResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (ConnectResponse a) =
         [CElem (Elem "connectResponse" [] (toElem a))]
@@ -284,6 +289,7 @@ instance XmlContent CloseServer where
            (Just (CloseServer a), rest))
         (definite fromElem "<serverRef>" "closeServer" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (CloseServer a) =
         [CElem (Elem "closeServer" [] (toElem a))]
@@ -291,6 +297,7 @@ instance XmlContent CloseServerResponse where
     fromElem (CElem (Elem "closeServerResponse" [] []):rest) =
         (Just CloseServerResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem CloseServerResponse =
         [CElem (Elem "closeServerResponse" [] [])]
@@ -300,6 +307,7 @@ instance XmlContent ListVersions where
            (Just (ListVersions a), rest))
         (definite fromElem "<serverRef>" "listVersions" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (ListVersions a) =
         [CElem (Elem "listVersions" [] (toElem a))]
@@ -309,6 +317,7 @@ instance XmlContent ListVersionsResponse where
            (Just (ListVersionsResponse a), rest))
         (many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (ListVersionsResponse a) =
         [CElem (Elem "listVersionsResponse" [] (concatMap toElem a))]
@@ -320,6 +329,7 @@ instance XmlContent CheckOut where
            (fromElem ca))
         (definite fromElem "<serverRef>" "checkOut" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (CheckOut as a b) =
         [CElem (Elem "checkOut" (toAttrs as) (toElem a ++
@@ -338,6 +348,7 @@ instance XmlContent CheckOutResponse where
            (Just (CheckOutResponse a), rest))
         (definite fromElem "<versionRef>" "checkOutResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (CheckOutResponse a) =
         [CElem (Elem "checkOutResponse" [] (toElem a))]
@@ -349,6 +360,7 @@ instance XmlContent ChangeUserInfo where
            (definite fromElem "<userInfo>" "changeUserInfo" ca))
         (definite fromElem "<versionRef>" "changeUserInfo" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (ChangeUserInfo a b) =
         [CElem (Elem "changeUserInfo" [] (toElem a ++ toElem b))]
@@ -356,6 +368,7 @@ instance XmlContent ChangeUserInfoResponse where
     fromElem (CElem (Elem "changeUserInfoResponse" [] []):rest) =
         (Just ChangeUserInfoResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem ChangeUserInfoResponse =
         [CElem (Elem "changeUserInfoResponse" [] [])]
@@ -367,6 +380,7 @@ instance XmlContent CommitVersion where
            (fromElem ca))
         (definite fromElem "<versionRef>" "commitVersion" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (CommitVersion a b) =
         [CElem (Elem "commitVersion" [] (toElem a ++ maybe [] toElem b))]
@@ -374,6 +388,7 @@ instance XmlContent CommitVersionResponse where
     fromElem (CElem (Elem "commitVersionResponse" [] []):rest) =
         (Just CommitVersionResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem CommitVersionResponse =
         [CElem (Elem "commitVersionResponse" [] [])]
@@ -383,6 +398,7 @@ instance XmlContent CloseVersion where
            (Just (CloseVersion a), rest))
         (definite fromElem "<versionRef>" "closeVersion" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (CloseVersion a) =
         [CElem (Elem "closeVersion" [] (toElem a))]
@@ -390,6 +406,7 @@ instance XmlContent CloseVersionResponse where
     fromElem (CElem (Elem "closeVersionResponse" [] []):rest) =
         (Just CloseVersionResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem CloseVersionResponse =
         [CElem (Elem "closeVersionResponse" [] [])]
@@ -403,6 +420,7 @@ instance XmlContent GetObject where
            (definite fromElem "<objectFullName>" "getObject" ca))
         (definite fromElem "<versionRef>" "getObject" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (GetObject as a b c) =
         [CElem (Elem "getObject" (toAttrs as) (toElem a ++ toElem b ++
@@ -452,6 +470,7 @@ instance XmlContent GetObjectResponse where
            (Just (GetObjectResponse a), rest))
         (definite fromElem "<bundle>" "getObjectResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (GetObjectResponse a) =
         [CElem (Elem "getObjectResponse" [] (toElem a))]
@@ -467,6 +486,7 @@ instance XmlContent PutObject where
            (definite fromElem "<objectFullName>" "putObject" ca))
         (definite fromElem "<versionRef>" "putObject" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (PutObject a b c d) =
         [CElem (Elem "putObject" [] (toElem a ++ toElem b ++
@@ -475,6 +495,7 @@ instance XmlContent PutObjectResponse where
     fromElem (CElem (Elem "putObjectResponse" [] []):rest) =
         (Just PutObjectResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem PutObjectResponse =
         [CElem (Elem "putObjectResponse" [] [])]
@@ -484,6 +505,7 @@ instance XmlContent GetPermissions where
            (Just (GetPermissions a), rest))
         (definite fromElem "<whichPermissions>" "getPermissions" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (GetPermissions a) =
         [CElem (Elem "getPermissions" [] (toElem a))]
@@ -493,6 +515,7 @@ instance XmlContent GetPermissionsResponse where
            (Just (GetPermissionsResponse a), rest))
         (definite fromElem "<permissions>" "getPermissionsResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (GetPermissionsResponse a) =
         [CElem (Elem "getPermissionsResponse" [] (toElem a))]
@@ -504,6 +527,7 @@ instance XmlContent SetPermissions where
            (definite fromElem "<permissions>" "setPermissions" ca))
         (definite fromElem "<whichPermissions>" "setPermissions" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (SetPermissions a b) =
         [CElem (Elem "setPermissions" [] (toElem a ++ toElem b))]
@@ -511,6 +535,7 @@ instance XmlContent SetPermissionsResponse where
     fromElem (CElem (Elem "setPermissionsResponse" [] []):rest) =
         (Just SetPermissionsResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem SetPermissionsResponse =
         [CElem (Elem "setPermissionsResponse" [] [])]
@@ -520,6 +545,7 @@ instance XmlContent SetAdminStatus where
            (Just (SetAdminStatus (fromAttrs as) a), rest))
         (definite fromElem "<serverRef>" "setAdminStatus" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (SetAdminStatus as a) =
         [CElem (Elem "setAdminStatus" (toAttrs as) (toElem a))]
@@ -544,6 +570,7 @@ instance XmlContent SetAdminStatusResponse where
     fromElem (CElem (Elem "setAdminStatusResponse" [] []):rest) =
         (Just SetAdminStatusResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem SetAdminStatusResponse =
         [CElem (Elem "setAdminStatusResponse" [] [])]
@@ -551,6 +578,7 @@ instance XmlContent ServerRef where
     fromElem (CElem (Elem "serverRef" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "serverRef" (toAttrs as) [])]
@@ -566,6 +594,7 @@ instance XmlContent VersionRef where
     fromElem (CElem (Elem "versionRef" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "versionRef" (toAttrs as) [])]
@@ -583,6 +612,7 @@ instance XmlContent Bundle where
            (Just (Bundle a), rest))
         (many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Bundle a) =
         [CElem (Elem "bundle" [] (concatMap toElem a))]
@@ -602,6 +632,7 @@ instance XmlContent PackageId where
     fromElem (CElem (Elem "packageId" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "packageId" (toAttrs as) [])]
@@ -621,6 +652,7 @@ instance XmlContent File where
            (fromElem ca))
         (definite fromElem "<fileLocation>" "file" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (File a b) =
         [CElem (Elem "file" [] (toElem a ++ maybe [] toElem b))]
@@ -632,6 +664,7 @@ instance XmlContent FileLocation where
            (definite fromElem "<objectType>" "fileLocation" ca))
         (fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (FileLocation a b) =
         [CElem (Elem "fileLocation" [] (maybe [] toElem a ++ toElem b))]
@@ -641,6 +674,7 @@ instance XmlContent Files where
            (Just (Files a), rest))
         (many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Files a) =
         [CElem (Elem "files" [] (concatMap toElem a))]
@@ -650,6 +684,7 @@ instance XmlContent FileVariants where
            (Just (FileVariants a), rest))
         (many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (FileVariants a) =
         [CElem (Elem "fileVariants" [] (concatMap toElem a))]
@@ -661,6 +696,7 @@ instance XmlContent FileVariant where
            (fromElem ca))
         (fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (FileVariant a b) =
         [CElem (Elem "fileVariant" [] (maybe [] toElem a ++
@@ -669,6 +705,7 @@ instance XmlContent FileContents where
     fromElem (CElem (Elem "fileContents" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "fileContents" (toAttrs as) [])]
@@ -699,6 +736,7 @@ instance XmlContent VersionInfo where
            (definite fromElem "<serverInfo>" "versionInfo" ca))
         (definite fromElem "<userInfo>" "versionInfo" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (VersionInfo as a b) =
         [CElem (Elem "versionInfo" (toAttrs as) (toElem a ++ toElem b))]
@@ -725,6 +763,7 @@ instance XmlContent UserInfo where
            (Just (UserInfo (fromAttrs as) a), rest))
         (fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (UserInfo as a) =
         [CElem (Elem "userInfo" (toAttrs as) (maybe [] toElem a))]
@@ -746,6 +785,7 @@ instance XmlContent ServerInfo where
     fromElem (CElem (Elem "serverInfo" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "serverInfo" (toAttrs as) [])]
@@ -769,6 +809,7 @@ instance XmlContent ObjectName where
            (Just (ObjectName a), rest))
         (definite fromText "text" "objectName" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (ObjectName a) =
         [CElem (Elem "objectName" [] (toText a))]
@@ -776,6 +817,7 @@ instance XmlContent ObjectType where
     fromElem (CElem (Elem "objectType" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "objectType" (toAttrs as) [])]
@@ -816,6 +858,7 @@ instance XmlContent ObjectFullName where
            (Just (ObjectFullName a), rest))
         (definite fromText "text" "objectFullName" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (ObjectFullName a) =
         [CElem (Elem "objectFullName" [] (toText a))]
@@ -829,6 +872,7 @@ instance XmlContent WhichPermissions where
                 (_,_) ->
                     (Nothing, c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (WhichPermissionsServerRef a) = [CElem (Elem "whichPermissions" [] (toElem a) )]
     toElem (WhichPermissionsVersionRef_ObjectFullName a) = [CElem (Elem "whichPermissions" [] (toElem a) )]
@@ -838,6 +882,7 @@ instance XmlContent Permissions where
            (Just (Permissions a), rest))
         (definite fromText "text" "permissions" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Permissions a) =
         [CElem (Elem "permissions" [] (toText a))]
@@ -845,6 +890,7 @@ instance XmlContent Variant where
     fromElem (CElem (Elem "variant" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "variant" (toAttrs as) [])]
@@ -864,6 +910,7 @@ instance XmlContent Variants where
            (Just (Variants a), rest))
         (many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Variants a) =
         [CElem (Elem "variants" [] (concatMap toElem a))]
@@ -871,6 +918,7 @@ instance XmlContent Attribute where
     fromElem (CElem (Elem "attribute" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "attribute" (toAttrs as) [])]
@@ -890,6 +938,7 @@ instance XmlContent Attributes where
            (Just (Attributes a), rest))
         (many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Attributes a) =
         [CElem (Elem "attributes" [] (concatMap toElem a))]
@@ -899,6 +948,7 @@ instance XmlContent Messages where
            (Just (Messages (fromAttrs as) a), rest))
         (many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Messages as a) =
         [CElem (Elem "messages" (toAttrs as) (concatMap toElem a))]
@@ -926,6 +976,7 @@ instance XmlContent Messages_ where
                                 (_,_) ->
                                     (Nothing, c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Messages_Alert a) = toElem a
     toElem (Messages_Error a) = toElem a
@@ -948,6 +999,7 @@ instance XmlContent Alert where
            (Just (Alert a), rest))
         (definite fromText "text" "alert" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Alert a) =
         [CElem (Elem "alert" [] (toText a))]
@@ -957,6 +1009,7 @@ instance XmlContent Error where
            (Just (Error a), rest))
         (definite fromText "text" "error" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Error a) =
         [CElem (Elem "error" [] (toText a))]
@@ -966,6 +1019,7 @@ instance XmlContent Warning where
            (Just (Warning a), rest))
         (definite fromText "text" "warning" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Warning a) =
         [CElem (Elem "warning" [] (toText a))]
@@ -975,6 +1029,7 @@ instance XmlContent Message where
            (Just (Message a), rest))
         (definite fromText "text" "message" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Message a) =
         [CElem (Elem "message" [] (toText a))]

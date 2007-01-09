@@ -10,7 +10,7 @@ module PureGraphMakeConsistent(
 
 import List
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import PureGraph
 

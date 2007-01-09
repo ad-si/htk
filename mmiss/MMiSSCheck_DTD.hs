@@ -2,6 +2,7 @@ module MMiSSCheck_DTD where
 
 import Text.XML.HaXml.Xml2Haskell
 import Text.XML.HaXml.OneOfN
+import Char (isSpace)
 
 
 {-Type decls-}
@@ -29,6 +30,7 @@ instance XmlContent Checklist where
            (Just (Checklist a), rest))
         (definite fromElem "(check)+" "checklist" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Checklist a) =
         [CElem (Elem "checklist" [] (toElem a))]
@@ -40,6 +42,7 @@ instance XmlContent Check where
            (many fromElem ca))
         (fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Check as a b) =
         [CElem (Elem "check" (toAttrs as) (maybe [] toElem a ++
@@ -69,6 +72,7 @@ instance XmlContent Message where
            (Just (Message a), rest))
         (definite fromText "text" "message" c0)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Message a) =
         [CElem (Elem "message" [] (toText a))]
@@ -76,6 +80,7 @@ instance XmlContent Mmissobject where
     fromElem (CElem (Elem "mmissobject" as []):rest) =
         (Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
+    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
         [CElem (Elem "mmissobject" (toAttrs as) [])]

@@ -212,7 +212,7 @@ readRequest handle =
          _ -> importExportError 
             "Request block does not begin with an XML element"
       let
-         Document _ _ elementE = xmlParse "MMiSS API input" requestStr
+         Document _ _ elementE _ = xmlParse "MMiSS API input" requestStr
 
          element = xmlUnEscape stdXmlEscaper elementE
 

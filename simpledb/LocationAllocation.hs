@@ -15,7 +15,7 @@ import Monad
 import Maybe
 
 import Data.IORef
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation(done)
 

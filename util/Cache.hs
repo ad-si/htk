@@ -9,7 +9,7 @@ module Cache(
    getCached -- :: Ord key => Cache key elt -> key -> IO elt  
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Control.Concurrent
 
 import Computation

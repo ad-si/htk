@@ -32,7 +32,7 @@ module AtomString(
    ) where               
 
 import Control.Concurrent
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import System.IO.Unsafe
 import Data.PackedString
 import Control.Exception

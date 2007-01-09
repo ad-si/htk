@@ -18,7 +18,7 @@ module SimpleDBTypes(
 import Control.Monad.Trans
 import Data.Typeable
 import Data.IORef
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import DeepSeq
 import ICStringLen

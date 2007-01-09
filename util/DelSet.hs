@@ -14,7 +14,7 @@ module DelSet (
    fromDelSetKey, -- :: DelSetKey -> Int
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 data DelSet a = DelSet !Int (FiniteMap Int a)
 

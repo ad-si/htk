@@ -34,7 +34,7 @@ module MergeTypes(
    )
  where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Dynamics
 import Computation

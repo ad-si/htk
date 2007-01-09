@@ -12,7 +12,7 @@ module VersionAllocation(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Data.IORef
 
 import Data.IORef

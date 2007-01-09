@@ -9,7 +9,7 @@ module CacheTable(
    ) where
 
 import System.Mem.Weak
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Control.Concurrent
 
 import Computation(done)

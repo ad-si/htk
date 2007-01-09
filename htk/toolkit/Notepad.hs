@@ -42,7 +42,7 @@ module Notepad (
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import ReferenceVariables
 

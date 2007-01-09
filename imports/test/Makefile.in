@@ -1,6 +1,3 @@
-PACKAGE = uni-imports-test
 PACKAGES = uni-imports
-
-SRCS = ImportsTest.hs TestImports.hs
-
+SRCS = TestImports.hs
 include @TOP@/mk/boilerplate.mk

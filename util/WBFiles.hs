@@ -214,7 +214,7 @@ import qualified System
 import System(exitWith,ExitCode(..))
 
 import Control.Concurrent
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import System.IO.Unsafe
 import Foreign.C.String
 

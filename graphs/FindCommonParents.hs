@@ -20,7 +20,7 @@ module FindCommonParents(
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import DeprecatedSet
 
 import TopSort

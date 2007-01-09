@@ -1,5 +1,5 @@
 PACKAGE = uni-mmiss
-PACKAGES = uni-types uni-emacs uni-mmiss-parser fgl
+PACKAGES = uni-types uni-emacs uni-mmiss-parser fgl uni-HaXml HaXml
 
 SRCS = MMiSSDTDAssumptions.hs \
    MMiSSInsertionPoint.hs \
@@ -54,7 +54,7 @@ displayextrasrcs :
 	@echo @TOP@/mmiss/scripts/dolp.in @TOP@/mmiss/Files.xml
 
 MMiSSFiles.hs : MMiSSFiles.dtd
-	@TOP@/HaXml/tools/DtdToHaskell $< $@
+	DtdToHaskell $< $@
 
 MMiSSCheck_DTD.hs : checker/MMiSSCheck.DTD
-	@TOP@/HaXml/tools/DtdToHaskell $< $@
+	DtdToHaskell $< $@

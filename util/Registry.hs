@@ -62,7 +62,7 @@ import Maybe
 
 import Control.Monad.Trans
 import System.IO.Unsafe
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import DeprecatedSet
 import Control.Concurrent
 import Control.Exception

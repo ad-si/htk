@@ -34,8 +34,6 @@ module Dynamics (
         ) 
 where
 
-import qualified Data.FiniteMap
-
 import qualified Data.Dynamic
 import Data.Typeable
 

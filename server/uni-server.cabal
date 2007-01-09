@@ -1,0 +1,18 @@
+name:           uni-server
+version:        1.1
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       Server for the uniform workbench
+description:    server
+exposed-modules: HostsPorts, ServiceClass, Server, EchoService, CallServer,
+   Notification, MultiServer, Crypt, PasswordFile, MultiPlexer, LogFile, Hosts,
+   HostsList, GroupFile
+include-dirs: ../includes
+c-sources: dipperstein_crypt.c
+build-depends: base, haskell98, network, parsec, HaXml, uni-util, uni-events,
+  uni-posixutil, uni-reactor, uni-htk
+ghc-options: -O -fglasgow-exts -fno-mono-pat-binds
+

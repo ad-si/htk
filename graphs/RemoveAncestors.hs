@@ -12,7 +12,7 @@ import Monad
 
 
 import Control.Monad.Identity
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Graph
 

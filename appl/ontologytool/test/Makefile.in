@@ -1,0 +1,3 @@
+SRCS = MainOntoGraph.hs MainOntoTool.hs MainLispInterface.hs MainHTkTest.hs
+PACKAGES = uni-ontology
+include @TOP@/mk/boilerplate.mk

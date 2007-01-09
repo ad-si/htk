@@ -9,7 +9,7 @@ import Maybe
 import Monad
 
 import Data.IORef
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation(done)
 

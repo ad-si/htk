@@ -1,0 +1,12 @@
+name:           uni-davinci
+version:        1.1
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uDrawGraph@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uDrawGraph/
+category:       GUI
+synopsis:       Graphs binding
+description:    Binding to uDrawGraph (formerly daVinci)
+exposed-modules: DaVinciTypes, DaVinciBasic, DaVinciGraph
+build-depends: base, haskell98, uni-util, uni-events, uni-posixutil, uni-reactor, uni-graphs
+ghc-options: -O -fglasgow-exts -fallow-overlapping-instances

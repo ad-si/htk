@@ -36,7 +36,7 @@ module PureGraph(
 
    ) where
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Graph(PartialShow(..))
 

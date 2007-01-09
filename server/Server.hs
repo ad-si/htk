@@ -24,7 +24,7 @@ import Time
 
 import Control.Exception hiding (handle)
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Network hiding (Service)
 
 import Control.Concurrent

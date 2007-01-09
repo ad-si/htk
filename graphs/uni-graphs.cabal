@@ -1,0 +1,22 @@
+name:           uni-graphs
+version:        1.1
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       GUI
+synopsis:       Graphs
+description:    Graphs toolkit
+exposed-modules: GraphDisp, GraphConfigure, NewNames, Graph,
+   SimpleGraph, GetAttributes, DisplayGraph, GraphEditor,
+   GraphEditorService, GraphEditorRemote,
+   GraphConnection, RemoveAncestors, GraphOps, TopSort,
+   FindCommonParents, FindCycle, GetAncestors, EmptyGraphSort,
+   PureGraph, PureGraphPrune, PureGraphToGraph, VersionDag,
+   PureGraphMakeConsistent
+build-depends: base, haskell98, mtl, uni-util, uni-events, uni-reactor,
+  uni-server, uni-htk
+ghc-options: -O -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
+extensions: CPP
+
+

@@ -106,7 +106,8 @@ data DummyElementLoc = DummyElementLoc {
 extractDummyElements :: [Token] -> [DummyElementLoc]
 extractDummyElements tokens0 =
    case tokens0 of
-      (startPosn,TokAnyOpen):(_,TokName "X"):(endPosn,TokEndClose):tokens1
+      Right (startPosn,TokAnyOpen) : Right (_,TokName "X") : 
+       Right (endPosn,TokEndClose) : tokens1
          -> (DummyElementLoc {start = startPosn,end = endPosn})
             : extractDummyElements tokens1
       token:tokens1 -> extractDummyElements tokens1

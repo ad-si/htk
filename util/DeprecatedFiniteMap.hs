@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.FiniteMap
+-- Module      :  DeprecatedFiniteMap
 -- Copyright   :  (c) The University of Glasgow 2001
 -- License     :  BSD-style (see the file libraries/base/LICENSE)
 -- 
@@ -8,13 +8,13 @@
 -- Stability   :  deprecated
 -- Portability :  portable
 --
--- NOTE: This is a re-implementation of Data.FiniteMap,
+-- NOTE: This is a re-implementation of DeprecatedFiniteMap,
 --         which has been DEPRECATED and removed from the main branch.
 --       It retains the old API, but uses the newer Data.Map implementation.
 --
 -----------------------------------------------------------------------------
 
-module Data.FiniteMap
+module DeprecatedFiniteMap
   (
         -- * The @FiniteMap@ type
         FiniteMap,              -- abstract type

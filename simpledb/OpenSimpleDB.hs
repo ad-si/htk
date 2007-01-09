@@ -4,7 +4,7 @@ module OpenSimpleDB(
    ) where
 
 import Data.IORef
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 

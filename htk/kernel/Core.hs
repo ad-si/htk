@@ -106,7 +106,7 @@ module Core (
 
 import Maybe
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Control.Concurrent
 import System.IO.Unsafe
 

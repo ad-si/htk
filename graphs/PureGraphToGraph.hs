@@ -7,7 +7,7 @@ module PureGraphToGraph(
 import Maybe
 import List
 
-import Data.FiniteMap
+import DeprecatedFiniteMap
 import Data.IORef
 
 import Computation(done)

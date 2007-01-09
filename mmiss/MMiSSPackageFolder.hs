@@ -64,7 +64,7 @@ import Maybe
 import List
 
 import System.IO.Unsafe
-import Data.FiniteMap
+import DeprecatedFiniteMap
 
 import Computation
 import ExtendedPrelude
