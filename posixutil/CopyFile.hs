@@ -15,18 +15,22 @@ module CopyFile(
    ) where
 
 import qualified IO
+import qualified System.IO.Error as IOErr
 
 import GHC.IO
 import Foreign.C
 import Foreign.Ptr
 import Control.Exception
+import qualified System.Directory as Dir
 
 import Computation
 import ICStringLen
 import DeepSeq
 
-foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim 
-   :: CString -> CString -> IO Int
+-- amahnke: Supplemented C-Code by System.Directory.CopyFile:
+--
+-- foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim 
+--   :: CString -> CString -> IO Int
 
 copyFile :: String -> String -> IO ()
 copyFile source destination =
@@ -40,8 +44,25 @@ copyFileWE source destination =
       then
          return (hasValue ())
       else
-         do
-            code <-
+             IOErr.catch (do 
+                            Dir.copyFile source destination
+                            return(hasValue())) 
+              (\ioErr -> 
+                  let 
+                     codeStr = if IOErr.isAlreadyExistsError ioErr 
+                                 then  ("Can't write to " ++ destination ++ ". File already exists!")
+                                 else if IOErr.isDoesNotExistError ioErr
+                                        then ("Can't read from " ++ source ++ ". File doesn't exists!")
+                                        else if IOErr.isPermissionError ioErr 
+                                               then ("Can't write to " ++ destination ++ ". Insufficient permissions!")
+                                               else if IOErr.isFullError ioErr 
+                                                      then ("Can't write to " ++ destination ++ ". Disk full!")
+                                                      else ("Something went wrong within copyFile.")
+                  in
+                    return(hasError codeStr)
+              )
+ {--
+           code <-
                withCString source (\ sourcePrim ->
                   withCString destination (\ destinationPrim ->
                      copyFilePrim sourcePrim destinationPrim
@@ -60,7 +81,7 @@ copyFileWE source destination =
                      return(hasError codeStr)
                else
                   return(hasValue ())
-
+--}
 
 -- | Reads in a file to a String.  NB - differs from readFile in that this
 -- is done instantly, so we don\'t have to worry about semi-closed handles
