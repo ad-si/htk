@@ -119,7 +119,10 @@ class Widget w => HasScroller w where
     execMethod w (\nm -> [tkScroll ax nm num what])
   scroll ax w num what = done
 
-  view ax w = evalMethod w (tkView ax)
+  view ax w =
+    do
+      FractionPair os vis <- (evalMethod w (tkView ax) :: IO FractionPair)
+      return (os,vis)
 
 
 -- -----------------------------------------------------------------------
