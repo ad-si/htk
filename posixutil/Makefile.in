@@ -2,7 +2,7 @@
 # Posix-dependency has now been removed.
 # 
 PACKAGE = uni-posixutil
-PACKAGES = uni-events
+PACKAGES = uni-events haskell98
 
 SRCS = CopyFile.hs ProcessClasses.hs ChildProcess.hs \
    Expect.hs SafeSystem.hs BlockSigPIPE.hs
