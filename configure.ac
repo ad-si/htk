@@ -160,10 +160,10 @@ echo $GHCHTML $GHC
 if test -z "$GHCHTML" -a -n "$GHC"; then
    # The funny things bracketted by @ signs are
    # "Quadrigraphs" which autoconf translates to square brackets.
-   GHCHTML=`$GHC --print-libdir | sed -e 's+/lib/\(@<:@^/@:>@*\)$+/share/\1+g'`/html
+   GHCHTML=`$GHC --print-libdir | sed -e 's+/lib/\(@<:@^/@:>@*\)$+/share/doc/ghc+g'`
 fi
 
-if test -r $GHCHTML/libraries/base/base.haddock
+if test -d $GHCHTML/libraries
 then
    echo Glasgow Haskell HTML documents found in $GHCHTML
 else
