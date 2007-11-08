@@ -25,8 +25,8 @@ exposed-modules:
   ClockTimeToString, UTF8, VSem
 include-dirs: ../includes
 c-sources: new_object.c, default_options.c, copy_file.c
-build-depends: base, haskell98, parsec, template-haskell, mtl, network,
-  regex-compat
+build-depends: base >= 3, haskell98, parsec, template-haskell, mtl, network,
+  regex-compat, containers, packedstring, array, old-time
 ghc-options: -fglasgow-exts -fth -fallow-undecidable-instances 
   -fno-mono-pat-binds -fallow-overlapping-instances -O
 extensions: CPP

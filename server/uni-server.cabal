@@ -12,7 +12,6 @@ exposed-modules: HostsPorts, ServiceClass, Server, EchoService, CallServer,
    HostsList, GroupFile
 include-dirs: ../includes
 c-sources: dipperstein_crypt.c
-build-depends: base, haskell98, network, parsec, HaXml, uni-util, uni-events,
-  uni-posixutil, uni-reactor, uni-htk
+build-depends: base >=3, directory, haskell98, network, parsec, HaXml,
+  uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk
 ghc-options: -O -fglasgow-exts -fno-mono-pat-binds
-

@@ -10,5 +10,13 @@ description:    posix utilities
 exposed-modules: CopyFile, ProcessClasses, ChildProcess,
   Expect, SafeSystem, BlockSigPIPE
 include-dirs: ../includes
-build-depends: base, haskell98, template-haskell, uni-util, uni-events
-ghc-options: -O -fglasgow-exts -fth 
+build-depends:
+        base >=3,
+        directory,
+        process,
+        unix,
+        haskell98,
+        template-haskell,
+        uni-util,
+        uni-events
+ghc-options: -O -fglasgow-exts -fth

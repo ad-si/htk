@@ -254,10 +254,10 @@ SETUP = runhaskell $(GHCTOP)/Setup.hs
 CABALGHCPKG = --with-hc-pkg=$(TOP)/mk/cabal-ghc-pkg
 
 CABAL = $(SETUP) configure $(CABALGHCPKG) \
-        -w $(GHCTOP)/mk/cabal-ghc --prefix=$(TOP); \
+        -w $(GHCTOP)/mk/cabal-ghc --prefix=$(TOP) --user; \
     $(SETUP) build; \
     $(SETUP) copy; \
-    $(SETUP) register $(CABALGHCPKG) --gen-script; \
+    $(SETUP) register --gen-script; \
     ./register.sh
 
 CABALFILE = $(wildcard *.cabal)
