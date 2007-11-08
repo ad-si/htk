@@ -32,9 +32,9 @@ newtype TextItem = TextItem GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new text item.
-createTextItem :: Canvas 
+createTextItem :: Canvas
    -- ^ the parent canvas.
-   -> [Config TextItem] 
+   -> [Config TextItem]
    -- ^ the list of configuration options for this text item.
    -> IO TextItem
    -- ^ A text item.
@@ -47,7 +47,7 @@ createTextItem cnv cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject TextItem where 
+instance GUIObject TextItem where
   toGUIObject (TextItem w) = w
   cname _ = "TextItem"
 

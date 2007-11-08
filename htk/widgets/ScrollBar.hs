@@ -1,7 +1,7 @@
 -- | HTk\'s /scrollbar/ widget.
--- 
+--
 -- A scroll bar is a widget which controls scrolling.
--- 
+--
 module ScrollBar (
 
   HasScroller(..),
@@ -63,7 +63,7 @@ instance Show FractionPair where
 -- | Internal.
 instance Read FractionPair where
    -- Internal.
-   readsPrec p b = 
+   readsPrec p b =
      case readsPrec p b of
        [(x,xs)] -> case readsPrec p xs of
                       [(y,ys)] -> [(FractionPair x y, ys)]
@@ -138,16 +138,16 @@ newtype ScrollBar = ScrollBar GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new scrollbar widget and returns a handler.
-newScrollBar :: Container par => par 
+newScrollBar :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config ScrollBar] 
+   -> [Config ScrollBar]
    -- ^ the list of configuration options for this scrollbar.
    -> IO ScrollBar
    -- ^ A scrollbar widget.
 newScrollBar par cnf =
   do
-    w <- createGUIObject (toGUIObject par) SCROLLBAR scrollbarMethods 
+    w <- createGUIObject (toGUIObject par) SCROLLBAR scrollbarMethods
     configure (ScrollBar w) cnf
 
 
@@ -156,7 +156,7 @@ newScrollBar par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject ScrollBar where 
+instance GUIObject ScrollBar where
   toGUIObject (ScrollBar w) = w
   cname _ = "ScrollBar"
 
@@ -167,7 +167,7 @@ instance Destroyable ScrollBar where
 
 -- | A scrollbar widget has standard widget properties
 -- (concerning focus, cursor).
-instance Widget ScrollBar 
+instance Widget ScrollBar
 
 -- | A scrollbar widget has a configureable border.
 instance HasBorder ScrollBar
@@ -206,9 +206,9 @@ instance HasTooltip ScrollBar
 -- -----------------------------------------------------------------------
 
 -- | Sets the active element (which can be arrow1, arrow2 or slider).
-activateScrollBarElem :: ScrollBar 
+activateScrollBarElem :: ScrollBar
    -- ^ the concerned scrollbar.
-   -> ScrollBarElem 
+   -> ScrollBarElem
    -- ^ the element to activate.
    -> IO ()
    -- ^ None.
@@ -216,7 +216,7 @@ activateScrollBarElem sc elem =
   execMethod sc (\nm -> [tkActivate nm elem])
 
 -- | Gets the active element (arrow1, arrow2 or slider).
-getActivatedElem :: ScrollBar 
+getActivatedElem :: ScrollBar
    -- ^ the concerned scrollbar.
    -> IO (Maybe ScrollBarElem)
    -- ^ @Just [elem]@ if an element is active,
@@ -230,9 +230,9 @@ getActivatedElem sc =
 
 -- | Returns a fraction between 0 and 1 indicating the relative location
 -- of the given position in the through.
-fraction :: ScrollBar 
+fraction :: ScrollBar
    -- ^ the concerned scrollbar.
-   -> Position 
+   -> Position
    -- ^ the conderned position.
    -> IO Fraction
    -- ^ The fraction indicating the relative location in the
@@ -241,9 +241,9 @@ fraction sc pos@(x, y) = evalMethod sc (\nm -> [tkFraction nm x y])
 
 -- | Returns the @ScrollBarElem@ to indicate what is under
 -- the given position.
-identify :: ScrollBar 
+identify :: ScrollBar
    -- ^ the concerned scrollbar.
-   -> Position 
+   -> Position
    -- ^ the concerned position.
    -> IO (Maybe ScrollBarElem)
    -- ^ @Just [elem]@ if @[elem]@ is
@@ -257,12 +257,12 @@ identify sc pos@(x, y) =
       x -> return (Just (read x))
 
 -- | Sets the scrollbar parameters.
-setView :: ScrollBar 
+setView :: ScrollBar
    -- ^ the concerned scrollbar.
-   -> Fraction 
+   -> Fraction
    -- ^ fraction between 0 and 1 representing the relative
    -- position of the top left of the display.
-   -> Fraction 
+   -> Fraction
    -- ^ fraction between 0 and 1 representing the relative
    -- position of the bottom right of the display.
    -> IO ()
@@ -276,7 +276,7 @@ setView sc first last = execMethod sc (\nm -> [tkSet nm first last])
 
 -- | The @ScrollBarElem@ datatype - representing the elements
 -- of the scrollbar.
-data ScrollBarElem = 
+data ScrollBarElem =
     Arrow1
   | Trough1
   | ScrollBarSlider
@@ -301,8 +301,8 @@ instance Read ScrollBarElem where
 
 -- | Internal.
 instance Show ScrollBarElem where
-  showsPrec d p r = 
-     (case p of 
+  showsPrec d p r =
+     (case p of
          Arrow1 -> "arrow1"
          Trough1 -> "trough1"
          ScrollBarSlider -> "slider"
@@ -334,8 +334,8 @@ instance Read ScrollUnit where
 -- | Internal.
 instance Show ScrollUnit where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
+   showsPrec d p r =
+      (case p of
           Units -> "units"
           Pages -> "pages"
         ) ++ r
@@ -356,8 +356,8 @@ scrollbarMethods = defMethods { cleanupCmd = tkCleanupScrollBar,
 tkCreateScrollBar :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
                      [ConfigOption] -> TclScript
 tkCreateScrollBar pnm kind name oid confs =
-  tkDeclVar ("sv" ++ show oid) (show name) ++ 
-  (createCmd defMethods) pnm kind name oid confs 
+  tkDeclVar ("sv" ++ show oid) (show name) ++
+  (createCmd defMethods) pnm kind name oid confs
 {-# INLINE tkCreateScrollBar #-}
 
 tkCleanupScrollBar :: ObjectID -> ObjectName -> TclScript
@@ -384,25 +384,25 @@ tkView ax nm = [show nm ++ " " ++ oshow ax ++ "view"]
 tkMoveTo :: Orientation -> ObjectName -> Fraction -> String
 tkMoveTo ax nm f = show nm ++ " " ++ oshow ax ++ "view moveto " ++ show f
 {-# INLINE tkMoveTo #-}
- 
+
 tkActivate :: ObjectName -> ScrollBarElem -> String
-tkActivate nm e = show nm ++ " activate " ++ show e 
+tkActivate nm e = show nm ++ " activate " ++ show e
 {-# INLINE tkActivate #-}
- 
+
 tkGetActivate :: ObjectName -> String
-tkGetActivate nm = show nm ++ " activate" 
+tkGetActivate nm = show nm ++ " activate"
 {-# INLINE tkGetActivate #-}
- 
+
 tkFraction :: ObjectName -> Distance -> Distance -> String
-tkFraction nm x y = show nm ++ " fraction " ++ show x ++ " " ++ show y 
+tkFraction nm x y = show nm ++ " fraction " ++ show x ++ " " ++ show y
 {-# INLINE tkFraction #-}
- 
+
 tkIdentify :: ObjectName -> Distance -> Distance -> String
-tkIdentify nm x y = show nm ++ " identify " ++ show x ++ " " ++ show y 
+tkIdentify nm x y = show nm ++ " identify " ++ show x ++ " " ++ show y
 {-# INLINE tkIdentify #-}
- 
+
 tkSet :: ObjectName -> Fraction -> Fraction -> String
-tkSet nm x y = show nm ++ " set " ++ show x ++ " " ++ show y 
+tkSet nm x y = show nm ++ " set " ++ show x ++ " " ++ show y
 {-# INLINE tkSet #-}
 
 oshow Horizontal = "x"

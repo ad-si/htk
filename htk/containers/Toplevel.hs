@@ -35,7 +35,7 @@ newtype Toplevel = Toplevel GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new toplevel widget and returns a handler.
-createToplevel :: [Config Toplevel] 
+createToplevel :: [Config Toplevel]
    -- ^ the list of configuration options for this toplevel
    -- widget.
    -> IO Toplevel
@@ -51,7 +51,7 @@ createToplevel cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Toplevel where 
+instance GUIObject Toplevel where
   toGUIObject (Toplevel f) = f
   cname _ = "Toplevel"
 
@@ -102,7 +102,7 @@ toplevelMethods = Methods tkGetToplevelConfig
 tkCreateToplevel :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
                     [ConfigOption] -> TclScript
 tkCreateToplevel _ kind name _ args =
-        [ show kind ++ " " ++ show name ++ " " ++ showConfigs cargs, 
+        [ show kind ++ " " ++ show name ++ " " ++ showConfigs cargs,
           wmSetConfigs name wargs
         ]
         where (wargs,cargs) = partition (\(cid,_) -> isWMConfig cid) args
@@ -129,7 +129,7 @@ cSetConfigs name args = show name ++ " configure " ++ showConfigs args
 
 wmSetConfigs :: ObjectName -> [ConfigOption] -> TclCmd
 wmSetConfigs name [] = ""
-wmSetConfigs name ((cid,val) : args) = 
+wmSetConfigs name ((cid,val) : args) =
         wmSet name cid val ++ ";" ++ wmSetConfigs name args
 
 wmSet :: ObjectName -> ConfigID -> GUIVALUE -> TclCmd

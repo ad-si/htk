@@ -4,12 +4,12 @@
 -- 'Event's and combinators for them.
 module Events(
    Result(..),
-   Event(..), 
-      -- The event type.  Instance of HasEvent and Monad. 
+   Event(..),
+      -- The event type.  Instance of HasEvent and Monad.
    HasEvent(..), -- things which can be lifted to an Event
 
    never, -- the event which never happens
-   always, -- the event which always happens 
+   always, -- the event which always happens
 
    sync, poll,  -- synchronises or polls an event
    (>>>=), (>>>), -- wraps Events
@@ -19,7 +19,7 @@ module Events(
    tryEV, -- Replaces an event by one which checks for errors in the
           -- continuations.
    computeEvent, -- Allows you to compute the event with an IO action.
-   wrapAbort, 
+   wrapAbort,
       -- Allows you to specify pre- and post-registration actions.
       -- The post-registration action is executed when the pre-registration
       -- was, and some other event is registered.
@@ -33,14 +33,14 @@ module Events(
    receiveIO, -- :: HasReceive chan => chan a -> IO a
 
 
-   allowWhile, 
+   allowWhile,
       -- :: Event () -> Event a -> Event a
       -- Allow one event to happen while waiting for another.
 
    Request(..),
       -- Datatype encapsulating server calls which get a delayed
       -- response.
-   request, 
+   request,
       -- :: Request a b -> a -> IO b
       -- Simple use of Request.
    doRequest, -- :: Request a b -> a -> IO (Event b,IO ())
@@ -109,7 +109,7 @@ instance HasEvent Event where
 
 
 -- | The event that never happens
-never :: Event a 
+never :: Event a
 never = Event (\ toggle aActSink -> return (Awaiting done))
 
 -- | The event that always happens, immediately
@@ -120,7 +120,7 @@ always aAction = Event (
          ifToggle toggle (aActSink aAction)
          return Immediate
       )
- 
+
 -- ----------------------------------------------------------------------
 -- Continuations
 -- ----------------------------------------------------------------------
@@ -160,7 +160,7 @@ infixl 2 >>>
          let
             doSecond postAction1 =
                do
-                  let 
+                  let
                      doThird postAction2 =return (AwaitingAlways (
                         do
                            postAction1
@@ -192,7 +192,7 @@ choose nonEmpty = foldr1 (+>) nonEmpty
 -- ----------------------------------------------------------------------
 
 -- | Catch an error if it occurs during an action attached to an event.
-tryEV :: Event a -> Event (Either Exception a) 
+tryEV :: Event a -> Event (Either Exception a)
 tryEV (Event registerFn) = Event (
    \ toggle errorOraSink ->
       registerFn toggle (\ aAct ->
@@ -204,7 +204,7 @@ tryEV (Event registerFn) = Event (
 -- Allowing an event to vary
 -- ---------------------------------------------------------------------
 
--- | Construct a new event using an action which is called at each 
+-- | Construct a new event using an action which is called at each
 -- synchronisation
 computeEvent :: IO (Event a) -> Event a
 computeEvent getEvent = Event (
@@ -218,7 +218,7 @@ computeEvent getEvent = Event (
 -- Getting information about when an event is aborted.
 -- ---------------------------------------------------------------------
 
--- | When we synchronise on wrapAbort preAction 
+-- | When we synchronise on wrapAbort preAction
 -- preAction is evaluated to yield (event,postAction).
 -- Then exactly one of the following:
 -- (1) thr event is satisfied, and postAction is not done.
@@ -238,7 +238,7 @@ wrapAbort preAction  =
                   status <- registerFn toggle
                      (\ aAct ->
                         do
-                           simpleToggle postDone 
+                           simpleToggle postDone
                            aActSink aAct
                         )
                   case status of
@@ -246,11 +246,11 @@ wrapAbort preAction  =
                      -- the toggle may have been flipped by someone else.
                      Immediate -> (doAfter >> return Immediate)
                      Awaiting action -> return (Awaiting (doAfter >> action))
-                     AwaitingAlways action -> 
+                     AwaitingAlways action ->
                         return (AwaitingAlways (doAfter >> action))
                ))
-      )    
- 
+      )
+
 -- ----------------------------------------------------------------------
 -- Synchronisation and Polling.
 -- Sigh.  Because GHC makes takeMVar/putMVar interruptible, I don't
@@ -275,7 +275,7 @@ sync (Event registerFn) =
 -- | Synchronise on an event, but return immediately with Nothing if it
 -- can\'t be satisfied at once.
 poll :: Event a -> IO (Maybe a)
-poll event = 
+poll event =
    sync (
          (event >>>= (\ a -> return (Just a)))
       +> (always (return Nothing))
@@ -319,7 +319,7 @@ syncNoWait (Event registerFn) =
 
 {-# RULES
 "syncNoWait" forall event . sync (noWait event) = syncNoWait event
-"syncNoWait2" 
+"syncNoWait2"
    forall event continuation . sync ((noWait event) >>>= continuation) =
       (syncNoWait event >> continuation ())
   #-}
@@ -362,7 +362,7 @@ receiveIO chan = sync (receive chan)
 instance Monad Event where
    (>>=) = thenGetEvent
    (>>) = thenEvent
-   return = doneEvent 
+   return = doneEvent
 
    fail str = always (ioError (userError str))
 
@@ -393,7 +393,7 @@ doneEvent val = always (return val)
 -- | allowWhile event1 event2 waits for event2, while handling event1.
 allowWhile :: Event () -> Event a -> Event a
 allowWhile event1 event2 =
-      event2 
+      event2
    +>(do
          event1
          allowWhile event1 event2

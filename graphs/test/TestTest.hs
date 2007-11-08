@@ -18,17 +18,17 @@ import DaVinciGraphDisp
 import SIM(shutdown)
 import WBFiles(parseArguments)
 
-   
+
 setUpGraph (displaySort) =
    do
 
       -- Create new graph
 
       let
-         graphParms  = 
+         graphParms  =
             GraphTitle "Test Graph Display" $$
-            OptimiseLayout True $$ 
-            emptyGraphParms 
+            OptimiseLayout True $$
+            emptyGraphParms
       graph <- newGraph displaySort graphParms
 
       (killChannel :: Channel ()) <- newChannel
@@ -40,7 +40,7 @@ setUpGraph (displaySort) =
          nodeType1Parms =
             LocalMenu (Menu Nothing []) $$$ emptyNodeTypeParms
 
-         arcType1Parms = 
+         arcType1Parms =
             LocalMenu (Menu Nothing []) $$$ emptyArcTypeParms
 
       nodeType1 <- newNodeType graph nodeType1Parms
@@ -67,7 +67,7 @@ setUpGraph (displaySort) =
       -- Exit
 
       sync(
-            (lift(receive killChannel) >>> 
+            (lift(receive killChannel) >>>
                do
                   putStrLn "Destroy graph"
                   destroy graph
@@ -75,7 +75,7 @@ setUpGraph (displaySort) =
          +> (destroyed graph)
          )
 
-main = 
+main =
    do
       parseArguments
       setUpGraph daVinciSort

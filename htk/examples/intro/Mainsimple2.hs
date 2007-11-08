@@ -1,6 +1,6 @@
 module Main where
 
-import HTk    
+import HTk
 import Random
 
 main:: IO ()
@@ -14,8 +14,8 @@ main =
 
      click  <- clicked b
      click2 <- clicked b2
-     spawnEvent 
-      (forever 
+     spawnEvent
+      (forever
         ((click >>> do nu_label <- mapM randomRIO
                                        (replicate 5 ('a','z'))
                        b # text nu_label

@@ -1,18 +1,18 @@
 -- | RegularExpression is the interface between Expect and whatever
 -- regular expression engine it uses.  Currently Text.Regex.
--- 
+--
 -- The current implementation (ghc's RegexString, which in turn
 -- calls ghc's Regex, which in turn calls GHC regex version 1.2
 -- (source-code included with ghc) uses the following syntax flags:
--- 
---  (RE_BACKSLASH_ESCAPE_IN_LISTS    | RE_CONTEXT_INDEP_ANCHORS		\
--- | RE_CONTEXT_INDEP_OPS     						\
--- | RE_INTERVALS	      	     | RE_NO_BK_BRACES		  	\
--- | RE_NO_BK_PARENS	             | RE_NO_BK_VBAR)
--- 
--- Consequences: 
+--
+--  (RE_BACKSLASH_ESCAPE_IN_LISTS    | RE_CONTEXT_INDEP_ANCHORS         \
+-- | RE_CONTEXT_INDEP_OPS                                               \
+-- | RE_INTERVALS                    | RE_NO_BK_BRACES                  \
+-- | RE_NO_BK_PARENS                 | RE_NO_BK_VBAR)
+--
+-- Consequences:
 --   "." will NOT match newline or null.
---   "*" preceded by nothing will only match \"\" (but not give an error)  
+--   "*" preceded by nothing will only match \"\" (but not give an error)
 --   "+" means "one or more"
 --   "?" means "nought or one"
 --   "{M,N}" matches between M and N occurrences.  "{M,}" and "{M}" are
@@ -22,12 +22,12 @@
 --   character classes do NOT work.
 --   "(" and ")" represent the grouping operators.
 --   "\\DIGIT" matches something the same as the regular expressions
---      DIGIT'th group, which should precede where we are now.  
+--      DIGIT'th group, which should precede where we are now.
 --      (DIGIT should be between 1 and 9.)
---   "^" matches the beginning of the string, or after a newline character. 
+--   "^" matches the beginning of the string, or after a newline character.
 --   "$" matches the end of the string, or before a newline character.
 --   "\\b" matches word boundaries.
---   "\B" matches inside a word.  
+--   "\B" matches inside a word.
 --   "\\<" matches the start of a word.
 --   "\\>" matches the end of a word.
 --   "\\w" matches any word-constituent character.
@@ -54,22 +54,22 @@ import Dynamics
 
 -- Since the regular expression implementation is now changing for the
 -- third time, we provide the following interface.
-newtype RegularExpression = RegularExpression Regex 
+newtype RegularExpression = RegularExpression Regex
 -- compiled regular expression
 
 compile :: String -> RegularExpression
 compile str = RegularExpression(mkRegex str)
 
-data MatchResult = MatchResult String String String [String] 
+data MatchResult = MatchResult String String String [String]
    deriving (Show,Typeable)
--- Strings are before,matched portion,after, and the 
+-- Strings are before,matched portion,after, and the
 -- list $1,$2,... corresponding to matched subexpressions.
 
 matchString :: RegularExpression -> String -> Maybe MatchResult
 matchString (RegularExpression regEx) str =
    case matchRegexAll regEx str of
       Nothing -> Nothing
-      Just (before,matched,after,subStrings) -> 
+      Just (before,matched,after,subStrings) ->
          Just (MatchResult before matched after subStrings)
 
 getSubStrings :: MatchResult -> [String]

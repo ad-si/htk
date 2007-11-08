@@ -70,7 +70,7 @@ getMessages (MMiSSSessionState mVar) =
       (\ state0 ->
          let
             (Messages atts mess0) = messages state0
-     
+
             messages1 = Messages (Messages_Attrs {
                messagesStatus = Default Messages_status_success}) []
 
@@ -80,7 +80,7 @@ getMessages (MMiSSSessionState mVar) =
          in
             return (state1,messagesToReturn)
          )
-      
+
 signalPanic :: MMiSSSessionState -> IO ()
 signalPanic = setStatus Messages_status_panic
 
@@ -93,10 +93,10 @@ setStatus status1 (MMiSSSessionState mVar) =
       (\ state0 ->
          let
             (Messages _ mess0) = messages state0
-            messages1 = Messages 
+            messages1 = Messages
                (Messages_Attrs {messagesStatus = NonDefault status1})
                mess0
          in
             return (state0 {messages = messages1})
          )
-   
+

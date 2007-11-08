@@ -28,16 +28,16 @@ import MMiSSToFromBundle
 -- Getting files
 -- --------------------------------------------------------------------------
 
-getObject :: MMiSSSessionState -> GetObject -> Block 
+getObject :: MMiSSSessionState -> GetObject -> Block
    -> IO (GetObjectResponse,Block)
-getObject state (GetObject attrs versionRef fullName variantsOpt) 
+getObject state (GetObject attrs versionRef fullName variantsOpt)
       block0 =
    do
       view <- lookupView state versionRef
       linkedObject <- getLinkedObject view fullName
       let
          exportOpts = toExportOpts attrs
-   
+
       variantSearchOpt <- case variantsOpt of
          Nothing -> return Nothing
          Just variants ->
@@ -48,7 +48,7 @@ getObject state (GetObject attrs versionRef fullName variantsOpt)
                return (Just (fromMMiSSSpecToSearch variantSpec))
 
       bundle <- exportBundle view linkedObject exportOpts variantSearchOpt
-      let 
+      let
          (file,block1) = runState (fromBundle bundle) block0
       return (GetObjectResponse file,block1)
 
@@ -57,7 +57,7 @@ getObject state (GetObject attrs versionRef fullName variantsOpt)
 -- --------------------------------------------------------------------------
 
 putObject :: MMiSSSessionState -> PutObject -> Block -> IO PutObjectResponse
-putObject state 
+putObject state
       (PutObject versionRef (ObjectFullName fullNameStr) packageIdOpt0 bundle0)
       block =
    do
@@ -66,8 +66,8 @@ putObject state
 
          packageIdOpt1 = fmap toPackageId packageIdOpt0
 
-   
-      (fullName :: EntityFullName) 
+
+      (fullName :: EntityFullName)
          <- coerceWithErrorOrBreakIO importExportError fullNameWE
       let
          bundleWE = toBundle block bundle0
@@ -86,10 +86,10 @@ getLinkedObject view (ObjectFullName fullNameStr) =
    do
       let
          fullNameWE = fromStringWE fullNameStr
-      (fullName :: EntityFullName) 
+      (fullName :: EntityFullName)
          <- coerceWithErrorOrBreakIO importExportError fullNameWE
       linkedObjectOpt <- lookupLinkedObjectByFullName view fullName
       case linkedObjectOpt of
-         Nothing -> importExportError ("Object " ++ fullNameStr 
+         Nothing -> importExportError ("Object " ++ fullNameStr
             ++ " not found")
-         Just linkedObject -> return linkedObject 
+         Just linkedObject -> return linkedObject

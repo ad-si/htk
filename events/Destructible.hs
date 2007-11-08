@@ -1,9 +1,9 @@
--- | Things which instance Destroyable and Destructible can be destroyed. 
+-- | Things which instance Destroyable and Destructible can be destroyed.
 module Destructible (
    Destroyable(..),
    Destructible(..),
 
-   doOnce, 
+   doOnce,
       -- :: IO () -> IO (IO ())
       -- doOnce can be used to produce an action which is identical
       -- to its argument, except that if it's already been called, it

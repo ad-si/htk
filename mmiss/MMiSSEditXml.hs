@@ -1,9 +1,9 @@
--- | This module contains functions for editing Xml 
+-- | This module contains functions for editing Xml
 module MMiSSEditXml(
    -- The first argument of each function is the file name.
-   toEditableXml, 
-       -- :: String -> Element -> EmacsContent (TypedName,IncludeInfo) 
-   fromEditableXml, -- :: String -> EmacsContent (TypedName,IncludeInfo) 
+   toEditableXml,
+       -- :: String -> Element -> EmacsContent (TypedName,IncludeInfo)
+   fromEditableXml, -- :: String -> EmacsContent (TypedName,IncludeInfo)
      -- -> IO (WithError Element)
 
    toExportableXml, -- :: Element -> String
@@ -36,10 +36,10 @@ type TypedName = (String,Char)
 -- toEditableXml
 -- -------------------------------------------------------------------
 
-toEditableXml :: String -> Element -> EmacsContent (TypedName,IncludeInfo) 
+toEditableXml :: String -> Element -> EmacsContent (TypedName,IncludeInfo)
 toEditableXml fName elem0 =
    -- This function functions using the following awful hacks.
-   -- (1) We scan the element to find all included elements 
+   -- (1) We scan the element to find all included elements
    --     and remember them, replacing them by special tag elements
    --     which have a "name" consisting of just an "X" character (which
    --     would be illegal in the DTD).
@@ -58,12 +58,12 @@ toEditableXml fName elem0 =
       exportedString1 = toExportableXml elem1
 
       tokens :: [Token]
-      tokens = xmlLex "MMiSSEditXml.zoEditableXml" exportedString1 
+      tokens = xmlLex "MMiSSEditXml.zoEditableXml" exportedString1
 
       dummyElements :: [DummyElementLoc]
       dummyElements = extractDummyElements tokens
 
-      mkContents :: Posn -> String -> [(TypedName,IncludeInfo)] 
+      mkContents :: Posn -> String -> [(TypedName,IncludeInfo)]
          -> [DummyElementLoc] -> [EmacsDataItem (TypedName,IncludeInfo)]
       mkContents stringStart0 rest0 [] [] = addText rest0 []
       mkContents stringStart0 rest0 (include:includes1) (dummyLoc:dummyLocs1) =
@@ -71,7 +71,7 @@ toEditableXml fName elem0 =
             start1 = start dummyLoc
             end1 = end dummyLoc
 
-            (text,rest1) 
+            (text,rest1)
                = extractFromString stringStart0 (start dummyLoc) rest0
 
             (_,'/':'>':rest2) = extractFromString start1 end1 rest1
@@ -85,7 +85,7 @@ toEditableXml fName elem0 =
 
 
       startPos :: Posn
-      startPos = (Pn (error "MMiSSEditXml.1") 1 1 (error "MMiSSEditXml.2")) 
+      startPos = (Pn (error "MMiSSEditXml.1") 1 1 (error "MMiSSEditXml.2"))
 
       dataItems :: [EmacsDataItem (TypedName,IncludeInfo)]
       dataItems = mkContents startPos exportedString1 includes dummyElements
@@ -106,7 +106,7 @@ data DummyElementLoc = DummyElementLoc {
 extractDummyElements :: [Token] -> [DummyElementLoc]
 extractDummyElements tokens0 =
    case tokens0 of
-      Right (startPosn,TokAnyOpen) : Right (_,TokName "X") : 
+      Right (startPosn,TokAnyOpen) : Right (_,TokName "X") :
        Right (endPosn,TokEndClose) : tokens1
          -> (DummyElementLoc {start = startPosn,end = endPosn})
             : extractDummyElements tokens1
@@ -133,8 +133,8 @@ mapIncludeElement elem = coerceWithError (mapIncludeElement1 elem)
 
 mapIncludeElement1 :: Element -> WithError (Maybe (TypedName,IncludeInfo))
 mapIncludeElement1 (Elem name attributes contents) =
-   case name of 
-      'i':'n':'c':'l':'u':'d':'e':name1 -> 
+   case name of
+      'i':'n':'c':'l':'u':'d':'e':name1 ->
          do
             isPresent <- getAttribute attributes "status"
             case isPresent of
@@ -154,11 +154,11 @@ mapIncludeElement1 (Elem name attributes contents) =
                      miniType <- case fromIncludeStrOpt name1 of
                         Just c -> return c
                         Nothing -> fail ("Unrecognised include tag" ++ name)
-                      
+
                      let
                         -- Construct attributes in which "included" and
                         -- "status" are deleted (since they are used elsewhere)
-                        otherAttributes = 
+                        otherAttributes =
                            delAttribute (
                               delAttribute attributes "included"
                               ) "status"
@@ -176,7 +176,7 @@ mapIncludeElement1 (Elem name attributes contents) =
 -- fromEditableXml
 -- -------------------------------------------------------------------
 
-fromEditableXml :: String -> EmacsContent (TypedName,IncludeInfo) 
+fromEditableXml :: String -> EmacsContent (TypedName,IncludeInfo)
    -> IO (WithError Element)
 fromEditableXml fName (EmacsContent dataItems) =
    do
@@ -189,7 +189,7 @@ fromEditableXml fName (EmacsContent dataItems) =
                   )
                dataItems
             )
-      xmlParseCheck fName xmlString 
+      xmlParseCheck fName xmlString
 
 fromInclude :: (TypedName,IncludeInfo) -> String
 fromInclude ((link,miniType),includeInfo) =
@@ -208,9 +208,9 @@ fromInclude ((link,miniType),includeInfo) =
 
       variantString = case variantOpt includeInfo of
          Nothing -> ""
-         Just variantAttributesElement 
+         Just variantAttributesElement
             -> toUglyExportableXml variantAttributesElement
-  
+
 -- -------------------------------------------------------------------
 -- Miscellaneous utilities.
 -- -------------------------------------------------------------------
@@ -218,7 +218,7 @@ fromInclude ((link,miniType),includeInfo) =
 -- | extractFromString extractStart extractEnd string
 -- assumes the string begins at position extractStart, extracts
 -- the portion of it up until extractEnd-1, and
--- returns the string starting at extractEnd as well. 
+-- returns the string starting at extractEnd as well.
 extractFromString :: Posn -> Posn -> String -> (String,String)
 extractFromString extractStart extractEnd string =
    case (comp extractStart extractEnd,string) of

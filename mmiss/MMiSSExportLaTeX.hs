@@ -1,5 +1,5 @@
 -- | This module contains functions for exporting an object to a file as
--- LaTeX 
+-- LaTeX
 module MMiSSExportLaTeX(
    exportMMiSSObjectLaTeX,
    exportMMiSSObjectXML,
@@ -42,18 +42,18 @@ exportMMiSSObjectGeneral format view link =
          do
             object <- readLink view link
 
-	    dialogEvent <- newFileDialog 
+            dialogEvent <- newFileDialog
                ("Export "++show format++" sources") pathRef
 
             filePathOpt <- sync dialogEvent
-	    
+
             case filePathOpt of
                Just filePath ->
                   do
                      (result1WE :: WithError (String,ExportFiles))
                         <- extractMMiSSObject view link format
                      let
-                        (string,exportFiles0) 
+                        (string,exportFiles0)
                            = coerceWithErrorOrBreak break result1WE
 
 
@@ -64,7 +64,7 @@ exportMMiSSObjectGeneral format view link =
                      -- Write the attached files.
                      let
                         writeDir = fst (splitName filePath)
-                     exportFiles view writeDir exportFiles0 
+                     exportFiles view writeDir exportFiles0
                Nothing -> messageMess "Export cancelled"
          )
 
@@ -75,8 +75,8 @@ exportMMiSSObjectGeneral format view link =
 -- The reference in which to keep the path name in between calls of the file
 -- dialog. Shared with MMiSSPackageFolder.
 pathRef :: Ref String
-pathRef = 
-  unsafePerformIO $ do top <- getTOP 
-	  	       let fullName = unbreakName [top,"mmiss","test","files"] 
-		       newRef fullName
+pathRef =
+  unsafePerformIO $ do top <- getTOP
+                       let fullName = unbreakName [top,"mmiss","test","files"]
+                       newRef fullName
 {-# NOINLINE pathRef #-}

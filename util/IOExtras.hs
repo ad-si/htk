@@ -1,4 +1,4 @@
--- | Little functions connected with IO 
+-- | Little functions connected with IO
 module IOExtras(
    catchEOF, -- :: IO a -> IO (Maybe a)
    -- If successful return result.
@@ -15,13 +15,13 @@ module IOExtras(
 
    catchErrorCalls, -- :: IO a -> IO (Either String a)
    -- Catch all calls to the error function.
-   
+
    hGetLineR, -- :: Read a => Handle -> IO a
-   -- hGetLine and then read. 
+   -- hGetLine and then read.
 
    simpleModifyIORef,
       -- :: IORef a -> (a -> (a,b)) -> IO b
-      -- carry out a pure modification of an IORef.  
+      -- carry out a pure modification of an IORef.
       -- From ghc5.05 onwards, we should be able to use atomicModifyIORef
       -- for this.
 
@@ -45,10 +45,10 @@ catchGeneral :: (IOError -> Bool) -> IO a -> IO (Maybe a)
 catchGeneral discriminator action =
    do
       result <- tryJust
-         (\ excep -> 
+         (\ excep ->
             case ioErrors excep of
                Nothing -> Nothing
-               Just ioError -> 
+               Just ioError ->
                   if discriminator ioError
                      then
                         Just ()
@@ -58,7 +58,7 @@ catchGeneral discriminator action =
          action
       case result of
          Left () -> return Nothing
-         Right success -> return (Just success) 
+         Right success -> return (Just success)
 
 catchErrorCalls :: IO a -> IO (Either String a)
 catchErrorCalls action =  tryJust errorCalls action

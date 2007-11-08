@@ -1,9 +1,9 @@
--- | This is the module which handles path aliases in imports 
+-- | This is the module which handles path aliases in imports
 module Aliases(
-   Aliases, 
+   Aliases,
       -- set of path aliases in a package
 
-   mkAliases, 
+   mkAliases,
       -- :: ImportCommands -> WithError Aliases
       -- Make a set of aliases given a set of import commands, checking for
       -- circularities.
@@ -46,9 +46,9 @@ mkAliases (ImportCommands importCommands) =
       readAliases [] aliases = hasValue aliases
       readAliases (Import _ _ : importCommands) aliases =
          readAliases importCommands aliases
-      readAliases (PathAlias from esn : importCommands) 
+      readAliases (PathAlias from esn : importCommands)
             (aliases0 @ (Aliases {begin = begin0,general = general0})) =
-         if elemFM from begin0 || elemFM from general0 
+         if elemFM from begin0 || elemFM from general0
             then
                hasError ("Alias " ++ toString from ++ " is multiply defined")
             else
@@ -60,7 +60,7 @@ mkAliases (ImportCommands importCommands) =
                   )
 
       cycleCheckAliases :: Aliases -> WithError Aliases
-      cycleCheckAliases 
+      cycleCheckAliases
             (aliases @ (Aliases {begin = begin0,general = general0})) =
          -- Only aliases in the general0, namely those where the RHS does not
          -- begin with Root, Parent or Current, can cause problems.  For
@@ -69,7 +69,7 @@ mkAliases (ImportCommands importCommands) =
          --
          -- So we include the begin0 names in the graph, but do not check
          -- their expansions.
-    
+
          let
             nodes :: [EntityName]
             nodes = keysFM begin0 ++ keysFM general0
@@ -83,28 +83,28 @@ mkAliases (ImportCommands importCommands) =
                Just cycle ->
                   hasError ("Cycle detected in aliases " ++
                      unsplitByChar '-' (map toString cycle))
-   in     
+   in
       mapWithError'
          cycleCheckAliases
-         (readAliases importCommands 
+         (readAliases importCommands
             (Aliases {begin = emptyFM,general = emptyFM}))
 
 expandAliases :: Aliases -> EntitySearchName -> EntitySearchName
-expandAliases (aliases @ (Aliases {begin = begin,general = general})) 
+expandAliases (aliases @ (Aliases {begin = begin,general = general}))
    esn =
       case esn of
          FromHere (EntityFullName [])
             -> esn
          FromHere (EntityFullName (name1 : names))
             -> expandHere name1 names
-         FromCurrent (EntityFullName names) 
+         FromCurrent (EntityFullName names)
             -> FromCurrent (EntityFullName (expandNames names))
-         FromRoot (EntityFullName names) 
+         FromRoot (EntityFullName names)
             -> FromRoot (EntityFullName (expandNames names))
-         FromParent (FromHere (EntityFullName names)) 
+         FromParent (FromHere (EntityFullName names))
             -> FromParent (FromHere (EntityFullName (expandNames names)))
          FromParent esn2
-            ->  FromParent (expandAliases aliases esn2) 
+            ->  FromParent (expandAliases aliases esn2)
    where
       expandHere :: EntityName -> [EntityName] -> EntitySearchName
       expandHere name1 names =
@@ -128,5 +128,5 @@ expandAliases (aliases @ (Aliases {begin = begin,general = general}))
          FromParent esn2 -> FromParent (searchPlusNames esn2 names2)
 
       namePlusNames :: EntityFullName -> [EntityName] -> EntityFullName
-      namePlusNames (EntityFullName names1) names2 
+      namePlusNames (EntityFullName names1) names2
          = EntityFullName (names1 ++ names2)

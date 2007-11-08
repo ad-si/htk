@@ -32,9 +32,9 @@ newtype Oval = Oval GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new oval item.
-createOval :: Canvas 
+createOval :: Canvas
    -- ^ the parent canvas.
-   -> [Config Oval] 
+   -> [Config Oval]
    -- ^ the list of configuration options for this oval item.
    -> IO Oval
    -- ^ An oval item.
@@ -46,7 +46,7 @@ createOval cnv cnf = createCanvasItem cnv OVAL Oval cnf [(-1,-1),(-1,-1)]
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Oval where 
+instance GUIObject Oval where
   toGUIObject (Oval w) = w
   cname _ = "Oval"
 

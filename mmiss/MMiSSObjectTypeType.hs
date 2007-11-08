@@ -26,8 +26,8 @@ import {-# SOURCE #-} MMiSSObjectType
 -- ------------------------------------------------------------------------
 
 data MMiSSObjectType = MMiSSObjectType {
-   xmlTag :: String, 
-      -- Describes the type.  This String should be identical with 
+   xmlTag :: String,
+      -- Describes the type.  This String should be identical with
       -- corresponding XML Tag, eg "atom".
    typeId :: GlobalKey,
    displayParms :: NodeTypes (Link MMiSSObject)
@@ -36,7 +36,7 @@ data MMiSSObjectType = MMiSSObjectType {
 
 -- ------------------------------------------------------------------------
 -- The instances of Dynamics and HasCodedValue
--- 
+--
 -- Since the necessary information for defining an MMiSSObjectType is
 -- actually defined by the DTD, we do not need to write out such things to
 -- the AttributesType.  Instead we just represent it by the xmlTag.
@@ -47,7 +47,7 @@ instance HasBinary MMiSSObjectType CodingMonad where
       (\ (MMiSSObjectType {xmlTag = xmlTag}) -> xmlTag)
    readBin = mapRead
       (\ xmlTag ->
-         let 
+         let
             (Just objectType) = lookupFM mmissObjectTypeMap xmlTag
          in
             objectType

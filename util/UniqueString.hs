@@ -1,10 +1,10 @@
 -- |
 -- Description : Generate Unique Strings
 --
--- This module generates short non-empty unique printable strings (IE without 
+-- This module generates short non-empty unique printable strings (IE without
 -- funny characters).  Quotes and backslashes are not included, so printing
 -- should not be too hard.  Periods are also not included, for the
--- benefit of NewNames.hs. 
+-- benefit of NewNames.hs.
 module UniqueString(
    UniqueStringSource, -- A source of unique strings.  Instance of Typeable
    newUniqueStringSource, -- :: IO UniqueStringSource
@@ -18,11 +18,11 @@ module UniqueString(
 
    firstUniqueStringCounter, -- :: UniqueStringCounter
       -- This is what you start with
-   stepUniqueStringCounter, -- :: UniqueStringCounter 
+   stepUniqueStringCounter, -- :: UniqueStringCounter
       -- -> (String,UniqueStringCounter)
       -- and this is how you get a new String out.
 
-  
+
    -- read/createUniqueStringSource are used by types/CodedValue
    -- to import and export string sources.
    readUniqueStringSource, -- :: UniqueStringSource -> IO [Int]
@@ -67,17 +67,17 @@ newtype UniqueStringSource = UniqueStringSource (MVar UniqueStringCounter)
    deriving (Typeable)
 
 newUniqueStringSource :: IO UniqueStringSource
-newUniqueStringSource = 
+newUniqueStringSource =
    do
       mVar <- newMVar firstUniqueStringCounter
       return (UniqueStringSource mVar)
-  
+
 newUniqueString :: UniqueStringSource -> IO String
 newUniqueString (UniqueStringSource mVar) =
    do
       uniqueStringCounter <- takeMVar mVar
-      let 
-         (str,nextUniqueStringCounter) = 
+      let
+         (str,nextUniqueStringCounter) =
             stepUniqueStringCounter uniqueStringCounter
       putMVar mVar nextUniqueStringCounter
       return str
@@ -91,14 +91,14 @@ readUniqueStringSource (UniqueStringSource mVar) =
 
 -- | createUniqueStringSource is the inverse of readUniqueStringSource.
 createUniqueStringSource :: [Int] -> IO UniqueStringSource
-createUniqueStringSource l = 
+createUniqueStringSource l =
    do
       mVar <- newMVar (UniqueStringCounter l)
       return (UniqueStringSource mVar)
 
 
 {- unused
-compareUniqueStringSource :: UniqueStringSource -> UniqueStringSource 
+compareUniqueStringSource :: UniqueStringSource -> UniqueStringSource
    -> IO Ordering
 compareUniqueStringSource (UniqueStringSource mVar1) (UniqueStringSource mVar2)
       =
@@ -112,7 +112,7 @@ maxUniqueStringSources :: [UniqueStringSource] -> IO UniqueStringSource
 maxUniqueStringSources stringSources =
    do
       stringCounters <- mapM
-         (\ (UniqueStringSource mVar) -> readMVar mVar) 
+         (\ (UniqueStringSource mVar) -> readMVar mVar)
          stringSources
       let
          maxCounter = foldl max firstUniqueStringCounter stringCounters
@@ -139,7 +139,7 @@ stepUniqueStringCounter (uniqueStringCounter @ (UniqueStringCounter ilist)) =
       step [] = [1]
       step (first:rest) =
          if first == printableCharsLen -1
-            then 
+            then
                0:step rest
             else
                (first+1):rest

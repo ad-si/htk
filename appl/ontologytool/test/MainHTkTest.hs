@@ -2,8 +2,8 @@
  -
  - HTk Examples: Menus
  -
- - Author: cxl 
- - $Revision$ from $Date$  
+ - Author: cxl
+ - $Revision$ from $Date$
  -
  - -------------------------------------------------------------------- -}
 

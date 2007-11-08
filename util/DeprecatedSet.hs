@@ -12,21 +12,21 @@
 module DeprecatedSet (
         -- * Set type
         Set,          -- instance Eq,Ord,Show,Read,Data,Typeable
-	union,        -- identical in Data.Set	
-	-- * Old deprecated interface
-	emptySet,       -- :: Set a
-	mkSet,          -- :: Ord a => [a]  -> Set a
-	setToList,      -- :: Set a -> [a]
-	unitSet,        -- :: a -> Set a
-	elementOf,      -- :: Ord a => a -> Set a -> Bool
-	isEmptySet,     -- :: Set a -> Bool
-	cardinality,    -- :: Set a -> Int
-	unionManySets,  -- :: Ord a => [Set a] -> Set a
-	minusSet,       -- :: Ord a => Set a -> Set a -> Set a
-	mapSet,         -- :: Ord a => (b -> a) -> Set b -> Set a
-	intersect,      -- :: Ord a => Set a -> Set a -> Set a
-	addToSet,      	-- :: Ord a => Set a -> a -> Set a
-	delFromSet,    	-- :: Ord a => Set a -> a -> Set a
+        union,        -- identical in Data.Set
+        -- * Old deprecated interface
+        emptySet,       -- :: Set a
+        mkSet,          -- :: Ord a => [a]  -> Set a
+        setToList,      -- :: Set a -> [a]
+        unitSet,        -- :: a -> Set a
+        elementOf,      -- :: Ord a => a -> Set a -> Bool
+        isEmptySet,     -- :: Set a -> Bool
+        cardinality,    -- :: Set a -> Int
+        unionManySets,  -- :: Ord a => [Set a] -> Set a
+        minusSet,       -- :: Ord a => Set a -> Set a -> Set a
+        mapSet,         -- :: Ord a => (b -> a) -> Set b -> Set a
+        intersect,      -- :: Ord a => Set a -> Set a -> Set a
+        addToSet,       -- :: Ord a => Set a -> a -> Set a
+        delFromSet,     -- :: Ord a => Set a -> a -> Set a
         ) where
 
 import Data.Set

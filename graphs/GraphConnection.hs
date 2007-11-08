@@ -1,11 +1,11 @@
--- | GraphConnection contains various operations on graph connections 
+-- | GraphConnection contains various operations on graph connections
 module GraphConnection(
-   SubGraph(..), 
+   SubGraph(..),
       -- defines a subgraph as a subset of nodes and node types.
       -- The user is responsible for making sure that if a node is in
       -- the subgraph, so is its type!
-   attachSuperGraph, 
-      -- :: SubGraph 
+   attachSuperGraph,
+      -- :: SubGraph
       --    -> GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel
       --    -> GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel
       -- turn a graph connection into one, which when passing information back
@@ -41,13 +41,13 @@ import Graph
 -- in their subgraphs.)
 newtype ConnectionState = ConnectionState (MVar (Set Arc))
 -- This contains the arcs NOT in the subgraph, because for our planned
--- application 
+-- application
 
 newConnectionState :: IO ConnectionState
-newConnectionState = 
+newConnectionState =
    do
       mVar <- newMVar emptySet
-      return (ConnectionState mVar) 
+      return (ConnectionState mVar)
 
 arcIsInSubGraph :: ConnectionState -> Arc -> IO Bool
 arcIsInSubGraph (ConnectionState mVar) arc =
@@ -55,7 +55,7 @@ arcIsInSubGraph (ConnectionState mVar) arc =
       set <- takeMVar mVar
       let
          result = not (elementOf arc set)
-      putMVar mVar set 
+      putMVar mVar set
       return result
 
 arcAdd :: ConnectionState -> Arc -> IO ()
@@ -79,9 +79,9 @@ data SubGraph = SubGraph {
    nodeTypeIn :: NodeType -> Bool
    }
 
-updateIsInSubGraph :: SubGraph -> ConnectionState 
+updateIsInSubGraph :: SubGraph -> ConnectionState
    -> Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> IO Bool
-updateIsInSubGraph (SubGraph{nodeIn = nodeIn,nodeTypeIn = nodeTypeIn}) 
+updateIsInSubGraph (SubGraph{nodeIn = nodeIn,nodeTypeIn = nodeTypeIn})
       connectionState update =
    case update of
       NewNodeType nodeType _ -> return (nodeTypeIn nodeType)
@@ -90,11 +90,11 @@ updateIsInSubGraph (SubGraph{nodeIn = nodeIn,nodeTypeIn = nodeTypeIn})
       DeleteNode node -> return (nodeIn node)
       SetNodeLabel node _ -> return (nodeIn node)
       SetNodeType node _ -> return (nodeIn node)
-      NewArc arc _ _ node1 node2 -> 
+      NewArc arc _ _ node1 node2 ->
          do
             let
                inSubGraph = nodeIn node1 && nodeIn node2
-            if inSubGraph 
+            if inSubGraph
                then
                   return True
                else
@@ -111,7 +111,7 @@ updateIsInSubGraph (SubGraph{nodeIn = nodeIn,nodeTypeIn = nodeTypeIn})
                   do
                      arcDelete connectionState arc
                      return False
-      SetArcLabel arc _ -> arcIsInSubGraph connectionState arc      
+      SetArcLabel arc _ -> arcIsInSubGraph connectionState arc
       SetArcType arc _ -> arcIsInSubGraph connectionState arc
       _ -> return True
 
@@ -119,7 +119,7 @@ updateIsInSubGraph (SubGraph{nodeIn = nodeIn,nodeTypeIn = nodeTypeIn})
 -- GraphConnection operations
 -----------------------------------------------------------------------------
 
-attachSuperGraph :: SubGraph 
+attachSuperGraph :: SubGraph
    -> GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel
 attachSuperGraph subGraph graphConnection parentChanges =
@@ -128,19 +128,19 @@ attachSuperGraph subGraph graphConnection parentChanges =
       -- all changes to the parent get passed on
 
       connectionState <- newConnectionState
-      let 
+      let
          oldGraphUpdate = graphUpdate graphConnectionData
 
          newGraphUpdate update =
             -- updates to the child only get passed on if in the subgraph.
             do
-               isInSubGraph 
+               isInSubGraph
                   <- updateIsInSubGraph subGraph connectionState update
                if isInSubGraph
                   then
                      oldGraphUpdate update
                   else
-                     done 
+                     done
       return (graphConnectionData {graphUpdate = newGraphUpdate})
 
 attachSubGraph :: SubGraph
@@ -153,13 +153,13 @@ attachSubGraph subGraph graphConnection parentChanges =
          newParentChanges update =
          -- Changes from the parent only get passed on if in the subgraph.
             do
-               isInSubGraph 
-                  <- updateIsInSubGraph subGraph connectionState update  
+               isInSubGraph
+                  <- updateIsInSubGraph subGraph connectionState update
                if isInSubGraph
                   then
                      parentChanges update
                   else
-                     done 
+                     done
       graphConnectionData <- graphConnection newParentChanges
       -- We have to filter the graph state.
       let
@@ -176,47 +176,47 @@ attachSubGraph subGraph graphConnection parentChanges =
 
 --  | Throw away the old types in a graph, and recompute them from the
 -- node and arc labels.
-mapGraphConnection :: 
+mapGraphConnection ::
    (nodeLabel1 -> (nodeLabel2,NodeType))
       -- ^ function to compute node label in new graph and type
    -> (arcLabel1 -> (arcLabel2,ArcType))
       -- ^ function to compute arc label in new graph and type
    -> [Update nodeLabel2 nodeTypeLabel2 arcLabel2 arcTypeLabel2]
-      -- ^ updates prepended to initialse types. 
+      -- ^ updates prepended to initialse types.
       -- (The type declarations in the input graph are discarded)
    -> GraphConnection nodeLabel1 () arcLabel1 ()
    -> GraphConnection nodeLabel2 nodeTypeLabel2 arcLabel2 arcTypeLabel2
    -- NB.  Changes to the child do not get passed back.
-mapGraphConnection 
+mapGraphConnection
       (mapNode :: nodeLabel1 -> (nodeLabel2,NodeType))
       (mapArc :: arcLabel1 -> (arcLabel2,ArcType))
-      (initialUpdates 
+      (initialUpdates
          :: [Update nodeLabel2  nodeTypeLabel2 arcLabel2 arcTypeLabel2])
       graphConnection1 updateFn2 =
    let
       mapUpdate :: Update nodeLabel1 () arcLabel1 ()
          -> Update nodeLabel2 nodeTypeLabel2 arcLabel2 arcTypeLabel2
       mapUpdate update = case update of
-         NewNodeType _ _ -> nop 
+         NewNodeType _ _ -> nop
          SetNodeTypeLabel _ _ -> nop
          NewNode node _ nodeTypeLabel1 ->
             let
                (nodeTypeLabel2,nodeType2) = mapNode nodeTypeLabel1
             in
                NewNode node nodeType2 nodeTypeLabel2
-         DeleteNode node -> DeleteNode node 
+         DeleteNode node -> DeleteNode node
          SetNodeLabel node nodeLabel1 ->
             let
                (nodeLabel2,nodeType2) = mapNode nodeLabel1
             in
                MultiUpdate [
-                  SetNodeLabel node nodeLabel2,     
+                  SetNodeLabel node nodeLabel2,
                   SetNodeType node nodeType2
                   ]
          SetNodeType _ _ -> nop
          NewArcType _ _ -> nop
          SetArcTypeLabel _ _ -> nop
-         NewArc arc _ arcLabel1 nodeFrom nodeTo -> 
+         NewArc arc _ arcLabel1 nodeFrom nodeTo ->
             let
                (arcLabel2,arcType2) = mapArc arcLabel1
             in
@@ -227,7 +227,7 @@ mapGraphConnection
                (arcLabel2,arcType2) = mapArc arcLabel1
             in
                MultiUpdate [
-                  SetArcLabel arc arcLabel2,     
+                  SetArcLabel arc arcLabel2,
                   SetArcType arc arcType2
                   ]
          SetArcType _ _ -> nop
@@ -245,9 +245,9 @@ mapGraphConnection
             updates2 = initialUpdates ++ fmap mapUpdate updates1
             cannedGraph2 = CannedGraph {updates = updates2}
             graphUpdate2 _ = done
-            
+
             graphConnectionData2 = graphConnectionData1 {
                graphState = cannedGraph2,
                graphUpdate = graphUpdate2
-               } 
+               }
          return graphConnectionData2

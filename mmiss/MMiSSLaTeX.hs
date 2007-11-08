@@ -1,5 +1,5 @@
 -- | The functions in this module run a file (given as a String) through
--- LaTeX, and does various things with it. 
+-- LaTeX, and does various things with it.
 module MMiSSLaTeX(
    mmissLaTeX,
    ) where
@@ -53,7 +53,7 @@ mmissLaTeX view fileName contents exportFiles0 =
                   (trimDir top) `combineNames`
                   ("mmiss") `combineNames`
                   ("scripts") `combineNames`
-                  ("do"++str) 
+                  ("do"++str)
 
                -- runs a script, with the given arguments.
                -- the first argument is always provided and is
@@ -101,7 +101,7 @@ mmissLaTeX view fileName contents exportFiles0 =
                   PS -> "-p"
                   PDF -> "-f"
             success <- run "MMiSS-LaTeX" "misslatex" [misslatexArg,laTeXFile]
-            if success 
+            if success
                then
                   done
                else
@@ -134,7 +134,7 @@ mmissLaTeX view fileName contents exportFiles0 =
                               )
                               "neither preview nor a file are specified"
                               form2
-                 
+
                         dviFile = fileName ++ ".dvi"
 
 
@@ -169,7 +169,7 @@ mmissLaTeX view fileName contents exportFiles0 =
                               )
                               "neither preview nor a file are specified"
                               form2
-                 
+
                      pdfOpt <- doForm "PDF destination" form3
                      case pdfOpt of
                         Nothing -> cancel
@@ -184,7 +184,7 @@ mmissLaTeX view fileName contents exportFiles0 =
                psLoop =
                   do
                      let
-                        print = newFormEntry 
+                        print = newFormEntry
                            "Send to printer (empty for default): " ""
                         file = newFormEntry "Or to file: " ""
                         psFile = fileName ++ ".ps"
@@ -196,11 +196,11 @@ mmissLaTeX view fileName contents exportFiles0 =
                               )
                               "printer and a file cannot both be specified"
                               form1
-                 
+
                      psOpt <- doForm "PS destination" form2
                      case psOpt of
                         Nothing -> cancel
-                        Just (printer,fPath) 
+                        Just (printer,fPath)
                               | emptyName fPath ->
                            run "Printing" "lp" [psFile,printer]
                         Just (_,fPath) ->

@@ -1,6 +1,6 @@
 -- | A Cell is a container for a value.  It is created with the value in it.
 -- The only change we can make is to remove the value, and we cannot put
--- it back again. 
+-- it back again.
 module Cells(
    Cell, -- The Cell type
    newCell, -- :: a -> IO (Cell a)
@@ -15,7 +15,7 @@ import Data.IORef
 newtype Cell a = Cell (IORef (Maybe a))
 
 newCell :: a -> IO (Cell a)
-newCell val = 
+newCell val =
    do
       ioRef <- newIORef (Just val)
       return (Cell ioRef)

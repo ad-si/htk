@@ -8,13 +8,13 @@ module BitMap (
   HasBitMap(..),
   BitMapDesignator(..),
 
-  errmap, 
-  gray50, 
-  gray25, 
-  hourglass, 
-  info, 
-  questhead, 
-  question, 
+  errmap,
+  gray50,
+  gray25,
+  hourglass,
+  info,
+  questhead,
+  question,
   warning,
 
   setBitMapHandle,
@@ -41,8 +41,8 @@ import Packer
 -- | The @BitMapHandle@ datatype - a handle for a bitmap
 -- resource.
 data BitMapHandle =
-          Predefined String 
-        | BitMapHandle BitMap 
+          Predefined String
+        | BitMapHandle BitMap
         | BitMapFile String
 
 -- | Internal.
@@ -70,12 +70,12 @@ instance BitMapDesignator [Char] where
 class GUIObject w => HasBitMap w where
   bitmap          :: BitMapDesignator d => d -> Config w
   getBitMap       :: w -> IO BitMapHandle
-  bitmap d w      = setBitMapHandle w "bitmap" (toBitMap d) True 
+  bitmap d w      = setBitMapHandle w "bitmap" (toBitMap d) True
   getBitMap w     = getBitMapHandle w "bitmap"
 
 
 -- -----------------------------------------------------------------------
--- type BitMap 
+-- type BitMap
 -- -----------------------------------------------------------------------
 
 -- | The @BitMap@ datatype.
@@ -89,13 +89,13 @@ newtype BitMap = BitMapWDG GUIOBJECT deriving Eq
 -- | Constructs a new bitmap object and returns a handler.
 -- The bitmap object can be packed like a widget, then it is implicitely
 -- displayed inside a label widget.
-newBitMap :: [Config BitMap] 
+newBitMap :: [Config BitMap]
    -- ^ the list of configuration options for this bitmap  object.
    -> IO BitMap
    -- ^ A bitmap object.
 newBitMap confs =
   do
-    w <- createWidget ROOT LABEL 
+    w <- createWidget ROOT LABEL
     configure (BitMapWDG w) confs
 
 
@@ -105,15 +105,15 @@ newBitMap confs =
 
 -- | A handle for the predefined \"error\" bitmap.
 errmap :: BitMapHandle
-errmap = Predefined "error" 
+errmap = Predefined "error"
 
 -- | A handle for the predefined \"gray50\" bitmap.
 gray50 :: BitMapHandle
-gray50 = Predefined "gray50" 
+gray50 = Predefined "gray50"
 
 -- | A handle for the predefined \"gray25\" bitmap.
 gray25 :: BitMapHandle
-gray25 = Predefined "gray25" 
+gray25 = Predefined "gray25"
 
 -- | A handle for the predefined \"hourglass\" bitmap.
 hourglass :: BitMapHandle
@@ -121,7 +121,7 @@ hourglass = Predefined "hourglass"
 
 -- | A handle for the predefined \"info\" bitmap.
 info :: BitMapHandle
-info = Predefined "info" 
+info = Predefined "info"
 
 -- | A handle for the predefined \"questhead\" bitmap.
 questhead :: BitMapHandle
@@ -129,7 +129,7 @@ questhead = Predefined "questhead"
 
 -- | A handle for the predefined \"question\" bitmap.
 question :: BitMapHandle
-question = Predefined "question" 
+question = Predefined "question"
 
 -- | A handle for the predefined \"warning\" bitmap.
 warning :: BitMapHandle
@@ -161,7 +161,7 @@ instance HasBorder BitMap
 
 -- | A bitmap object has a configureable foreground and background colour
 -- (if implicitely displayed inside a label widget).
-instance HasColour BitMap where 
+instance HasColour BitMap where
   legalColourID = hasForeGroundColour
 
 -- | You can specify the size of the containing label, if the bitmap is
@@ -191,7 +191,7 @@ instance Synchronized BitMap where
 -- | Internal.
 setBitMapHandle :: GUIObject w => w -> ConfigID -> BitMapHandle ->
                    Bool -> IO w
-setBitMapHandle w cnm (Predefined d) _ = cset w cnm d 
+setBitMapHandle w cnm (Predefined d) _ = cset w cnm d
 setBitMapHandle w cnm (BitMapFile f) _ = cset w cnm ('@':f)
 setBitMapHandle w _ (BitMapHandle h) True =
   cset w "image" (getObjectNo (toGUIObject h))
@@ -200,7 +200,7 @@ setBitMapHandle w cnm (BitMapHandle h) False =
     fname <- getFileName h
     setBitMapHandle w cnm (BitMapFile fname) False
     return w
-{- 
+{-
    the last parameter determines whether integer numbers are acceptable
    as bitmap denotations or not. If not, we use the corresponding file
    name associated with the widget! Numbers are allowed for labels and
@@ -214,9 +214,9 @@ getBitMapHandle w cnm = cget w cnm >>= stringToBitMapHandle
 -- | Internal.
 stringToBitMapHandle :: String -> IO BitMapHandle
 stringToBitMapHandle "" = return (Predefined "")
-stringToBitMapHandle ('@':tl) = return (BitMapFile tl)          
-stringToBitMapHandle (str @ (x:tl)) | isDigit x = 
-  lookupGUIObject (read str)      >>= return . BitMapHandle . BitMapWDG 
+stringToBitMapHandle ('@':tl) = return (BitMapFile tl)
+stringToBitMapHandle (str @ (x:tl)) | isDigit x =
+  lookupGUIObject (read str)      >>= return . BitMapHandle . BitMapWDG
 stringToBitMapHandle str = return (Predefined str)
 
 

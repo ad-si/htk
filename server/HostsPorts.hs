@@ -1,13 +1,13 @@
 -- | HostPorts provides an abstract interface for describing hosts and
--- ports. 
+-- ports.
 module HostsPorts(
-   HostPort,host,port,description, 
+   HostPort,host,port,description,
       -- description of a host and port, and some of its fields.
       -- instance of Eq,Ord,Show.
    LoginInfo(..),
       -- user and password.
 
-   toLoginInfo, 
+   toLoginInfo,
       -- :: HostPort -> Maybe LoginInfo
       -- Extract the LoginInfo for a HostPort, if any were supplied.
 
@@ -31,7 +31,7 @@ module HostsPorts(
       -- :: String -> HostPort -> HostPort
       -- Change the textual description of a HostPort.
    mkHostPort,
-      -- :: (DescribesHost host,DescribesPort port) 
+      -- :: (DescribesHost host,DescribesPort port)
       -- => host -> port -> Maybe String -> Maybe LoginInfo -> IO HostPort
       -- The general function for constructing HostPort.
 
@@ -98,7 +98,7 @@ class DescribesPort a where
    makePort :: a -> IO PortDesc
 
 instance DescribesPort Int where
-   makePort name = return (PortDesc name)   
+   makePort name = return (PortDesc name)
 
 instance DescribesPort PortDesc where
    makePort = return
@@ -122,7 +122,7 @@ instance Show HostPort where
 -- The functions
 -- -------------------------------------------------------------------
 
-mkHostPort :: (DescribesHost host,DescribesPort port) 
+mkHostPort :: (DescribesHost host,DescribesPort port)
    => host -> port -> Maybe String -> Maybe LoginInfo -> IO HostPort
 mkHostPort host port descriptionOpt loginInfo  =
    do
@@ -136,7 +136,7 @@ mkHostPort host port descriptionOpt loginInfo  =
          port = portNumber,
          description = description,
          loginInfo = loginInfo
-         })   
+         })
 
 mkHostDescription :: (Show portNo,Num portNo) => String -> portNo -> String
 mkHostDescription hostStr i =
@@ -146,7 +146,7 @@ mkHostDescription hostStr i =
       else
          hostStr ++ ":" ++ show i
 
- 
+
 -- | Turn the textual description of a host into a HostPort,
 -- reversing mkHostDescription.
 fromHostDescription :: String -> IO (WithError HostPort)
@@ -161,15 +161,15 @@ fromHostDescription' :: String -> Maybe LoginInfo -> IO (WithError HostPort)
 fromHostDescription' description loginInfoOpt =
    do
       let
-          (hostPortWE :: WithError (String,Int)) 
+          (hostPortWE :: WithError (String,Int))
              = case splitToChar ':' description of
                 Nothing -> hasValue (description,defaultPort)
-                Just (host,portStr) 
+                Just (host,portStr)
                    | (Just port) <- readCheck portStr
                       -> hasValue (host,port)
                    | True -> hasError ("Cannot parse port number " ++ portStr
                       ++ " in " ++ description)
-     
+
       mapWithErrorIO
          (\ (host,port) -> mkHostPort host port Nothing loginInfoOpt)
          hostPortWE
@@ -237,7 +237,7 @@ hostPortForm serverOpt portOpt =
             Just port -> hasValue port
             )
          portForm1
- 
+
       form1 = hostForm \\ portForm
 
       form = mapFormIO

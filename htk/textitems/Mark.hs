@@ -37,12 +37,12 @@ data Mark = Mark Editor String deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Creates a text mark inside an editor widget and returns a handler.
-createMark :: HasIndex Editor i BaseIndex => 
-   Editor 
+createMark :: HasIndex Editor i BaseIndex =>
+   Editor
    -- ^ the concerned editor widget.
-   -> String 
+   -> String
    -- ^ the name of the text mark to create.
-   -> i 
+   -> i
    -- ^ the text marks index position inside the editor
    -- widget.
    -> IO Mark
@@ -59,29 +59,29 @@ createMark ed name i =
 -- -----------------------------------------------------------------------
 
 -- | Sets the gravity of the given text mark.
-setMarkGravity :: Mark 
+setMarkGravity :: Mark
    -- ^ the concerned text mark.
-   -> Gravity 
+   -> Gravity
    -- ^ the gravity to set.
    -> IO ()
    -- ^ None.
-setMarkGravity mark @ (Mark tp name) grav =     
+setMarkGravity mark @ (Mark tp name) grav =
   execMethod tp (\nm -> tkSetMarkGravity nm name grav)
  where tkSetMarkGravity tnm mnm g =
          [show tnm ++ " mark gravity " ++ show mnm ++ " " ++ show g]
 
 -- | Gets the gravity from the given text mark.
-getMarkGravity :: Mark 
+getMarkGravity :: Mark
    -- ^ the concerned text mark.
    -> IO Gravity
    -- ^ The current gravity setting.
-getMarkGravity mark @ (Mark tp name) =  
+getMarkGravity mark @ (Mark tp name) =
   evalMethod tp (\nm -> tkGetMarkGravity nm name)
  where tkGetMarkGravity tnm mnm =
          [show tnm ++ " mark gravity " ++ show mnm]
 
 -- | Unsets a text mark inside an editor widget.
-unsetMark :: Mark 
+unsetMark :: Mark
    -- ^ the concerned text mark.
    -> IO ()
    -- ^ None.
@@ -89,9 +89,9 @@ unsetMark mark@(Mark tp name) = execMethod tp (\nm -> tkMarkUnset nm name)
  where tkMarkUnset nm mname  = [show nm ++ " mark unset " ++ show mname]
 
 -- | Sets the index position of the text mark.
-setMark :: HasIndex Editor i BaseIndex => Mark 
+setMark :: HasIndex Editor i BaseIndex => Mark
    -- ^ the concerned tex mark.
-   -> i 
+   -> i
    -> IO ()
    -- ^ None.
 setMark mark@(Mark tp name) i =
@@ -100,7 +100,7 @@ setMark mark@(Mark tp name) i =
     execMethod tp (\nm -> tkMarkSet nm name binx)
 
 -- | Gets the current marks from an editor widget.
-getCurrentMarks :: Editor 
+getCurrentMarks :: Editor
    -- ^ the concerned editor widget.
    -> IO [Mark]
    -- ^ A list of text marks.
@@ -151,10 +151,10 @@ instance Read Gravity where
 
 -- | Internal.
 instance Show Gravity where
-   showsPrec d p r = 
-      (case p of 
-         ToLeft -> "left"  
-         ToRight -> "right"  
+   showsPrec d p r =
+      (case p of
+         ToLeft -> "left"
+         ToRight -> "right"
         ) ++ r
 
 -- | Internal.

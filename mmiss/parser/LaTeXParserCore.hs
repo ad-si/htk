@@ -4,11 +4,11 @@ module LaTeXParserCore (
    SingleParam(..),
    SpecialFragType(..),
    Attributes,
-   
+
    parseFrags,  -- :: String -> Either ParseError [Frag]
    findInString,  -- :: String -> String -> Bool
-                  -- Searches for the second string in the first string. 
-                  -- Returns True if found, otherwise False.   
+                  -- Searches for the second string in the first string.
+                  -- Returns True if found, otherwise False.
 
    piInsertLaTeX,   -- :: String
    piSpecial,      -- :: String
@@ -32,7 +32,7 @@ module LaTeXParserCore (
    plainTextAtoms,       -- :: [(String, String)]
    mmissPlainTextAtoms,  -- :: [String]
    envsWithText,         -- :: [(String, String)]
-   envsWithoutText,      -- :: [(String, String)] 
+   envsWithoutText,      -- :: [(String, String)]
    mmiss2EnvIds,         -- :: [(String, String)]
    latexEmbeddedFormulaEnvs,  -- :: [(String, String)]
    latexAtomFormulaEnvs,      -- :: [(String, String)]
@@ -42,7 +42,7 @@ module LaTeXParserCore (
    listEnvs,                  -- :: [(String, String)]
    itemNames,                 -- :: [String]
    embeddedElements,          -- :: [(String, String)]
-   glAttribsExclude,          -- :: [String] 
+   glAttribsExclude,          -- :: [String]
    mmissSystemAttribs,        -- :: [String]
    mmissVariantAttribs,       -- :: [String]
    mmissIncludeAttribs,       -- :: [String]
@@ -76,7 +76,7 @@ type Delimiter = String
 -- SingleParam nimmt die Daten für einen einfachen (also keine Attributlisten-Parameter)
 -- Paramter eines Latex-Kommandos oder einer Umgebung auf. Die Komponente 'Char'
 -- nimmt das konkrete Klammerzeichen, mit dem der Parameter links abgegrenzt wird, auf.
--- (Davon ausgehend ist klar, wie das korrespondierende rechte Klammerzeichen aussehen muss: 
+-- (Davon ausgehend ist klar, wie das korrespondierende rechte Klammerzeichen aussehen muss:
 data SingleParam = SingleParam [Frag] Char    deriving Show
 
 data SpecialFragType = InputStart | InputEnd deriving (Eq, Show, Read)
@@ -97,16 +97,16 @@ data SpecialFragType = InputStart | InputEnd deriving (Eq, Show, Read)
 
 data Frag = Env EnvId Params [Frag]               -- Environments e.g. \begin{document}..
           | Command Command Params                 -- \name params
-          | EscapedChar Char                       -- Sonderzeichen: #$&~_^%{} 
+          | EscapedChar Char                       -- Sonderzeichen: #$&~_^%{}
           | Other Other
           | Special SpecialFragType String    deriving Show
 
 -- Parameter of LateX-Envs and Commands. Der erste der beiden Maybe Delimiter-Komponenten
 -- wird benutzt, um bei Commands den String aufzunehmen, der das Command vom nachfolgenden
 -- Text trennt, also entweder ein {} oder Leerzeichen (inclusive Tabs und Newlines).
--- Die rechte Delimiter-Komponente 
+-- Die rechte Delimiter-Komponente
 
-data Params = LParams [SingleParam] Attributes (Maybe Delimiter) (Maybe Delimiter) 
+data Params = LParams [SingleParam] Attributes (Maybe Delimiter) (Maybe Delimiter)
               deriving Show
 
 
@@ -140,7 +140,7 @@ latexToUnicodeTranslations = ("\\ss", "\223") :
     map ( \ (a, b) -> (b, a)) unicodeToLatexTranslations
 
 unicodeToLatexTranslations :: [(String, String)]
-unicodeToLatexTranslations = 
+unicodeToLatexTranslations =
     [("\196", "\\\"A"), ("\214", "\\\"O"), ("\220", "\\\"U")]
     ++ ("\223", "\\ss{}")
     : [("\228", "\\\"a"), ("\246","\\\"o"), ("\252", "\\\"u")]
@@ -158,7 +158,7 @@ plainTextAtoms =  mmissPlainTextAtoms ++ latexAtomFormulaEnvs
 envsWithText :: [(String, String)]
 envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract", "abstract")] ++
                [("Introduction", "introduction"),  ("Summary", "summary"), ("Program","program")] ++
-	       [("Exercise","exercise"), ("Example","example"),  ("Definition","definition")] ++
+               [("Exercise","exercise"), ("Example","example"),  ("Definition","definition")] ++
                [("Theory","theory"), ("Theorem", "theorem"), ("Development","development")] ++
                [("Proof","proof"), ("Script","script"), ("item", "item"), ("ListItem", "item")] ++
                [("Conjecture", "conjecture"), ("Lemma", "lemma"), ("Corollary", "corollary")] ++
@@ -177,7 +177,7 @@ includeCommands = map (("Include" ++) . fst) envsWithText
 {--
 includeCommands =  [("IncludeUnit", "includeUnit"), ("IncludeSection", "includeSection")] ++
                    [("IncludeAtom", "includeAtom"), ("IncludeText","includeText")] ++
-                   [("IncludeProgramComponent","includeProgramComponent")] ++                  
+                   [("IncludeProgramComponent","includeProgramComponent")] ++
                    [("IncludeCompositeUnit", "includeCompositeUnit"), ("IncludeTerm","includeTerm")] ++
                    [("IncludeProofStep", "includeProofStep"), ("IncludeProof", "includeProof")] ++
                    [("IncludeDevelopmentStep", "includeDevelopmentStep"), ("IncludeTable","includeTable")] ++
@@ -195,7 +195,7 @@ linkAndRefCommands = linkCommands ++ refCommands
 
 embeddedElements :: [(String, String)]
 embeddedElements = [("Emphasis","emphasis"), ("IncludeText","includeText")] ++
-		   [("Link","link") , ("Def", "define"), ("Reference", "reference")] ++
+                   [("Link","link") , ("Def", "define"), ("Reference", "reference")] ++
                    [("Ref", "reference"), ("Cite", "cite")]
 
 
@@ -213,8 +213,8 @@ mmiss2EnvIds :: [(String, String)]
 mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
 
 
--- TODO: Abstracts, Introduction und Summary können sowohl Sections, also Groups, als 
--- auch Paragraphs, also Units sein Sie sind hier erstmal als Unit klassifiziert, dass 
+-- TODO: Abstracts, Introduction und Summary können sowohl Sections, also Groups, als
+-- auch Paragraphs, also Units sein Sie sind hier erstmal als Unit klassifiziert, dass
 -- muss aber noch ergänzt werden.
 
 mmissEmbeddedEnvs :: [String]
@@ -229,14 +229,14 @@ latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math",
 -- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
 -- which takes an symbol that indicates the concrete LaTeX-Environment the user chose for a particular formula item.
 -- The following list matches the various LaTeX formula enviroments to theses symbolic names recorded in the
--- boundsType attribute: 
+-- boundsType attribute:
 
 latexEmbeddedFormulaEnvs :: [(String, String)]
 latexEmbeddedFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "shortDisplaymathDollar")] ++
                    [("\\(", "shortMathParens")]
 
 latexAtomFormulaEnvs :: [(String, String)]
-latexAtomFormulaEnvs =  [("\\[", "shortDisplaymath"), ("equation", "equation"), ("displaymath", "displaymath")] 
+latexAtomFormulaEnvs =  [("\\[", "shortDisplaymath"), ("equation", "equation"), ("displaymath", "displaymath")]
                      ++ [("eqnarray", "eqnarray"), ("eqnarray*", "eqnarrayStar"), ("equation*", "equationStar")]
 
 
@@ -276,8 +276,8 @@ commaSep p = p `sepBy` (oneOf ",")
 
 
 {- attributesOrNot checks if a '[' is the next input character. If so, it expects an
-   attribute list (found on MMiSS-Environments) which it returns. If the next character 
-   is something else, than it succeeds but returns an empty list. In the latter case 
+   attribute list (found on MMiSS-Environments) which it returns. If the next character
+   is something else, than it succeeds but returns an empty list. In the latter case
    it succeeds because it is valid to have no attribute list at all at a MMiSS-Environment.
  -}
 
@@ -300,7 +300,7 @@ attParser = do attlist <- commaSep attribute
             <|> return([])
   where
     normalizeAttlist [] = []
-    normalizeAttlist ((Just(key,value)):as) = (key,value):(normalizeAttlist as) 
+    normalizeAttlist ((Just(key,value)):as) = (key,value):(normalizeAttlist as)
     normalizeAttlist ((Nothing):as) = normalizeAttlist as
 
 
@@ -310,23 +310,23 @@ attribute = do spaces
                spaces
                char '=' <?> "value for attribute '" ++ key ++ "'"
                spaces
-               v <- choice ((try(string "{}")):((parenthesed False '{' '}'):((oldvalue ",]"):[]))) 
+               v <- choice ((try(string "{}")):((parenthesed False '{' '}'):((oldvalue ",]"):[])))
                     <?> "value for attribute '" ++ key ++ "'"
                spaces
                pos <- getPosition
                case key of
-                 "Label" -> 
+                 "Label" ->
                     case v of
                       "{}" -> done
-                      otherwise -> 
+                      otherwise ->
                         let elEntityName = parse entityFullNameParser "" v
                         in case elEntityName of
-                              Left err -> fail (appendSourcePos pos 
-                                               ("Label '" ++ v ++ "' contains illegal characters ")) 
+                              Left err -> fail (appendSourcePos pos
+                                               ("Label '" ++ v ++ "' contains illegal characters "))
                               Right _ -> done
                  _ -> done
-               if (v == "{}") 
-                 then return Nothing 
+               if (v == "{}")
+                 then return Nothing
                  else return (Just(key,v))
 
 {--
@@ -335,13 +335,13 @@ delimitedValue key = try(between (char '{') (char '}') (oldvalue key))
 --}
 
 {- The value parser accepts any String enclosed by {}. Furthermore it accepts
-   Strings containing arbitrarily nested Substrings enclosed by {}. 
-   It stops at characters, specified by 'rightClosure'. 
+   Strings containing arbitrarily nested Substrings enclosed by {}.
+   It stops at characters, specified by 'rightClosure'.
 -}
 
 
 oldvalue :: String -> GenParser Char st String
-oldvalue rightClosure = 
+oldvalue rightClosure =
   try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
          s2 <- try(between (char '{') (char '}') (try(oldvalue rightClosure)))
          s3 <- option "" (oldvalue rightClosure)
@@ -360,9 +360,9 @@ oldvalue rightClosure =
 
 
 anyWithoutThisParens :: String -> String -> GenParser Char st String
-anyWithoutThisParens parSymbols inStr = 
+anyWithoutThisParens parSymbols inStr =
   do s <- try (escapedBracket)
-     anyWithoutThisParens parSymbols (inStr ++ s) 
+     anyWithoutThisParens parSymbols (inStr ++ s)
   <|> do char '\\'
          anyWithoutThisParens parSymbols (inStr ++ "\\")
   <|> do s <- many1 (noneOf ("\\" ++ parSymbols))
@@ -371,12 +371,12 @@ anyWithoutThisParens parSymbols inStr =
 
 
 parenthesed :: Bool -> Char -> Char -> GenParser Char st String
-parenthesed printParens opening closing = 
+parenthesed printParens opening closing =
    do char opening
       s1 <- anyWithoutThisParens parSymbols ""
-      l <- many ( do str <- parenthesed True opening closing 
-		     str2 <- (anyWithoutThisParens parSymbols "")
-		     return (str ++ str2))
+      l <- many ( do str <- parenthesed True opening closing
+                     str2 <- (anyWithoutThisParens parSymbols "")
+                     return (str ++ str2))
       s2 <- anyWithoutThisParens parSymbols ""
       char closing
       p1 <- if printParens then return [opening] else return ""
@@ -389,7 +389,7 @@ parenthesed printParens opening closing =
 escapedBracket :: GenParser Char st String
 escapedBracket = do try (char '\\')
                     c <- try (oneOf "([{}])")
-                    return ("\\" ++ [c]) 
+                    return ("\\" ++ [c])
 
 
 -- other konsumiert solange Text, bis ein Backslash oder Kommentarzeichen auftaucht und
@@ -421,12 +421,12 @@ begin = do  try (string "begin")
             spaces
             c <- between (char '{') (char '}') idParser
             return(c)
-                            
+
 -- end  ueberprueft, ob als naechstes ein \end{id} in der Source auftaucht.
 end :: GenParser Char st String
 end = do backslash
          string "end"
-         spaces 
+         spaces
          c <- between (char '{') (char '}') idParser
          return(c)
 
@@ -441,13 +441,13 @@ endId id = do backslash
 -- frag-Parser geschickt.
 
 continue ::  [Frag] -> String -> GenParser Char st [Frag]
-continue l id = (try (end) >>= 
+continue l id = (try (end) >>=
                        (\ x -> if x == id then return l else fail ("no matching end-Tag for <" ++ id ++ ">")))
                 <|> do f <- frag
                        continue (f:l) id
 
 continuePlain ::  String -> String -> GenParser Char st [Frag]
-continuePlain l id = (try (do endId id 
+continuePlain l id = (try (do endId id
                               return ([(Other l)])))
                      <|> do bs <- backslash
                             continuePlain (l ++ [bs]) id
@@ -461,9 +461,9 @@ mySpaces str = do s <- space
                <|> return(str)
 
 -- beginBlock erkennt den Start einer Umgebung (\begin{id}) und parst mittels
--- 'continue' den Inhalt der Umgebung. 'continue' achtet darauf, dass es zu der 
--- id aus dem begin-Block auch ein \end{id}-Block gibt.  
-               
+-- 'continue' den Inhalt der Umgebung. 'continue' achtet darauf, dass es zu der
+-- id aus dem begin-Block auch ein \end{id}-Block gibt.
+
 beginBlock :: GenParser Char st Frag
 beginBlock = do id <- begin
                 spaceStr <- option "" (try(mySpaces ""))
@@ -480,18 +480,18 @@ beginBlock = do id <- begin
 -- die passende Erkennungsfunktion fuer die Parameter an.
 
 envParams :: String -> GenParser Char st Params
-envParams id =  if (id `elem` (map fst mmiss2EnvIds)) 
-		    then mEnvParams id 
-                    else lParams id [] 
+envParams id =  if (id `elem` (map fst mmiss2EnvIds))
+                    then mEnvParams id
+                    else lParams id []
                          <|> unexpected ("Parameters for LaTeX-Environment <" ++ id ++ ">")
 
 
--- mListParams erkennt die Parameter, die zu einer MMiSSLatex-Umgebung gehoeren 
+-- mListParams erkennt die Parameter, die zu einer MMiSSLatex-Umgebung gehoeren
 -- [Attributes]
 
 mEnvParams :: String -> GenParser Char st Params
 
-mEnvParams id = 
+mEnvParams id =
   do pos <- getPosition
      attributes <- attributesOrNot
      return(LParams [] attributes Nothing Nothing)
@@ -500,7 +500,7 @@ mEnvParams id =
 -- lParams erkennt Parameter eines Latex-Commands. Diese koennen in normalen, geschweiften
 -- oder eckigen Klammern eingeschlossen sein. Es wird nicht geprueft, ob die Parameter
 -- und ihre Reihenfolge den Latex-Definitionen entsprechen.
-	    
+
 lParams :: String -> [SingleParam] -> GenParser Char st Params
 lParams id l
   | id == "Emphasis" = do spaces
@@ -510,64 +510,64 @@ lParams id l
 
   | id == "Properties" =
       do pos <- getPosition
-	 attributes <- try(between (char '[') (char ']') attParser)
-		       <?> (appendSourcePos pos ("[attribute-list] for Command <" ++ id ++ ">")) 
+         attributes <- try(between (char '[') (char ']') attParser)
+                       <?> (appendSourcePos pos ("[attribute-list] for Command <" ++ id ++ ">"))
          return (LParams [] attributes Nothing Nothing)
 
   | id `elem` includeCommands =
       do pos <- getPosition
          labelId <-  try(between (char '{') (char '}') idParser)
-	             <?> (appendSourcePos pos ("{referencedLabelID}{attribute-list} for Command <" ++ id ++ ">"))  
-	 spaces
-	 attributes <- try(between (char '{') (char '}') attParser)
-		       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ ">")) 
-         if (attributes == []) 
+                     <?> (appendSourcePos pos ("{referencedLabelID}{attribute-list} for Command <" ++ id ++ ">"))
+         spaces
+         attributes <- try(between (char '{') (char '}') attParser)
+                       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ ">"))
+         if (attributes == [])
            then return (LParams [(SingleParam [(Other labelId)] '{')] [] Nothing Nothing)
            else return (LParams [(SingleParam [(Other labelId)] '{')] attributes Nothing Nothing)
 
   | id `elem` (map fst refCommands) =
       do pos <- getPosition
-	 phrase <- option [] (parenthesed False '[' ']')
+         phrase <- option [] (parenthesed False '[' ']')
          spaces
-	 labelId <-  try(between (char '{') (char '}') idParser)
-	             <?> (appendSourcePos pos ("[phrase]{referenced LabelID} for Command <" ++ id ++ ">"))
+         labelId <-  try(between (char '{') (char '}') idParser)
+                     <?> (appendSourcePos pos ("[phrase]{referenced LabelID} for Command <" ++ id ++ ">"))
          linkTextAttrs <- if (phrase == []) then return([]) else return([("LinkText", phrase)])
          refTypeAttrs <- case id of
                            "Reference" -> return([("type","long")])
                            _ -> return([("type","short")])
-         return (LParams [(SingleParam [(Other labelId)] '{')] 
+         return (LParams [(SingleParam [(Other labelId)] '{')]
                          ([("status","absent")] ++ linkTextAttrs ++ refTypeAttrs) Nothing Nothing)
 
   | id `elem` (map fst linkCommands) =
       do pos <- getPosition
-	 phrase <- option [] (try(parenthesed False '[' ']'))
+         phrase <- option [] (try(parenthesed False '[' ']'))
          spaces
-	 param1 <- try(between (char '{') (char '}') idParser)
-	           <?> (appendSourcePos pos ("[phrase]{type}{label} or [phrase]{label} for Command <" ++ id ++ ">"))
+         param1 <- try(between (char '{') (char '}') idParser)
+                   <?> (appendSourcePos pos ("[phrase]{type}{label} or [phrase]{label} for Command <" ++ id ++ ">"))
          spaces
-	 param2 <- try(do id <- between (char '{') (char '}') idParser
+         param2 <- try(do id <- between (char '{') (char '}') idParser
                           return (Just id)
                       )
                    <|> return Nothing
---	            <?> (appendSourcePos pos ("[phrase]{element type}{referenced LabelID} for Command <" ++ id ++ ">"))
+--                  <?> (appendSourcePos pos ("[phrase]{element type}{referenced LabelID} for Command <" ++ id ++ ">"))
          linkTextAttrs <- if (phrase == []) then return([]) else return([("LinkText", phrase)])
          (elType, labelId) <- case param2 of
                                 (Just id) -> return (param1, id)
-                                _ -> return ("", param1) 
-         return (LParams [(SingleParam [(Other labelId)] '{')] 
+                                _ -> return ("", param1)
+         return (LParams [(SingleParam [(Other labelId)] '{')]
                          ([("status","absent"), ("Type", elType)] ++ linkTextAttrs) Nothing Nothing)
- 
- | (id == "Def") = 
+
+ | (id == "Def") =
       do pos <- getPosition
-	 phrase <- do try (string "[]")
+         phrase <- do try (string "[]")
                       return ("")
                    <|> (try(parenthesed False '[' ']'))
                    <|> return ""
          spaces
          labelId <- try(between (char '{') (char '}') idParser)
-	            <?> (appendSourcePos pos ("[phrase]{defined LabelID} for Command <" ++ id ++ ">"))
+                    <?> (appendSourcePos pos ("[phrase]{defined LabelID} for Command <" ++ id ++ ">"))
          optTextAttrs <- if (phrase == "") then return([]) else return([("OptText", phrase)])
-         return (LParams [(SingleParam [(Other labelId)] '{')] 
+         return (LParams [(SingleParam [(Other labelId)] '{')]
                          ([("status","absent")] ++ optTextAttrs) Nothing Nothing)
 
  | (id `elem` itemNames) =
@@ -607,7 +607,7 @@ genericParams :: [SingleParam] -> GenParser Char st [SingleParam]
 genericParams l =
    do str <- try (try (parenthesed False '{' '}'))
       p <- return [(Other str)]
-      genericParams ((SingleParam p '{'):l)  
+      genericParams ((SingleParam p '{'):l)
    <|>  do str <- try (try (parenthesed False '(' ')'))
            p <- return [(Other str)]
            genericParams ((SingleParam p '('):l)
@@ -615,16 +615,16 @@ genericParams l =
 
 
 continueAdhocEnv :: Char -> [Frag] -> GenParser Char st [Frag]
-continueAdhocEnv closingChar l = 
+continueAdhocEnv closingChar l =
   do try (char closingChar)
      return l
   <|> do f <- frag
-         continueAdhocEnv closingChar (f:l) 
-                         
+         continueAdhocEnv closingChar (f:l)
+
 
 -- adhocEnvironment erkennt Umgebungen ohne Namen: ...{text}...
 adhocEnvironment :: GenParser Char st Frag
-adhocEnvironment =  
+adhocEnvironment =
    do char '{'
       l <- continueAdhocEnv '}' [] <?> "closing } for unnamed environment"
       return (Env "{}" (LParams [] [] Nothing Nothing) (reverse l))
@@ -634,7 +634,7 @@ adhocEnvironment =
 
 
 
--- command erkennt LaTeX-Kommandos. Escaped letters wie \{, \$ etc. werden hier 
+-- command erkennt LaTeX-Kommandos. Escaped letters wie \{, \$ etc. werden hier
 -- nicht erkannt, sondern von escapedChar geparst.
 
 command :: GenParser Char st Frag
@@ -679,16 +679,16 @@ escapedChar = do c <- try (oneOf "\\#$&~_^%{} ")
 -- behandelt werden.
 
 mmissSpecialComment :: GenParser Char st Frag
-mmissSpecialComment = 
+mmissSpecialComment =
   try(
     do string "%%MMiSS:>"
        specialTypeStr <- many1 (noneOf ">")
        if ((specialTypeStr == "InputStart") ||
-	   (specialTypeStr == "InputEnd")) 
-	 then do char '>'
-		 s <- manyTill anyChar (try newline)
-		 return(Special (read specialTypeStr) s)           
-	 else return(Other ("%%MMiSS:>Error:Unrecognized specialFragType:" ++ specialTypeStr ++ "\n"))
+           (specialTypeStr == "InputEnd"))
+         then do char '>'
+                 s <- manyTill anyChar (try newline)
+                 return(Special (read specialTypeStr) s)
+         else return(Other ("%%MMiSS:>Error:Unrecognized specialFragType:" ++ specialTypeStr ++ "\n"))
   )
 -- comment erkennt Kommentarzeilen. Kommentare werden als Other-Fragment behandelt
 --
@@ -700,13 +700,13 @@ comment = try(do char '%'
 
 
 mathEnv :: GenParser Char st Frag
-mathEnv = try( do c <- oneOf "([" 
+mathEnv = try( do c <- oneOf "(["
                   rightDelim <- if (c == '(') then (return ")") else return("]")
                   fs <- continuePlainFormula "" ("\\" ++ rightDelim) "\\"
                   return (Env ("\\" ++ [c]) (LParams [] [] Nothing Nothing) fs))
 
 simpleMathEnv :: GenParser Char st Frag
-simpleMathEnv = 
+simpleMathEnv =
   try (do string "$$"
           fs <- continuePlainFormula "" "$$" "$"
           return (Env ("$$") (LParams [] [] Nothing Nothing) fs)
@@ -723,7 +723,7 @@ continuePlainFormula ::  String -> String -> [Char] -> GenParser Char st [Frag]
 -- 2. String : The delimiter to stop at
 -- 3. String : The list of characters which could be the start of the delimiter or the delimiter itself
 
-continuePlainFormula l delimiter stopChars = 
+continuePlainFormula l delimiter stopChars =
   (try (do string delimiter
            return ([(Other l)])))
   <|> do sc <- oneOf stopChars
@@ -748,24 +748,24 @@ plainTextWithoutDollar str =
               plainTextWithoutDollar (str ++ newstr))
 
 
--- frag erkennt Latex-Fragmente: Kommentare, Environments, Commands und Escaped Chars. 
+-- frag erkennt Latex-Fragmente: Kommentare, Environments, Commands und Escaped Chars.
 -- Alle anderen Zeichenfolgen werden in das Fragment 'other' verpackt.
 
 frag :: GenParser Char st Frag
-frag = 
-    mmissSpecialComment 
+frag =
+    mmissSpecialComment
     <|> comment
     <|> do backslash
-	   mathEnv <|> beginBlock <|> escapedChar <|> command <|> return (Other "\\")
+           mathEnv <|> beginBlock <|> escapedChar <|> command <|> return (Other "\\")
     <|> adhocEnvironment
     <|> simpleMathEnv
     <|> other
-		
+
 
 -- frags ist der Haupt-Parser. Er sammelt die Fragmente der Root-Ebene ein.
 
 frags :: [Frag] -> GenParser Char st [Frag]
-frags l =  
+frags l =
   do f <-  frag <?> "Fragment"
      frags (f:l)
   <|> return(reverse l)
@@ -780,7 +780,7 @@ frags l =
 findInString :: String -> String -> Bool
 
 findInString [] _ = False
-findInString str search  
+findInString str search
   | isPrefixOf search str = True
   | otherwise = findInString (drop 1 str) search
 
@@ -796,18 +796,18 @@ findInString str search
 makeTextElem :: [Frag] -> String -> String
 
 makeTextElem [] inStr = inStr
-makeTextElem (f:fs) inStr = 
+makeTextElem (f:fs) inStr =
     case f of
-      (EscapedChar c) -> let str1 = "\\" 
-                             str2 = if (c == '\\') then "\\" else [c] 
+      (EscapedChar c) -> let str1 = "\\"
+                             str2 = if (c == '\\') then "\\" else [c]
                          in (makeTextElem fs (inStr ++ str1 ++ str2))
       (Other str) -> makeTextElem fs (inStr ++ str)
-      (Command name ps@(LParams singlePs _ d _)) -> 
+      (Command name ps@(LParams singlePs _ d _)) ->
          let delimStr = case d of
                           (Just delimStr) -> delimStr
-                          otherwise -> "" 
+                          otherwise -> ""
          in makeTextElem fs (inStr ++ "\\" ++ name ++ (lparamsToString ps) ++ delimStr)
-      (Env name ps content) -> 
+      (Env name ps content) ->
          let  beginDelimStr = case ps of
                                 (LParams _ _ (Just delimStr) _) -> delimStr
                                 otherwise -> ""
@@ -838,25 +838,25 @@ makeTextElem (f:fs) inStr =
 {-- lparamsToString formatiert Params (Command-Parameter) in die ursprüngliche Latex-Form --}
 
 lparamsToString :: Params -> String
-lparamsToString (LParams singleParams atts _ _) = 
-  let pStr = (concat (map singleParamToString singleParams)) 
+lparamsToString (LParams singleParams atts _ _) =
+  let pStr = (concat (map singleParamToString singleParams))
       attStr = attribsToString atts ""
-      resultStr = if (attStr == "") 
+      resultStr = if (attStr == "")
                     then pStr
-                    else pStr ++ "[" ++ attStr ++ "]"  
-  in resultStr 
+                    else pStr ++ "[" ++ attStr ++ "]"
+  in resultStr
 
 
 singleParamToString :: SingleParam -> String
 singleParamToString (SingleParam f '{') = "{" ++ (makeTextElem f "") ++ "}"
-singleParamToString (SingleParam f '[') = "[" ++ (makeTextElem f "") ++ "]" 
+singleParamToString (SingleParam f '[') = "[" ++ (makeTextElem f "") ++ "]"
 singleParamToString (SingleParam f '(') = "(" ++ (makeTextElem f "") ++ ")"
 
 
 attribsToString :: Attributes -> String -> String
-attribsToString [] str = if ((take 1 str) == ",") 
+attribsToString [] str = if ((take 1 str) == ",")
                            then (drop 1 str)
-                           else str  
+                           else str
 attribsToString ((name, value):as) str =
    if (name `elem` glAttribsExclude)
      then attribsToString as str
@@ -872,14 +872,14 @@ latexToUnicode inStr = foldl (applyTranslation "") inStr latexToUnicodeTranslati
 
 applyTranslation :: String -> String -> (String, String) -> String
 applyTranslation outStr inStr (search, replaceStr) =
-   if lenInStr < lenSearch 
+   if lenInStr < lenSearch
      then outStr ++ inStr
      else if (isPrefixOf search inStr)
             then applyTranslation (outStr ++ replaceStr) (drop lenSearch inStr)  (search, replaceStr)
             else applyTranslation (outStr ++ (take 1 inStr)) (drop 1 inStr)  (search, replaceStr)
    where
    lenInStr = genericLength inStr
-   lenSearch = genericLength search   
+   lenSearch = genericLength search
 
 
 attNameToLatex :: String -> String
@@ -892,7 +892,7 @@ attNameToXML name = [(toLower (head name))] ++ (tail name)
 
 
 elemNameToLaTeX :: String -> String
-elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd) 
+elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd)
                                           (mmiss2EnvIds ++ embeddedElements))
 
 
@@ -940,8 +940,8 @@ parseString _ = []
 
 
 appendSourcePos :: SourcePos -> String -> String
-appendSourcePos pos str = str ++ "in Line " 
-                          ++ (show (sourceLine pos)) ++ " Column " 
+appendSourcePos pos str = str ++ "in Line "
+                          ++ (show (sourceLine pos)) ++ " Column "
                           ++ (show (sourceColumn pos)) ++ "."
 
 

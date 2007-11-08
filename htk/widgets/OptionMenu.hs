@@ -34,12 +34,12 @@ newtype OptionMenu a = OptionMenu GUIOBJECT deriving Eq
 
 -- | Constructs a new option menu and returns a handler.
 newOptionMenu :: (Container par, GUIValue a) =>
-   par 
+   par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [a] 
+   -> [a]
    -- ^ the list of selectable elements.
-   -> [Config (OptionMenu a)] 
+   -> [Config (OptionMenu a)]
    ->
    IO (OptionMenu a)
    -- ^ An option menu.
@@ -56,7 +56,7 @@ newOptionMenu par el cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject (OptionMenu a) where 
+instance GUIObject (OptionMenu a) where
   toGUIObject (OptionMenu  w) = w
   cname _ = "OptionMenu"
 
@@ -81,7 +81,7 @@ instance HasColour (OptionMenu a) where
 instance HasEnable (OptionMenu a)
 
 -- | You can specify the font of an option menu.
-instance HasFont (OptionMenu a) 
+instance HasFont (OptionMenu a)
 
 -- | You can specify the size of an option menu.
 instance HasSize (OptionMenu a)
@@ -133,9 +133,9 @@ tkCreateOptionMenu _ (OPTIONMENU els) name oid confs =
         firstElem ((GUIVALUE _ x):l) = x
 
 tkSetOptionMenuConfigs :: ObjectName -> [ConfigOption] -> TclScript
-tkSetOptionMenuConfigs name @ (ObjectName wname) confs = 
+tkSetOptionMenuConfigs name @ (ObjectName wname) confs =
   (csetCmd defMethods) name confs ++
-  (csetCmd defMethods) (ObjectName (wname ++ ".menu")) 
+  (csetCmd defMethods) (ObjectName (wname ++ ".menu"))
                        (filter isMenuConfig confs)
   where isMenuConfig ("foreground",_) = True
         isMenuConfig ("background",_) = True
@@ -146,5 +146,5 @@ tkSetOptionMenuConfigs name @ (ObjectName wname) confs =
         isMenuConfig (_,_) = False
 
 tkCleanupOptionMenu :: ObjectID -> ObjectName -> TclScript
-tkCleanupOptionMenu oid _ = tkUndeclVar (tvarname oid) 
+tkCleanupOptionMenu oid _ = tkUndeclVar (tvarname oid)
 {-# INLINE tkCleanupOptionMenu #-}

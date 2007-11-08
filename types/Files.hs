@@ -1,9 +1,9 @@
 -- |
 -- Description: Simple repository 'Files.File's
--- 
+--
 -- Files are simple files together with attributes
--- 
--- This file is very similar to Folders.hs 
+--
+-- This file is very similar to Folders.hs
 module Files(
    registerFiles, -- :: IO ()
       -- to be done at initialisation
@@ -13,11 +13,11 @@ module Files(
    newEmptyFile,
    plainFileType, -- :: FileType
 
-   writeToFile, 
-      -- :: View -> Link File -> GlobalKey -> ICStringLen 
+   writeToFile,
+      -- :: View -> Link File -> GlobalKey -> ICStringLen
       --  -> IO ()
       -- write to a file link, which may be empty.  If it is empty,
-      -- create it using the type specified by the 
+      -- create it using the type specified by the
       -- given key.
       -- We assume that the type exists in the view, that there are no errors
       -- creating the LinkedObject, and that the file type has no attributes
@@ -150,7 +150,7 @@ instance HasMerging File where
                   mapWithErrorIO
                      (\ linkedObject1 ->
                         do
-                           isSame 
+                           isSame
                               <- linkedObjectsSame linkedObject0 linkedObject1
                            if isSame
                               then
@@ -158,8 +158,8 @@ instance HasMerging File where
                               else
                                  do
                                     let
-                                       simpleFile1 = attemptMergeSimpleFile 
-                                          linkReAssigner newView 
+                                       simpleFile1 = attemptMergeSimpleFile
+                                          linkReAssigner newView
                                              (simpleFile file)
 
                                        newFile = File {
@@ -172,13 +172,13 @@ instance HasMerging File where
                                     done
                         )
                      linkedObject1WE
-      )              
+      )
 
 -- ------------------------------------------------------------------
 -- The instance of ObjectType
 -- ------------------------------------------------------------------
 
--- | Node type 
+-- | Node type
 theNodeType :: NodeType
 theNodeType = fromString ""
 
@@ -191,7 +191,7 @@ instance ObjectType FileType File where
    extraObjectTypes = return [plainFileType]
 
    nodeTitleSourcePrim file =
-      fmap toString 
+      fmap toString
          (getLinkedObjectTitle (linkedObject file) (fromString "NOT INSERTED"))
 
    createObjectMenuItemPrim fileType =
@@ -202,7 +202,7 @@ instance ObjectType FileType File where
    getNodeDisplayData view wrappedDisplayType fileType displayedViewAction =
       return (
          let
-            nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType 
+            nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType
                (displayParms fileType)
          in
             case nodeTypeParmsOpt of
@@ -210,38 +210,38 @@ instance ObjectType FileType File where
                   Just (NodeDisplayData {
                      topLinks = [],
                      arcTypes = [],
-                     nodeTypes = 
+                     nodeTypes =
                         let
                            allowTextEdit = canEdit fileType
 
                            textEdit link = editObject view link
 
                            editOptions1 = [
-                              Button "Edit Attributes" 
+                              Button "Edit Attributes"
                                  (\ link -> editObjectAttributes view link),
                               Button "Delete" (deleteObject view)
-                              ] 
+                              ]
                               ++ permissionsMenu view
 
                            editOptions2 =
                               if allowTextEdit
                                  then
-                                    (Button "Edit Text" textEdit) 
+                                    (Button "Edit Text" textEdit)
                                        : editOptions1
                                  else
                                     editOptions1
 
-                           menu = 
+                           menu =
                               LocalMenu (Menu (Just "File edits") editOptions2)
 
-                           parms1 = 
-                              menu $$$ 
+                           parms1 =
+                              menu $$$
                               valueTitleSource view $$$
                               fontStyleSource view $$$
                               nodeTypeParms
 
                            parms2 =
-                              if allowTextEdit 
+                              if allowTextEdit
                                  then
                                     (DoubleClickAction textEdit) $$$ parms1
                                  else
@@ -269,11 +269,11 @@ instance HasContents File where
    getAsICSL view file = getAsICSL view (simpleFile file)
 
 -- | write to a file link, which may be empty.  If it is empty,
--- create it using the type specified by the 
+-- create it using the type specified by the
 -- given key.
 -- We assume that the type exists in the view, that there are no errors
 -- creating the LinkedObject, and that the file type has no attributes
-writeToFile :: View -> Link File -> GlobalKey -> ICStringLen 
+writeToFile :: View -> Link File -> GlobalKey -> ICStringLen
    -> IO ()
 writeToFile view fileLink typeKey icsl =
    do
@@ -287,7 +287,7 @@ writeToFile view fileLink typeKey icsl =
                let
                   linkedObject = coerceWithError linkedObjectWE
                attributes <- newEmptyAttributes view
-               fileType <- getObjectTypeByKey view typeKey 
+               fileType <- getObjectTypeByKey view typeKey
                let
                   file =
                      File {
@@ -302,12 +302,12 @@ writeToFile view fileLink typeKey icsl =
             do
                file <- readLink view fileLink
                return (simpleFile file)
-       
+
       copyICStringLenToFile icsl (toFilePath simpleFile)
       dirtyLink view fileLink
- 
-               
-                     
+
+
+
 
 -- ------------------------------------------------------------------
 -- The global registry
@@ -316,7 +316,7 @@ writeToFile view fileLink typeKey icsl =
 globalRegistry :: GlobalRegistry FileType
 globalRegistry = unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
-         
+
 -- ------------------------------------------------------------------
 -- newEmptyFile
 -- ------------------------------------------------------------------
@@ -328,7 +328,7 @@ newEmptyFile :: FileType -> View -> LinkedObject -> IO Bool
 newEmptyFile fileType view parentLinkedObject =
    do
       -- Construct an extraFormItem for the name.
-      extraFormItem <- 
+      extraFormItem <-
          mkExtraFormItem(
             guardNothing "File name not specified"
                (newFormEntry "Name" Nothing))
@@ -358,7 +358,7 @@ newEmptyFile fileType view parentLinkedObject =
 -- ------------------------------------------------------------------
 
 registerFiles :: IO ()
-registerFiles = 
+registerFiles =
    do
       registerObjectType (error "Unknown FileType" :: FileType)
 
@@ -377,10 +377,10 @@ plainFileType = FileType {
 
 plainFileNodeTypeParms :: NodeTypes value
 plainFileNodeTypeParms =
-   addNodeRule 
+   addNodeRule
       AllDisplays
-      (SimpleNodeAttributes { shape = Nothing, 
-         nodeColor = Just (Color "green")}) 
+      (SimpleNodeAttributes { shape = Nothing,
+         nodeColor = Just (Color "green")})
       emptyNodeTypes
 
 plainFileKey :: GlobalKey
@@ -398,14 +398,14 @@ createNewFileType :: View -> IO (Maybe FileType)
 createNewFileType view =
    do
       let
-         firstForm :: Form (String,(Bool,NodeTypes (Link File))) 
+         firstForm :: Form (String,(Bool,NodeTypes (Link File)))
          firstForm =
             titleForm //
             canEditForm //
             simpleNodeTypesForm
 
          titleForm0 :: Form String
-         titleForm0 = newFormEntry "Title" "" 
+         titleForm0 = newFormEntry "Title" ""
 
          titleForm = guardForm (/= "") "Title must be non-empty" titleForm0
 
@@ -417,7 +417,7 @@ createNewFileType view =
          Nothing -> return Nothing
          Just (title,(canEdit,displayParms)) ->
             do
-               requiredAttributesOpt <- getAttributesType 
+               requiredAttributesOpt <- getAttributesType
                case requiredAttributesOpt of
                   Nothing -> return Nothing
                   Just requiredAttributes ->

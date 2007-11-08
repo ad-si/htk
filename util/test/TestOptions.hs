@@ -10,7 +10,7 @@ testGet name action =
       value <- action
       putStrLn (name++" "++(show value))
 
-main = 
+main =
    do
       testGet "wishPath" getWishPath
       testGet "daVinciPath" getDaVinciPath

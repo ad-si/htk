@@ -1,5 +1,5 @@
 -- | This is a very simple service which rebroadcasts all lines it
--- receives to all currently connected clients. 
+-- receives to all currently connected clients.
 module EchoService(
    echoService, -- :: pass to connectBroadcast to call server
    echoServiceWrapped -- :: pass to runServer to run server.
@@ -15,7 +15,7 @@ echoService :: (String,String,EchoState)
 echoService = serviceArg :: (String,String,EchoState)
 
 echoServiceWrapped :: Service
-echoServiceWrapped = Service echoService 
+echoServiceWrapped = Service echoService
 
 instance ServiceClass String String EchoState where
    serviceId _ = "Echo"
@@ -23,7 +23,7 @@ instance ServiceClass String String EchoState where
    initialState _ = return(EchoState ())
    handleRequest _ _ (inVal,state) = return (inVal,state)
    getBackupDelay _ = return BackupNever
-   
+
 
 
 

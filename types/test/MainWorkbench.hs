@@ -3,7 +3,7 @@
    (2) the UniForM server, with hostname indicated in UNISERVER.
    (3) a string describing how to call the editor, see uni/types/CallEditor.
 
-   The script runWorkbench in this directory, provided as an example, sets 
+   The script runWorkbench in this directory, provided as an example, sets
    it all going on the same machine.
    -}
 module Main(main) where
@@ -34,7 +34,7 @@ main =
          ]
       withdrawWish
       hostPort <- getDefaultHostPort
-      versionGraph <- 
+      versionGraph <-
          let
             ?server = hostPort
          in

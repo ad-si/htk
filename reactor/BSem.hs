@@ -1,10 +1,10 @@
 -- |
 -- Description: Simple Lock
--- 
+--
 -- A simple semaphore
 module BSem (
    module Lock,
-   
+
    BSem,
    newBSem,
    newLockedBSem,
@@ -15,7 +15,7 @@ module BSem (
    ) where
 
 import Maybe
- 
+
 import Control.Concurrent.MVar
 
 import Thread
@@ -35,13 +35,13 @@ newtype BSem = BSem (MVar ()) deriving Eq
 instance Lock BSem where
    acquire (BSem sem) = takeMVar sem
    release (BSem sem) = putMVar sem ()
-   tryAcquire (BSem sem) = 
+   tryAcquire (BSem sem) =
       do
          success <- tryTakeMVar sem
          return (isJust success)
 
 instance Synchronized BSem where
-   synchronize (BSem sem) c = 
+   synchronize (BSem sem) c =
       do
          takeMVar sem
          ans <- try c
@@ -81,10 +81,10 @@ tryAcquireBSems bSems =
 
 -- | tryAcquireBSemsWithError is a generalisation of tryAcquireBSems, which
 -- produces an error message
--- 
+--
 -- The first argument extracts an object\'s BSem; the second gets a String to
 -- be used as a message if we can\'t get the object\'s lock.
-tryAcquireBSemsWithError :: (object -> BSem) -> (object -> IO String) 
+tryAcquireBSemsWithError :: (object -> BSem) -> (object -> IO String)
    -> [object] -> IO (WithError (IO ()))
 tryAcquireBSemsWithError toBSem toMess objects =
    let
@@ -96,7 +96,7 @@ tryAcquireBSemsWithError toBSem toMess objects =
    in
       tryAcquireBSemsWithError1 getBSem getMessIfError objects
 
--- | tryAcquireBSemsWithError1 toBSem getMessIfError objects 
+-- | tryAcquireBSemsWithError1 toBSem getMessIfError objects
 -- attempts to acquire the BSems in (map toBSem objects).  In
 -- the event of a (toBSem object) already being acquired, it looks at
 -- the result of getMessIfError object.  If this is (Just mess)
@@ -105,7 +105,7 @@ tryAcquireBSemsWithError toBSem toMess objects =
 -- it goes on to attempt to acquire the BSems for the remaining objects.
 -- If it gets to the end of the list it returns an action which can be
 -- used to release all the BSems it has acquired.
-tryAcquireBSemsWithError1 :: 
+tryAcquireBSemsWithError1 ::
    (object -> IO BSem) -> (object -> IO (Maybe String)) -> [object]
    -> IO (WithError (IO ()))
 tryAcquireBSemsWithError1 _ _ [] = return . return $ done
@@ -116,7 +116,7 @@ tryAcquireBSemsWithError1 getBSem getMessIfError (object:objects) =
       if acquire1
          then
             do
-               acquires 
+               acquires
                   <- tryAcquireBSemsWithError1 getBSem getMessIfError objects
                case fromWithError acquires of
                   Right releaseAct ->
@@ -136,5 +136,5 @@ tryAcquireBSemsWithError1 getBSem getMessIfError (object:objects) =
                   Just errorMess -> return (fail errorMess)
                   Nothing ->
                      tryAcquireBSemsWithError1 getBSem getMessIfError objects
- 
+
 

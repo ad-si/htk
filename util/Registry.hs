@@ -9,13 +9,13 @@ module Registry(
    Registry, -- A "Registry from to" maps from values to to values.
    UntypedRegistry, -- An "UntypedRegistry from" maps from values to
                 -- any Typeable values.
-   LockedRegistry, -- A "LockedRegistry from to" is like a 
+   LockedRegistry, -- A "LockedRegistry from to" is like a
       -- "Registry from to" but with finer locking.
    UntypedLockedRegistry, -- An "UntypedLockedRegistry from" is
       -- like an "UntypedRegistry from" but with finer locking.
    Untyped, -- Type constructor for registries with untyped contents.
 
-   -- Unsafe/UnsafeRegistry are equivalent to Untyped/UntypedRegistry except 
+   -- Unsafe/UnsafeRegistry are equivalent to Untyped/UntypedRegistry except
    -- for the additional functionality of causing a core-dump if misused,
    -- and not requiring Typeable.  THIS WILL GO IN GHC6.04
    Unsafe,
@@ -48,7 +48,7 @@ module Registry(
       -- operation.
 
 
-   getValue', 
+   getValue',
       -- Function to be used instead of getValue for debugging purposes.
    getValueSafe,
       -- alias for that (useful in combination with CPP).
@@ -86,7 +86,7 @@ class NewRegistry registry where
    emptyRegistry :: registry -> IO ()
 
 class GetSetRegistry registry from to where
-   transformValue :: registry -> from -> (Maybe to -> IO (Maybe to,extra)) 
+   transformValue :: registry -> from -> (Maybe to -> IO (Maybe to,extra))
       -> IO extra
       -- transform a value, where "Nothing" means "value is not in
       -- the registry.  Locking is important, but depends on the
@@ -99,7 +99,7 @@ class GetSetRegistry registry from to where
       (\ valueOpt -> return (valueOpt,valueOpt))
 
    getValue :: registry -> from -> IO to
-      -- should raise an IO error if the value is not defined or- 
+      -- should raise an IO error if the value is not defined or-
       -- (for Untyped) has the wrong type.
    getValue registry from =
       do
@@ -107,13 +107,13 @@ class GetSetRegistry registry from to where
          case valueOpt of
             Nothing -> error "Registry.getValue  - value undefined"
             Just value -> return value
-   
+
    setValue :: registry -> from -> to -> IO ()
    setValue registry from to =
       transformValue registry from (\ _ -> return (Just to,()))
 
 
--- | ListRegistryContents will not be implemented for the untyped registries. 
+-- | ListRegistryContents will not be implemented for the untyped registries.
 class ListRegistryContents registry from to where
    listRegistryContents :: registry from to -> IO [(from,to)]
 
@@ -122,14 +122,14 @@ class ListRegistryContents registry from to where
 
    listToNewRegistry :: [(from,to)] -> IO (registry from to)
 
-getValueDefault :: GetSetRegistry registry from to 
+getValueDefault :: GetSetRegistry registry from to
    => to -> registry -> from -> IO to
 getValueDefault defTo registry from =
    do
       toOpt <- getValueOpt registry from
       case toOpt of
          Nothing -> return defTo
-         Just to -> return to 
+         Just to -> return to
 
 class KeyOpsRegistry registry from where
    deleteFromRegistryBool :: registry -> from -> IO Bool
@@ -147,7 +147,7 @@ class KeyOpsRegistry registry from where
 
 -- ----------------------------------------------------------------------
 -- Typed registries
--- The locking here for transformValue is not so clever and just locks the 
+-- The locking here for transformValue is not so clever and just locks the
 -- whole map while the fallback action runs.
 -- ----------------------------------------------------------------------
 
@@ -169,7 +169,7 @@ instance Ord from => GetSetRegistry (Registry from to) from to where
       do
          valueOpt <- getValueOpt registry from
          case valueOpt of
-            Nothing -> 
+            Nothing ->
                ioError(userError "Registry.getValue - value not found")
             Just value -> return value
 
@@ -206,7 +206,7 @@ instance Ord from => KeyOpsRegistry (Registry from to) from where
    deleteFromRegistryBool (Registry mVar) from =
       do
          map <- takeMVar mVar
-         if elemFM from map 
+         if elemFM from map
             then
                do
                   putMVar mVar (delFromFM map from)
@@ -266,7 +266,7 @@ type UntypedRegistry from = Untyped Registry from
 
 newtype Untyped registry from = Untyped (registry from Dyn)
 
-instance NewRegistry (registry from Dyn) 
+instance NewRegistry (registry from Dyn)
    => NewRegistry (Untyped registry from) where
    newRegistry =
       do
@@ -280,7 +280,7 @@ fromDynamicMessage fName dyn =
       Just to -> to
       Nothing -> error ("Registry."++fName++" - value has wrong type")
 
-instance (Typeable to,GetSetRegistry (registry from Dyn) from Dyn) 
+instance (Typeable to,GetSetRegistry (registry from Dyn) from Dyn)
    => GetSetRegistry (Untyped registry from) from to where
    transformValue (Untyped registry) from transformer =
       do
@@ -293,9 +293,9 @@ instance (Typeable to,GetSetRegistry (registry from Dyn) from Dyn)
                   (valOutOpt,extra) <- transformer valInOpt
                   let dynOutOpt = (fmap valMapOut) valOutOpt
                   return (dynOutOpt,extra)
-         transformValue registry from transformerDyn 
+         transformValue registry from transformerDyn
 
-instance KeyOpsRegistry (registry from Dyn) from 
+instance KeyOpsRegistry (registry from Dyn) from
    => KeyOpsRegistry (Untyped registry from) from where
    deleteFromRegistryBool (Untyped registry) from =
       deleteFromRegistryBool registry from
@@ -336,7 +336,7 @@ fromObj = unsafeCoerce#
 
 newtype Unsafe registry from = Unsafe (registry from Obj)
 
-instance NewRegistry (registry from Obj) 
+instance NewRegistry (registry from Obj)
    => NewRegistry (Unsafe registry from) where
    newRegistry =
       do
@@ -344,7 +344,7 @@ instance NewRegistry (registry from Obj)
          return (Unsafe registry)
    emptyRegistry (Unsafe registry) = emptyRegistry registry
 
-instance (GetSetRegistry (registry from Obj) from Obj) 
+instance (GetSetRegistry (registry from Obj) from Obj)
    => GetSetRegistry (Unsafe registry from) from to where
    transformValue (Unsafe registry) from transformer =
       do
@@ -355,9 +355,9 @@ instance (GetSetRegistry (registry from Obj) from Obj)
                   (valOutOpt,extra) <- transformer valInOpt
                   let objOutOpt = (fmap toObj) valOutOpt
                   return (objOutOpt,extra)
-         transformValue registry from transformerObj 
+         transformValue registry from transformerObj
 
-instance KeyOpsRegistry (registry from Obj) from 
+instance KeyOpsRegistry (registry from Obj) from
    => KeyOpsRegistry (Unsafe registry from) from where
    deleteFromRegistryBool (Unsafe registry) from =
       deleteFromRegistryBool registry from
@@ -375,7 +375,7 @@ instance KeyOpsRegistry (registry from Obj) from
 -- can be caught using lockedRegistryCheck.
 -- ----------------------------------------------------------------------
 
-newtype LockedRegistry from to 
+newtype LockedRegistry from to
    = Locked (Registry from (MVar (Maybe to),Set ThreadId))
    deriving (Typeable)
 
@@ -392,7 +392,7 @@ instance Ord from => NewRegistry (LockedRegistry from to) where
 takeVal :: Ord from => LockedRegistry from to -> from -> IO (Maybe to)
 takeVal (Locked registry) from =
    do
-      mVar <- 
+      mVar <-
          transformValue registry from
             (\ dataOpt ->
                do
@@ -405,7 +405,7 @@ takeVal (Locked registry) from =
                      Just (mVar,set0) ->
                         if elementOf threadId set0
                            then -- error
-                              mkBreakFn lockedFallOutId 
+                              mkBreakFn lockedFallOutId
                                  ("Circular transformValue detected in "
                                     ++ "Registry.LockedRegistry")
                            else
@@ -435,7 +435,7 @@ putVal (Locked registry) from toOpt =
                               return (Just (mVar,set1),())
          )
 
-      
+
 
 lockedRegistryCheck :: IO a -> IO (Either String a)
 
@@ -475,14 +475,14 @@ instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where
 -- if a value is there, since it prints the label if things go wrong.
 -- ----------------------------------------------------------------------
 
-getValueSafe :: GetSetRegistry registry from to 
+getValueSafe :: GetSetRegistry registry from to
    => String -> registry -> from -> IO to
 getValueSafe = getValue'
 
 
-getValue' :: GetSetRegistry registry from to 
+getValue' :: GetSetRegistry registry from to
    => String -> registry -> from -> IO to
-getValue' = 
+getValue' =
    if isDebug
       then
          (\ label registry from ->
@@ -502,7 +502,7 @@ getValue' =
 -- Instance of HasBinary for monads which have IO.
 -- ----------------------------------------------------------------------
 
-instance (HasBinary (from,to) m,Ord from,MonadIO m) 
+instance (HasBinary (from,to) m,Ord from,MonadIO m)
    => HasBinary (Registry from to) m where
 
    writeBin = mapWriteIO listRegistryContents

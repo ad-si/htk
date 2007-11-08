@@ -1,11 +1,11 @@
--- | Contains a sample ListDrawer for testing purposes 
+-- | Contains a sample ListDrawer for testing purposes
 module VariableListTest where
 
 
 import Object
 import VariableList
 
-debugListDrawer :: Show a => ListDrawer a Int 
+debugListDrawer :: Show a => ListDrawer a Int
 debugListDrawer =
    let
       newPos pOpt aOpt =
@@ -20,5 +20,5 @@ debugListDrawer =
    in
       ListDrawer {newPos = newPos,setPos = setPos,delPos = delPos,
          redraw = redraw}
-           
-            
+
+

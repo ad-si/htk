@@ -14,7 +14,7 @@ import DeprecatedFiniteMap
 
 import PureGraph
 
-pureGraphMakeConsistent :: Ord nodeInfo 
+pureGraphMakeConsistent :: Ord nodeInfo
    => PureGraph nodeInfo arcInfo -> PureGraph nodeInfo arcInfo
 pureGraphMakeConsistent (PureGraph {nodeDataFM = nodeDataFM0}) =
    let
@@ -22,8 +22,8 @@ pureGraphMakeConsistent (PureGraph {nodeDataFM = nodeDataFM0}) =
          (\ _ nodeData0 ->
             let
                parents0 = parents nodeData0
-               parents1 = filter 
-                  (\ arcData -> elemFM (target arcData) nodeDataFM0) 
+               parents1 = filter
+                  (\ arcData -> elemFM (target arcData) nodeDataFM0)
                   parents0
 
                nodeData1 = NodeData {parents = parents1}

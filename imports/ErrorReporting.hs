@@ -10,7 +10,7 @@ module ErrorReporting(
    reportedError,
       -- :: WithError
       -- ditto
-   reported, 
+   reported,
       -- :: String
       -- the null error
    ) where
@@ -38,7 +38,7 @@ listWithErrorCheckReported awes =
       (\ awe awes ->
          mapWithError
             (\ (a,as) -> a:as)
-            (pairWithErrorCheckReported awe awes) 
+            (pairWithErrorCheckReported awe awes)
          )
       (hasValue [])
       awes

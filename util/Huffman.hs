@@ -1,6 +1,6 @@
 -- | This code does "Huffman" coding, using the queue implementation.  This
 -- can be used for constructing Huffman encodings, or for computing factorials
--- efficiently. 
+-- efficiently.
 module Huffman(
    huffmanFold
    ) where
@@ -13,7 +13,7 @@ import Queue
 -- computes the fold of l with op, by repeatedly folding the smallest two
 -- elements of the list until only one remains.
 huffmanFold :: Ord a => (a -> a -> a) -> [a] -> a
-huffmanFold op l = 
+huffmanFold op l =
    let
       pointedList = pointList l
 
@@ -36,7 +36,7 @@ huffmanFold op l =
                      phase2 (insertQ queue3 (op a1 a2))
                   Nothing -> a1 -- we have a result!
    in
-      phase1 pointedList      
+      phase1 pointedList
 
 -- ------------------------------------------------------------------------
 -- PointedList operations
@@ -66,18 +66,18 @@ removePointed (PointedList queue list) =
 -- | insertAndMovePointer inserts an element to the right of the pointer,
 -- and moves the pointer after it.  It does this maintaining the invariant
 -- that the pointed list is ordered, and we assume that all elements to the
--- left of the pointer are not more than the inserted element. 
--- 
+-- left of the pointer are not more than the inserted element.
+--
 -- If the pointer reaches the end of the list, we instead of returning a
 -- PointedList, return a queue containing the list contents.
-insertAndMovePointer :: Ord a => PointedList a -> a 
+insertAndMovePointer :: Ord a => PointedList a -> a
    -> Either (Queue a) (PointedList a)
 insertAndMovePointer (PointedList queue list) a =
    case list of
       [] -> Left (insertQ queue a)
       a2:list' ->
-         if a2<a 
-         then insertAndMovePointer 
+         if a2<a
+         then insertAndMovePointer
             (PointedList (insertQ queue a2) list') a
          else
             Right (PointedList (insertQ queue a) list)

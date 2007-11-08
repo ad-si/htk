@@ -1,16 +1,16 @@
 -- |
 -- Description: What objects need to be mergeable.
--- 
+--
 -- This describes the various types relevant to the interface between the
--- repository and object implementations and merging. 
+-- repository and object implementations and merging.
 module MergeTypes(
    ObjectLinks(..),
    concatObjectLinks, -- :: [ObjectLinks key] -> ObjectLinks key
-   
+
    MergeLinks(..),
    emptyMergeLinks, -- :: MergeLinks object
-   singletonMergeLinks, 
-      -- :: HasCodedValue object 
+   singletonMergeLinks,
+      -- :: HasCodedValue object
       -- => (object -> WrappedMergeLink) -> MergeLinks object
 
    pairMergeLinks,
@@ -21,10 +21,10 @@ module MergeTypes(
    WrappedMergeLink(..), -- instance HasKey _ Location
    unpackWrappedMergeLink,
       -- :: HasMerging object => WrappedMergeLink -> Maybe (Link object)
-   
+
 
    mapLink,
-      -- :: HasMerging object => LinkReAssigner -> View -> Link object 
+      -- :: HasMerging object => LinkReAssigner -> View -> Link object
       -- -> Link object
 
    PostMerge,
@@ -56,24 +56,24 @@ instance Functor ObjectLinks where
       ObjectLinks (map (\ (wrappedLink,key) -> (wrappedLink,fn key)) l)
 
 concatObjectLinks :: [ObjectLinks key] -> ObjectLinks key
-concatObjectLinks l 
+concatObjectLinks l
    = ObjectLinks (concat (map (\ (ObjectLinks links) -> links) l))
 
 
 -- | This is the function objects need to provide.
--- 
+--
 -- The \"Show\" instance is used in error messages.  The Typeable instance
 -- is needed to get the key out and compare it with other keys for the
 -- same object type in other views.
-data MergeLinks object = forall key . (Ord key,Show key,Typeable key) 
+data MergeLinks object = forall key . (Ord key,Show key,Typeable key)
    => MergeLinks (View -> Link object -> IO (ObjectLinks key))
 
 
 emptyMergeLinks :: MergeLinks object
-emptyMergeLinks 
+emptyMergeLinks
    = MergeLinks (\ _ _ -> return ((ObjectLinks []) :: ObjectLinks ()))
 
-singletonMergeLinks 
+singletonMergeLinks
    :: HasCodedValue object => (object -> WrappedMergeLink) -> MergeLinks object
 singletonMergeLinks toWrappedMergeLink =
    let
@@ -85,7 +85,7 @@ singletonMergeLinks toWrappedMergeLink =
       MergeLinks fn
 
 
--- pairMergeLinks 
+-- pairMergeLinks
 pairMergeLinks :: MergeLinks object -> MergeLinks object -> MergeLinks object
 pairMergeLinks (MergeLinks fn1) (MergeLinks fn2) =
    let
@@ -95,14 +95,14 @@ pairMergeLinks (MergeLinks fn1) (MergeLinks fn2) =
             (objectLinks2 @ (ObjectLinks list2)) <- fn2 view link
             let
                list =
-                     (map (\ (wrappedLink,key1) -> (wrappedLink,Left key1)) 
+                     (map (\ (wrappedLink,key1) -> (wrappedLink,Left key1))
                         list1)
                   ++ (map (\ (wrappedLink,key2) -> (wrappedLink,Right key2))
                         list2)
             return (ObjectLinks list)
    in
       MergeLinks fn
- 
+
 -- | This contains the reassignments made in merging, mapping each link to
 -- its corresponding link in the final merge.
 data LinkReAssigner = LinkReAssigner {
@@ -112,7 +112,7 @@ data LinkReAssigner = LinkReAssigner {
    allMergesMap :: FiniteMap WrappedMergeLink [(View,WrappedMergeLink)]
       -- ^ allMergesMap is the inverse map, mapping each link in the
       -- final merge to the corresponding original links.
-   } 
+   }
 
 
 class HasCodedValue object => HasMerging object where
@@ -138,17 +138,17 @@ class HasCodedValue object => HasMerging object where
             unitWE
             )
 
-   copyObject :: Maybe (View -> object -> View 
+   copyObject :: Maybe (View -> object -> View
       -> (ObjectVersion -> IO VersionInfo) -> IO object)
       -- Operation performed during session management, when we need to
       -- recreate an object.  We take the original view, old object,
-      -- new view as arguments and lookup function, and return a new version 
+      -- new view as arguments and lookup function, and return a new version
       -- of the object.
       --
       -- The lookup function passed in maps from an object version in the
       -- source repository to the corresponding VersionInfo (which may not
       -- yet have actually been committed) in the new repository.
-      -- 
+      --
       -- When Nothing this means that the new copy can just be exactly the
       -- same (byte-identical) as the old one, which saves the
       -- session-management code a bit of work.  However we envisage this
@@ -172,7 +172,7 @@ data WrappedMergeLink = forall object .
 -- | Returns Nothing if the types don\'t match.
 unpackWrappedMergeLink :: HasMerging object =>
     WrappedMergeLink -> Maybe (Link object)
-unpackWrappedMergeLink (WrappedMergeLink link) = fromDynamic (toDyn link) 
+unpackWrappedMergeLink (WrappedMergeLink link) = fromDynamic (toDyn link)
 
 
 instance Eq WrappedMergeLink where
@@ -181,15 +181,15 @@ instance Eq WrappedMergeLink where
 -- | NB NB.  MergeComputeParents uses a hack which assumes that the
 -- ordering only depends on the link location.
 instance Ord WrappedMergeLink where
-   compare (WrappedMergeLink link1) (WrappedMergeLink link2) 
+   compare (WrappedMergeLink link1) (WrappedMergeLink link2)
       = compareLink link1 link2
 
 instance HasKey WrappedMergeLink Location where
    toKey (WrappedMergeLink link) = toKey link
 
-mapLink :: HasMerging object => LinkReAssigner -> View -> Link object 
+mapLink :: HasMerging object => LinkReAssigner -> View -> Link object
    -> Link object
-mapLink linkReAssigner oldView oldLink = 
+mapLink linkReAssigner oldView oldLink =
    case lookupFM (linkMap linkReAssigner) (viewId oldView,WrappedMergeLink oldLink)
          of
       Nothing -> error "MergeTypes.mapLink - unmapped type"

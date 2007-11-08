@@ -62,11 +62,11 @@ instance GUIValue XSelection where
 
 -- | Clears the X selection.
 clearXSelection :: GUIObject a => Screen a -> XSelection -> IO ()
-clearXSelection (Screen win) sel = 
+clearXSelection (Screen win) sel =
         execMethod win (\nm  ->  ["selection clear -displayof " ++ show nm ++ " -selection " ++ show sel])
 
 -- | Gets the current X selection.
 getXSelection :: (GUIObject a, GUIValue b) =>
                  Screen a-> XSelection -> TargetType -> IO b
-getXSelection (Screen win) sel tp = 
+getXSelection (Screen win) sel tp =
         evalMethod win (\nm  ->  ["selection get -displayof " ++ show nm ++ " -selection " ++ show sel ++ " -type " ++ tp])

@@ -1,5 +1,5 @@
 -- | The ServiceClass class needs to be instanced (at least partially)
--- to define a new service. 
+-- to define a new service.
 module ServiceClass(
    -- all commented in body of module
    Service(..),
@@ -19,16 +19,16 @@ import Thread
 
 import PasswordFile
 
-data Service = forall inType outType stateType . 
-   ServiceClass inType outType stateType => 
+data Service = forall inType outType stateType .
+   ServiceClass inType outType stateType =>
    Service (inType,outType,stateType)
    -- The inType,outType and stateType values in Service are never looked
    -- at; this is only a type parameter.  It can be generated from
    -- serviceArg:
 
-serviceArg :: (ServiceClass inType outType stateType) => 
+serviceArg :: (ServiceClass inType outType stateType) =>
       (inType,outType,stateType)
-serviceArg 
+serviceArg
    = (error "ServiceClass.1",error "ServiceClass.2",error "ServiceClass.3")
 
 class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,HasBinary outType StateBinArea) =>
@@ -48,14 +48,14 @@ class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,Ha
    -- socket is opened.  The String should be unique to the
    -- service and should not contain a newline.
 
-   serviceMode :: (inType,outType,stateType) -> ServiceMode inType 
+   serviceMode :: (inType,outType,stateType) -> ServiceMode inType
       -- ^ see type definition
-  
+
    initialState :: (inType,outType,stateType) -> IO stateType
    -- ^ called when the server is initialised.  May for example
    -- read backups, if there are any.
 
-   handleRequest :: (inType,outType,stateType) 
+   handleRequest :: (inType,outType,stateType)
       -> User -> (inType,stateType) -> IO (outType,stateType)
    -- ^ This handles a particular request from a client, identified by
    -- the given User item.
@@ -72,7 +72,7 @@ class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,Ha
    backupAction :: (inType,outType,stateType) -> stateType -> IO ()
    -- ^ this is the action to be performed for backups.
 
-   sendOnConnect :: (inType,outType,stateType) -> User -> stateType 
+   sendOnConnect :: (inType,outType,stateType) -> User -> stateType
       -> IO String
    -- ^ On connection we send the sendOnConnect string to the client
    -- before anything else.  Defaults to \"\".  Computing the string
@@ -83,7 +83,7 @@ class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,Ha
    -- backupAction are automatically defined, to restore and save the
    -- state from a file obtained by a file of name serviceId in the
    -- directory backupDir (see WBFiles.hs).
-   initialStateFromString :: (inType,outType,stateType) -> Maybe String 
+   initialStateFromString :: (inType,outType,stateType) -> Maybe String
       -> IO stateType
     -- Nothing corresponds to no backup file and presumably initialisation.
 
@@ -110,17 +110,17 @@ class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,Ha
          copyStringToFile contents filePath
 
    -- This is the function we actually use on connect.
-   sendOnConnectWrapped :: (inType,outType,stateType) -> User -> stateType 
+   sendOnConnectWrapped :: (inType,outType,stateType) -> User -> stateType
        -> IO WrappedBinary
    sendOnConnectWrapped service user state =
        do
           str <- sendOnConnect service user state
           return (WrappedBinary str)
-          
+
 getBackupFile :: ServiceClass inType outType stateType =>
    (inType,outType,stateType) -> IO FilePath
 getBackupFile service = getServerFile (serviceId service ++ ".backup")
- 
+
 data ServiceMode inType =
       Reply     -- Send output just to client sending input
    |  Broadcast -- Send output to all clients waiting on this service.
@@ -132,7 +132,7 @@ data ServiceMode inType =
          -- The service provider is basically providing a source of "inType"
          --    values.
          -- The server functions make use of this source by registering
-         --    a function of type (IO inType -> IO ()); incidentally this 
+         --    a function of type (IO inType -> IO ()); incidentally this
          --    function is only ever registered once.
          -- When a new "inType" value is about to occur, the service provider
          --    calls the function with the action of type "IO inType" as
@@ -142,7 +142,7 @@ data ServiceMode inType =
          --    Indeed the function of type "IO inType -> IO ()" will if
          --    necessary block until sendOnConnect(Wrapped) or handleRequest
          --    terminates, before invoking the IO inType action.
-                 
+
 data BackupDelay =
       BackupNever
    |  BackupAfter Duration -- wait this long (after previous backup)

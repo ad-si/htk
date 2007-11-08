@@ -25,7 +25,7 @@ createTextDisplayExt :: String
    -- ^ the window in which the text is displayed
 createTextDisplayExt title txt conf unpost =
   do win <- createToplevel [text title]
-     b   <- newFrame win  [relief Groove, borderwidth (cm 0.05)]    
+     b   <- newFrame win  [relief Groove, borderwidth (cm 0.05)]
      t   <- newLabel b [text title, HTk.font (Helvetica, Roman, 18::Int)]
      q   <- newButton b [text "Close", width 12]
      (sb, ed) <- newScrollBox b (\p-> newEditor p (state Normal:conf)) []
@@ -33,7 +33,7 @@ createTextDisplayExt title txt conf unpost =
      pack t [Side AtTop, Expand Off, PadY 10]
      pack sb [Side AtTop, Expand On, Fill Both]
      pack ed [Side AtTop, Expand On, Fill Both]
-     pack q [Side AtRight, PadX 5, PadY 5] 		 
+     pack q [Side AtRight, PadX 5, PadY 5]
 
      ed # value txt
      ed # state Disabled

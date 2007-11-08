@@ -5,10 +5,10 @@ module Focus (
 
   CurrentFocus,
 
-  FocusModel(..), 
+  FocusModel(..),
   focusModel,
   getFocusModel,
-  getFocus,       
+  getFocus,
   setFocus,
   forceFocus,
   getRecentFocus,
@@ -16,8 +16,8 @@ module Focus (
   GrabStatus(..),
 
   CurrentGrab(..),
-  grabLocal, 
-  grabGlobal, 
+  grabLocal,
+  grabGlobal,
   releaseGrab,
   returnGrab,
   getGrabStatus,
@@ -58,8 +58,8 @@ instance Read GrabStatus where
 
 -- | Internal.
 instance Show GrabStatus where
-  showsPrec d p r = (case p of 
-                       Local -> "local" 
+  showsPrec d p r = (case p of
+                       Local -> "local"
                        Global -> "global") ++ r
 
 
@@ -94,14 +94,14 @@ instance Widget CurrentGrab
 -- -----------------------------------------------------------------------
 
 -- | Grabs the focus local.
-grabLocal :: Widget w => w 
+grabLocal :: Widget w => w
    -- ^ the concerned widget.
    -> IO ()
    -- ^ None.
 grabLocal wid = execMethod wid (\name -> [tkGrabLocal name])
 
 -- | Grabs the focus global.
-grabGlobal :: Widget w => w 
+grabGlobal :: Widget w => w
    -- ^ the concerned widget.
    -> IO ()
    -- ^ None.
@@ -109,14 +109,14 @@ grabGlobal wid =
   execMethod wid (\name -> ["grab set -global " ++ show name])
 
 -- | Releases a focus grab.
-releaseGrab :: Widget w => w 
+releaseGrab :: Widget w => w
    -- ^ the concerned widget.
    -> IO ()
    -- ^ None.
 releaseGrab wid = execMethod wid (\name -> ["grab release " ++ show name])
 
 -- | Gets the grab status from a widget.
-getGrabStatus :: Widget w => w 
+getGrabStatus :: Widget w => w
    -- ^ the concerned widget.
    -> IO (Maybe GrabStatus)
    -- ^ The current grab status (if available).
@@ -177,9 +177,9 @@ instance Read FocusModel where
 
 -- | Internal.
 instance Show FocusModel where
-   showsPrec d p r = 
-      (case p of 
-        ActiveFocus -> "active" 
+   showsPrec d p r =
+      (case p of
+        ActiveFocus -> "active"
         PassiveFocus -> "passive"
         ) ++ r
 
@@ -194,7 +194,7 @@ focusModel fm win = cset win "focusmodel" fm
 
 -- | Gets a window\'s focus model.
 getFocusModel :: Window w => w -> IO FocusModel
-getFocusModel win = cget win "focusmodel" 
+getFocusModel win = cget win "focusmodel"
 
 
 -- -----------------------------------------------------------------------
@@ -220,7 +220,7 @@ instance GUIObject CurrentFocus where
 
 -- | The current focus is always a widget and has standard widget properties
 -- (concerning focus, cursor).
-instance Widget CurrentFocus  
+instance Widget CurrentFocus
 
 
 -- -----------------------------------------------------------------------
@@ -228,35 +228,35 @@ instance Widget CurrentFocus
 -- -----------------------------------------------------------------------
 
 -- | Gets the current focus inside a window.
-getFocus :: Window w => w 
+getFocus :: Window w => w
    -- ^ the concerned window.
    -> IO (Maybe CurrentFocus)
    -- ^ The current focus (if available).
-getFocus win = 
-  evalMethod win (\wn -> ["focus -displayof " ++ show wn]) >>= 
+getFocus win =
+  evalMethod win (\wn -> ["focus -displayof " ++ show wn]) >>=
   toCurrentFocus . WidgetName
 
 -- | Sets the current for the containing window.
-setFocus :: Widget w => w 
+setFocus :: Widget w => w
    -- ^ The widget to focus.
    -> IO ()
    -- ^ None.
 setFocus w = execMethod w (\wn -> ["focus " ++ show wn])
 
 -- | Forces the current focus for the containing window.
-forceFocus :: Widget w => w 
+forceFocus :: Widget w => w
    -- ^ The widget to focus.
    -> IO ()
    -- ^ None.
 forceFocus w = execMethod w (\wn -> ["focus -force " ++ show wn])
 
 -- | Gets the last focused widget inside a window.
-getRecentFocus :: Window w => w 
+getRecentFocus :: Window w => w
    -- ^ the concerned window.
    -> IO (Maybe CurrentFocus)
    -- ^ The recent focus (if available).
 getRecentFocus w =
-  evalMethod w (\wn -> ["focus -lastfor " ++ show wn])    >>= 
+  evalMethod w (\wn -> ["focus -lastfor " ++ show wn])    >>=
   toCurrentFocus . WidgetName
 
 toCurrentFocus :: WidgetName -> IO (Maybe CurrentFocus)

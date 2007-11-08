@@ -34,9 +34,9 @@ newtype MenuCommand = MenuCommand GUIOBJECT
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new menu command and returns a handler.
-createMenuCommand :: Menu 
+createMenuCommand :: Menu
    -- ^ the parent menu.
-   -> [Config MenuCommand] 
+   -> [Config MenuCommand]
    -- ^ the list of configuration options for this menu
    -- command.
    -> IO MenuCommand
@@ -57,10 +57,10 @@ instance Eq MenuCommand where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject MenuCommand where 
+instance GUIObject MenuCommand where
   toGUIObject (MenuCommand w) = w
   cname _ = "MenuCommand"
-                        
+
 -- | You can synchronize on a menu command.
 instance Synchronized MenuCommand where
   -- Synchronizes on a menu command.
@@ -78,7 +78,7 @@ instance HasBorder MenuCommand
 
 -- | A menu command has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
-instance HasColour MenuCommand where 
+instance HasColour MenuCommand where
   legalColourID = buttonColours
 
 -- | A menu command is a stateful object, it can be enabled or

@@ -1,4 +1,4 @@
--- | This module contains various functions for operating on graphs 
+-- | This module contains various functions for operating on graphs
 module GraphOps(
    isAncestor, -- :: graph ... -> Node -> Node -> IO Bool
       -- returns True if the first Node is an ancestor, or identical, to
@@ -18,8 +18,8 @@ import Graph
 -- The functions
 -- ---------------------------------------------------------------------------
 
-isAncestor :: Graph graph 
-   => graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+isAncestor :: Graph graph
+   => graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> Node -> Node -> IO Bool
 isAncestor graph node1 node2 =
    let
@@ -30,7 +30,7 @@ isAncestor graph node1 node2 =
             mapM (\ arc -> getTarget graph arc) arcs
    in
       isAncestorBy getChildren node1 node2
-   
+
 
 isAncestorBy :: Ord key => (key -> IO [key]) -> key -> key -> IO Bool
 isAncestorBy getChildren (node1 :: node) node2 =
@@ -43,7 +43,7 @@ isAncestorBy getChildren (node1 :: node) node2 =
          search visited toDo0 = case removeQ toDo0 of
             Nothing -> return False
             Just (node,toDo1) ->
-               if elementOf node visited 
+               if elementOf node visited
                   then
                      search visited toDo1
                   else

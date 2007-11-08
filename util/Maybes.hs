@@ -1,6 +1,6 @@
--- | This file differs from the Einar original (itself automatically 
+-- | This file differs from the Einar original (itself automatically
 -- produced by decommenting an obsolete GHC source file, apparently) with
--- nearly all the functions removed and one (compMaybe) added. 
+-- nearly all the functions removed and one (compMaybe) added.
 module Maybes (
    firstJust, -- :: [Maybe a] -> Maybe a
    maybeToBool, -- :: Maybe a -> Bool

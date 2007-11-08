@@ -59,7 +59,7 @@ prependContainerBuffer emacsSession str =
    execEmacs emacsSession ("uni-prepend-container-buffer",[str])
 
 addContainer :: EmacsSession -> String -> String -> IO ()
-addContainer emacsSession parent new = 
+addContainer emacsSession parent new =
    execEmacs emacsSession ("uni-add-container",[parent,new])
 
 addButton :: EmacsSession -> String -> String -> String -> IO ()
@@ -100,7 +100,7 @@ collapse emacsSession this text =
 containerContents :: EmacsSession -> String -> IO (EmacsContent String)
 containerContents emacsSession this =
    do
-      str <- evalEmacsQuick emacsSession 
+      str <- evalEmacsQuick emacsSession
          (Prin ("uni-container-contents",this))
       return (parseEmacsContent str)
 
@@ -108,13 +108,13 @@ getExtentType :: EmacsSession -> String -> IO String
 getExtentType emacsSession this =
    evalEmacsQuick emacsSession (Prin ("uni-get-extent-id-type",this))
 
--- | Like containerContents, but also returns a Bool for each link indicating 
+-- | Like containerContents, but also returns a Bool for each link indicating
 -- True if the object is expanded here.
-containerFullContents :: EmacsSession -> String 
+containerFullContents :: EmacsSession -> String
    -> IO (EmacsContent (Bool,String))
 containerFullContents emacsSession this =
    do
-      str <- evalEmacsQuick emacsSession 
+      str <- evalEmacsQuick emacsSession
          (Prin ("uni-container-contents",this))
       return (parseEmacsContentGeneral str)
 
@@ -122,7 +122,7 @@ containerFullContents emacsSession this =
 isModified :: EmacsSession -> String -> IO Bool
 isModified emacsSession this =
    do
-      str <- evalEmacsQuick emacsSession 
+      str <- evalEmacsQuick emacsSession
          (Prin ("uni-container-modified",this))
       return (case str of
          "nil" -> False
@@ -141,13 +141,13 @@ data ContainerChild = Button String | Container String
 containerChildren :: EmacsSession -> String -> IO [ContainerChild]
 containerChildren emacsSession this =
    do
-      str <- evalEmacsQuick emacsSession 
+      str <- evalEmacsQuick emacsSession
          (Prin ("uni-container-children",this))
       let
          (EmacsContent dataItems) = parseEmacsContentGeneral str
          result = map
             (\ dataItem -> case dataItem of
-               EmacsLink (b,str) -> 
+               EmacsLink (b,str) ->
                   if b then Container str else Button str
                EditableText _ -> error "uni-container-children returned text"
                )
@@ -167,10 +167,10 @@ listContainers emacsSession =
                      (\ sexp -> case sexp of
                         String s -> s
                         _ -> bad
-                        ) 
+                        )
                      sexps
                _ -> bad
-      result `deepSeq` (return result)   
+      result `deepSeq` (return result)
 
 lockBuffer :: EmacsSession -> IO ()
 lockBuffer es = execEmacs es ("uni-lock-buffer")
@@ -207,7 +207,7 @@ currentPoint emacsSession =
 checkInsertion :: EmacsSession -> Int -> IO (WithError String)
 checkInsertion emacsSession i =
    do
-      str <- evalEmacsQuick emacsSession (Prin 
+      str <- evalEmacsQuick emacsSession (Prin
          ("uni-check-insertion-dottedpair",i))
       return (case doParse str of
          DotList [isOKsexp] (String result)
@@ -225,7 +225,7 @@ gotoChar :: Int -> Multi
 gotoChar i = multi ("goto-char",i)
 
 
--- | The following operations are used for modifying the contents of a 
+-- | The following operations are used for modifying the contents of a
 -- container.
 -- They return a value of type \"Multi\" since they indicate the operation
 -- to be performed; the caller then needs to perform them all at once as
@@ -240,7 +240,7 @@ insertBeforePoint :: String -> Multi
 insertBeforePoint text = multi ("insert",text)
 
 insertButtonBeforePoint :: String -> String -> Multi
-insertButtonBeforePoint extentId text 
+insertButtonBeforePoint extentId text
    = multi ("uni-add-button-point",[extentId,text])
 
 

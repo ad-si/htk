@@ -1,7 +1,7 @@
--- | Union-Find algorithm. 
+-- | Union-Find algorithm.
 module UnionFind(
    -- NB.  The functions in this module are not guaranteed thread-safe.
-   
+
 
    UnionFind, -- :: type with parameter.  Instance of Eq.
    newElement, -- :: a -> IO (UnionFind a)
@@ -45,7 +45,7 @@ instance Eq (UnionFind a) where
 -- -------------------------------------------------------------------
 
 newElement :: a -> IO (UnionFind a)
-newElement value = 
+newElement value =
    do
       contentsRef <- newIORef []
       headRef <- newIORef Nothing
@@ -71,7 +71,7 @@ union uf1 uf2 =
          else
             do
                writeIORef (headRef head2) (Just head1)
-               
+
                contents0 <- readIORef (contentsRef head1)
                writeIORef (contentsRef head1) (head2 : contents0)
 
@@ -105,11 +105,11 @@ getHead unionFind =
       thisHeadOpt <- readIORef (headRef unionFind)
       case thisHeadOpt of
          Nothing -> return unionFind
-         Just unionFind2 -> 
+         Just unionFind2 ->
             do
                thisHead <- getHead unionFind2
                writeIORef (headRef unionFind) (Just thisHead)
                return thisHead
 
 
-   
+

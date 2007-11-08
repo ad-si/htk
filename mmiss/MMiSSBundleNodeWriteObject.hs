@@ -1,4 +1,4 @@
--- | This contains the instance of HasBundleNodeWrite for MMiSS objects. 
+-- | This contains the instance of HasBundleNodeWrite for MMiSS objects.
 module MMiSSBundleNodeWriteObject(
    ) where
 
@@ -38,14 +38,14 @@ instance HasBundleNodeWrite MMiSSObject where
                   let
                      objectType = retrieveObjectType tag
 
-                  linkedObjectWE <- newLinkedObject view 
+                  linkedObjectWE <- newLinkedObject view
                      (wrapMMiSSObjectLink objectLink) Nothing
                   linkedObject <- coerceImportExportIO linkedObjectWE
 
-                  variantObject <- newEmptyVariantObject1 
+                  variantObject <- newEmptyVariantObject1
                      (MMiSSObjectType.converter view linkedObject)
 
-                  object <- createMMiSSObject objectType linkedObject 
+                  object <- createMMiSSObject objectType linkedObject
                      variantObject
                   writeLink view objectLink object
             else
@@ -54,7 +54,7 @@ instance HasBundleNodeWrite MMiSSObject where
          object <- readLink view objectLink
          let
             newVersions :: [(MMiSSVariantSpec,Element)]
-            newVersions = 
+            newVersions =
                map
                   (\ (Just variantSpec,bundleText) ->
                      (variantSpec,
@@ -63,7 +63,7 @@ instance HasBundleNodeWrite MMiSSObject where
                   (toVariants node)
 
          updateVariantObject view objectLink (variantObject object)
-            element 
+            element
             (\ elementLink ->
                do
                   editLock <- newBSem

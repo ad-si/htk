@@ -1,4 +1,4 @@
--- | DrawDepend.hs parses a .depend file and displays its contents! 
+-- | DrawDepend.hs parses a .depend file and displays its contents!
 module DrawDepend(
   drawDepend
   ) where
@@ -29,7 +29,7 @@ import Hasse
 
 --------------------------------------------------------------------------
 -- Parsing the .depend file.
--- We ignore lines 
+-- We ignore lines
 -- (a) which don't look like .depend entries (so the comment lines
 --     at the beginning and end;
 -- (b) the imported element of which does not begin with a /;
@@ -56,7 +56,7 @@ parseDepend =
                } : usualProgramArguments
 
       parseTheseArguments programArguments
- 
+
       (Just doPrune) <- getArgBool "prune"
 
       depend <- openFile ".depend" ReadMode
@@ -91,12 +91,12 @@ semiParseDependAcc handle soFar =
             in
                case matchString dependRegEx line of
                   Nothing -> continue
-                  Just matchResult -> 
+                  Just matchResult ->
                      case getSubStrings matchResult of
                         importer:imported1:_ ->
                            let
                               imp imported =
-                                 semiParseDependAcc handle 
+                                 semiParseDependAcc handle
                                     ((importer,imported):soFar)
                            in
                               case imported1 of
@@ -105,7 +105,7 @@ semiParseDependAcc handle soFar =
                                  imported -> imp imported
 
 filterDepend :: SemiParsedDepend -> SemiParsedDepend
-filterDepend (SemiParsedDepend dependencies) = 
+filterDepend (SemiParsedDepend dependencies) =
    SemiParsedDepend (hasse dependencies)
 
 finishParseDepend :: SemiParsedDepend -> ParsedDepend
@@ -136,8 +136,8 @@ finishParseDepend (SemiParsedDepend dependencies) =
 -- Drawing the graph
 --------------------------------------------------------------------------
 
-drawDepend :: 
-   (GraphAll graph graphParms node nodeType nodeTypeParms 
+drawDepend ::
+   (GraphAll graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms,
     HasConfig GraphTitle graphParms,
     HasConfig GraphGesture graphParms,
@@ -147,9 +147,9 @@ drawDepend ::
     HasConfigValue LocalMenu nodeTypeParms,
     HasConfigValue NodeGesture nodeTypeParms,
     HasConfigValue NodeDragAndDrop nodeTypeParms
-    ) 
+    )
    => (Graph graph graphParms node nodeType nodeTypeParms
-         arc arcType arcTypeParms) 
+         arc arcType arcTypeParms)
    -> IO ()
 drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
    arc arcType arcTypeParms) =
@@ -175,7 +175,7 @@ drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
                   putStrLn ("Dragged "++other++" to "++this)
                ) $$$
             ValueTitle (\ title -> return title ) $$$
-            LocalMenu (Button "Type1" 
+            LocalMenu (Button "Type1"
                   (\ title -> putStrLn title)) $$$
                emptyNodeTypeParms
 
@@ -205,9 +205,9 @@ drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
                sequence_
                   (fmap
                      (\ imported ->
-                        newArc graph arcType () 
+                        newArc graph arcType ()
                            importerNode (stringToNode imported)
-                        ) 
+                        )
                      allImported
                      )
             )

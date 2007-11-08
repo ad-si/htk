@@ -189,7 +189,7 @@ filterObjects oldGraph = getPureClassGraph oldGraph
 -- a delete every edge an reload all other
 -- edge which I don't want to delete.
 -------------------------------------------
-filterRelations :: UUtil.Relations -> Graph.Gr (String, String, MOnto.OntoObjectType) String 
+filterRelations :: UUtil.Relations -> Graph.Gr (String, String, MOnto.OntoObjectType) String
                         -> Graph.Gr (String, String, MOnto.OntoObjectType) String
 filterRelations rels oldGraph =
   let unselectedRels = UUtil.getUnSelectedRelationNames rels
@@ -228,10 +228,10 @@ getPureClassGraph g =
 --------------------------------------------
 --
 --------------------------------------------
-nfilter :: Graph.DynGraph gr => (Graph.Node -> Bool) -> gr a b -> gr a b 
+nfilter :: Graph.DynGraph gr => (Graph.Node -> Bool) -> gr a b -> gr a b
 nfilter f =
   Graph.ufold cfilter Graph.empty
-  where cfilter (p,v,l,s) g = if (f v) 
+  where cfilter (p,v,l,s) g = if (f v)
                                 then (p',v,l,s') Graph.& g
                                 else g
           where p' = filter (\(b,u)->f u) p

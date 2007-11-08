@@ -1,9 +1,9 @@
 -- | Contributed by Isaac Jones (ijones\@syntaxpolice.org).  From the README
 -- file:
--- 
+--
 -- This simple program is released by Isaac Jones under a
 -- \"BSD-Style\" license.
--- 
+--
 -- You may do with it as you like.
 -- ----------------------------------------------------------------------
 
@@ -19,7 +19,7 @@ import System
 lightBrown = (224, 186, 145)::(Int, Int, Int)
 stoneSize = 30
 
-blackFill = filling "black" 
+blackFill = filling "black"
 whiteFill = filling "white"
 
 -- Constants and functions for line grid
@@ -39,28 +39,28 @@ canvasSize boardSize = size (cm (boardSize + 1), cm (boardSize + 1))
 
 getAndToggle v r1 r2 =
     do
-    val1 <- readTkVariable v 
-    (if val1 == 1 then (do 
-			invoke r2
-			return (blackFill))
-                  else (do 
-			invoke r1
-			return whiteFill))
+    val1 <- readTkVariable v
+    (if val1 == 1 then (do
+                        invoke r2
+                        return (blackFill))
+                  else (do
+                        invoke r1
+                        return whiteFill))
 
 
 -- |Create an exciting grid of a certain size.  Hope to scale the
 -- board on resize sometime.
 makeLines totalLines 0 windowSize cnv = return ()
 makeLines totalLines linesLeft windowSize cnv =
-    do 
+    do
     -- Vertical lines:
     createLine cnv [coord [vertStartPoint linesLeft, vertEndPoint totalLines linesLeft],
-		    capstyle CapRound, joinstyle JoinMiter,
+                    capstyle CapRound, joinstyle JoinMiter,
                     lineWidth, filling "black"]
 
     -- Horizontal lines:
     createLine cnv [coord [horizStartPoint linesLeft, horizEndPoint totalLines linesLeft],
-		    capstyle CapRound, joinstyle JoinMiter,
+                    capstyle CapRound, joinstyle JoinMiter,
                     lineWidth, filling "black"]
 
     makeLines totalLines (linesLeft - 1) windowSize cnv
@@ -68,29 +68,29 @@ makeLines totalLines linesLeft windowSize cnv =
 
 -- |create the board, populating the elements with their events, draw
 -- the grid, hand black a stone.
-makeBoard main uBoardSize newClicked toggleFunc = 
+makeBoard main uBoardSize newClicked toggleFunc =
   do
     boardSize <- readTkVariable uBoardSize
     cnv <- newCanvas main [canvasSize boardSize, background lightBrown]
     (press, _) <- bind cnv [WishEvent [] (ButtonPress (Just 1))]
     makeLines boardSize boardSize (boardSize + 1) cnv
     spawnEvent (forever
-		 (do (x, y) <- press >>>= \i-> return (x i, y i)
+                 (do (x, y) <- press >>>= \i-> return (x i, y i)
                      always (do
-			     fill <- toggleFunc
-			     spawn (drawStone (x,y) cnv fill))))
+                             fill <- toggleFunc
+                             spawn (drawStone (x,y) cnv fill))))
     pack cnv []
-    spawnEvent (newClicked >>> (do 
-				destroy cnv
-				makeBoard main uBoardSize newClicked toggleFunc
-				return()
-			       ))
-   where 
+    spawnEvent (newClicked >>> (do
+                                destroy cnv
+                                makeBoard main uBoardSize newClicked toggleFunc
+                                return()
+                               ))
+   where
    drawStone (x, y) cnv fill =
        do
        stone <- createOval cnv [fill, size (stoneSize, stoneSize),
                                 position (x - (stoneSize `div` 2),
-					  y - (stoneSize `div` 2))]
+                                          y - (stoneSize `div` 2))]
        return()
 ------------------------------------------------------------
 main :: IO ()
@@ -109,11 +109,11 @@ main =
     gameMenu     <- createPulldownMenu menuBar [text "Game"]
     uBoardSize   <- createTkVariable (19::Double)
     sizeNine     <- createMenuRadioButton gameMenu [text "9x9", value (9::Double),
-						    variable uBoardSize]
+                                                    variable uBoardSize]
     sizeThirteen <- createMenuRadioButton gameMenu [text "13x13", value (13::Double),
-						    variable uBoardSize]
+                                                    variable uBoardSize]
     sizeNineTeen <- createMenuRadioButton gameMenu [text "19x19", value (19::Double),
-						    variable uBoardSize]
+                                                    variable uBoardSize]
     newGame <- createMenuCommand gameMenu [text "New Game"]
     pack menuBar []
 
@@ -132,5 +132,5 @@ main =
     makeBoard main uBoardSize newClicked (getAndToggle v r1 r2)
 
     spawnEvent (quitClicked >>> do destroy main)
-		 
+
     finishHTk

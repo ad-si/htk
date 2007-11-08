@@ -1,4 +1,4 @@
--- | 
+-- |
 -- Description : Miscellaneous Monads, in particular 'Computation.WithError'.
 module Computation (
         Answer,
@@ -27,7 +27,7 @@ module Computation (
         while,
 
         -- * configure command
-        Config, 
+        Config,
         configure,
         config,
 
@@ -59,7 +59,7 @@ module Computation (
         mapWithErrorIO',
         -- :: (a -> IO (WithError b)) -> WithError a -> IO (WithError b)
         pairWithError, -- :: WithError a -> WithError b -> WithError (a,b)
-        -- we concatenate the errors, inserting a newline between them if 
+        -- we concatenate the errors, inserting a newline between them if
         -- there are two.
         listWithError, -- :: [WithError a] -> WithError [a]
         coerceWithError, -- :: WithError a -> a
@@ -70,9 +70,9 @@ module Computation (
         -- Like coerceWithErrorIO but also takes a String, which will
         -- be included in the eventual error message.
 
-        coerceWithErrorOrBreakIOPrefix, 
+        coerceWithErrorOrBreakIOPrefix,
            -- :: String -> (String -> a) -> WithError a -> IO a
-        coerceWithErrorOrBreakPrefix, 
+        coerceWithErrorOrBreakPrefix,
            -- :: String -> (String -> a) -> WithError a -> a
 
         MonadWithError(..),
@@ -83,11 +83,11 @@ module Computation (
         toMonadWithError, -- :: Monad m => m a -> MonadWithError m a
 
         coerceWithErrorOrBreak, -- :: (String -> a) -> WithError a -> a
-        -- coerce or use the supplied break function (to be used with 
+        -- coerce or use the supplied break function (to be used with
         -- ExtendedPrelude.addFallOut)
 
         coerceWithErrorOrBreakIO, -- :: (String -> a) -> WithError a -> IO a
-        -- coerce or use the supplied break function (to be used with 
+        -- coerce or use the supplied break function (to be used with
         -- ExtendedPrelude.addFallOut)
         -- The value is evaluated immediately.
 
@@ -101,7 +101,7 @@ module Computation (
         -- :: (Exception -> Maybe String) -> IO a -> IO (WithError a)
         -- Exception wrapper that turns those exceptions which map to
         -- (Just message) into an error.
-        ) 
+        )
 where
 
 import IO hiding (try,catch)
@@ -135,16 +135,16 @@ done = return ()
 ( # ) :: a -> (a -> b) -> b
 o # f = f o
 
-        
+
 -- --------------------------------------------------------------------------
 -- IOError and Exception Handling
 -- --------------------------------------------------------------------------
 
 raise :: IOError -> IO a
-raise e = 
+raise e =
    do
       debug ("RAISED EXCP: " ++ (show e) ++ "\n")
-      ioError e 
+      ioError e
 
 propagate :: Answer a -> IO a
 propagate (Left e) = throw e
@@ -153,15 +153,15 @@ propagate (Right v) = return v
 catchall :: IO a -> IO a -> IO a
 catchall c1 c2 = Control.Exception.catch c1 (\ _ -> c2)
 
-tryUntilOK :: IO a -> IO a 
+tryUntilOK :: IO a -> IO a
 tryUntilOK c = catchall c (tryUntilOK c)
 
 -- --------------------------------------------------------------------------
 -- Values paired with error messages
 -- --------------------------------------------------------------------------
 
-data WithError a = 
-      Error String 
+data WithError a =
+      Error String
    |  Value a -- error or result
 
 hasError :: String -> WithError a
@@ -219,7 +219,7 @@ listWithError awes =
       (\ awe awes ->
          mapWithError
             (\ (a,as) -> a:as)
-            (pairWithError awe awes) 
+            (pairWithError awe awes)
          )
       (hasValue [])
       awes
@@ -235,21 +235,21 @@ coerceWithErrorIO (Error err) = error err
 
 coerceWithErrorStringIO :: String -> WithError a -> IO a
 coerceWithErrorStringIO _ (Value a) = return a
-coerceWithErrorStringIO mess (Error err) = 
+coerceWithErrorStringIO mess (Error err) =
    error ("coerceWithErrorString " ++ mess ++ ": " ++ err)
 
--- | coerce or use the supplied break function (to be used with 
+-- | coerce or use the supplied break function (to be used with
 -- 'ExtendedPrelude.addFallOut')
 -- The value is evaluated immediately.
 coerceWithErrorOrBreakIO :: (String -> a) -> WithError a -> IO a
 coerceWithErrorOrBreakIO = coerceWithErrorOrBreakIOPrefix ""
 
--- | coerce or use the supplied break function (to be used with 
+-- | coerce or use the supplied break function (to be used with
 -- 'ExtendedPrelude.addFallOut')
 --
 -- The first argument is prepended to any error message.
 -- The value is evaluated immediately.
-coerceWithErrorOrBreakIOPrefix 
+coerceWithErrorOrBreakIOPrefix
    :: String -> (String -> a) -> WithError a -> IO a
 coerceWithErrorOrBreakIOPrefix errorPrefix breakFn aWe =
    do
@@ -257,25 +257,25 @@ coerceWithErrorOrBreakIOPrefix errorPrefix breakFn aWe =
          a = coerceWithErrorOrBreakPrefix errorPrefix breakFn aWe
       seq a (return a)
 
--- | coerce or use the supplied break function (to be used with 
+-- | coerce or use the supplied break function (to be used with
 -- 'ExtendedPrelude.addFallOut')
 coerceWithErrorOrBreak :: (String -> a) -> WithError a -> a
 coerceWithErrorOrBreak = coerceWithErrorOrBreakPrefix ""
 
 
--- | coerce or use the supplied break function (to be used with 
+-- | coerce or use the supplied break function (to be used with
 -- 'ExtendedPrelude.addFallOut')
 --
 -- The first argument is prepended to any error message.
 coerceWithErrorOrBreakPrefix :: String -> (String -> a) -> WithError a -> a
 coerceWithErrorOrBreakPrefix errorPrefix breakFn (Value a) = a
-coerceWithErrorOrBreakPrefix errorPrefix breakFn (Error s) 
+coerceWithErrorOrBreakPrefix errorPrefix breakFn (Error s)
    = breakFn (errorPrefix ++ s)
 
 concatWithError :: [WithError a] -> WithError [a]
 concatWithError withErrors =
    foldr
-      (\ wE wEsf -> mapWithError (uncurry (:)) (pairWithError wE wEsf))  
+      (\ wE wEsf -> mapWithError (uncurry (:)) (pairWithError wE wEsf))
       (Value [])
       withErrors
 
@@ -299,7 +299,7 @@ exceptionToError testFn action =
 instance Functor WithError where
    fmap aToB aWE = case aWE of
       Value a -> Value (aToB a)
-      Error e -> Error e      
+      Error e -> Error e
 
 instance Monad WithError where
    return v = hasValue v
@@ -368,12 +368,12 @@ incase (Just a) f = do {f a; done}
 -- --------------------------------------------------------------------------
 
 while :: Monad m => m a -> (a -> Bool) -> m a
-while c p = c >>= \x -> if (p x) then while c p else return x 
+while c p = c >>= \x -> if (p x) then while c p else return x
 
 
 -- --------------------------------------------------------------------------
--- Configuration Options 
--- -------------------------------------------------------------------------- 
+-- Configuration Options
+-- --------------------------------------------------------------------------
 
 type Config w = w -> IO w
 
@@ -389,18 +389,18 @@ config f w = f >> return w
 -- New-style configuration
 -- Where HasConfig is defined you can type
 --     option1  $$ option2 $$ ... $$ initial_configuration
--- -------------------------------------------------------------------------- 
+-- --------------------------------------------------------------------------
 
 class HasConfig option configuration where
    ($$) :: option -> configuration -> configuration
 
    configUsed :: option -> configuration -> Bool
-   -- In some implementations (EG a text-only 
+   -- In some implementations (EG a text-only
    -- implementation of the GraphDisp interface)
    -- we may create default configurations in which $$ simply
    -- ignores the option.  In such cases configUsed should return
    -- False.
 
 infixr 0 $$
--- This makes $$ have fixity like $. 
+-- This makes $$ have fixity like $.
 

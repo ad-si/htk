@@ -6,7 +6,7 @@ module LinkManager(
       -- those things which have a LinkedObject.  (No instances are
       -- declared in this file.)
    -- Types
-   LinkedObject, 
+   LinkedObject,
       -- This corresponds to some object in the repository.
       -- Instance of HasCodedValue, Eq, Ord.
    LinkSource,
@@ -15,14 +15,14 @@ module LinkManager(
       -- as a parameter to LinkSource.
    FrozenLinkSource,
       -- a way of storing a LinkSource.  Instance of HasCodedValue.
-   
+
 
    Insertion,
       -- This represents somewhere to put a LinkedObject.
 
    -- LinkedObject Functions
-   newLinkedObject, 
-      -- :: View -> WrappedLink -> Maybe Insertion 
+   newLinkedObject,
+      -- :: View -> WrappedLink -> Maybe Insertion
       -- -> IO (WithError LinkedObject)
       -- Create a new LinkedObject.
 
@@ -30,12 +30,12 @@ module LinkManager(
       -- to the object containing the LinkedObject.  In particular, when the
       -- linked object is changed, we dirty the WrappedLink.
    newLinkedPackageObject,
-      -- :: View -> WrappedLink -> Maybe Insertion 
+      -- :: View -> WrappedLink -> Maybe Insertion
       -- ->IO (WithError LinkedObject)
       -- Similar to newLinkedObject, but for a LinkedObject which will
       -- represent a package object, for example an MMiSS package folder.
       -- A newLinkedPackageObject always starts off with trivialImportCommands,
-      -- whether after newLinkedPackageObject or decoding or merging.  
+      -- whether after newLinkedPackageObject or decoding or merging.
       -- The ImportCommands must be set by setCommands.
 
    newLinkedObjectNoParent,
@@ -71,21 +71,21 @@ module LinkManager(
 
    createLinkedObjectChild,
       -- :: ObjectType objectType object
-      -- => View -> LinkedObject -> EntityName -> (LinkedObject -> IO object) 
+      -- => View -> LinkedObject -> EntityName -> (LinkedObject -> IO object)
       -- -> IO (Maybe (Link object))
-      -- Create a new linked object, to be the child of the given linked 
+      -- Create a new linked object, to be the child of the given linked
       -- object.  We return a link to the new object.  If there is an error
-      -- we display the message. 
+      -- we display the message.
 
    createLinkedObjectChildSplit,
       -- :: ObjectType objectType object
-      -- => View -> LinkedObject -> EntityName -> (LinkedObject -> IO object) 
+      -- => View -> LinkedObject -> EntityName -> (LinkedObject -> IO object)
       -- -> IO (Maybe (Link object,IO (WithError ())))
-      -- Create a new linked object, to be the child of the given linked 
-      -- object.  We return a link to the new object.  However we do not 
+      -- Create a new linked object, to be the child of the given linked
+      -- object.  We return a link to the new object.  However we do not
       -- actually do the insertion, instead we return an action which does
       -- the insertion (or, possibly, fails).
-  
+
    objectContents,
       -- :: LinkedObject -> VariableSetSource WrappedLink
       -- Get the contents of a LinkedObject (those objects contained in it,
@@ -98,7 +98,7 @@ module LinkManager(
       -- :: LinkedObject -> SimpleSource [(EntityName,LinkedObject)]
       -- List the contents of an object by EntityName.
 
-   listObjectContentsAsWrappedLinks, 
+   listObjectContentsAsWrappedLinks,
       -- :: LinkedObject -> SimpleSource [(EntityName,WrappedLink)]
       -- List the contents of an object (as WrappedLinks) by EntityName
 
@@ -120,11 +120,11 @@ module LinkManager(
    lookupFullNameInFolder,
       -- :: LinkedObject -> EntityFullName -> IO (Maybe LinkedObject)
       -- Extract a full name as a sub object of a given object.
-   lookupLinkedObjectByFullName, 
+   lookupLinkedObjectByFullName,
       -- :: View -> EntityFullName -> IO (Maybe LinkedObject)
       -- Look up an object in a view by full name.
       -- We return Nothing if the object does not exist.
- 
+
    toWrappedLink,
       -- :: LinkedObject -> WrappedLink
       -- Get the WrappedLink in a LinkedObject.
@@ -138,7 +138,7 @@ module LinkManager(
       -- Extract the EntityName from a LinkedObject, if any.
 
 
-   toObjectLink, 
+   toObjectLink,
       -- :: (HasLinkedObject object,ObjectType objectType object)
       -- => object -> Link object
       -- Get an object's Link, assuming that it's stored in its WrappedLink.
@@ -158,22 +158,22 @@ module LinkManager(
       -- Set the ImportCommands.  If this linked object was not created
       -- by newLinkedPackageObject, the result will be an error.
    lookupObject,
-      -- :: ObjectType objectType object 
-      -- => View -> LinkedObject -> EntitySearchName 
+      -- :: ObjectType objectType object
+      -- => View -> LinkedObject -> EntitySearchName
       -- -> IO (WithError (Maybe (Link object)))
       -- Looks up an object, returning the actual link if possible.
-      -- We return Nothing if the object does not exist but cause an error if 
+      -- We return Nothing if the object does not exist but cause an error if
       -- the object has the wrong type.
    lookupLinkedObject,
-      -- :: View -> LinkedObject -> EntitySearchName 
+      -- :: View -> LinkedObject -> EntitySearchName
       -- -> IO (WithError (Maybe LinkedObject))
-      -- :: ObjectType objectType object 
-      -- => View -> LinkedObject -> EntitySearchName 
+      -- :: ObjectType objectType object
+      -- => View -> LinkedObject -> EntitySearchName
       -- -> IO (Maybe LinkedObject)
       -- Like lookupObject, but instead returns the LinkedObject.
 
 
-   getFullName, 
+   getFullName,
        -- :: HasLinkedObject object => View -> object -> IO String
        -- Returns the full name of an object within the view.
        -- Used for error messages and packageIds.
@@ -189,8 +189,8 @@ module LinkManager(
       -- The first argument is the root.
 
    -- LinkSource functions
-   newLinkSource, 
-      -- :: View -> LinkedObject -> [(EntityFullName,value)] 
+   newLinkSource,
+      -- :: View -> LinkedObject -> [(EntityFullName,value)]
       -- -> IO (LinkSource value)
       -- Create a new LinkSource.  The LinkedObject must be one
       -- created by newLinkedPackageObject.
@@ -213,7 +213,7 @@ module LinkManager(
    mkArcEnds,
       -- :: Bool -> LinkSource value -> (value -> ArcType) -> ArcEnds
       -- Construct the ArcEnds for a linkSource (with their paired
-      -- ArcType's).  The Bool is taken as the mustFollow value.  
+      -- ArcType's).  The Bool is taken as the mustFollow value.
    mkArcEndsSource,
       -- :: LinkSource value -> (value -> ArcType) ->
       -- SimpleSource [(WrappedLink,ArcType)]
@@ -223,13 +223,13 @@ module LinkManager(
    -- The following functions are used during merging.
 
    getLinkedObjectMergeLinks,
-      -- :: (HasCodedValue object,HasLinkedObject object) 
+      -- :: (HasCodedValue object,HasLinkedObject object)
       -- => MergeLinks object
       -- Suitable MergeLinks for a LinkedObject.
 
    attemptLinkedObjectMerge,
       -- :: ObjectType objectType object
-      -- => MergeTypes.LinkReAssigner -> View -> 
+      -- => MergeTypes.LinkReAssigner -> View ->
       -- Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
       -- Merge several versions of a LinkedObject.  To be used in conjunction
       -- with getLinkedObjectMergeLinks.
@@ -237,7 +237,7 @@ module LinkManager(
    linkedObjectsSame,
       -- :: LinkedObject -> LinkedObject -> IO Bool
       -- Returns true if the CodedValue representations of the
-      -- two LinkedObject's are identical.  (The LinkedObject's are 
+      -- two LinkedObject's are identical.  (The LinkedObject's are
       -- likely enough in different views.)
    ) where
 
@@ -285,7 +285,7 @@ instance HasLinkedObject LinkedObject where
    toLinkedObject linkedObject = linkedObject
 
 -- | Create a new LinkedObject.
-newLinkedObject :: View -> WrappedLink -> Maybe Insertion 
+newLinkedObject :: View -> WrappedLink -> Maybe Insertion
    -> IO (WithError LinkedObject)
 newLinkedObject view wrappedLink insertionOpt =
    do
@@ -298,7 +298,7 @@ newLinkedObject view wrappedLink insertionOpt =
             }
       createLinkedObject view True frozenLinkedObject
 
-newLinkedPackageObject :: View -> WrappedLink -> Maybe Insertion 
+newLinkedPackageObject :: View -> WrappedLink -> Maybe Insertion
    -> IO (WithError LinkedObject)
 newLinkedPackageObject view wrappedLink insertionOpt =
    do
@@ -334,21 +334,21 @@ objectContents linkedObject =
    listToSetSource
       (fmap
          (\ fm ->
-            map 
+            map
                (\ linkedObjectPtr -> wrappedLinkInPtr linkedObjectPtr)
                (eltsFM fm)
             )
          (toSimpleSource (contents linkedObject))
          )
 
-objectContentsWithName 
+objectContentsWithName
    :: LinkedObject -> VariableSetSource (EntityName,WrappedLink)
 objectContentsWithName linkedObject =
    listToSetSource
       (fmap
          (\ fm ->
-            map 
-               (\ (name,linkedObjectPtr) 
+            map
+               (\ (name,linkedObjectPtr)
                   -> (name,wrappedLinkInPtr linkedObjectPtr))
                (fmToList fm)
             )
@@ -356,13 +356,13 @@ objectContentsWithName linkedObject =
          )
 
 -- | List the contents of an object (as WrappedLinks) by EntityName
-listObjectContentsAsWrappedLinks 
+listObjectContentsAsWrappedLinks
    :: LinkedObject -> SimpleSource [(EntityName,WrappedLink)]
 listObjectContentsAsWrappedLinks linkedObject =
    fmap
-      (\ fm -> 
+      (\ fm ->
          map
-            (\ (entityName,linkedObjectPtr) 
+            (\ (entityName,linkedObjectPtr)
                -> (entityName,wrappedLinkInPtr linkedObjectPtr)
                )
             (fmToList fm)
@@ -374,9 +374,9 @@ listObjectContentsAsWrappedLinks linkedObject =
 listObjectContents :: LinkedObject -> SimpleSource [(EntityName,LinkedObject)]
 listObjectContents linkedObject =
    fmap
-      (\ fm -> 
+      (\ fm ->
          map
-            (\ (entityName,linkedObjectPtr) 
+            (\ (entityName,linkedObjectPtr)
                -> (entityName,fromLinkedObjectPtr linkedObjectPtr)
                )
             (fmToList fm)
@@ -386,7 +386,7 @@ listObjectContents linkedObject =
 --
 -- Get a SimpleSource item corresponding to the EntityName element of
 -- the object contents.
-lookupObjectContents :: LinkedObject -> EntityName 
+lookupObjectContents :: LinkedObject -> EntityName
    -> SimpleSource (Maybe WrappedLink)
 lookupObjectContents linkedObject entityName =
    fmap
@@ -395,7 +395,7 @@ lookupObjectContents linkedObject entityName =
 
 -- | Delete an object including its record in the view and the parent
 -- folder and anywhere else (currently nowhere) where the Link is
--- stored by the LinkManager. 
+-- stored by the LinkManager.
 deleteLinkedObject :: View -> LinkedObject -> IO ()
 deleteLinkedObject view linkedObject =
    do
@@ -405,15 +405,15 @@ deleteLinkedObject view linkedObject =
       deleteWrappedLink :: WrappedLink -> IO ()
       deleteWrappedLink (WrappedLink link) = deleteLink view link
 
--- | Create a new linked object, to be the child of the given linked 
+-- | Create a new linked object, to be the child of the given linked
 -- object.  We return a link to the new object.  If there is an error
--- we display the message. 
+-- we display the message.
 createLinkedObjectChild :: ObjectType objectType object
-   => View -> LinkedObject -> EntityName -> (LinkedObject -> IO object) 
+   => View -> LinkedObject -> EntityName -> (LinkedObject -> IO object)
    -> IO (Maybe (Link object))
 createLinkedObjectChild view parentLinkedObject name getObject =
    do
-      objectDataOpt <- createLinkedObjectChildSplit view parentLinkedObject 
+      objectDataOpt <- createLinkedObjectChildSplit view parentLinkedObject
          name getObject
       case objectDataOpt of
          Nothing -> return Nothing
@@ -427,13 +427,13 @@ createLinkedObjectChild view parentLinkedObject name getObject =
                         errorMess mess
                         return Nothing
 
--- | Create a new linked object, to be the child of the given linked 
--- object.  We return a link to the new object.  However we do not 
+-- | Create a new linked object, to be the child of the given linked
+-- object.  We return a link to the new object.  However we do not
 -- actually do the insertion, instead we return an action which does
 -- the insertion (or, possibly, fails).
 createLinkedObjectChildSplit :: ObjectType objectType object
-   => View -> LinkedObject -> EntityName -> (LinkedObject 
-   -> IO object) 
+   => View -> LinkedObject -> EntityName -> (LinkedObject
+   -> IO object)
    -> IO (Maybe (Link object,IO (WithError ())))
 createLinkedObjectChildSplit view parentLinkedObject name getObject =
    do
@@ -445,7 +445,7 @@ createLinkedObjectChildSplit view parentLinkedObject name getObject =
                moveObject linkedObject1 (Just insertion)
 
 
-      act <- createWrappedViewObject view (toWrappedLink parentLinkedObject) 
+      act <- createWrappedViewObject view (toWrappedLink parentLinkedObject)
             (\ link ->
          do
             linkedObjectWE <- newLinkedObject
@@ -468,11 +468,11 @@ createLinkedObjectChildSplit view parentLinkedObject name getObject =
 setCommands :: LinkedObject -> ImportCommands -> IO ()
 setCommands linkedObject importCommands1 =
    case importCommands linkedObject of
-      Nothing -> 
+      Nothing ->
          putStrLn ("LinkManager.setCommands bug  "
             ++ "-- attempt to set import commands for non-package object")
       Just broadcaster -> broadcast broadcaster importCommands1
-         
+
 
 -- | Extract a single element in a linkedObject\'s contents by name.
 lookupNameSimple :: LinkedObject -> String -> IO (Maybe LinkedObject)
@@ -509,20 +509,20 @@ lookupNameInFolder linkedObject entityName =
       return (fmap fromLinkedObjectPtr linkedObjectPtrOpt)
 
 -- | Extract a full name as a sub object of a given object.
-lookupFullNameInFolder :: LinkedObject -> EntityFullName 
+lookupFullNameInFolder :: LinkedObject -> EntityFullName
    -> IO (Maybe LinkedObject)
-lookupFullNameInFolder linkedObject (EntityFullName names) 
+lookupFullNameInFolder linkedObject (EntityFullName names)
       = lookup1 linkedObject names
    where
       lookup1 :: LinkedObject -> [EntityName] -> IO (Maybe LinkedObject)
-      lookup1 linkedObject [] = return (Just linkedObject) 
+      lookup1 linkedObject [] = return (Just linkedObject)
       lookup1 linkedObject (name : names) =
          do
-            linkedObjectPtrOpt 
+            linkedObjectPtrOpt
                <- readContents (lookupEntityName linkedObject name)
             case linkedObjectPtrOpt of
                Nothing -> return Nothing
-               Just linkedObjectPtr 
+               Just linkedObjectPtr
                   -> lookup1 (fromLinkedObjectPtr linkedObjectPtr) names
 
 -- | Make an insertion
@@ -537,7 +537,7 @@ mkInsertion linkedObject entityName =
 unmkInsertion :: Insertion -> (LinkedObject,EntityName)
 unmkInsertion (Insertion {parent = parent,name = name}) =
    (fromLinkedObjectPtr parent,name)
-      
+
 
 -- Get the insertions for an object.
 toInsertion :: LinkedObject -> SimpleSource (Maybe Insertion)
@@ -566,7 +566,7 @@ toObjectLink object =
 
 -- | Extract the current parent of an object (as a Link object2) if it
 -- exists, otherwise return Nothing.
--- 
+--
 -- If the parent exists but has the wrong type we return an error, via
 -- WithError.
 toParentLink :: (HasLinkedObject object1,ObjectType objectType2 object2)
@@ -580,7 +580,7 @@ toParentLink object1 =
          Nothing -> hasValue Nothing
          Just (Insertion {parent = parent}) ->
             case unpackWrappedLink (wrappedLinkInPtr parent) of
-               Nothing -> hasError 
+               Nothing -> hasError
                   "Object has parent, but parent is of the wrong type"
                Just link -> hasValue (Just link)
          )
@@ -599,7 +599,7 @@ getLinkedObjectTitleOpt linkedObject =
 
 -- | Look up an object in a view by full name.
 -- We return Nothing if the object does not exist.
-lookupLinkedObjectByFullName :: View -> EntityFullName 
+lookupLinkedObjectByFullName :: View -> EntityFullName
    -> IO (Maybe LinkedObject)
 lookupLinkedObjectByFullName view fullName =
    do
@@ -612,8 +612,8 @@ lookupLinkedObjectByFullName view fullName =
 -- | Looks up an object, returning the actual link if possible.
 -- We return Nothing if the object does not exist but cause an error if the
 -- object has the wrong type.
-lookupObject :: ObjectType objectType object 
-   => View -> LinkedObject -> EntitySearchName 
+lookupObject :: ObjectType objectType object
+   => View -> LinkedObject -> EntitySearchName
    -> IO (WithError (Maybe (Link object)))
 lookupObject view linkedObject searchName =
    do
@@ -636,7 +636,7 @@ lookupObject view linkedObject searchName =
          )
 
 -- | Like lookupObject, but instead returns the LinkedObject.
-lookupLinkedObject :: View -> LinkedObject -> EntitySearchName 
+lookupLinkedObject :: View -> LinkedObject -> EntitySearchName
    -> IO (WithError (Maybe LinkedObject))
 lookupLinkedObject view linkedObject searchName =
    do
@@ -646,11 +646,11 @@ lookupLinkedObject view linkedObject searchName =
       bracketForImportErrors2 importsState (
          do
             source <- lookupNode importsState linkedObject searchName
-            lookupResult <- readContents source 
+            lookupResult <- readContents source
             return (case lookupResult of
                NotFound -> hasValue Nothing
-               Error -> hasError (toString searchName 
-                  ++ " cannot be found because of errors") 
+               Error -> hasError (toString searchName
+                  ++ " cannot be found because of errors")
                Found linkedObject -> hasValue (Just linkedObject)
                )
          )
@@ -663,7 +663,7 @@ getFullName view object =
    do
       importsState <- getImportsState view
       fullName <- getName (folders importsState) (toLinkedObject object)
-      return (toString fullName) 
+      return (toString fullName)
 
 -- | Wrap around a user action which changes the topology of the links,
 -- to catch and report potential import errors.
@@ -676,15 +676,15 @@ bracketForImportErrors view act =
 
 {-
 -- | (function not used any longer)
-unpackLinkedObjectPtr :: ObjectType objectType object 
+unpackLinkedObjectPtr :: ObjectType objectType object
    => BreakFn -> Maybe LinkedObjectPtr -> IO (Maybe (Link object))
 unpackLinkedObjectPtr break Nothing = return Nothing
-unpackLinkedObjectPtr break (Just linkedObjectPtr) = 
+unpackLinkedObjectPtr break (Just linkedObjectPtr) =
    do
       let
          wrappedLink = wrappedLinkInPtr linkedObjectPtr
          linkOpt = unpackWrappedLink wrappedLink
-      
+
       link <- case linkOpt of
          Just link -> return link
          Nothing ->
@@ -694,13 +694,13 @@ unpackLinkedObjectPtr break (Just linkedObjectPtr) =
 -}
 
 -- | Create a new LinkSource
-newLinkSource :: View -> LinkedObject -> [(EntitySearchName,value)] 
+newLinkSource :: View -> LinkedObject -> [(EntitySearchName,value)]
   -> IO (LinkSource value)
 newLinkSource = createLinkSourceGeneral
 
 -- | Obtain the pointed-to elements for a LinkSource.
 listFromLinkSource :: LinkSource value -> SimpleSource [(LinkedObject,value)]
-listFromLinkSource linkSource = 
+listFromLinkSource linkSource =
    fmap catMaybes (targetsSource linkSource)
 
 -- | Construct a source containing the out-arcs from a LinkSource.
@@ -721,7 +721,7 @@ mkArcEndsSource (linkSource :: LinkSource value) toArcType =
 
 
 -- | Construct the ArcEnds for a linkSource (with their paired
--- ArcType's).  The Bool is taken as the mustFollow value.  
+-- ArcType's).  The Bool is taken as the mustFollow value.
 mkArcEnds :: Bool -> LinkSource value -> (value -> ArcType) -> ArcEnds
 mkArcEnds mustFollow (linkSource :: LinkSource value) toArcType =
    let
@@ -732,7 +732,7 @@ mkArcEnds mustFollow (linkSource :: LinkSource value) toArcType =
 
       arcEnds3 :: VariableList (ArcData WrappedLink ArcType)
       arcEnds3 = fmap
-         (\ (wrappedLink,arcType) ->  
+         (\ (wrappedLink,arcType) ->
             toArcData wrappedLink arcType mustFollow
             )
          arcEnds2
@@ -791,18 +791,18 @@ toFolderStructure root =
                (mapFM (\ _ ptr -> fromLinkedObjectPtr ptr)))
             . contentsSource $ linkedObject
 
-      getImportCommands linkedObject = 
+      getImportCommands linkedObject =
          return . importCommandsSource $ linkedObject
 
       getParent linkedObject =
-         return 
-         . (fmap 
-            (fmap 
-               (\ insert -> 
+         return
+         . (fmap
+            (fmap
+               (\ insert ->
                   (fromLinkedObjectPtr . parent $ insert,name insert)
                   )
                )
-            ) 
+            )
          . insertion $ linkedObject
    in
       FolderStructure {
@@ -810,7 +810,7 @@ toFolderStructure root =
          getContentsSource = getContentsSource,
          getImportCommands = getImportCommands,
          getParent = getParent
-         }         
+         }
 
 -- ----------------------------------------------------------------------
 -- Freezing and defrosting/creating. a LinkedObject
@@ -833,12 +833,12 @@ freezeLinkedObject linkedObject =
 
 -- | Create a new linked object, given the FrozenLinkedObject.
 -- This can occur in two cases (1) when the linkedObject is absolutely new;
--- (2) when it is being decodeIO\'d from the repository or created by a merge. 
+-- (2) when it is being decodeIO\'d from the repository or created by a merge.
 -- The Bool indicates
 -- which of these applies; if True it means the linkedObject is absolutely new.
 -- In that case, we also attempt to insert it into the parent folder (if
--- any).  
--- 
+-- any).
+--
 -- Renamings are synchronized on the view, which should mean that
 -- commits can\'t happen half-way through.
 createLinkedObject :: View -> Bool -> FrozenLinkedObject
@@ -851,7 +851,7 @@ createLinkedObject view isNew frozenLinkedObject =
 
       insertionBroadcaster <- newSimpleBroadcaster insertion0
 
-      contents1 
+      contents1
          <- newSimpleBroadcaster (listToFM (contents' frozenLinkedObject))
 
       importCommands <-
@@ -861,7 +861,7 @@ createLinkedObject view isNew frozenLinkedObject =
                   broadcaster <- newSimpleBroadcaster trivialImportCommands
                   return (Just broadcaster)
             else
-               return Nothing      
+               return Nothing
 
       -- Create mirrored delayed versions of sources (for the FolderStructure
       -- we will create).
@@ -869,7 +869,7 @@ createLinkedObject view isNew frozenLinkedObject =
       (insertion,_) <- mirrorSimpleSourceWithDelayer (delayer view)
          (toSimpleSource insertionBroadcaster)
 
-      (contentsSource,_) <- mirrorSimpleSourceWithDelayer (delayer view) 
+      (contentsSource,_) <- mirrorSimpleSourceWithDelayer (delayer view)
          (toSimpleSource contents1)
 
       importCommandsSource <- case importCommands of
@@ -880,7 +880,7 @@ createLinkedObject view isNew frozenLinkedObject =
                   (delayer view) (toSimpleSource importCommands1)
                return (Just importCommandsSource1)
       -- previousMVar contains the last insertion (or initially Nothing);
-      -- it is also used as a lock to prevent moveObject being used 
+      -- it is also used as a lock to prevent moveObject being used
       -- twice simultaneously on the same LinkedObject.
       previousMVar <- newMVar (if isNew then Nothing else insertion0)
 
@@ -892,13 +892,13 @@ createLinkedObject view isNew frozenLinkedObject =
                   isDescendant1 newInsertion =
                      let
                         insertionObject :: LinkedObject
-                        insertionObject 
+                        insertionObject
                            = fromLinkedObjectPtr (parent newInsertion)
                      in
                         isDescendant insertionObject linkedObject
-                          
 
-                  toContents insertion 
+
+                  toContents insertion
                      = contents (fromLinkedObjectPtr (parent insertion))
 
                   -- we only do this after the object has been successfully
@@ -915,7 +915,7 @@ createLinkedObject view isNew frozenLinkedObject =
                                  (toContents oldInsertion)
                                  (\ map -> (delFromFM map oldName,
                                     elemFM oldName map))
-                              when success (dirtyInsertion oldInsertion) 
+                              when success (dirtyInsertion oldInsertion)
                case insertionOpt of
                   Nothing -> -- this must be a deletion
                      do
@@ -933,7 +933,7 @@ createLinkedObject view isNew frozenLinkedObject =
                                  isCycle <- isDescendant1 newInsertion
                                  return (if isCycle
                                     then
-                                       Just 
+                                       Just
                                           "Cannot insert an object into itself"
                                     else
                                        Nothing
@@ -943,7 +943,7 @@ createLinkedObject view isNew frozenLinkedObject =
                               do
                                  success <- applySimpleUpdate'
                                     (toContents newInsertion)
-                                    (\ map -> 
+                                    (\ map ->
                                        if elemFM newName map
                                           then
                                              (map,False)
@@ -979,11 +979,11 @@ createLinkedObject view isNew frozenLinkedObject =
                                  case insertionOpt of
                                     Just insertion ->
                                        do
-                                          let 
-                                             thisWrappedLink = wrappedLink' 
+                                          let
+                                             thisWrappedLink = wrappedLink'
                                                 frozenLinkedObject
-                                             parentWrappedLink = 
-                                                wrappedLinkInPtr 
+                                             parentWrappedLink =
+                                                wrappedLinkInPtr
                                                    (parent insertion)
                                           wrapMoveLink view parentWrappedLink
                                              thisWrappedLink
@@ -997,13 +997,13 @@ createLinkedObject view isNew frozenLinkedObject =
 
          dirtyInsertion :: Insertion -> IO ()
          dirtyInsertion insertion = dirtyLinkedObjectPtr (parent insertion)
-               
+
          dirtyLinkedObjectPtr :: LinkedObjectPtr -> IO ()
          dirtyLinkedObjectPtr linkedObjectPtr = dirtyWrappedLink
             (wrappedLinkInPtr linkedObjectPtr)
 
          dirtyLinkedObject :: LinkedObject -> IO ()
-         dirtyLinkedObject linkedObject 
+         dirtyLinkedObject linkedObject
             = dirtyWrappedLink (toWrappedLink linkedObject)
 
          dirtyWrappedLink :: WrappedLink -> IO ()
@@ -1034,7 +1034,7 @@ createLinkedObject view isNew frozenLinkedObject =
 
 isDescendant :: LinkedObject -> LinkedObject -> IO Bool
 isDescendant linkedObject1 linkedObject2 =
-   if linkedObject1 == linkedObject2 
+   if linkedObject1 == linkedObject2
       then
          return True
       else
@@ -1042,8 +1042,8 @@ isDescendant linkedObject1 linkedObject2 =
             insertionOpt <- readContents (insertion linkedObject1)
             case insertionOpt of
                Nothing -> return False
-               Just insertion -> isDescendant 
-                  (fromLinkedObjectPtr (parent insertion)) 
+               Just insertion -> isDescendant
+                  (fromLinkedObjectPtr (parent insertion))
                   linkedObject2
 
 
@@ -1085,14 +1085,14 @@ instance HasBinary LinkedObject CodingMonad where
          linkedObjectWE <- createLinkedObject view False frozenLinkedObject
          return (coerceWithError linkedObjectWE)
       )
-     
+
 -- ----------------------------------------------------------------------
 -- CodedValue for Insertion
 -- ----------------------------------------------------------------------
 
 instance HasBinary Insertion CodingMonad where
    writeBin = mapWrite (\ insertion -> (parent insertion,name insertion))
-   readBin = mapRead (\ (parent,name) -> 
+   readBin = mapRead (\ (parent,name) ->
       Insertion {parent = parent,name = name})
 
 -- ----------------------------------------------------------------------
@@ -1129,7 +1129,7 @@ fromLinkedObjectPtr = linkedObjectInPtr
 {-
 -- | Turning a 'LinkedObjectPtr' into the corresponding 'LinkedObject'
 -- when we can guess the parent insertion to use if it is not readable.
-fromLinkedObjectPtr1 
+fromLinkedObjectPtr1
    :: LinkedObject -> EntityName -> LinkedObjectPtr -> LinkedObject
 fromLinkedObjectPtr1 parentLinkedObject entityName linkedObjectPtr =
    unsafePerformIO (
@@ -1145,7 +1145,7 @@ fromLinkedObjectPtr1 parentLinkedObject entityName linkedObjectPtr =
             else
                done
          return linkedObject1
-      )                        
+      )
 -}
 
 mkLinkedObjectPtr :: View -> WrappedLink -> LinkedObjectPtr
@@ -1162,11 +1162,11 @@ mkLinkedObjectPtr view wrappedLink =
 
 
 instance HasBinary LinkedObjectPtr CodingMonad where
-   writeBin = mapWrite 
-      (\ (LinkedObjectPtr {wrappedLinkInPtr = wrappedLink}) 
+   writeBin = mapWrite
+      (\ (LinkedObjectPtr {wrappedLinkInPtr = wrappedLink})
          -> wrappedLink
          )
-   readBin = mapReadViewIO 
+   readBin = mapReadViewIO
       (\ view wrappedLink ->
          return (mkLinkedObjectPtr view wrappedLink)
          )
@@ -1175,29 +1175,29 @@ instance Eq LinkedObjectPtr where
    (==) ptr1 ptr2 = wrappedLinkInPtr ptr1 == wrappedLinkInPtr ptr2
 
 instance Ord LinkedObjectPtr where
-   compare ptr1 ptr2 = compare (wrappedLinkInPtr ptr1) (wrappedLinkInPtr ptr2) 
+   compare ptr1 ptr2 = compare (wrappedLinkInPtr ptr1) (wrappedLinkInPtr ptr2)
 
 extractLinkedObject :: WrappedLink -> View -> IO LinkedObject
 extractLinkedObject (wrappedLink @ (WrappedLink link)) view =
    do
-      (result :: Maybe LinkedObject) 
+      (result :: Maybe LinkedObject)
          <- catchAccessError (
             do
                object <- readLink view link
                case toLinkedObjectOpt object of
-                  Nothing -> throwError ClientError 
+                  Nothing -> throwError ClientError
                      "LinkManager: object has no linked object"
                   Just linkedObject -> return linkedObject
             )
 
       case result of
          Just linkedObject -> return linkedObject
-         Nothing -> 
+         Nothing ->
             do
                noAccessObject <- createNoAccessObject view wrappedLink
                return (noAccessObjectToLinkedObject noAccessObject)
 
-lookupEntityName 
+lookupEntityName
    :: LinkedObject -> EntityName -> SimpleSource (Maybe LinkedObjectPtr)
 lookupEntityName linkedObject entityName =
    fmap
@@ -1214,10 +1214,10 @@ newtype FrozenLinkSource value = FrozenLinkSource {
    linksSource' :: [(EntitySearchName,value)]
    } deriving (Typeable)
 
-instance HasBinary value CodingMonad 
+instance HasBinary value CodingMonad
    => HasBinary (FrozenLinkSource value) CodingMonad where
 
-   writeBin = mapWrite 
+   writeBin = mapWrite
       (\ (FrozenLinkSource {linksSource' = linksSource'})
          -> linksSource'
          )
@@ -1230,16 +1230,16 @@ freezeLinkSource linkSource =
       linksSource' <- readContents (linksSource linkSource)
       return (FrozenLinkSource {linksSource' = linksSource'})
 
-createLinkSource :: View -> LinkedObject -> FrozenLinkSource value 
+createLinkSource :: View -> LinkedObject -> FrozenLinkSource value
    -> IO (LinkSource value)
 createLinkSource view linkedObject (FrozenLinkSource {
       linksSource' = linksSource'}) =
    createLinkSourceGeneral view linkedObject linksSource'
-    
- 
-createLinkSourceGeneral :: View -> LinkedObject -> [(EntitySearchName,value)] 
+
+
+createLinkSourceGeneral :: View -> LinkedObject -> [(EntitySearchName,value)]
    -> IO (LinkSource value)
-createLinkSourceGeneral view linkedObject 
+createLinkSourceGeneral view linkedObject
       (initialPairs :: [(EntitySearchName,value)]) =
    do
       linksBroadcaster <- newSimpleBroadcaster initialPairs
@@ -1282,13 +1282,13 @@ createLinkSourceGeneral view linkedObject
 -- Functions for Merging
 -- ----------------------------------------------------------------------
 
-getLinkedObjectMergeLinks :: 
-   (HasCodedValue object,HasLinkedObject object) 
+getLinkedObjectMergeLinks ::
+   (HasCodedValue object,HasLinkedObject object)
    => MergeLinks object
-getLinkedObjectMergeLinks = 
+getLinkedObjectMergeLinks =
    let
-      fn :: 
-        (HasCodedValue object,HasLinkedObject object) 
+      fn ::
+        (HasCodedValue object,HasLinkedObject object)
         => View -> Link object -> IO (ObjectLinks EntityName)
       -- We use the Nothing key to indicate the object in which this object
       -- is inserted (if any).
@@ -1318,17 +1318,17 @@ getLinkedObjectMergeLinks =
    in
       MergeLinks fn
 
-   
+
 
 -- | The Link object gives the link where the LinkedObject is to be.
 attemptLinkedObjectMerge :: ObjectType objectType object
-   => MergeTypes.LinkReAssigner -> View -> 
+   => MergeTypes.LinkReAssigner -> View ->
    Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
 attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
    = addFallOutWE (\ break ->
       do
          -- (1) freeze each of the source linked objects.
-         (frozenLinkedObjects :: [(View,FrozenLinkedObject)]) 
+         (frozenLinkedObjects :: [(View,FrozenLinkedObject)])
             <- mapM
                (\ (view,linkedObject) ->
                   do
@@ -1336,7 +1336,7 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                      return (view,frozenLinkedObject)
                   )
                sourceLinkedObjects
- 
+
          let
             -- (2) wrappedLink' field of new FrozenLinkedObject
             newWrappedLink' = WrappedLink targetLink
@@ -1354,11 +1354,11 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                         ++ "- unassigned pointer??"))
                      (viewId view,toWrappedMergeLink wrappedLink0)
 
-                  wrappedLink1 
+                  wrappedLink1
                      = fromWrappedMergeLink wrappedLink0 wrappedMergeLink1
                in
                   mkLinkedObjectPtr newView wrappedLink1
-                 
+
             -- (4) construct Insertions
             (newInsertion' : restInsertions) =
                map
@@ -1369,7 +1369,7 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                         fmap
                            (\ insertion ->
                               let
-                                 newParent = mapLinkedObjectPtr view 
+                                 newParent = mapLinkedObjectPtr view
                                    (parent insertion)
                               in
                                  Insertion {
@@ -1382,7 +1382,7 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                      )
                   frozenLinkedObjects
 
-         if all (== newInsertion') restInsertions 
+         if all (== newInsertion') restInsertions
             then
                done
             else
@@ -1401,7 +1401,7 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                "LinkManager: importCommand status could not be determined"
             Just b -> return b
 
-         let         
+         let
             -- (5) Construct contents.  Since we specified that these links
             -- had to be consistent during getLinkedObjectMergeLinks, we don't
             -- need to do that now.
@@ -1411,16 +1411,16 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
             -- add the contents for one FrozenLinkedObject to an existing
             -- map.
             addContents view theseContents map0 =
-               foldl 
+               foldl
                   (\ map0 (entityName,linkedObjectPtr) ->
-                     addToFM map0 entityName 
+                     addToFM map0 entityName
                         (mapLinkedObjectPtr view linkedObjectPtr)
                      )
                   map0
                   theseContents
             finalMap =
                foldl
-                  (\ map0 (view,frozenLinkedObject) 
+                  (\ map0 (view,frozenLinkedObject)
                      -> addContents view (contents' frozenLinkedObject) map0)
                   emptyFM
                   frozenLinkedObjects
@@ -1434,14 +1434,14 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                hasImportCommands = hasImportCommands
                }
 
-         linkedObjectWE 
+         linkedObjectWE
             <- createLinkedObject newView False newFrozenLinkedObject
 
          coerceWithErrorOrBreakIO break linkedObjectWE
       )
 
 -- | Returns true if the CodedValue representations of the
--- two LinkedObject\'s are identical.  (The LinkedObject\'s are 
+-- two LinkedObject\'s are identical.  (The LinkedObject\'s are
 -- likely enough in different views.)
 linkedObjectsSame :: LinkedObject -> LinkedObject -> IO Bool
 linkedObjectsSame linkedObject1 linkedObject2 =

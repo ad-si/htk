@@ -1,5 +1,5 @@
 -- | This module contains various generic functions to be attached to object
--- menus. 
+-- menus.
 module LocalMenus(
    deleteObject,
    ) where
@@ -12,22 +12,22 @@ import ObjectTypes
 import LinkManager
 import View
 
-deleteObject 
+deleteObject
    :: (ObjectType objectType object,HasLinkedObject object)
    => View -> Link object -> IO ()
 deleteObject view link =
    do
       object <- readLink view link
       title <- nodeTitleIOPrim object
-      
+
       goAhead <- confirmMess ("Really delete " ++ show title ++ "?")
 
-      if goAhead 
+      if goAhead
          then
             do
                resultWE <- moveObject (toLinkedObject object) Nothing
                case fromWithError resultWE of
-                  Right () -> 
+                  Right () ->
                      done
 -- don't do this as it creates problems for committing link environments.
 -- some time we will need a way of pruning views to remove dead links ...

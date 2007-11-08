@@ -1,6 +1,6 @@
--- | This module contains basic Haskell code for talking to Emacs. 
+-- | This module contains basic Haskell code for talking to Emacs.
 module EmacsBasic(
-   EmacsSession, 
+   EmacsSession,
       -- A particular Emacs session with its own buffer
 
    newEmacsSession, -- :: String -> IO EmacsSession
@@ -8,15 +8,15 @@ module EmacsBasic(
       -- The String argument is the buffer name to be used by Emacs
       -- (it may have to slightly modify it to make it unique)
 
-      -- There can be several EmacsSession's at the same time, but 
+      -- There can be several EmacsSession's at the same time, but
       -- they will all be using the same Emacs (courtesy of gnuclient).
 
    evalEmacsString, -- :: EmacsSession -> String -> IO String
-      -- Evaluate the given Emacs Lisp expression, which should return a 
+      -- Evaluate the given Emacs Lisp expression, which should return a
       -- String.
 
    evalEmacsStringQuick, -- :: EmacsSession -> String -> IO String
-      -- Evaluate the given Emacs Lisp expression, which should return a 
+      -- Evaluate the given Emacs Lisp expression, which should return a
       -- String, guaranteed not to contain any newline characters.
 
    execEmacsString, -- :: EmacsSession -> String -> IO ()
@@ -75,9 +75,9 @@ data EmacsSession = EmacsSession {
    emacsLock :: BSem,
    emacsResponse :: MVar String,
 
-   -- events 
+   -- events
    eventChannel :: EqGuardedChannel String String,
-   
+
    oID :: ObjectID,
    closeAction :: IO ()
    }
@@ -90,7 +90,7 @@ instance Object EmacsSession where
    objectID emacsSession = oID emacsSession
 
 instance Destroyable EmacsSession where
-   destroy emacsSession = 
+   destroy emacsSession =
       do
          execEmacsString emacsSession "(kill-buffer (current-buffer))"
          closeAction emacsSession
@@ -112,14 +112,14 @@ newEmacsSession bufferName =
 
       let
          keyString = fromMultiServerKey key
-      
+
          clientAction =
             "(uni-initialise "++
                show portNumber++" "++
                quoteEmacsString keyString++" "++
                quoteEmacsString bufferName++
                ")"
-      handle <- waitForClient emacsMultiServer key 
+      handle <- waitForClient emacsMultiServer key
          (execGnuClient clientAction)
       emacsLock <- newBSem
       emacsResponse <- newEmptyMVar
@@ -127,7 +127,7 @@ newEmacsSession bufferName =
       oID <- newObject
       let
          closeAction = done -- for now
-      
+
          emacsSession = EmacsSession {
             handle = handle,
             emacsLock = emacsLock,
@@ -153,24 +153,24 @@ readEmacsOutput emacsSession =
                case line of
                   'O':'K':' ':rest ->
                       do
-                         written <- tryPutMVar (emacsResponse emacsSession) 
+                         written <- tryPutMVar (emacsResponse emacsSession)
                             rest
                          if written
                             then
                                done
                             else
                                error "EmacsBasic: emacsResponse not empty"
-                  'E':'R':' ':rest -> 
+                  'E':'R':' ':rest ->
                      error ("EmacsBasic: XEmacs error: "++unUniEscape rest)
                   'E':'V':' ':rest ->
                      let
                         (key,value) =
                            case splitToChar ' ' rest of
                               Nothing -> error "EmacsBasic: bad event"
-                              Just (key,unEscaped) 
+                              Just (key,unEscaped)
                                  -> (key,unUniEscape unEscaped)
                      in
-                        sync(noWait(send (eventChannel emacsSession) 
+                        sync(noWait(send (eventChannel emacsSession)
                            (key,value)))
 
                   _ -> parseError line
@@ -184,15 +184,15 @@ parseError line =
 -- Communicating with Emacs
 -- ------------------------------------------------------------------------
 
--- We need to lock execEmacsString calls because otherwise two calls to 
--- execEmacsString running simultaneously could interleave their output to 
+-- We need to lock execEmacsString calls because otherwise two calls to
+-- execEmacsString running simultaneously could interleave their output to
 ---Emacs.
 execEmacsString :: EmacsSession -> String -> IO ()
 execEmacsString emacsSession command =
-   deepSeq command 
-      (synchronize (emacsLock emacsSession) 
+   deepSeq command
+      (synchronize (emacsLock emacsSession)
          (writeEmacs emacsSession command))
-        
+
 
 evalEmacsString :: EmacsSession -> String -> IO String
 evalEmacsString emacsSession expression =
@@ -208,7 +208,7 @@ evalEmacsString emacsSession expression =
 
 evalEmacsStringQuick :: EmacsSession -> String -> IO String
 evalEmacsStringQuick emacsSession expression =
-   deepSeq expression 
+   deepSeq expression
       (synchronize (emacsLock emacsSession) (
          do
             let
@@ -252,10 +252,10 @@ emacsMultiServer = unsafePerformIO initialiseEmacsBasic
 -- Start the multi-server and tell Emacs to load the required library.
 initialiseEmacsBasic :: IO MultiServer
 initialiseEmacsBasic =
-   do 
+   do
       multiServer <- newMultiServer False Nothing
       top <- getTOP
-      let 
+      let
          load :: String -> String
          load name = " (load \"" ++ top ++ "/emacs/" ++ name ++ "\")"
       execGnuClient (
@@ -278,7 +278,7 @@ execGnuClient command =
          toEval = "(condition-case err (progn "++command++
             "\""++okMess++"\") (error (format \"gnuclient error: %s\" err)))"
       gnuClientPath <- getGnuClientPath
-     
+
 
       gnuClient <- newChildProcess gnuClientPath [
          toolName "XEmacs",
@@ -310,7 +310,7 @@ isEmacsWorking =
       success <- Control.Exception.try (
          do
             emacsSession <- newEmacsSession "Test Emacs"
-            str1 <- evalEmacsString emacsSession 
+            str1 <- evalEmacsString emacsSession
                "(concat \"Hello\" \" \" \"Haskell\")"
             str2 <- evalEmacsString emacsSession "(uni-prin (+ 2 2))"
             destroy emacsSession
@@ -325,4 +325,4 @@ isEmacsWorking =
                ++ show sp)
             Left excep -> hasError (err ++ show excep)
          )
-             
+

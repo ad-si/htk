@@ -1,9 +1,9 @@
 -- | This module controls selection by variant attributes.
--- 
+--
 -- The problem we solve is search a database MMiSSVariantDict a
 -- of a-values indexed by partial maps from variantAttributes strings
 -- (listed in the variable of the same name) to Strings.
--- 
+--
 -- When searching by a key (such a map), an item in the database
 --    indexed by another key (such a map) matches if the two maps
 --    agree wherever they are both defined.  Thus the null-value
@@ -41,7 +41,7 @@ module MMiSSVariant(
    emptyMMiSSVariantSpec,
 
    -- Merging
-   getMMiSSVariantDictObjectLinks, 
+   getMMiSSVariantDictObjectLinks,
    attemptMergeMMiSSVariantDict,
    variantDictsSame,
    MMiSSVariants,
@@ -49,8 +49,8 @@ module MMiSSVariant(
    displayMMiSSVariantDictKeys, -- :: MMiSSVariantDict object -> IO ()
       -- describing the keys in the object.
 
-   copyVariantDict, 
-      -- :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object 
+   copyVariantDict,
+      -- :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object
       -- -> IO (MMiSSVariantDict object)
       -- This operation is used to update the version numbers when copying
       -- a VariantDict object from one repository to another.
@@ -100,9 +100,9 @@ import MMiSSGetVariantAttributes
 
 -- -----------------------------------------------------------------------
 -- Implementation Note
--- 
+--
 -- This is a complete reimplementation of this module.  The previous version
--- used a clever indexing strategy which was unfortunately extremely 
+-- used a clever indexing strategy which was unfortunately extremely
 -- inflexible.  This version uses a more general scoring method, in which
 -- we score each available variant, and then pick the highest-scoring.
 -- -----------------------------------------------------------------------
@@ -129,7 +129,7 @@ getVersion :: MMiSSVariants -> Maybe ObjectVersion
 getVersion = versionOpt
 
 setVersion :: MMiSSVariants -> ObjectVersion -> MMiSSVariants
-setVersion variants version0 = variants {versionOpt = Just version0} 
+setVersion variants version0 = variants {versionOpt = Just version0}
 
 getVersionAndUnset :: MMiSSVariants -> Maybe (ObjectVersion,MMiSSVariants)
 getVersionAndUnset variants =
@@ -170,7 +170,7 @@ mkMMiSSVariants keyValues =
             else
                variantsMap1
    in
-      
+
       MMiSSVariants {versionOpt = versionOpt,keyValues = fmToList variantsMap2}
 
 unmkMMiSSVariants :: MMiSSVariants -> [(String,Maybe String)]
@@ -188,7 +188,7 @@ unmkMMiSSVariants variants =
 -- to an MMiSSVariants.
 -- NB.  This assumes the element is a valid <variant-attributes> element.
 -- Otherwise expect match failures and the like.
-toMMiSSVariantsFromXml :: Element -> MMiSSVariants 
+toMMiSSVariantsFromXml :: Element -> MMiSSVariants
 toMMiSSVariantsFromXml (Elem "variant-attributes" [] content) =
    let
       doOne :: Content -> (String,Maybe String)
@@ -196,9 +196,9 @@ toMMiSSVariantsFromXml (Elem "variant-attributes" [] content) =
          let
             Just keyAtt = lookup "key" attributes
             valueAttOpt = lookup "value" attributes
-           
+
             getAtt (AttValue [Left value]) = value
- 
+
             key = getAtt keyAtt
             valueOpt = fmap getAtt valueAttOpt
         in
@@ -235,7 +235,7 @@ fromMMiSSVariantsToXml variants =
 --
 -- NB.  The scoring method used is very crude; it is hoped that one day
 -- Achim will be able to improve it.
-scoreVariants 
+scoreVariants
    :: MMiSSVariants -- ^ Variants being searched for
    -> MMiSSVariants -- ^ Some variants
    -> Integer
@@ -246,18 +246,18 @@ scoreVariants variantsS variantsT =
       -- version it is probable that he actually wants it.
       versionScore = case (versionOpt variantsS,versionOpt variantsT) of
          (Nothing,_) -> 0
-         (Just version,Nothing) -> -10 
+         (Just version,Nothing) -> -10
             -- I don't think this should happen really anyway.
          (Just versionS,Just versionT) ->
             if versionS >= versionT
-               then 
+               then
                   -- versions <= the one we are looking for are good, since
                   -- at least a version checked out with the version we
-                  -- are looking for should contain them. 
+                  -- are looking for should contain them.
                   10*(
-                     max 
-                        (1000 - 
-                           (getVersionInteger versionS 
+                     max
+                        (1000 -
+                           (getVersionInteger versionS
                               - getVersionInteger versionT))
                         1
                      )
@@ -269,16 +269,16 @@ scoreVariants variantsS variantsT =
       doesNotExistPenalty = -5
       matchBonus = 3
 
-      keyScore :: 
+      keyScore ::
          [(String,Maybe String)] -> [(String,Maybe String)] -> Integer
       keyScore [] _ = 0
       keyScore l [] = doesNotExistPenalty*(fromIntegral (length l))
-      keyScore (variantS @ ((keyS,valueS):restS)) 
+      keyScore (variantS @ ((keyS,valueS):restS))
             (variantT @ ((keyT,valueT):restT))=
          case compare keyS keyT of
-            EQ  -> 
+            EQ  ->
                let
-                  scoreThis = 
+                  scoreThis =
                      if valueS == valueT then matchBonus else noMatchPenalty
                in
                   scoreThis + keyScore restS restT
@@ -298,8 +298,8 @@ scoreVariants variantsS variantsT =
 refineMMiSSVariants :: MMiSSVariants -> MMiSSVariants -> MMiSSVariants
 refineMMiSSVariants variantsO variantsI =
    let
-      refineKVs :: [(String,Maybe String)] -> [(String,Maybe String)] 
-         -> [(String,Maybe String)] 
+      refineKVs :: [(String,Maybe String)] -> [(String,Maybe String)]
+         -> [(String,Maybe String)]
       refineKVs [] l = l
       refineKVs l [] = l
       refineKVs
@@ -317,21 +317,21 @@ refineMMiSSVariants variantsO variantsI =
 
 
 --  | Combining two MMiSSVariants where we insist there is no conflict.
-mergeMMiSSVariantsStrict :: MMiSSVariants -> MMiSSVariants 
-   -> WithError MMiSSVariants 
+mergeMMiSSVariantsStrict :: MMiSSVariants -> MMiSSVariants
+   -> WithError MMiSSVariants
 mergeMMiSSVariantsStrict variants1 variants2 =
    do
       versionOpt <- case (versionOpt variants1,versionOpt variants2) of
          (Nothing,Nothing) -> return Nothing
          (jA,Nothing) -> return jA
          (Nothing,jB) -> return jB
-         (jC@(Just v1),Just v2) -> 
+         (jC@(Just v1),Just v2) ->
             if v1 == v2
                then
                   return jC
                else
-                  fail ("Conflicting versions " ++ show v1 
-                     ++ " and " ++ show v2) 
+                  fail ("Conflicting versions " ++ show v1
+                     ++ " and " ++ show v2)
       let
          combineKeys :: [(String,Maybe String)] -> [(String,Maybe String)]
             -> WithError [(String,Maybe String)]
@@ -339,7 +339,7 @@ mergeMMiSSVariantsStrict variants1 variants2 =
          combineKeys l1 [] = return l1
          combineKeys (l1@((kv1@(k1,v1)):rest1)) (l2@((kv2@(k2,v2)):rest2)) =
             case compare k1 k2 of
-               LT -> 
+               LT ->
                   do
                      rest <- combineKeys rest1 l2
                      return (kv1:rest)
@@ -347,14 +347,14 @@ mergeMMiSSVariantsStrict variants1 variants2 =
                   do
                      rest <- combineKeys l1 rest2
                      return (kv2:rest)
-               EQ -> 
-                  if v1 == v2 
+               EQ ->
+                  if v1 == v2
                      then
                         do
                            rest <- combineKeys rest1 rest2
                            return (kv1:rest)
                      else
-                        fail ("Multiply-specified variant " ++ k1 
+                        fail ("Multiply-specified variant " ++ k1
                            ++ " has incompatible values " ++ show v1
                            ++ " and " ++ show v2)
 
@@ -366,7 +366,7 @@ mergeMMiSSVariantsStrict variants1 variants2 =
 -- Other functions for MMiSSVariants.
 -- -----------------------------------------------------------------------
 
-emptyVariants :: MMiSSVariants 
+emptyVariants :: MMiSSVariants
 emptyVariants = MMiSSVariants {versionOpt = Nothing,keyValues = []}
 
 
@@ -386,10 +386,10 @@ removeFromVariants variants key0 =
 -- The other datatypes
 -- -----------------------------------------------------------------------
 
-newtype MMiSSVariantSpec = MMiSSVariantSpec MMiSSVariants 
+newtype MMiSSVariantSpec = MMiSSVariantSpec MMiSSVariants
    deriving (Eq,Ord,Typeable)
 
-newtype MMiSSVariantSearch = MMiSSVariantSearch MMiSSVariants 
+newtype MMiSSVariantSearch = MMiSSVariantSearch MMiSSVariants
    deriving (Eq,Ord,Typeable)
 
 -- ------------------------------------------------------------------------
@@ -399,7 +399,7 @@ newtype MMiSSVariantSearch = MMiSSVariantSearch MMiSSVariants
 fromMMiSSVariantSpec :: MMiSSVariantSpec -> [(String,Maybe String)]
 fromMMiSSVariantSpec (MMiSSVariantSpec variants) =
    unmkMMiSSVariants variants
-   
+
 toMMiSSVariantSpec :: [(String,Maybe String)] -> WithError MMiSSVariantSpec
 toMMiSSVariantSpec strs =
    do
@@ -419,11 +419,11 @@ checkValid strs =
             )
          strs
       case findDuplicate fst strs of
-         Just (key0,_) -> fail ("Key " ++ key0 ++ 
+         Just (key0,_) -> fail ("Key " ++ key0 ++
             " occurs more than once in toMMiSSVariantSpec")
          Nothing -> done
-     
-      
+
+
 
 -- ------------------------------------------------------------------------
 -- More sophisticated functions for manipulating MMiSSVariantSpec and
@@ -433,8 +433,8 @@ checkValid strs =
 
 refineVariantSearch :: MMiSSVariantSearch -> MMiSSVariantSpec
     -> MMiSSVariantSearch
-refineVariantSearch 
-      (MMiSSVariantSearch variantsOuter) 
+refineVariantSearch
+      (MMiSSVariantSearch variantsOuter)
       (MMiSSVariantSpec variantsInner) =
    (MMiSSVariantSearch (refineMMiSSVariants variantsOuter variantsInner))
 
@@ -443,7 +443,7 @@ emptyMMiSSVariantSearch = MMiSSVariantSearch emptyVariants
 
 emptyMMiSSVariantSpec :: MMiSSVariantSpec
 emptyMMiSSVariantSpec = MMiSSVariantSpec emptyVariants
-  
+
 toMMiSSVariantSearchFromXml :: Element -> MMiSSVariantSearch
 toMMiSSVariantSearchFromXml element
    = MMiSSVariantSearch (toMMiSSVariantsFromXml element)
@@ -460,9 +460,9 @@ fromMMiSSSpecToSearch :: MMiSSVariantSpec -> MMiSSVariantSearch
 fromMMiSSSpecToSearch (MMiSSVariantSpec variants) =
    MMiSSVariantSearch variants
 
--- | (addToVariantSearch variantSearch key value) sets key=value for 
+-- | (addToVariantSearch variantSearch key value) sets key=value for
 -- variantSearch.
-addToVariantSearch :: MMiSSVariantSearch -> String -> String 
+addToVariantSearch :: MMiSSVariantSearch -> String -> String
    -> WithError MMiSSVariantSearch
 addToVariantSearch variantSearch key0 value0 =
    let
@@ -476,7 +476,7 @@ addToVariantSearch variantSearch key0 value0 =
 
 -- | (removeFromVariantSearch variantSearch key) removes the setting of
 -- key from variantSearch (or complains if there is none)
-removeFromVariantSearch :: MMiSSVariantSearch -> String 
+removeFromVariantSearch :: MMiSSVariantSearch -> String
    -> WithError MMiSSVariantSearch
 removeFromVariantSearch (MMiSSVariantSearch variants0) key0 =
    mapWithError MMiSSVariantSearch (removeFromVariants variants0 key0)
@@ -506,19 +506,19 @@ variantDictSearchWithSpec :: MMiSSVariantDict a -> MMiSSVariantSearch ->
 variantDictSearchWithSpec variantDict search =
    do
       resultOpt <- variantDictSearchGeneral variantDict search
-      return 
+      return
          (fmap (\ (_,variants,a) -> (a,MMiSSVariantSpec variants)) resultOpt)
 
-variantDictSearchGeneral :: MMiSSVariantDict a -> MMiSSVariantSearch 
+variantDictSearchGeneral :: MMiSSVariantDict a -> MMiSSVariantSearch
       -> IO (Maybe (Integer,MMiSSVariants,a))
 variantDictSearchGeneral dict (MMiSSVariantSearch variants) =
    variantDictSearchVeryGeneral (const True) dict variants
 
-variantDictSearchVeryGeneral 
-   :: (MMiSSVariants -> Bool) -> MMiSSVariantDict a -> MMiSSVariants 
+variantDictSearchVeryGeneral
+   :: (MMiSSVariants -> Bool) -> MMiSSVariantDict a -> MMiSSVariants
    -> IO (Maybe (Integer,MMiSSVariants,a))
-variantDictSearchVeryGeneral 
-      filterFn ((MMiSSVariantDict registry) :: MMiSSVariantDict a) 
+variantDictSearchVeryGeneral
+      filterFn ((MMiSSVariantDict registry) :: MMiSSVariantDict a)
       searchVariants =
    do
       (contents0 :: [(MMiSSVariants,a)]) <- listRegistryContents registry
@@ -528,20 +528,20 @@ variantDictSearchVeryGeneral
             (\ (variants,_) -> filterFn variants)
             contents0
 
-      
+
          (scored :: [(Integer,MMiSSVariants,a)]) = map
-            (\ (thisVariants,a) -> 
+            (\ (thisVariants,a) ->
                let
                   thisScore = scoreVariants searchVariants thisVariants
                in
                   (thisScore,thisVariants,a)
-               ) 
+               )
             contents1
 
       return (
          case scored of
             [] -> Nothing
-            _ -> 
+            _ ->
                let
                   mr = foldr1
                      (\ (mr1 @ (max1,_,_)) (mr2 @ (max2,_,_)) ->
@@ -554,7 +554,7 @@ variantDictSearchVeryGeneral
 
 
 -- | variantDictSearchExact looks for a variant with exactly the same spec.
-variantDictSearchExact :: MMiSSVariantDict a -> MMiSSVariantSpec -> 
+variantDictSearchExact :: MMiSSVariantDict a -> MMiSSVariantSpec ->
    IO (Maybe a)
 variantDictSearchExact (MMiSSVariantDict registry) (MMiSSVariantSpec variants)
    = getValueOpt registry variants
@@ -572,7 +572,7 @@ variantDictSearchAlmostExact variantDict variantSpec =
          resultOpt
          )
 
-variantDictSearchAlmostExactWithSpec 
+variantDictSearchAlmostExactWithSpec
    :: MMiSSVariantDict a -> MMiSSVariantSpec -> IO (Maybe (a,MMiSSVariantSpec))
 variantDictSearchAlmostExactWithSpec variantDict (MMiSSVariantSpec variants) =
    do
@@ -585,7 +585,7 @@ variantDictSearchAlmostExactWithSpec variantDict (MMiSSVariantSpec variants) =
 
          filterFn variants0 = removeVersion variants0 == variantsWithoutVersion
 
-      resultOpt <- variantDictSearchVeryGeneral filterFn variantDict 
+      resultOpt <- variantDictSearchVeryGeneral filterFn variantDict
             variantsWithoutVersion
          -- not a very efficient way of doing, but better to have as
          -- few search functions as possible.
@@ -593,15 +593,15 @@ variantDictSearchAlmostExactWithSpec variantDict (MMiSSVariantSpec variants) =
          resultOpt)
 
 addToVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> a -> IO ()
-addToVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) a 
-  = 
+addToVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) a
+  =
     setValue registry variants a
 
 
 queryInsert :: MMiSSVariantDict a -> MMiSSVariantSpec -> MMiSSVariantSearch
    -> IO Bool
-queryInsert variantDict 
-      (variantSpec @ (MMiSSVariantSpec thisVariants)) 
+queryInsert variantDict
+      (variantSpec @ (MMiSSVariantSpec thisVariants))
       (variantSearch @ (MMiSSVariantSearch searchVariants)) =
    do
       searchOpt <- variantDictSearchGeneral variantDict variantSearch
@@ -614,7 +614,7 @@ queryInsert variantDict
                case compare score1 score2 of
                   LT -> True
                   GT -> False
-                  EQ -> 
+                  EQ ->
                      -- uh-oh.  We guess that the scoring returns
                      -- earlier variants first
                      thisVariants <= foundVariants
@@ -629,7 +629,7 @@ instance Monad m => HasBinary MMiSSVariants m where
    readBin = mapRead mkMMiSSVariants
 
 instance Monad m => HasBinary MMiSSVariantSpec m where
-   writeBin = mapWrite 
+   writeBin = mapWrite
       (\ (MMiSSVariantSpec variants) -> unmkMMiSSVariants variants)
    readBin = mapRead
       (\ list -> MMiSSVariantSpec (mkMMiSSVariants list))
@@ -647,12 +647,12 @@ instance Monad m => HasBinary MMiSSVariantSearch m where
 -- The CodedValue instance also has the job of reassigning the variant values
 -- in the dictionary which are previously Nothing to the version of the
 -- new view.
-instance HasBinary a CodingMonad 
+instance HasBinary a CodingMonad
       => HasBinary (MMiSSVariantDict a) CodingMonad where
 
    readBin = mapRead (\ registry -> MMiSSVariantDict registry)
 
-   writeBin = mapWriteViewIO (\ view 
+   writeBin = mapWriteViewIO (\ view
          (mmissVariantDict @ (MMiSSVariantDict registry)) ->
       do
          versionOpt <- readMVar (committingVersion view)
@@ -661,23 +661,23 @@ instance HasBinary a CodingMonad
             Just version -> setUnsetVersions mmissVariantDict version
          return registry
       )
- 
+
 -- This function does the reassignation.
 setUnsetVersions :: MMiSSVariantDict a -> ObjectVersion -> IO ()
-setUnsetVersions ((MMiSSVariantDict registry) :: MMiSSVariantDict a) 
+setUnsetVersions ((MMiSSVariantDict registry) :: MMiSSVariantDict a)
       newVersion =
    do
       (registryContents :: [(MMiSSVariants,a)])
-         <- listRegistryContents registry 
+         <- listRegistryContents registry
       let
          toReAssign :: [(MMiSSVariants,a)]
-         toReAssign = 
+         toReAssign =
             filter
                (\ (variant,_) -> not (isJust (getVersion variant)))
                registryContents
 
       mapM_
-         (\ (oldVariant,value) -> 
+         (\ (oldVariant,value) ->
             do
                deleteFromRegistry registry oldVariant
                setValue registry (setVersion oldVariant newVersion) value
@@ -689,11 +689,11 @@ setUnsetVersions ((MMiSSVariantDict registry) :: MMiSSVariantDict a)
 -- Merging variant dictionaries
 -- ------------------------------------------------------------------------
 
-getMMiSSVariantDictObjectLinks 
-   :: (a -> IO (ObjectLinks key)) -> MMiSSVariantDict a 
+getMMiSSVariantDictObjectLinks
+   :: (a -> IO (ObjectLinks key)) -> MMiSSVariantDict a
    -> IO ((ObjectLinks (MMiSSVariants,key)))
-getMMiSSVariantDictObjectLinks 
-      (getIndividualObjectLinks :: a -> IO (ObjectLinks key)) 
+getMMiSSVariantDictObjectLinks
+      (getIndividualObjectLinks :: a -> IO (ObjectLinks key))
       ((MMiSSVariantDict registry) :: MMiSSVariantDict a) =
    do
       (contents :: [(MMiSSVariants,a)]) <- listRegistryContents registry
@@ -707,9 +707,9 @@ getMMiSSVariantDictObjectLinks
       return (concatObjectLinks result)
 
 attemptMergeMMiSSVariantDict
-   :: (View -> a -> IO a) -> [(View,MMiSSVariantDict a)] 
+   :: (View -> a -> IO a) -> [(View,MMiSSVariantDict a)]
    -> IO (MMiSSVariantDict a)
-attemptMergeMMiSSVariantDict converter 
+attemptMergeMMiSSVariantDict converter
       (variantDicts :: [(View,MMiSSVariantDict a)]) =
    -- We assume, because of the versions, that there are no clashes.
    -- Thus our only job is to get each list and converted.
@@ -732,20 +732,20 @@ attemptMergeMMiSSVariantDict converter
       registry <- listToNewRegistry (concat converted)
       return (MMiSSVariantDict registry)
 
-variantDictsSame :: (a -> a -> Bool) 
+variantDictsSame :: (a -> a -> Bool)
    -> MMiSSVariantDict a -> MMiSSVariantDict a -> IO Bool
-variantDictsSame testEq (MMiSSVariantDict registry1) 
+variantDictsSame testEq (MMiSSVariantDict registry1)
       (MMiSSVariantDict registry2) =
    do
       (list1 :: [(MMiSSVariants,a)]) <- listRegistryContents registry1
       (list2 :: [(MMiSSVariants,a)]) <- listRegistryContents registry2
 
       return (
-         and (zipWith 
+         and (zipWith
                (\ (var1,a1) (var2,a2) -> var1 == var2 && testEq a1 a2)
                list1 list2
                )
-         &&  
+         &&
             (length list1 == length list2)
          )
 
@@ -754,7 +754,7 @@ variantDictsSame testEq (MMiSSVariantDict registry1)
 -- ------------------------------------------------------------------------
 
 instance Show MMiSSVariants where
-   show mmissVariants = 
+   show mmissVariants =
       let
          contents :: [(String,Maybe String)]
          contents = unmkMMiSSVariants mmissVariants
@@ -805,8 +805,8 @@ displayMMiSSVariantDictKeys variantDict =
 
 -- | This operation is used to update the version numbers when copying
 -- a VariantDict object from one repository to another.
-copyVariantDict 
-   :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object 
+copyVariantDict
+   :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object
    -> IO (MMiSSVariantDict object)
 copyVariantDict getNewVersionInfo (MMiSSVariantDict registry0) =
    do
@@ -820,7 +820,7 @@ copyVariantDict getNewVersionInfo (MMiSSVariantDict registry0) =
          contents0
       registry1 <- listToNewRegistry contents1
       return (MMiSSVariantDict registry1)
-      
+
 
 copyVariants
    :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariants
@@ -850,13 +850,13 @@ class HasGetAllVariants dict object | dict -> object where
 instance HasGetAllVariants (MMiSSVariantDict object) object where
    getAllVariants (MMiSSVariantDict registry :: MMiSSVariantDict object) =
       do
-         (contents0 :: [(MMiSSVariants,object)]) 
+         (contents0 :: [(MMiSSVariants,object)])
             <- listRegistryContents registry
          let
             contents1 =
                map
                   (\ (vars,object) -> (MMiSSVariantSpec vars,object))
-                  contents0 
+                  contents0
          return contents1
 
 -- -----------------------------------------------------------------------
@@ -867,7 +867,7 @@ instance HasGetAllVariants (MMiSSVariantDict object) object where
 
 mergeMMiSSVariantSpecStrict :: MMiSSVariantSpec -> MMiSSVariantSpec
    -> WithError MMiSSVariantSpec
-mergeMMiSSVariantSpecStrict (MMiSSVariantSpec variants1) 
+mergeMMiSSVariantSpecStrict (MMiSSVariantSpec variants1)
       (MMiSSVariantSpec variants2) =
    do
       variants <- mergeMMiSSVariantsStrict variants1 variants2
@@ -893,6 +893,6 @@ editMMiSSVariantSearch (MMiSSVariantSearch oldVariants) =
 editMMiSSVariants :: MMiSSVariants -> IO (Maybe MMiSSVariants)
 editMMiSSVariants oldVariants =
    do
-      newVariantsListOpt 
+      newVariantsListOpt
          <- editVariantAttributes (unmkMMiSSVariants oldVariants)
       return (fmap mkMMiSSVariants newVariantsListOpt)

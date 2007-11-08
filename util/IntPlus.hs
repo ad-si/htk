@@ -1,4 +1,4 @@
--- | Integers augmented with Infinity. 
+-- | Integers augmented with Infinity.
 module IntPlus(
    IntPlus,
    infinity
@@ -35,7 +35,7 @@ instance Num IntPlus where
       (Infinite b,Finite _) -> Infinite b
       (Finite _,Infinite b) -> Infinite b
       (Infinite b1,Infinite b2) ->
-         if b1 == b2 then Infinite b1 else 
+         if b1 == b2 then Infinite b1 else
             error "IntPlus: attempt to subtract infinities of like sign"
    (*) i1 i2 = case (i1,i2) of
       (Finite i1,Finite i2) -> Finite (i1*i2)
@@ -54,12 +54,12 @@ instance Num IntPlus where
    abs (Finite i) = Finite (abs i)
    abs (Infinite _) = infinity
 
-   signum i = case compare i 0 of 
+   signum i = case compare i 0 of
       LT -> -1
       EQ -> 0
       GT -> 1
 
    fromInteger i = Finite i
-      
+
 
 

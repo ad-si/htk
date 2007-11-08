@@ -1,4 +1,4 @@
--- | GraphEditorRemote sets up a graph editor attached to a remote server. 
+-- | GraphEditorRemote sets up a graph editor attached to a remote server.
 module GraphEditorRemote(graphEditorRemote) where
 
 import Control.Concurrent
@@ -22,7 +22,7 @@ import SimpleGraph
 
 graphEditorRemote :: -- does not return until editor is closed.
    (?server :: HostPort,
-      GraphConfigure.GraphAllConfig dispGraph graphParms 
+      GraphConfigure.GraphAllConfig dispGraph graphParms
          node nodeType nodeTypeParms arc arcType arcTypeParms,
     HasConfigValue Shape nodeTypeParms)
    => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
@@ -30,7 +30,7 @@ graphEditorRemote :: -- does not return until editor is closed.
    -> IO ()
 graphEditorRemote displaySort =
    do
-      (updateServer,getUpdate,closeConnection,initialState) <- 
+      (updateServer,getUpdate,closeConnection,initialState) <-
          connectBroadcastOther graphEditorService
       let
          FrozenGraph {
@@ -58,7 +58,7 @@ graphEditorRemote displaySort =
                putMVar updateThreadMVar updateThread
                return graphConnectionData
 
-      (graph :: Displayable SimpleGraph) <- 
+      (graph :: Displayable SimpleGraph) <-
          Graph.newGraph graphConnection
       graphEditor <- newGraphEditor displaySort graph
       sync(destroyed graphEditor)

@@ -18,28 +18,28 @@ import Core
 -- -----------------------------------------------------------------------
 
 -- | The @ScrollBox@ datatype.
-data ScrollBox a = 
+data ScrollBox a =
         ScrollBox {
-                fScrollFrame    :: Frame, 
+                fScrollFrame    :: Frame,
                 fPadFrames      :: [Frame],
                 fScrollBars     :: [ScrollBar],
                 fScrolledWidget :: a
                 }
 
-                
+
 -- -----------------------------------------------------------------------
 -- constructor
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new scrollbox and returns a handler.
 newScrollBox :: (Widget wid, HasScroller wid, Container par) =>
-   par 
+   par
    -- ^ the parent widget, which has to be a container widget.
-   -> (Frame -> IO wid) 
+   -> (Frame -> IO wid)
    -- ^ a function that returns the scrollbox\'es content for
    -- a given parent container.
    ->
-   [Config (ScrollBox wid)] 
+   [Config (ScrollBox wid)]
    -- ^ the list of configuration options for this scrollbox.
    ->
    IO (ScrollBox wid, wid)
@@ -84,11 +84,11 @@ newScrollBox par wfun cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance Eq (ScrollBox a) where 
+instance Eq (ScrollBox a) where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject (ScrollBox a) where 
+instance GUIObject (ScrollBox a) where
   toGUIObject (ScrollBox w _ _ _) = toGUIObject w
   cname _ = "ScrollBox"
 
@@ -100,18 +100,18 @@ instance Destroyable (ScrollBox a) where
 -- | A scrollbox has standard widget properties
 -- (concerning focus, cursor).
 instance (Widget a, HasScroller a) => Widget (ScrollBox a) where
-  cursor c sb = 
+  cursor c sb =
     do
       foreach (fPadFrames sb) (cursor c)
       cursor c (fScrollFrame sb)
       foreach (fScrollBars sb) (cursor c)
       cursor c (fScrolledWidget sb)
       return sb
-        
+
 -- | A scrollbox has a configureable foreground and background colour.
 instance (HasColour a,HasScroller a) => HasColour (ScrollBox a) where
   legalColourID _ _ = True
-  setColour sb cid c = 
+  setColour sb cid c =
     do
       foreach (fPadFrames sb) (\f -> setColour f cid c)
       setColour (fScrollFrame sb) cid c

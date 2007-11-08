@@ -23,23 +23,23 @@ data Prompt a = Prompt Box Label (Entry a)
 
 
 -- -----------------------------------------------------------------------
--- Commands 
+-- Commands
 -- -----------------------------------------------------------------------
 
 -- i had problems creating a TkVariable of any kind here?!?
 
 -- | Construct a new prompt and returns a handler.
-newPrompt :: GUIValue a => Box 
+newPrompt :: GUIValue a => Box
    -- ^ the parent box.
-   -> [Config (Prompt a)] 
+   -> [Config (Prompt a)]
    -- ^ the list of configuration options for this prompt.
    -> IO (Prompt a)
    -- ^ A prompt.
 newPrompt par cnf =  do {
         b <- newHBox par [];
-	pack b [Expand On, Fill X];
-        lbl <- newLabel b []; 
-	pack lbl [Expand Off, Fill X];
+        pack b [Expand On, Fill X];
+        lbl <- newLabel b [];
+        pack lbl [Expand Off, Fill X];
         ent <- newEntry b [];
         pack ent [Fill X, Expand On];
         configure (Prompt b lbl ent) cnf
@@ -55,15 +55,15 @@ instance Eq (Prompt a) where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject (Prompt a) where 
+instance GUIObject (Prompt a) where
   toGUIObject (Prompt bx _ _) = toGUIObject bx
   cname _ = "Prompt"
 
 -- | A prompt has standard widget properties
 -- (concerning focus, cursor).
-instance Widget (Prompt a) where 
+instance Widget (Prompt a) where
   -- Sets the mouse cursor for this prompt.
-  cursor c pr @ (Prompt bx lbl ent) = 
+  cursor c pr @ (Prompt bx lbl ent) =
     synchronize pr (do
                       cursor c bx
                       cursor c lbl
@@ -82,7 +82,7 @@ instance HasSize (Prompt a) where
 -- | A prompt has a configureable foreground and background colour.
 instance HasColour (Prompt a) where
   legalColourID _ _ = True
-  setColour pr @ (Prompt bx lbl en_) cid c = 
+  setColour pr @ (Prompt bx lbl en_) cid c =
     synchronize pr (do
                       setColour bx cid c
                       setColour lbl cid c
@@ -91,7 +91,7 @@ instance HasColour (Prompt a) where
 -- | A propt has a configureable font.
 instance HasFont (Prompt a) where
   -- Sets the font of the prompt.
-  font f pr @ (Prompt bx lbl ent) = 
+  font f pr @ (Prompt bx lbl ent) =
     synchronize pr (do
                       font f lbl
                       return pr)
@@ -116,7 +116,7 @@ instance HasEnable (Prompt a) where
 instance Synchronized (Prompt a) where
   -- Synchronizes on a prompt object.
   synchronize w = synchronize (toGUIObject w)
-        
+
 -- | A prompt widget has an (entered) value.
 instance GUIValue a => HasValue (Prompt a) a where
   -- Sets the prompt\'s value.
@@ -126,11 +126,11 @@ instance GUIValue a => HasValue (Prompt a) a where
 
 
 -- -----------------------------------------------------------------------
--- Entry Components 
+-- Entry Components
 -- -----------------------------------------------------------------------
 
 -- | Gets the entry field of the prompt.
-getPromptEntry :: Prompt a 
+getPromptEntry :: Prompt a
    -- ^ the concerned prompt.
    -> Entry a
    -- ^ the prompt\'s entry.

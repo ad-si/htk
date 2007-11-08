@@ -1,9 +1,9 @@
 -- | #########################################################################
--- 
+--
 -- This Graph Editor is inspired by the one by Einar Karlsen but uses
 -- the new graph interface.
--- 
--- ######################################################################### 
+--
+-- #########################################################################
 
 
 module GraphEditor (
@@ -36,10 +36,10 @@ import qualified GraphDisp
 import GraphConfigure
 import GetAttributes
 
-type Displayable graph = 
+type Displayable graph =
    graph String (NodeTypeAttributes Node) () ArcTypeAttributes
 
--- DisplayableUpdate, DisplayableGraphConnection and DisplayableCannedGraph 
+-- DisplayableUpdate, DisplayableGraphConnection and DisplayableCannedGraph
 -- are used elsewhere to refer to the types associated with an editable graph.
 type DisplayableUpdate =
    Update String (NodeTypeAttributes Node) () ArcTypeAttributes
@@ -51,18 +51,18 @@ type DisplayableCannedGraph =
    CannedGraph String (NodeTypeAttributes Node) () ArcTypeAttributes
 
 
-newGraphEditor :: 
-   (GraphConfigure.GraphAllConfig dispGraph graphParms 
+newGraphEditor ::
+   (GraphConfigure.GraphAllConfig dispGraph graphParms
       node nodeType nodeTypeParms arc arcType arcTypeParms,
     HasConfigValue Shape nodeTypeParms,
 
-    Graph graph) 
+    Graph graph)
    => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
    -> Displayable graph
    -> IO GraphEditor
-newGraphEditor 
-      (displaySort :: GraphDisp.Graph dispGraph graphParms 
+newGraphEditor
+      (displaySort :: GraphDisp.Graph dispGraph graphParms
          node nodeType nodeTypeParms arc arcType arcTypeParms)
       (graph :: Displayable graph) =
    do
@@ -82,22 +82,22 @@ newGraphEditor
             AllowDragging True $$
             GraphDisp.emptyGraphParms
 
-         makeNodeTypeParms :: DisplayGraph -> NodeType 
+         makeNodeTypeParms :: DisplayGraph -> NodeType
             -> NodeTypeAttributes Node -> IO (nodeTypeParms Node)
          makeNodeTypeParms _ nodeType nodeTypeAttributes =
-            return (         
-               ValueTitle (\ node -> 
+            return (
+               ValueTitle (\ node ->
                   do
                      nodeOwnTitle <- getNodeLabel graph node
                      return (
-                        (nodeTypeTitle nodeTypeAttributes) ++ "." ++ 
+                        (nodeTypeTitle nodeTypeAttributes) ++ "." ++
                            nodeOwnTitle
                         )
                   ) $$$
                LocalMenu (
                   Button "Delete" (\ toDelete -> deleteNode graph toDelete)
                   ) $$$
-               NodeGesture (\ source -> makeNewNodeArc graph registry source) 
+               NodeGesture (\ source -> makeNewNodeArc graph registry source)
                                                                          $$$
                NodeDragAndDrop (\ sourceDyn target ->
                   do
@@ -109,8 +109,8 @@ newGraphEditor
                GraphDisp.emptyNodeTypeParms
                )
 
-         makeArcTypeParms _ arcType arcTypeAttributes = 
-            return 
+         makeArcTypeParms _ arcType arcTypeAttributes =
+            return
                (LocalMenu (
                   Button "Delete" (\ toDelete -> deleteArc graph toDelete)
                   ) $$$
@@ -118,14 +118,14 @@ newGraphEditor
                   )
 
       displayGraphInstance <-
-         displayGraph displaySort graph graphParms 
+         displayGraph displaySort graph graphParms
             makeNodeTypeParms makeArcTypeParms
 
       oID <- newObject
       let
          graphEditor = GraphEditor {
             oID = oID,
-            destroyAction = 
+            destroyAction =
                do
                   destroyRegistry registry
                   destroy displayGraphInstance
@@ -163,7 +163,7 @@ instance Destructible GraphEditor where
 -- -----------------------------------------------------------------------
 
 -- This action is used when the user requests a new type
-makeNewNodeType :: Graph graph 
+makeNewNodeType :: Graph graph
    => Displayable graph
    -> NodeArcTypeRegistry
    -> IO ()
@@ -175,7 +175,7 @@ makeNewNodeType graph registry =
          Just (attributes :: NodeTypeAttributes Node) ->
             do
                nodeType <- newNodeType graph attributes
-               setValue (nodeTypes registry) 
+               setValue (nodeTypes registry)
                   (nodeTypeTitle attributes) nodeType
 
 -- This action is used to construct a new node.
@@ -191,7 +191,7 @@ makeNewNode graph registry =
          Nothing -> return Nothing
          Just attributes ->
             do
-               node <- newNode graph (nodeType attributes) 
+               node <- newNode graph (nodeType attributes)
                   (nodeTitle attributes)
                return (Just node)
 
@@ -206,7 +206,7 @@ deleteNode graph node = update graph (DeleteNode node)
 -- -----------------------------------------------------------------------
 
 -- This action is used when the user requests a new type
-makeNewArcType :: Graph graph 
+makeNewArcType :: Graph graph
    => Displayable graph
    -> NodeArcTypeRegistry
    -> IO ()
@@ -218,11 +218,11 @@ makeNewArcType graph registry =
          Just (attributes :: ArcTypeAttributes) ->
             do
                arcType <- newArcType graph attributes
-               setValue (arcTypes registry) 
+               setValue (arcTypes registry)
                   (arcTypeTitle attributes) arcType
 
 -- This action makes a new arc between two nodes.
-makeNewArc :: Graph graph 
+makeNewArc :: Graph graph
    => Displayable graph
    -> NodeArcTypeRegistry
    -> Node -> Node -> IO ()
@@ -268,7 +268,7 @@ data NodeArcTypeRegistry = NodeArcTypeRegistry {
    destroyRegistry :: IO ()
    }
 
-newNodeArcTypeRegistry :: Graph graph 
+newNodeArcTypeRegistry :: Graph graph
    => Displayable graph
    -> IO NodeArcTypeRegistry
 newNodeArcTypeRegistry graph =
@@ -300,7 +300,7 @@ newNodeArcTypeRegistry graph =
       sequence_ (map handleUpdate oldUpdates)
 
       monitorThreadID <- forkIO monitorThread
-      
+
       let
          destroyRegistry =
             do
@@ -312,5 +312,5 @@ newNodeArcTypeRegistry graph =
          nodeTypes = nodeTypes,
          arcTypes = arcTypes,
          destroyRegistry = destroyRegistry
-         })  
+         })
 

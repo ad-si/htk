@@ -24,7 +24,7 @@ getObject bdb bdbKey =
    do
       aOpt <- getObjectOpt bdb bdbKey
       case aOpt of
-         Nothing -> throwError InternalError 
+         Nothing -> throwError InternalError
             ("Unexpected missing key " ++ show bdbKey)
          Just a -> return a
 getObjectOpt :: HasBinary a StateBinArea => BDB -> BDBKey -> IO (Maybe a)
@@ -33,16 +33,16 @@ getObjectOpt bdb bdbKey =
       icslOpt <- readBDB bdb bdbKey
       case icslOpt of
          Nothing -> return Nothing
-         Just icsl -> 
+         Just icsl ->
             do
                a <- readICStringLen icsl
                return (Just a)
 
-getObjectAtCursor :: HasBinary a StateBinArea 
+getObjectAtCursor :: HasBinary a StateBinArea
    => Cursor -> IO (Maybe (BDBKey,a))
 getObjectAtCursor cursor =
    do
-      dataOpt <- readBDBAtCursor cursor 
+      dataOpt <- readBDBAtCursor cursor
       case dataOpt of
          Nothing -> return Nothing
          Just (key,icsl) ->
@@ -66,7 +66,7 @@ setObjectHere bdb key a =
       setObjectHere1 bdb key txn a
       endTransaction txn
 
-setObjectHere1 :: HasBinary a StateBinArea => BDB -> BDBKey -> TXN -> a 
+setObjectHere1 :: HasBinary a StateBinArea => BDB -> BDBKey -> TXN -> a
    -> IO ()
 setObjectHere1 bdb key txn a =
    do

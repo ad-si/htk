@@ -44,7 +44,7 @@ showCreationConfigs _ = return ""
 -- | The @State@ datatype - the state of certain widgets
 -- can be normal, disabled or active.
 data State = Disabled | Active | Normal deriving (Eq,Ord,Enum)
- 
+
 -- | Internal.
 instance GUIValue State where
   -- Internal.
@@ -63,8 +63,8 @@ instance Read State where
 -- | Internal.
 instance Show State where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
+   showsPrec d p r =
+      (case p of
           Disabled -> "disabled"
           Active -> "active"
           Normal -> "normal"
@@ -97,8 +97,8 @@ instance Read Justify where
 -- | Internal.
 instance Show Justify where
   -- Internal.
-  showsPrec d p r = 
-    (case p of 
+  showsPrec d p r =
+    (case p of
        JustLeft -> "left"
        JustCenter -> "center"
        JustRight -> "right") ++ r
@@ -133,8 +133,8 @@ instance Read Relief where
 -- | Internal.
 instance Show Relief where
   -- Internal.
-  showsPrec d p r = 
-    (case p of 
+  showsPrec d p r =
+    (case p of
        Groove -> "groove"
        Ridge -> "ridge"
        Flat -> "flat"
@@ -162,12 +162,12 @@ instance Read Orientation where
       'h':'o':'r':'i':'z':'o':'n':'t':'a':'l':xs -> [(Horizontal,xs)]
       'v':'e':'r':'t':'i':'c':'a':'l':xs -> [(Vertical,xs)]
       _ -> []
- 
+
 -- | Internal.
 instance Show Orientation where
   -- Internal.
-  showsPrec d p r = 
-    (case p of 
+  showsPrec d p r =
+    (case p of
        Horizontal -> "horizontal"
        Vertical -> "vertical") ++ r
 
@@ -196,9 +196,9 @@ instance Read Toggle where
 -- | Internal.
 instance Show Toggle where
   -- Internal.
-  showsPrec d p r = 
-    (case p of 
-       Off -> "0" 
+  showsPrec d p r =
+    (case p of
+       Off -> "0"
        On -> "1") ++ r
 
 toggle :: Toggle -> Toggle
@@ -216,7 +216,7 @@ data Flexibility = Rigid | Flexible
 
 
 -- -----------------------------------------------------------------------
--- Alignment 
+-- Alignment
 -- -----------------------------------------------------------------------
 
 -- | The @Alignment@ datatype - widget alignment etc.
@@ -241,8 +241,8 @@ instance Read Alignment where
 -- | Internal.
 instance Show Alignment where
   -- Internal.
-  showsPrec d p r = 
-    (case p of 
+  showsPrec d p r =
+    (case p of
        Top -> "top"
        InCenter -> "center"
        Bottom -> "bottom"
@@ -256,14 +256,14 @@ instance Show Alignment where
 -- | The @Anchor@ datatype - used for different purposes, e.g.
 -- text anchors or anchor positions of canvas items.
 data Anchor =
-          SouthEast 
-        | South 
-        | SouthWest  
-        | East 
-        | Center 
+          SouthEast
+        | South
+        | SouthWest
+        | East
+        | Center
         | West
-        | NorthEast 
-        | North 
+        | NorthEast
+        | North
         | NorthWest
         deriving (Eq,Ord,Enum)
 
@@ -291,15 +291,15 @@ instance Read Anchor where
 -- | Internal.
 instance Show Anchor where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
+   showsPrec d p r =
+      (case p of
          SouthEast -> "se"
-         South -> "s" 
+         South -> "s"
          SouthWest -> "sw"
          East -> "e"
-         Center -> "center" 
-         West -> "w" 
-         NorthEast -> "ne" 
-         North -> "n" 
+         Center -> "center"
+         West -> "w"
+         NorthEast -> "ne"
+         North -> "n"
          NorthWest -> "nw"
         ) ++ r

@@ -51,7 +51,7 @@ toPrimitiveLocation (Location lNo) = PrimitiveLocation lNo
 -- | Get the 'PrimitiveLocation' corresponding to a given 'Location',
 -- given the 'redirects' map from the 'VersionData'.
 
-retrievePrimitiveLocation1 :: FiniteMap Location PrimitiveLocation 
+retrievePrimitiveLocation1 :: FiniteMap Location PrimitiveLocation
     -> Location -> PrimitiveLocation
 retrievePrimitiveLocation1 map location =
    lookupWithDefaultFM map (toPrimitiveLocation location) location
@@ -73,7 +73,7 @@ retrieveKey versionData = retrieveKey1 (objectDictionary versionData)
 retrieveKeyOpt :: VersionData -> PrimitiveLocation -> Maybe BDBKey
 retrieveKeyOpt versionData = retrieveKeyOpt1 (objectDictionary versionData)
 
-retrieveKey1 :: FiniteMap PrimitiveLocation BDBKey 
+retrieveKey1 :: FiniteMap PrimitiveLocation BDBKey
    -> PrimitiveLocation -> IO BDBKey
 retrieveKey1 fm primitiveLocation =
    case retrieveKeyOpt1 fm primitiveLocation of
@@ -85,7 +85,7 @@ retrieveKey1 fm primitiveLocation =
       guessedLocation = Location loc
       PrimitiveLocation loc = primitiveLocation
 
-retrieveKeyOpt1 :: FiniteMap PrimitiveLocation BDBKey 
+retrieveKeyOpt1 :: FiniteMap PrimitiveLocation BDBKey
    -> PrimitiveLocation -> Maybe BDBKey
 retrieveKeyOpt1 fm primitiveLocation =
    lookupFM fm primitiveLocation
@@ -98,7 +98,7 @@ retrieveKeyOpt1 fm primitiveLocation =
 retrieveLocation :: VersionData -> PrimitiveLocation -> Location
 retrieveLocation versionData (pLocation @ (PrimitiveLocation lNo)) =
    let
-      redirects1 :: [(Location,PrimitiveLocation)] 
+      redirects1 :: [(Location,PrimitiveLocation)]
       redirects1 = fmToList (redirects versionData)
 
       redirectedOpt :: Maybe Location

@@ -2,7 +2,7 @@
 -- A frame is a simple container for widgets.
 module Frame (
 
-  Frame, 
+  Frame,
   newFrame
 
 ) where
@@ -29,10 +29,10 @@ data Frame = Frame GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new frame widget and returns a handler.
-newFrame :: Container par => par 
+newFrame :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Frame] 
+   -> [Config Frame]
    -- ^ the list of configuration options for this frame.
    -> IO Frame
    -- ^ A frame widget.
@@ -48,7 +48,7 @@ newFrame par confs =
 
 -- | Internal.
 instance GUIObject Frame where
-  toGUIObject (Frame w) = w 
+  toGUIObject (Frame w) = w
   cname _ = "Frame"
 
 -- | A frame widget can be destroyed.
@@ -69,7 +69,7 @@ instance Container Frame
 instance HasBorder Frame
 
 -- | A frame widget has a background colour.
-instance HasColour Frame where 
+instance HasColour Frame where
   legalColourID = hasBackGroundColour
 
 -- | You can specify the size of a frame.

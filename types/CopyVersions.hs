@@ -1,5 +1,5 @@
 -- | This module is called from VersionGraph when the user asks to
--- copy versions from one repository to another. 
+-- copy versions from one repository to another.
 module CopyVersions (
    copyVersions, -- :: VersionGraph -> IO ()
    ) where
@@ -44,7 +44,7 @@ copyVersions versionGraphFrom =
       addFallOut (\ break ->
          do
             -- Select what repository to copy to.
-            (versionGraphs :: [(Maybe HostPort,VersionGraph)]) 
+            (versionGraphs :: [(Maybe HostPort,VersionGraph)])
                <- getCurrentVersionGraphs
 
             let
@@ -66,7 +66,7 @@ copyVersions versionGraphFrom =
 
             -- Get the versions to copy.
             select <-
-               createDialogWin 
+               createDialogWin
                   [("All",All),("By Filter",ByFilter),("Selected",Selected),
                      ("Cancel",Cancel)]
                   (Just 0)
@@ -81,7 +81,7 @@ copyVersions versionGraphFrom =
                Cancel -> return []
                All ->
                   do
-                     versionInfos <- VersionGraphClient.getVersionInfos 
+                     versionInfos <- VersionGraphClient.getVersionInfos
                         versionGraphClientFrom
                      return (map (version . user . toVersionInfo) versionInfos)
                ByFilter ->
@@ -91,15 +91,15 @@ copyVersions versionGraphFrom =
                         Nothing -> return []
                         Just filter ->
                            do
-                              versionInfos0 
-                                 <- VersionGraphClient.getVersionInfos 
+                              versionInfos0
+                                 <- VersionGraphClient.getVersionInfos
                                     versionGraphClientFrom
                               let
-                                 versionInfos1 
+                                 versionInfos1
                                     = map toVersionInfo versionInfos0
 
-                                 versionInfos2 = List.filter 
-                                    (filterVersionInfo filter) 
+                                 versionInfos2 = List.filter
+                                    (filterVersionInfo filter)
                                     versionInfos1
                               return (map (version . user) versionInfos2)
                Selected ->
@@ -108,19 +108,19 @@ copyVersions versionGraphFrom =
                         "Versions to copy"
                      return (fromMaybe [] versionsOpt)
 
-            case versions of 
-               [] -> 
+            case versions of
+               [] ->
                   do
                      messageMess "Cancelling copy operation"
                      break "2"
                _ -> done
 
-            -- now ready to go. 
+            -- now ready to go.
             let
                versionGraphFromTo = FromTo {
                   from = versionGraphFrom,
                   to = versionGraphTo
-                  } 
+                  }
 
                versionGraphClientTo = toVersionGraphClient versionGraphTo
 
@@ -136,15 +136,15 @@ copyVersions versionGraphFrom =
                --    0 if isPresent = True
                --    1 if isPresent = False and mkGraphBack = False
                --    2 if isPresent = False and mkGraphBack = True,
-               -- so ensuring that two nodes from different graphs will only 
-               -- compare equal if they both have isPresent = True 
-               graphBackArg :: Bool 
-                  -> VersionGraphNode -> VersionInfo1 
+               -- so ensuring that two nodes from different graphs will only
+               -- compare equal if they both have isPresent = True
+               graphBackArg :: Bool
+                  -> VersionGraphNode -> VersionInfo1
                   -> (VersionInfoKey,Int)
                graphBackArg whichGraph versionGraphNode versionInfo1 =
                   let
                      versionInfo = toVersionInfo versionInfo1
-                     extraKey 
+                     extraKey
                         = if isPresent versionInfo
                            then
                               0
@@ -163,10 +163,10 @@ copyVersions versionGraphFrom =
                versionGraphNodes :: [VersionGraphNode]
                versionGraphNodes = map CheckedInNode versions
 
-               commonParentsAsNodes 
+               commonParentsAsNodes
                   :: [(VersionGraphNode,
                      [(VersionGraphNode,Maybe VersionGraphNode)])]
-               commonParentsAsNodes = findCommonParents 
+               commonParentsAsNodes = findCommonParents
                   graphBackFrom graphBackTo versionGraphNodes
 
                commonParents :: [(ObjectVersion,
@@ -175,7 +175,7 @@ copyVersions versionGraphFrom =
                   (\ (vgn1,parentData) ->
                      (toVersion vgn1,
                         map
-                           (\ (vgn2,vgn3Opt) 
+                           (\ (vgn2,vgn3Opt)
                               -> (toVersion vgn2,fmap toVersion vgn3Opt)
                               )
                            parentData
@@ -194,7 +194,7 @@ copyVersions versionGraphFrom =
                <- copyVersionInfos versionGraphFromTo versions
 
             let
-               -- Function for getting command for committing one element of 
+               -- Function for getting command for committing one element of
                -- commonParents
                copyOne :: (ObjectVersion,[(ObjectVersion,Maybe ObjectVersion)])
                   -> IO SimpleDBCommand
@@ -205,12 +205,12 @@ copyVersions versionGraphFrom =
                             do
                                parentTo <- case parentToOpt of
                                   Just parentTo -> return parentTo
-                                  Nothing -> 
+                                  Nothing ->
                                      do
-                                        versionInfo 
+                                        versionInfo
                                            <- toNewVersionInfo parentFrom
                                         return (version (user versionInfo))
-                               return 
+                               return
                                   (FromTo {from = parentFrom,to = parentTo})
                             )
                          parents
@@ -220,30 +220,30 @@ copyVersions versionGraphFrom =
                          parentsFromTo toNewVersionInfo
 
             -- Copy simultaneously all the versions.  We bunch them up in
-            -- a single command. 
+            -- a single command.
             --
-            -- NB - this is good, because when we send a version to the 
+            -- NB - this is good, because when we send a version to the
             -- destination repository, we don't want to send a version before
-            -- its parents.  
+            -- its parents.
             --
-            -- When computing the commands to send, we use 
+            -- When computing the commands to send, we use
             -- mapMConcurrentExcep.  This will hopefully have the effect
             -- of bunching up requests to the source repository into single
             -- MultiCommands, if it is a long way away.
             commands <- mapMConcurrentExcep copyOne commonParents
 
-            (MultiResponse responses) <- queryRepository repositoryTo 
+            (MultiResponse responses) <- queryRepository repositoryTo
                (MultiCommand commands)
-            mapM_ 
+            mapM_
                (\ response -> case response of
                   IsOK -> done
-                  IsObjectVersion _ -> done 
+                  IsObjectVersion _ -> done
                      -- means this version already committed.  Can happen
                      -- with a race condition.
-                  IsError errorType mess -> error ( 
+                  IsError errorType mess -> error (
                      show errorType ++ ": " ++ mess)
                   _ -> error ("Mysterious server error")
-                  ) 
+                  )
                responses
          )
       done

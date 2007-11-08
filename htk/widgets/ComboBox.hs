@@ -21,8 +21,8 @@ import Synchronized
 import Destructible
 import Packer
 import Tooltip
-import Entry 
-import ListBox 
+import Entry
+import ListBox
 import Subwidget
 
 
@@ -34,7 +34,7 @@ import Subwidget
 -- A ComboBox is a so called mega widget composed of an entry widget
 -- and a list box. Both subwidgets are accessible by themselves.
 
-data GUIValue a => 
+data GUIValue a =>
           ComboBox a = ComboBox GUIOBJECT (Entry a) (ListBox a)
                                    deriving Eq
 
@@ -52,13 +52,13 @@ listBoxSubwidget (ComboBox _ _ x) = x
 
 -- | Constructs a new combo box and returns a handler.
 newComboBox :: (GUIValue a, Container par) =>
-   par 
+   par
    -- ^ the list of configuration options for this
    -- combo box.
-   -> Bool 
+   -> Bool
    -- ^ true if the user should be allowed to type into the
-   -- entry of the ComboBox. 
-   -> [Config (ComboBox a)] 
+   -- entry of the ComboBox.
+   -> [Config (ComboBox a)]
    -> IO (ComboBox a)
    -- ^ A combo box.
 newComboBox par editable cnf =
@@ -99,7 +99,7 @@ comboBoxMethods = Methods (cgetCmd defMethods)
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIValue a => GUIObject (ComboBox a) where 
+instance GUIValue a => GUIObject (ComboBox a) where
   toGUIObject (ComboBox f _ _) = f
 
   cname _ = "ComboBox"
@@ -128,7 +128,7 @@ instance GUIValue a => HasBorder (ComboBox a)
 instance GUIValue a => HasAnchor (ComboBox a)
 
 -- | A combo box widget has a background colour.
-instance GUIValue a => HasColour (ComboBox a) where 
+instance GUIValue a => HasColour (ComboBox a) where
   legalColourID = hasBackGroundColour
 
 -- | You can specify the size of a combo box widget-
@@ -155,7 +155,7 @@ tkCreateComboBox _ _ _ _ _ = []
 {-# INLINE tkCreateComboBox #-}
 
 tkInsert ::  ObjectName -> Int -> [GUIVALUE] -> TclScript
-tkInsert name inx elems = 
+tkInsert name inx elems =
   [tkDelete name "0" "end",
    show name ++ " subwidget listbox insert " ++ show inx ++ " " ++
    showElements elems]
@@ -171,7 +171,7 @@ tkGet name = [show name ++ " subwidget entry get"]
 {-# INLINE tkGet #-}
 
 showElements :: [GUIVALUE] -> String
-showElements = concatMap (++ " ") . (map show) 
+showElements = concatMap (++ " ") . (map show)
 {-# INLINE showElements #-}
 
 tkPick :: ObjectName -> Int -> TclScript

@@ -1,5 +1,5 @@
--- | This module defines the service that implements the SimpleDB for 
--- an external server. 
+-- | This module defines the service that implements the SimpleDB for
+-- an external server.
 module SimpleDBService(
    simpleDBService,
    simpleDBServiceWrapped,
@@ -25,17 +25,17 @@ mkSimpleDBServices =
       simpleDB <- openSimpleDB versionState
       let
          simpleDBService :: (SimpleDBCommand,SimpleDBResponse,SimpleDB)
-         simpleDBService = 
+         simpleDBService =
             (error "SimpleDBService.1",error "SimpleDBService.2",simpleDB)
 
       return [Service simpleDBService,toVersionInfoServiceWrapped versionState]
 
 
 simpleDBService :: (SimpleDBCommand,SimpleDBResponse,SimpleDB)
-simpleDBService = serviceArg 
+simpleDBService = serviceArg
 
 simpleDBServiceWrapped :: Service
-simpleDBServiceWrapped = Service simpleDBService 
+simpleDBServiceWrapped = Service simpleDBService
 
 
 
@@ -45,7 +45,7 @@ instance ServiceClass SimpleDBCommand SimpleDBResponse SimpleDB where
    getBackupDelay _ = return BackupNever
       -- SimpleDB backups up automatically after every commit anyway.
    initialState (_,_,simpleDB) = return simpleDB
-   handleRequest _ user (command,simpleDB) = 
+   handleRequest _ user (command,simpleDB) =
       do
          response <- querySimpleDB user simpleDB command
          return (response,simpleDB)

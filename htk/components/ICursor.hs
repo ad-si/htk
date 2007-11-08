@@ -40,7 +40,7 @@ class HasInsertionCursor w => HasInsertionCursorIndexSet w i where
   -- Sets the index of the insertion Cursor.
   insertionCursor :: i -> Config w
 
--- | Widgets from which you can get the index of the insertion cursor 
+-- | Widgets from which you can get the index of the insertion cursor
 -- instantiate the @class HasInsertionCursorIndexSet@.
 class HasInsertionCursor w => HasInsertionCursorIndexGet w i where
   getInsertionCursor :: w -> IO i
@@ -81,7 +81,7 @@ instance (HasInsertionCursor w,Widget w) => HasBorder (ICursor w) where
   -- Dummy.
   relief _ w = return w
   -- Dummy.
-  getRelief _ = return Raised 
+  getRelief _ = return Raised
 
 -- | The insertion cursor has a configureable width.
 instance (HasInsertionCursor w,Widget w) => HasSize (ICursor w) where

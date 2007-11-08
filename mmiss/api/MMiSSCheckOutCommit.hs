@@ -1,5 +1,5 @@
 -- | This module contains the functions for checking out a version, committing
--- it, and doing various other things. 
+-- it, and doing various other things.
 module MMiSSCheckOutCommit (
    checkOut,
    changeUserInfo,
@@ -16,8 +16,8 @@ import qualified VersionInfo
 
 import VersionDB
 import VersionGraph
-import View hiding (setUserInfo) 
-   -- ours here also allows default labels and so on 
+import View hiding (setUserInfo)
+   -- ours here also allows default labels and so on
 import ViewType
 
 import MMiSSImportExportErrors
@@ -57,7 +57,7 @@ checkOut state (CheckOut (CheckOut_Attrs {checkOutVersion = versionStr} )
 -- Changing the User Info
 -- --------------------------------------------------------------------------
 
-changeUserInfo :: MMiSSSessionState -> ChangeUserInfo 
+changeUserInfo :: MMiSSSessionState -> ChangeUserInfo
    -> IO ChangeUserInfoResponse
 changeUserInfo state (ChangeUserInfo versionRef userInfo) =
    do
@@ -106,8 +106,8 @@ setUserInfo view userInfo1 =
          user0 = VersionInfo.user viewInfo0
          user1 = toOurUserInfo user0 userInfo1
 
-      user1 `seq` done 
-         -- make sure any parsing errors get picked up in time. 
+      user1 `seq` done
+         -- make sure any parsing errors get picked up in time.
 
       broadcast broadcaster (viewInfo0 {VersionInfo.user = user1})
 
@@ -115,5 +115,5 @@ checkUserInfo :: UserInfo -> IO ()
 checkUserInfo (UserInfo userInfo_attrs _) =
    case (userInfoVersion userInfo_attrs,userInfoParents userInfo_attrs) of
       (Nothing,Nothing) -> done
-      _ -> importExportError 
+      _ -> importExportError
          "You aren't allowed to set the version number or parents of a version"

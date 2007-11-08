@@ -1,6 +1,6 @@
 -- | This module contains the function for constructing the EmacsFS
 -- (Emacs Filing System) required by "EmacsEdit", and the
--- 'PrintAction' that "EmacsEdit" requires. 
+-- 'PrintAction' that "EmacsEdit" requires.
 module MMiSSEmacsEdit(
    editMMiSSObjectXml,
       -- :: View -> Link MMiSSObject -> IO ()
@@ -63,12 +63,12 @@ import {-# SOURCE #-} MMiSSExportFiles
 -- The types
 -- ----------------------------------------------------------------------
 
--- | EditRef is the \"ref\" type passed to EmacsEdit. 
--- 
--- The extra fields (apart from the link and variants) mean we can get what\'s 
--- needed to do the Emacs buttons, on the basis of what\'s in the referencing 
+-- | EditRef is the \"ref\" type passed to EmacsEdit.
+--
+-- The extra fields (apart from the link and variants) mean we can get what\'s
+-- needed to do the Emacs buttons, on the basis of what\'s in the referencing
 -- object, without having to dereference the link.
-data EditRef = 
+data EditRef =
       EditRef {
          package :: MMiSSPackageFolder,
          searchName :: EntitySearchName,
@@ -76,21 +76,21 @@ data EditRef =
            -- referenced object is to be searched for, using the
            -- lookupXXX functions in MMiSSPackageFolder.
          outerVariants :: MMiSSVariantSearch,
-            -- ^ The outer variants attached to the document containing this 
-            -- link.  It is assumed (or at least hoped) that these will not 
+            -- ^ The outer variants attached to the document containing this
+            -- link.  It is assumed (or at least hoped) that these will not
             -- change.
          linkVariants :: MMiSSVariantSpec,
             -- ^ Variants attached to this particular link.  These may somehow
-            -- be edited (though there is no facility for doing that at the 
-            -- moment). 
+            -- be edited (though there is no facility for doing that at the
+            -- moment).
          priority :: String,
             -- ^ Priority attached to this link.
          miniType :: Char
          }
 
-compareOpt :: EditRef 
+compareOpt :: EditRef
    -> (EntitySearchName,MMiSSPackageFolder,MMiSSVariantSearch,MMiSSVariantSpec)
-compareOpt editRef = 
+compareOpt editRef =
    (searchName editRef,package editRef,
       outerVariants editRef,linkVariants editRef)
 
@@ -115,14 +115,14 @@ editMMiSSObjectGeneral :: Format -> View -> Link MMiSSObject -> IO ()
 editMMiSSObjectGeneral format
     = editMMiSSObjectInner (toEditFormatConverter format)
 
-editMMiSSObjectInner :: EditFormatConverter -> View -> Link MMiSSObject 
+editMMiSSObjectInner :: EditFormatConverter -> View -> Link MMiSSObject
    -> IO ()
 editMMiSSObjectInner formatConverter view link =
    do
       object <- readLink view link
       variantSearch <- getCurrentVariantSearch (variantObject object)
 
-      packageAndNameWE 
+      packageAndNameWE
          <- getMMiSSPackageFolderAndName view (toLinkedObject object)
 
       case fromWithError packageAndNameWE of
@@ -136,8 +136,8 @@ editMMiSSObjectInner formatConverter view link =
                   searchName :: EntitySearchName
                   searchName = FromAbsolute fullName
 
-                  emacsFS = mkEmacsFS view formatConverter 
-                  printAction = mkPrintAction view formatConverter 
+                  emacsFS = mkEmacsFS view formatConverter
+                  printAction = mkPrintAction view formatConverter
 
                   topEditRef = EditRef {
                      package = package,
@@ -147,7 +147,7 @@ editMMiSSObjectInner formatConverter view link =
                      miniType = getObjectMiniType object,
                      priority = "1"
                      }
-            
+
                editEmacs emacsFS printAction topEditRef
 
 -- ----------------------------------------------------------------------
@@ -167,11 +167,11 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
             searchName1 -> toString searchName1
 
       -- Now for the difficult one.
-      editFS :: EditRef 
+      editFS :: EditRef
          -> IO (WithError (EmacsContent EditRef,EditedFile EditRef))
       editFS (editRef @ EditRef {
             searchName = searchName0,miniType = miniType0}) =
-         addFallOutWE (\ break -> 
+         addFallOutWE (\ break ->
             do
                let
                   name = toDescription editRef
@@ -187,9 +187,9 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                -- Get the object data
                objectLinkWE <- getEditRef view editRef
                objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
-         
 
-               
+
+
                -- retrieve the object data.
                object <- readLink' view objectLink
                cacheSpecOpt <- lookupVariantObjectCacheWithSpec
@@ -219,17 +219,17 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   -- break is evaluated.
                   break2 mess = seq (unsafePerformIO releaseAct) (break mess)
 
-               
+
                -- Extract a parent MMiSSPackageFolder and name for the object,
                -- to be used partly for looking up includes within the object,
                -- and also to provide a static way of writing back to the
-               -- object. 
-               packageAndName1WE 
+               -- object.
+               packageAndName1WE
                   <- getMMiSSPackageFolderAndName view thisLinkedObject
 
-               (package1,name1) 
+               (package1,name1)
                   <- coerceWithErrorOrBreakIO break2 packageAndName1WE
-               
+
                -- Create variants used for searching in this object,
                -- We refine the existing variants with the one in the
                -- object's spec.
@@ -245,13 +245,13 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   <- coerceWithErrorOrBreakIO break2 contentWE
 
                let
-                  mapContent :: EmacsContent (TypedName,IncludeInfo) 
+                  mapContent :: EmacsContent (TypedName,IncludeInfo)
                      -> IO (EmacsContent EditRef)
                   mapContent = mapMonadic
                      (\ ((string,miniType),includeInfo) ->
                         do
-                           (searchName1 :: EntitySearchName) 
-                              <- coerceWithErrorOrBreakIO break2 
+                           (searchName1 :: EntitySearchName)
+                              <- coerceWithErrorOrBreakIO break2
                                  (fromStringWE string)
 
                            let
@@ -270,20 +270,20 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                               editRef =
                                  EditRef {
                                     package = package1,
-                                    searchName = searchName1, 
+                                    searchName = searchName1,
                                     outerVariants = outerVariants1,
                                     linkVariants = linkVariants1,
                                     miniType = miniType,
                                     priority = priority
                                     }
 
-                           return editRef 
+                           return editRef
                         )
 
                -- convert content0 into EmacsContent EditRef.
-               content1 <- mapContent content0 
-               
-               -- We now have to set up the EditedFile stuff 
+               content1 <- mapContent content0
+
+               -- We now have to set up the EditedFile stuff
                let
                   writeData (emacsContent0 :: EmacsContent EditRef) =
                      catchAllErrorsWE (
@@ -293,7 +293,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                              (emacsContent1 :: EmacsContent (TypedName,
                                    IncludeInfo)) =
                                 fmap
-                                   (\ editRef -> 
+                                   (\ editRef ->
                                       ((toString (searchName editRef),
                                          miniType editRef),
                                          mkIncludeInfo editRef
@@ -309,33 +309,33 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                 packageIdOpt = Nothing,
                                 packagePathOpt1 = Just name1,
                                 packageNameOpt = Nothing,
-                                labelOpt 
+                                labelOpt
                                    = Just (FromHere name1),
                                 variants = linkVariants editRef
                                 }
 
-                                
+
                           (bundle,packageId) <- parseBundle2 elInfo element0 []
-                          writeBundle1 bundle (Just packageId) Nothing view 
+                          writeBundle1 bundle (Just packageId) Nothing view
                              lockSet (Left (toLinkedObject package1))
 
                           emacsContentOpt <- case reduceElement element0 of
                              Nothing -> return Nothing
                              Just element1 ->
                                 let
-                                   contentWE :: WithError 
+                                   contentWE :: WithError
                                       (EmacsContent (TypedName,IncludeInfo))
                                    contentWE =
                                       do
-                                         element2 
+                                         element2
                                             <- changeLabel element1 searchName0
                                          toEdit name element2
-                                in                   
+                                in
                                    case fromWithError contentWE of
                                       Left mess ->
                                          do
                                             warningMess
-                                               ("Commit of " ++ name 
+                                               ("Commit of " ++ name
                                                   ++ " successful, but "
                                                   ++ "attempt to recompute "
                                                   ++ "magic buttons "
@@ -376,7 +376,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                outerObjectLink
                   <- coerceWithErrorOrBreakIO break outerObjectLinkWE
                outerObject <- readLink view outerObjectLink
-               package1WE <- getMMiSSPackageFolder view outerObject 
+               package1WE <- getMMiSSPackageFolder view outerObject
                package1 <- coerceWithErrorOrBreakIO break package1WE
 
                let
@@ -400,10 +400,10 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   form4 = newFormEntry "Priority" "0"
 
                   form5 :: Form String
-                  form5 = guardForm 
-                     (\ priorityStr 
+                  form5 = guardForm
+                     (\ priorityStr
                          -> case readCheck priorityStr of
-                           Just (_ :: Double) -> True 
+                           Just (_ :: Double) -> True
                            _ -> False
                          )
                       "Priority must be a number"
@@ -455,7 +455,7 @@ getObjectTypeMiniType objectType = getMiniType (xmlTag objectType)
 
 -- --------------------------------------------------------------
 -- Functions for changing the border to indicate that an object is
--- being edited, or not.  
+-- being edited, or not.
 -- --------------------------------------------------------------
 
 addEdit :: MMiSSObject -> IO ()
@@ -475,7 +475,7 @@ remEdit object =
             broadcast (isEditedBroadcaster object) False
          else
             done
-      
+
 -- ----------------------------------------------------------------------
 -- The PrintAction
 -- ----------------------------------------------------------------------
@@ -484,16 +484,16 @@ remEdit object =
 mkPrintAction :: View -> EditFormatConverter -> PrintAction EditRef
 mkPrintAction view editFormatConverter =
    let
-      printAction :: EditRef 
-         -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef)))) 
+      printAction :: EditRef
+         -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef))))
          -> IO ()
-      printAction topRef 
-            (getContent :: EditRef 
+      printAction topRef
+            (getContent :: EditRef
                -> IO (WithError (EmacsContent (Bool,EditRef)))) =
          do
             -- To gather all the package folders we put them in this MVar.
             -- (As MMiSSReadObject does in a similar situation)
-            (packageFoldersMVar :: MVar [MMiSSPackageFolder]) 
+            (packageFoldersMVar :: MVar [MMiSSPackageFolder])
                <- newMVar []
 
 
@@ -502,17 +502,17 @@ mkPrintAction view editFormatConverter =
                <- newMVar []
 
             topMVar <- newMVar [(True,topRef)]
-             
+
 
             let
                variantSearch = refineVariantSearch (outerVariants topRef)
                   (linkVariants topRef)
 
-            elementWE <- reAssemble 
-               (reAssembleArg view packageFoldersMVar getContent 
-                  editFormatConverter) 
+            elementWE <- reAssemble
+               (reAssembleArg view packageFoldersMVar getContent
+                  editFormatConverter)
                (doFile exportFilesMVar)
-               (searchName topRef) variantSearch 
+               (searchName topRef) variantSearch
                (package topRef,topMVar)
 
             case fromWithError elementWE of
@@ -534,11 +534,11 @@ mkPrintAction view editFormatConverter =
                      -- so the user can continue editing.
                      forkIODebug (
                         do
-                           stringWE <- exportElement view LaTeX 
+                           stringWE <- exportElement view LaTeX
                               packageFolders element
                            case fromWithError stringWE of
                               Left error -> errorMess error
-                              Right str -> 
+                              Right str ->
                                  let
                                     nameOpt :: Maybe String
                                     nameOpt =
@@ -548,16 +548,16 @@ mkPrintAction view editFormatConverter =
                                           name <- nameOpt
                                           return (toString name)
                                  in
-                                     mmissLaTeX view 
-                                        (fromMaybe "BogusFile" nameOpt) 
+                                     mmissLaTeX view
+                                        (fromMaybe "BogusFile" nameOpt)
                                         str exportFiles
                         )
                      done
    in
       PrintAction printAction
 
--- Function to be passed as first argument of the reAssemble function.  
--- This needs 
+-- Function to be passed as first argument of the reAssemble function.
+-- This needs
 -- four arguments in addition to those provided by reAssemble:
 -- the view, the MMiSSPackageFolder used for looking up MMiSSFile's,
 -- an MVar for writing preamble links to, the
@@ -567,14 +567,14 @@ mkPrintAction view editFormatConverter =
 -- it gives us the Element, but what we want is the
 -- (Bool,EditRef).  To work around this we *assume* that
 -- reAssembleArg visits the children of each node in order,
--- and pass as search data an MVar containing the 
--- (Bool,EditRef)'s.  The EntitySearchName it passes then 
+-- and pass as search data an MVar containing the
+-- (Bool,EditRef)'s.  The EntitySearchName it passes then
 -- becomes irrelevant . . .
 reAssembleArg :: View -> MVar [MMiSSPackageFolder]
-   -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef))))        
+   -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef))))
    -> EditFormatConverter
    -> EntitySearchName
-   -> MMiSSVariantSearch -> (MMiSSPackageFolder,MVar [(Bool,EditRef)]) 
+   -> MMiSSVariantSearch -> (MMiSSPackageFolder,MVar [(Bool,EditRef)])
    -> IO (WithError (Maybe (Element,
       (MMiSSPackageFolder,MVar [(Bool,EditRef)]))))
 reAssembleArg view packageFoldersMVar getContent editFormatConverter
@@ -595,7 +595,7 @@ reAssembleArg view packageFoldersMVar getContent editFormatConverter
                mapWithErrorIO'
                   (\ objectLink ->
                      do
-                        mmissObject 
+                        mmissObject
                            <- readLink view objectLink
                         getMMiSSPackageFolder view mmissObject
                      )
@@ -616,7 +616,7 @@ reAssembleArg view packageFoldersMVar getContent editFormatConverter
                            return Nothing
                      Right packageFolder1 ->
                         do
-                           (content0WE 
+                           (content0WE
                                  :: WithError (EmacsContent (Bool,EditRef)))
                               <- getContent editRef
 
@@ -627,8 +627,8 @@ reAssembleArg view packageFoldersMVar getContent editFormatConverter
 
                            let
                               content1 :: EmacsContent (TypedName,IncludeInfo)
-                              content1 = fmap 
-                                 (\ (b,editRef) -> 
+                              content1 = fmap
+                                 (\ (b,editRef) ->
                                     ((toString (searchName editRef),
                                           miniType editRef),
                                        mkIncludeInfo editRef
@@ -636,25 +636,25 @@ reAssembleArg view packageFoldersMVar getContent editFormatConverter
                                     )
                                  content0
 
-                           elementWE 
+                           elementWE
                               <- fromEdit editFormatConverter name content1
 
-                           element <- coerceWithErrorOrBreakIO break 
+                           element <- coerceWithErrorOrBreakIO break
                               elementWE
 
 
-                           modifyMVar_ packageFoldersMVar 
-                              (\ packageFolders 
+                           modifyMVar_ packageFoldersMVar
+                              (\ packageFolders
                                  -> return (packageFolder1 : packageFolders)
                                  )
 
                            return (Just (element,(packageFolder1,nextMVar)))
-               )                                  
+               )
          else
             return (hasValue Nothing)
 
 -- | Function to be passed as second argument to reAssemble
-doFile :: MVar ExportFiles -> MMiSSVariantSearch 
+doFile :: MVar ExportFiles -> MMiSSVariantSearch
    -> (MMiSSPackageFolder,MVar [(Bool,EditRef)]) -> EntityFullName -> IO ()
 doFile mVar variantSearch0 (packageFolder0,_) file0 =
    modifyMVar_ mVar (return . ((packageFolder0,file0,variantSearch0) :))
@@ -679,7 +679,7 @@ mkIncludeInfo editRef =
    let
       variants1 = linkVariants editRef
 
-      variantOpt = 
+      variantOpt =
          if variants1 == emptyMMiSSVariantSpec
             then
                Nothing

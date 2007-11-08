@@ -1,7 +1,7 @@
 -- | Spawn provides an interface to Concurrent.forkIO which is supposed
--- to be implementable for both Hugs and GHC. 
--- 
--- This is the GHC implementation. 
+-- to be implementable for both Hugs and GHC.
+--
+-- This is the GHC implementation.
 module Spawn(
    spawn -- :: IO () -> IO (IO ())
    ) where
@@ -17,7 +17,7 @@ spawn action =
       let quietAction = goesQuietly action
       threadId <- forkIO quietAction
       return (killThread threadId)
-   
+
 
 -- --------------------------------------------------------------------------
 -- goesQuietly
@@ -37,4 +37,4 @@ goesQuietly action =
       case result of
          Left () -> return ()
          Right () -> return ()
-               
+

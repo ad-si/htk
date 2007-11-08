@@ -102,7 +102,7 @@ background c w = setColour w "background" (toColour c)
 
 -- | Gets the background colour.
 getBackground :: HasColour w => w -> IO Colour
-getBackground w = getColour w "background" 
+getBackground w = getColour w "background"
 
 -- | Sets the foreground colour.
 foreground :: (ColourDesignator c, HasColour w) => c -> Config w
@@ -117,16 +117,16 @@ activeBackground :: (ColourDesignator c, HasColour w) => c -> Config w
 activeBackground c w = setColour w "activebackground" (toColour c)
 
 -- | Gets the active background colour.
-getActiveBackground :: HasColour w => w -> IO Colour    
-getActiveBackground w = getColour w "activebackground"  
- 
+getActiveBackground :: HasColour w => w -> IO Colour
+getActiveBackground w = getColour w "activebackground"
+
 -- | Sets the active foreground colour.
 activeForeground :: (ColourDesignator c, HasColour w) => c -> Config w
 activeForeground c w = setColour w "activeforeground" (toColour c)
 
 -- | Gets the active foreground colour.
-getActiveForeground :: HasColour w => w -> IO Colour    
-getActiveForeground w = getColour w "activeforeground"    
+getActiveForeground :: HasColour w => w -> IO Colour
+getActiveForeground w = getColour w "activeforeground"
 
 -- | Sets the disabled foreground colour.
 disabledForeground :: (ColourDesignator c, HasColour w) => c -> Config w
@@ -203,7 +203,7 @@ class (HasSize w, HasPosition w) => HasGeometry w where
 -- @class HasCanvAnchor@.
 class GUIObject w => HasCanvAnchor w where
   -- Sets the anchor position on the canvas.
-  canvAnchor	:: Anchor -> Config w
+  canvAnchor    :: Anchor -> Config w
   -- Gets the anchor position on the canvas.
   getCanvAnchor   :: w -> IO Anchor
 
@@ -282,7 +282,7 @@ class GUIObject w => HasUnderline w where
   underline i w   = cset w "underline" i
   getUnderline w  = cget w "underline"
   wraplength l w  = cset w "wraplength" l
-  getWraplength w = cget w "wraplength" 
+  getWraplength w = cget w "wraplength"
 
 -- | Objects that have a configureable text justification instantiate the
 -- @class HasJustify@.
@@ -335,14 +335,14 @@ class GUIObject w => HasFile w where
   filename :: String -> Config w
   -- Gets the name of the associated file.
   getFileName :: w -> IO String
-        
+
 
 -- -----------------------------------------------------------------------
 -- align
 -- -----------------------------------------------------------------------
 
 -- | Objects with a configureable alignment instantiate the
--- @class HasAlign@.        
+-- @class HasAlign@.
 class GUIObject w => HasAlign w where
   align     :: Alignment -> Config w
   getAlign  :: w -> IO Alignment

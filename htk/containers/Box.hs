@@ -26,7 +26,7 @@ import Packer
 
 
 -- -----------------------------------------------------------------------
--- horizontal/vertical box 
+-- horizontal/vertical box
 -- -----------------------------------------------------------------------
 
 -- | The @Box@ datatype.
@@ -38,12 +38,12 @@ data Box = Box GUIOBJECT
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new box and returns a handler.
-newBox :: Container par => par 
+newBox :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> Flexibility 
+   -> Flexibility
    -- ^ the flexibility of the box.
-   -> [Config Box] 
+   -> [Config Box]
    -- ^ the list of configuration options for this box.
    -> IO Box
    -- ^ A box.
@@ -54,10 +54,10 @@ newBox par fl cnf =
 
 -- | Constructs a new box with horizontal packing order and rigid
 -- flexibility and returns a handler.
-newHBox :: Container par => par 
+newHBox :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Box] 
+   -> [Config Box]
    -- ^ the list of configuration options for this box.
    -> IO Box
    -- ^ A box.
@@ -65,10 +65,10 @@ newHBox par cnf = newBox par Rigid ((orient Horizontal) : cnf)
 
 -- | Constructs a new box with vertical packing order and rigid
 -- flexibility and returns a handler.
-newVBox :: Container par => par 
+newVBox :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Box] 
+   -> [Config Box]
    -- ^ the list of configuration options for this box.
    -> IO Box
    -- ^ A box.
@@ -76,10 +76,10 @@ newVBox par cnf = newBox par Rigid ((orient Vertical) : cnf)
 
 -- | Constructs a new flexible box with horizontal packing order and returns
 -- a handler.
-newHFBox :: Container par => par 
+newHFBox :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Box] 
+   -> [Config Box]
    -- ^ the list of configuration options for this box.
    -> IO Box
    -- ^ A box.
@@ -87,10 +87,10 @@ newHFBox par cnf = newBox par Flexible ((orient Horizontal) : cnf)
 
 -- | Constructs a new flexible box with vertical packing order and returns
 -- a handler.
-newVFBox :: Container par => par 
+newVFBox :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Box] 
+   -> [Config Box]
    -- ^ the list of configuration options for this box.
    -> IO Box
    -- ^ A box.
@@ -102,11 +102,11 @@ newVFBox par cnf = newBox par Flexible ((orient Vertical) : cnf)
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance Eq Box where 
+instance Eq Box where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject Box where 
+instance GUIObject Box where
   toGUIObject (Box w) = toGUIObject w
   cname _ = "Box"
 
@@ -132,7 +132,7 @@ instance Container Box
 instance HasBorder Box
 
 -- | A box has a configureable background colour.
-instance HasColour Box where 
+instance HasColour Box where
   legalColourID = hasBackGroundColour
 
 -- | A box\'es packing orientation is configureable.

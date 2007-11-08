@@ -25,15 +25,15 @@ import {-# SOURCE #-} VersionGraph
 
 
 -- | newDefaultMenu is a recommended general-purpose menu for attaching
--- to view displays 
-newDefaultMenu :: 
+-- to view displays
+newDefaultMenu ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   => (Graph graph graphParms node nodeType nodeTypeParms 
+   => (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    -> View -> IO GlobalMenu
 newDefaultMenu displaySort view =
-   do 
+   do
       objectTypeMenu <- newObjectTypeMenu view
       displayTypeMenu <- newDisplayTypeMenu view
       let
@@ -44,9 +44,9 @@ newDefaultMenu displaySort view =
             do
                openDisplayType displaySort view
                done
-         openDisplayTypeMenu = 
+         openDisplayTypeMenu =
             GlobalMenu (Button "Open Display" openDisplayTypeAct)
-      return (combineGlobalMenus 
+      return (combineGlobalMenus
          [commitViewMenu,objectTypeMenu,displayTypeMenu,openDisplayTypeMenu])
 
 newObjectTypeMenu :: View -> IO GlobalMenu
@@ -58,7 +58,7 @@ newObjectTypeMenu view =
          menuItem (WrappedObjectTypeTypeData objectType) =
             fmap
                (\ (label,mkAction) -> (label,mkAction view))
-               (createObjectTypeMenuItemPrim objectType) 
+               (createObjectTypeMenuItemPrim objectType)
 
          menuItems :: [(String,IO ())]
          menuItems = catMaybes (map menuItem wrappedObjectTypeTypes)
@@ -81,7 +81,7 @@ newDisplayTypeMenu view =
          menuItem (WrappedDisplayType displayType) =
             fmap
                (\ (label,mkAction) -> (label,mkAction view))
-               (createDisplayTypeMenuItemPrim displayType) 
+               (createDisplayTypeMenuItemPrim displayType)
 
          menuItems :: [(String,IO ())]
          menuItems = catMaybes (map menuItem wrappedDisplayTypeTypes)
@@ -95,14 +95,14 @@ newDisplayTypeMenu view =
 
       return globalMenu
 
--- | This action opens a new display and returns it 
+-- | This action opens a new display and returns it
 openDisplayType ::
-   GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+   GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms
    => (Graph graph graphParms node nodeType nodeTypeParms
-      arc arcType arcTypeParms) 
-   -> View 
-   -> IO (Maybe (DisplayView.DisplayedView graph graphParms node nodeType 
+      arc arcType arcTypeParms)
+   -> View
+   -> IO (Maybe (DisplayView.DisplayedView graph graphParms node nodeType
       nodeTypeParms arc arcType arcTypeParms))
 openDisplayType graphSort view =
    do
@@ -131,7 +131,7 @@ openDisplayType graphSort view =
       (menuButton,actionEvent) <- compileHTkMenu top menu
       pack menuButton []
 
-      -- (5) provide a cancel button      
+      -- (5) provide a cancel button
       cancelButton <- newButton top [text "Cancel"]
       pack cancelButton []
       cancelled <- clicked cancelButton

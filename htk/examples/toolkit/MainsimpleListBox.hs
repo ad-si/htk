@@ -32,7 +32,7 @@ handleAdditions simpleListBox =
       addItemAtEnd simpleListBox nextItem
       handleAdditions simpleListBox
 
-main = 
+main =
    do
       main <- initHTk [text "Simple List Box"]
       simpleListBox <- newSimpleListBox main id [size (10,15)]

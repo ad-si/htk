@@ -1,7 +1,7 @@
 -- | This is the module that writes a BundleNode into the repository.
--- It is assumed that the bundle is the output of 
+-- It is assumed that the bundle is the output of
 -- MMiSSBundleDissect.dissectBundle and that the bundle has passed
--- the MMiSSBundleValidate.validateBundle function and 
+-- the MMiSSBundleValidate.validateBundle function and
 -- MMiSSBundleNodeCheckTypes.checkBundleNodeTypes.
 module MMiSSBundleNodeWrite(
       writeBundleNode,
@@ -30,7 +30,7 @@ import MMiSSBundleNodeWriteClass
 import MMiSSFileType
 import MMiSSPackageFolder
 import MMiSSBundleNodeWriteObject
-import {-# SOURCE #-} MMiSSObjectTypeInstance 
+import {-# SOURCE #-} MMiSSObjectTypeInstance
 
 -- -------------------------------------------------------------------------
 -- Datatypes
@@ -101,7 +101,7 @@ mkPreWriteData view insertionPoint bundleNode =
             preWriteFM =listToFM [([],preWriteNodeData0)]
             }
 
-         bundleFoldFn :: AncestorInfo -> BundleNode 
+         bundleFoldFn :: AncestorInfo -> BundleNode
             -> PreWriteMonad AncestorInfo
          bundleFoldFn ancestorInfo0 bundleNode0 =
             do
@@ -110,7 +110,7 @@ mkPreWriteData view insertionPoint bundleNode =
 
                   createEmpty =
                      do
-                        thisLink <- newEmptySplitLink view 
+                        thisLink <- newEmptySplitLink view
                            (wrapSplitLink (parent ancestorInfo0))
                            (base . objectType . fileLoc $ bundleNode0)
                         return (thisLink,False)
@@ -127,7 +127,7 @@ mkPreWriteData view insertionPoint bundleNode =
                                  let
                                     MMiSSPackageFolderC packageFolderLink =
                                        parent ancestorInfo0
-                                 packageFolder 
+                                 packageFolder
                                     <- readLink view packageFolderLink
                                  return (
                                     MMiSSPreambleC (
@@ -138,11 +138,11 @@ mkPreWriteData view insertionPoint bundleNode =
                                  parentLinkedObject <- readSplitLink view
                                     (parent ancestorInfo0)
 
-                                 thisLinkedObjectOpt <- lookupNameInFolder 
+                                 thisLinkedObjectOpt <- lookupNameInFolder
                                     parentLinkedObject thisName
                                  case thisLinkedObjectOpt of
                                     Nothing -> createEmpty
-                                    Just thisLinkedObject -> 
+                                    Just thisLinkedObject ->
                                        return (
                                           splitLinkedObject thisLinkedObject,
                                           True
@@ -156,12 +156,12 @@ mkPreWriteData view insertionPoint bundleNode =
                   preWriteNodeData = PreWriteNodeData {
                      node = bundleNode0,
                      thisLink = thisLink,
-                     parentLink = 
-                        if thisExists 
-                           then 
+                     parentLink =
+                        if thisExists
+                           then
                               Nothing
                            else
-                              Just (parent ancestorInfo0,thisName) 
+                              Just (parent ancestorInfo0,thisName)
                      }
 
                   names1 = thisName : names ancestorInfo0
@@ -169,7 +169,7 @@ mkPreWriteData view insertionPoint bundleNode =
                preWriteData0 <- get
                put (PreWriteData {
                   preWriteFM =
-                     addToFM (preWriteFM preWriteData0) names1 
+                     addToFM (preWriteFM preWriteData0) names1
                         preWriteNodeData
                   })
 
@@ -187,12 +187,12 @@ mkPreWriteData view insertionPoint bundleNode =
 
       return preWriteData1
 
-         
-   
--- This is the information passed down by bundleFoldM.   
+
+
+-- This is the information passed down by bundleFoldM.
 data AncestorInfo = AncestorInfo {
    names :: [EntityName],
-   parent :: SplitLink, 
+   parent :: SplitLink,
    parentExists :: Bool
    }
 
@@ -267,7 +267,7 @@ makeConnections view preWriteData =
                   do
                      parentLinkedObject <- readSplitLink view parentLink1
                      thisLinkedObject <- readSplitLink view (thisLink nodeData)
-                     resultWE <- moveObject thisLinkedObject 
+                     resultWE <- moveObject thisLinkedObject
                         (Just (mkInsertion parentLinkedObject name1))
                      coerceImportExportIO resultWE
 
@@ -283,7 +283,7 @@ makeConnections view preWriteData =
                connect preWriteNodeData1
             )
          (getAllNodes1 (Bundle [(error "Bad package id",headNode)]))
- 
+
 -- -------------------------------------------------------------------------
 -- writeBundleNode
 -- -------------------------------------------------------------------------

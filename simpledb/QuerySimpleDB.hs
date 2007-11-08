@@ -1,4 +1,4 @@
--- | Understands queries to the database, 
+-- | Understands queries to the database,
 module QuerySimpleDB(
    querySimpleDB,
    ) where
@@ -49,12 +49,12 @@ querySimpleDB1 user simpleDB command = case command of
    ListVersions ->
       do
          versionDataMap <- readIORef (versionData simpleDB)
-         return (IsObjectVersions (keysFM versionDataMap)) 
-   Retrieve location version -> 
+         return (IsObjectVersions (keysFM versionDataMap))
+   Retrieve location version ->
       do
          icsl <- retrieve simpleDB user location version
          return (IsData icsl)
-   LastChange version location -> 
+   LastChange version location ->
       do
          verifyAccess simpleDB user version (Just location)
             ReadActivity
@@ -75,7 +75,7 @@ querySimpleDB1 user simpleDB command = case command of
          case versionInformation of
             Version1 _ ->
                throwError MiscError "ModifyUserInfo may not specify Version1"
-            Version1Plus _ _ -> throwError MiscError 
+            Version1Plus _ _ -> throwError MiscError
                "ModifyUserInfo may not specify Version1Plus"
             _ -> modifyUserInfo simpleDB user versionInformation
    GetDiffs objectVersion parentVersions ->
@@ -100,13 +100,13 @@ querySimpleDB1 user simpleDB command = case command of
       do
          if wantAdmin
             then
-               do                   
+               do
                   success <- claimAdmin user
                   if success
                      then
                         done
                      else
-                        throwError AccessError 
+                        throwError AccessError
                            "You are not entitled to ADMIN status"
             else
                revokeAdmin user
@@ -123,4 +123,4 @@ querySimpleDB1 user simpleDB command = case command of
 
 
 
-         
+

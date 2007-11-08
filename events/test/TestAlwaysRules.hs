@@ -18,7 +18,7 @@ beforeAfter action =
 main :: IO ()
 main = (beforeAfter . sync) (
    do
-      always (putStrLn "T1")      
+      always (putStrLn "T1")
       always (putStrLn "T2")
       always (putStrLn "T3")
       always (putStrLn "T4")

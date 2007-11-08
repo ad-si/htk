@@ -1,4 +1,4 @@
--- | This module implements per-thread variables 
+-- | This module implements per-thread variables
 module ThreadDict(
    ThreadDict, -- contains all the thread variables
    newThreadDict, -- :: IO (ThreadDict a)
@@ -23,7 +23,7 @@ newtype ThreadDict a = ThreadDict (HashTable ThreadId a)
 -- -------------------------------------------------------------------------
 
 newThreadDict :: IO (ThreadDict a)
-newThreadDict = 
+newThreadDict =
    do
       table <- new (==) hashThreadId
       return (ThreadDict table)

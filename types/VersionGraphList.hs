@@ -1,9 +1,9 @@
--- | Module which maintains the list of external VersionGraphs. 
+-- | Module which maintains the list of external VersionGraphs.
 module VersionGraphList(
    addVersionGraph,
       -- :: Maybe HostPort -> IO ()
       -- attempt to open a new version graph by connecting to a server.
-   getCurrentVersionGraphs, 
+   getCurrentVersionGraphs,
       -- :: IO [(Maybe HostPort,Repository)]
       --
       -- Nothing means "the internal server".
@@ -68,19 +68,19 @@ addVersionGraph displaySort hostPortOpt =
                Nothing ->
                   do
                      versionState <- mkVersionState True
-                     repository 
+                     repository
                         <- Initialisation.openRepositoryInternal versionState
-                     versionGraph <- newVersionGraphInternal 
+                     versionGraph <- newVersionGraphInternal
                         displaySort repository versionState
                      forkIO (
                         do
                            sync (destroyed versionGraph)
-                           deleteFromRegistry currentVersionGraphs 
+                           deleteFromRegistry currentVersionGraphs
                               hostPortOpt
                         )
                      return (Just versionGraph,())
                Just hostPort ->
-                  do      
+                  do
 
                      repositoryOrCancelOrError <- Control.Exception.try (
                         let
@@ -92,20 +92,20 @@ addVersionGraph displaySort hostPortOpt =
                         Left excep ->
                            do
                               let
-                                 excepStr = fromMaybe (show excep) 
-                                    (ourExcepToMess excep) 
+                                 excepStr = fromMaybe (show excep)
+                                    (ourExcepToMess excep)
                               errorMess (
                                  "Failed to connect to " ++ show hostPort ++
                                  " with error " ++ excepStr
-                                 ) 
+                                 )
                               return (versionGraphOpt,())
                         Right (Left mess) ->
                            do
                               messageMess mess
                               return (versionGraphOpt,())
-                        Right (Right repository) -> 
+                        Right (Right repository) ->
                            do
-                              versionGraph <- 
+                              versionGraph <-
                                  let
                                     ?server = hostPort
                                  in
@@ -113,7 +113,7 @@ addVersionGraph displaySort hostPortOpt =
                               forkIO (
                                  do
                                     sync (destroyed versionGraph)
-                                    deleteFromRegistry currentVersionGraphs 
+                                    deleteFromRegistry currentVersionGraphs
                                        hostPortOpt
                                  )
                               return (Just versionGraph,())
@@ -126,11 +126,11 @@ getCurrentVersionGraphs =
       versionGraphOpts <- mapM
          -- allow for the possibility that someone else simultaneously
          -- deletes a versionGraph before we get around to looking at it.
-         (\ hostPortOpt -> 
+         (\ hostPortOpt ->
              do
                 versionGraphOpt <- getValueOpt currentVersionGraphs hostPortOpt
-                return (fmap 
-                   (\ versionGraph -> (hostPortOpt,versionGraph)) 
+                return (fmap
+                   (\ versionGraph -> (hostPortOpt,versionGraph))
                       versionGraphOpt
                    )
              )

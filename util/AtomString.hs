@@ -1,14 +1,14 @@
 -- | AtomString atomises strings.  Right now this code
 -- is not very efficient but it shouldn't be too hard
 -- to improve.
--- 
+--
 -- This code includes no less that 3 uses of unsafePerformIO.  Oh well.
 module AtomString(
-   AtomString, 
-      -- represents a string.  Instance of Ord, Eq, StringClass, 
+   AtomString,
+      -- represents a string.  Instance of Ord, Eq, StringClass,
       -- Read and Show.  There is no guarantee that Ord on AtomString
       -- corresponds to Ord on the corresponding String.
-   firstAtomString, 
+   firstAtomString,
       -- :: AtomString
       -- However firstAtomString is guaranteed to be the first AtomString
       -- in the ordering.
@@ -21,7 +21,7 @@ module AtomString(
       -- provide a primitive way for decoding String's to return an error.
 
    Str(..),
-      -- WRAP 
+      -- WRAP
 
 
    mkFromStringWE,
@@ -29,14 +29,14 @@ module AtomString(
       -- Make a fromStringWE function given a parser.
       -- The error message is of the form "/string/ is not a valid /typename/"
       -- where /typename/ is the first String argument to mkFromStringWE.
-   ) where               
+   ) where
 
 import Control.Concurrent
 import DeprecatedFiniteMap
 import System.IO.Unsafe
 import Data.PackedString
 import Control.Exception
-import Text.ParserCombinators.Parsec 
+import Text.ParserCombinators.Parsec
 
 
 import QuickReadShow
@@ -58,7 +58,7 @@ emptyAtomSource =
 
 theAtomSource :: AtomSource
 theAtomSource = unsafePerformIO emptyAtomSource
-{-# NOINLINE theAtomSource #-} 
+{-# NOINLINE theAtomSource #-}
 -- avoid GHC bug with Linux optimisation which can clone MVars.
 
 newtype AtomString = AtomString PackedString deriving (Ord,Eq,Typeable)
@@ -77,7 +77,7 @@ class StringClass stringClass where
    -- We leave it up to the instance whether fromString or fromStringWE or both
    -- are defined.  Most of the time we only use fromString, but there are
    -- just a few cases (such as EntityNames) where we need fromStringWE.
-   -- 
+   --
    -- For cases where we don't have fromStringWE fromStringWEHacked provides
    -- an alternative solution, if you can bear it.
    fromString :: String -> stringClass
@@ -102,7 +102,7 @@ instance StringClass stringClass => QuickShow stringClass where
 -- fromString by using the usual dreadful hack with Exception.
 ------------------------------------------------------------------------
 
-fromStringWEHacked :: (StringClass stringClass,DeepSeq stringClass) 
+fromStringWEHacked :: (StringClass stringClass,DeepSeq stringClass)
    => String -> IO (WithError stringClass)
 fromStringWEHacked str =
    do
@@ -124,7 +124,7 @@ fromStringWEHacked str =
 
 fromStringError :: String -> a
 fromStringError mess = throwDyn (FromStringExcep mess)
-            
+
 newtype FromStringExcep = FromStringExcep String deriving (Typeable)
 
 ------------------------------------------------------------------------
@@ -141,14 +141,14 @@ mkAtom str =
       map <- takeMVar mVar
       let
          (result,newMap) = case lookupFM map packed of
-            Nothing -> 
+            Nothing ->
                (AtomString packed,addToFM map packed (AtomString packed))
             Just newPacked -> (newPacked,map)
             -- now original copy of packed can be GC'd.
       putMVar mVar newMap
       return result
 
-              
+
 readAtom :: AtomString -> IO String
 readAtom (AtomString packedString) =
    return(unpackPS packedString)
@@ -157,7 +157,7 @@ readAtom (AtomString packedString) =
 -- How to make a fromStringWE given a Parsec parser.
 ------------------------------------------------------------------------
 
-mkFromStringWE :: Parser stringClass -> String 
+mkFromStringWE :: Parser stringClass -> String
    -> (String -> WithError stringClass)
 mkFromStringWE (parser0 :: Parser stringClass) typeName str =
    let

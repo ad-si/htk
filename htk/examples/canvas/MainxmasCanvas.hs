@@ -21,7 +21,7 @@ main =
     createTextItem c [position (cm 4, cm 2), text "Merry Xmas!",
                       font (Helvetica, Bold, 24::Int)]
 
-    createLine c [coord [(cm 2, cm 8), (cm 3, cm 9), 
+    createLine c [coord [(cm 2, cm 8), (cm 3, cm 9),
                          (cm 3, cm 8), (cm 2, cm 9), (cm 4, cm 8.5)],
                   capstyle CapRound, joinstyle JoinMiter,
                   outlinewidth (mm 1), arrowstyle LastEnd, filling "red"]
@@ -37,7 +37,7 @@ main =
     (move, _) <- bind c [WishEvent [Button1] Motion]
     (release, _) <- bindSimple c (ButtonRelease (Just 1))
 
-    let moving :: Distance -> Distance -> CanvasTag -> Event () 
+    let moving :: Distance -> Distance -> CanvasTag -> Event ()
         moving x0 y0 ct =
              (do
                 (x, y) <- move >>>= \i-> return (x i, y i)
@@ -50,8 +50,8 @@ main =
                       (x, y) <- press >>>= \i-> return (x i, y i)
                       ct <- always (do ct<- createCanvasTag c []
                                        addCanvasTag (closest (x, y)) ct
-				       return ct)
-                      moving x y ct         
+                                       return ct)
+                      moving x y ct
 
     spawnEvent (forever notmoving)
 

@@ -44,7 +44,7 @@ itemGeo :: CanvasItem w => Geometry -> Config w
 itemGeo (w,h,x,y) = coord [(x,y),(x+w,y+h)]
 
 getGeo :: CanvasItem w => w -> IO Geometry
-getGeo wd = getCoord wd >>= coordToGeo 
+getGeo wd = getCoord wd >>= coordToGeo
 
 setGeo :: CanvasItem w => w -> Geometry -> IO w
 setGeo wd g = configure wd [itemGeo g]
@@ -53,13 +53,13 @@ itemWidth :: CanvasItem w => Distance -> Config w
 itemWidth d item = getGeo item >>= \(_,h,x,y) -> setGeo item (d,h,x,y)
 
 getItemWidth :: CanvasItem w => w -> IO Distance
-getItemWidth item = getGeo item >>= \ (w,_,_,_) -> return w 
+getItemWidth item = getGeo item >>= \ (w,_,_,_) -> return w
 
 itemHeight :: CanvasItem w => Distance -> Config w
 itemHeight d item = getGeo item >>= \(w,_,x,y) -> setGeo item (w,d,x,y)
 
 getItemHeight :: CanvasItem w => w -> IO Distance
-getItemHeight item = getGeo item >>= \(w,h,x,y) -> return h 
+getItemHeight item = getGeo item >>= \(w,h,x,y) -> return h
 
 itemSize :: CanvasItem w => Size -> Config w
 itemSize (w,h) item = getGeo item >>= \(_,_,x,y) -> setGeo item (w,h,x,y)
@@ -135,11 +135,11 @@ tkCreateCanvasItem _ _ _ _ _ = error "CanvasItemAux (tkCreateCanvasItem)"
 tkGetCanvasItemConfig :: ObjectName -> ConfigID -> TclScript
 tkGetCanvasItemConfig (CanvasItemName name tid) "coords" =
   declVar tid ++ [show name ++ " coords " ++ show tid]
-tkGetCanvasItemConfig (CanvasItemName name tid) cid =   
+tkGetCanvasItemConfig (CanvasItemName name tid) cid =
   declVar tid ++ [show name ++ " itemcget " ++ show tid ++ " -" ++ cid]
 tkGetCanvasItemConfig _ _ = []
 
-tkSetCanvasItemConfigs (CanvasItemName name tid) args = 
+tkSetCanvasItemConfigs (CanvasItemName name tid) args =
   declVar tid ++ tagVariables args ++
   [show name ++ " itemconfigure " ++ show tid ++ " " ++ showConfigs args]
   where tagVariables ((cid, cval) : ol) =

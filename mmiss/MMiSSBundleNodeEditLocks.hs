@@ -1,7 +1,7 @@
--- | acquireBundleNodeEditLocks acquires all the edit locks required for a 
--- BundleNode, returning the action to release them if successful. 
--- 
--- It assumes checkBundleNodeTypes has already successfully returned. 
+-- | acquireBundleNodeEditLocks acquires all the edit locks required for a
+-- BundleNode, returning the action to release them if successful.
+--
+-- It assumes checkBundleNodeTypes has already successfully returned.
 module MMiSSBundleNodeEditLocks(
    acquireBundleNodeEditLocks,
    ) where
@@ -21,7 +21,7 @@ import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import {-# SOURCE #-} MMiSSObjectTypeInstance
 
-acquireBundleNodeEditLocks :: View -> LockSet -> InsertionPoint -> BundleNode 
+acquireBundleNodeEditLocks :: View -> LockSet -> InsertionPoint -> BundleNode
    -> IO (WithError (IO ()))
 acquireBundleNodeEditLocks view lockSet insertionPoint bundleNode =
    do
@@ -38,7 +38,7 @@ acquireBundleNodeEditLocks view lockSet insertionPoint bundleNode =
          acquireResult
          )
 
-getLockLocations 
+getLockLocations
    :: View -> Maybe LinkedObject -> BundleNode -> IO [LockLocation]
 getLockLocations view Nothing node = return []
 getLockLocations view (Just linkedObject) node =
@@ -51,12 +51,12 @@ getLockLocations view (Just linkedObject) node =
                   case fromWithError (nameFileLocOpt (fileLoc bundleNode1)) of
                      Right (Just name) ->
                         do
-                           linkedObjectOpt 
+                           linkedObjectOpt
                               <- lookupNameInFolder linkedObject name
                            getLockLocations view linkedObjectOpt node
                      _ -> return []
 
-            (lockLocations1 :: [[LockLocation]]) 
+            (lockLocations1 :: [[LockLocation]])
                <- mapM getSubNodes bundleNodes
             return (concat lockLocations1)
       (Object variants,MMiSSObjectEnum) ->

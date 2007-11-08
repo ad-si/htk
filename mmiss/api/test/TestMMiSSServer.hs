@@ -18,13 +18,13 @@ import MMiSSAPIBlock
 
 
 main :: IO ()
-main = 
+main =
    do
       user <- textQuery "User?"
       password <- textQuery "Password?"
       port <- getXMLPort
       serverOpt <- getServer
-      handle <- connectTo (fromMaybe "localhost" serverOpt) 
+      handle <- connectTo (fromMaybe "localhost" serverOpt)
          (PortNumber (fromIntegral port))
       hWrite handle "MMiSS-XML"
       hWrite handle user
@@ -50,7 +50,7 @@ display handle =
    do
       block <- readBlock handle
       let
-         (Just (BlockData {blockType = 0,blockText = icsl})) 
+         (Just (BlockData {blockType = 0,blockText = icsl}))
             = lookupBlockData block 0
       putStr (toString icsl)
       hFlush stdout
@@ -61,11 +61,11 @@ sendIn  handle =
    do
       line <- getLine
       let
-         (block,0) = addBlockData emptyBlock 
+         (block,0) = addBlockData emptyBlock
             (BlockData {blockType = 0,blockText = fromString line})
       writeBlock handle block
       hFlush handle
       sendIn handle
- 
+
 
 

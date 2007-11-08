@@ -1,11 +1,11 @@
 -- |
 -- Description: Files with Variants
--- 
--- This module describes the types required for the MMiSS file type. 
+--
+-- This module describes the types required for the MMiSS file type.
 module MMiSSFileType(
    importMMiSSFile,
-      -- :: HasLinkedObject object 
-      -- => View -> object -> FilePath -> String -> String -> MMiSSVariantSpec 
+      -- :: HasLinkedObject object
+      -- => View -> object -> FilePath -> String -> String -> MMiSSVariantSpec
       -- -> IO (WithError (Link MMiSSFile))
       --
       -- Import an object into the given folder, creating a new MMiSSFile.
@@ -17,9 +17,9 @@ module MMiSSFileType(
       -- -> IO (WithError ())
       -- Write an MMiSSFile to a directory.
 
-   findMMiSSFilesInRepository, 
-     -- :: HasLinkedObject folder 
-     -- => folder -> EntityFullName 
+   findMMiSSFilesInRepository,
+     -- :: HasLinkedObject folder
+     -- => folder -> EntityFullName
      --    -> IO [(Link MMiSSFile,EntityFullName,String)]
      -- Find matching files inside a folder.
 
@@ -113,7 +113,7 @@ data MMiSSFile = MMiSSFile {
    mmissFileType :: MMiSSFileType,
    title :: String, -- ^ name of the file, without directory part or extension.
    linkedObject :: LinkedObject,
-   contents 
+   contents
       :: VariantObject (Link MMiSSFileVersion) (Link MMiSSFileVersion)
    } deriving (Typeable)
 
@@ -134,8 +134,8 @@ data MMiSSFilesState = MMiSSFilesState {
 -- | Import an object into the given folder, creating a new MMiSSFile.
 -- The object's location is given by containing directory,
 -- name, and extension.
-importMMiSSFile :: HasLinkedObject object 
-   => View -> object -> FilePath -> String -> String -> MMiSSVariantSpec 
+importMMiSSFile :: HasLinkedObject object
+   => View -> object -> FilePath -> String -> String -> MMiSSVariantSpec
    -> IO (WithError (Link MMiSSFile))
 importMMiSSFile view folder dirPath0 name0 ext variantSpec =
    addFallOutWE (\ break ->
@@ -148,7 +148,7 @@ importMMiSSFile view folder dirPath0 name0 ext variantSpec =
             fullName = dirPath1 `combineNames` name1
 
          fileType0 <- case lookupFM (fileTypes mmissFilesState) ext of
-            Nothing -> break 
+            Nothing -> break
                ("File " ++ fullName ++ " cannot be imported, because the "
                   ++ "extension " ++ ext ++ " is not known.")
             Just fileType0 -> return fileType0
@@ -190,11 +190,11 @@ importMMiSSFile view folder dirPath0 name0 ext variantSpec =
                linkedObjectOpt <- lookupNameInFolder folderLinkedObject
                   entityName
                case linkedObjectOpt of
-                  Just linkedObject -> 
+                  Just linkedObject ->
                      do
                         let
                            wrappedLink = toWrappedLink linkedObject
-                        (fileLink :: Link MMiSSFile) 
+                        (fileLink :: Link MMiSSFile)
                               <- case unpackWrappedLink wrappedLink of
                            Nothing -> break2 ("Cannot insert file because "
                               ++ name1 ++ " is already in folder, but isn't an "
@@ -206,7 +206,7 @@ importMMiSSFile view folder dirPath0 name0 ext variantSpec =
                      do
                         contents0 <- newEmptyVariantObject1 converter
                         creationResult <- createLinkedObjectChildSplit
-                           view folderLinkedObject entityName         
+                           view folderLinkedObject entityName
                               (\ linkedObject0 ->
                                  return (MMiSSFile {
                                     mmissFileType = fileType0,
@@ -251,7 +251,7 @@ exportMMiSSFile view dirPath fileLink variantSearch =
          Just (icsl,variantSpec) ->
             do
                copyICStringLenToFile icsl fullName
-               return (hasValue ())               
+               return (hasValue ())
 
 
 lookupMMiSSFileVariantWithSpec :: View -> MMiSSFile -> MMiSSVariantSearch ->
@@ -259,7 +259,7 @@ lookupMMiSSFileVariantWithSpec :: View -> MMiSSFile -> MMiSSVariantSearch ->
 lookupMMiSSFileVariantWithSpec view mmissFile variantSearch =
    do
 
-      fileVersionLinkOpt 
+      fileVersionLinkOpt
          <- lookupVariantObjectWithSpec (contents mmissFile) variantSearch
       case fileVersionLinkOpt of
          Nothing -> return Nothing
@@ -267,7 +267,7 @@ lookupMMiSSFileVariantWithSpec view mmissFile variantSearch =
             do
                fileVersion <- readLink view fileVersionLink
                return (Just (text fileVersion,variantSpec))
-         
+
 
 -- ----------------------------------------------------------------------
 -- Scanning for MMiSSFiles in the repository or in an external directory.
@@ -281,7 +281,7 @@ lookupMMiSSFileVariantWithSpec view mmissFile variantSearch =
 -- we also return a link to the MMiSSFile.
 -- ----------------------------------------------------------------------
 
-findMMiSSFilesInRepository :: HasLinkedObject folder 
+findMMiSSFilesInRepository :: HasLinkedObject folder
    => folder -> EntityFullName -> IO [(Link MMiSSFile,EntityFullName,String)]
 findMMiSSFilesInRepository folder fullName0 =
    do
@@ -289,10 +289,10 @@ findMMiSSFilesInRepository folder fullName0 =
          folderLinkedObject = toLinkedObject folder
 
       (resultOpts :: [Maybe (Link MMiSSFile,EntityFullName,String)])
-         <- mapM 
+         <- mapM
             (\ (fullName1,tag) ->
                do
-                  fullName2 <- coerceWithErrorOrBreakIO 
+                  fullName2 <- coerceWithErrorOrBreakIO
                      (error "MMiSSFileType bug 1")
                      (unsplitFullName fullName1 tag)
                   linkedObjectOpt <- lookupFullNameInFolder folderLinkedObject
@@ -301,17 +301,17 @@ findMMiSSFilesInRepository folder fullName0 =
                      Nothing -> return Nothing
                      Just linkedObject ->
                         do
-                           let 
+                           let
                               wrappedLink = toWrappedLink linkedObject
                            return (fmap
                               (\ link -> (link,fullName1,tag))
                               (unpackWrappedLink wrappedLink)
                               )
-               )   
+               )
             (possibleNames fullName0)
       return (catMaybes resultOpts)
 
-findMMiSSFilesInDirectory :: FilePath -> EntityFullName 
+findMMiSSFilesInDirectory :: FilePath -> EntityFullName
    -> IO [(EntityFullName,String)]
 findMMiSSFilesInDirectory filePath0 fullName0 =
    do
@@ -321,8 +321,8 @@ findMMiSSFilesInDirectory filePath0 fullName0 =
          (\ (fullName1,tag) ->
             do
               let
-                 fullNameStr 
-                    = filePath1 `combineNames` 
+                 fullNameStr
+                    = filePath1 `combineNames`
                        ((toString fullName1) `unsplitExtension` tag)
               doesFileExist fullNameStr
             )
@@ -334,11 +334,11 @@ possibleNames :: EntityFullName -> [(EntityFullName,String)]
 possibleNames fullName0 = case splitFullName fullName0 of
    Nothing ->
       map (\ tag -> (fullName0,tag)) (keysFM (fileTypes mmissFilesState))
-   Just (nt @ (fullName1,tag)) -> 
+   Just (nt @ (fullName1,tag)) ->
       case lookupFM (fileTypes mmissFilesState) tag of
          Nothing -> [] -- not a recognised tag
          Just _ -> [nt]
-      
+
 -- ----------------------------------------------------------------------
 -- Functions for reading MMiSSFilesState
 -- ----------------------------------------------------------------------
@@ -361,7 +361,7 @@ getMMiSSFilesState =
             Right handle -> handle
       fileTypes <- hGetXml handle
       return (toMMiSSFilesState fileTypes)
-       
+
 
 toMMiSSFilesState :: FileTypes -> MMiSSFilesState
 toMMiSSFilesState (FileTypes []) =
@@ -453,13 +453,13 @@ instance HasLinkedObject MMiSSFile where
 instance HasMerging MMiSSFile where
    getMergeLinks =
       let
-         fn :: View -> Link MMiSSFile 
+         fn :: View -> Link MMiSSFile
             -> IO (ObjectLinks (MMiSSVariants,FileData))
          fn view link =
             do
                object <- readLink view link
                variantObjectObjectLinks
-                  (\ link -> 
+                  (\ link ->
                      return (ObjectLinks [(WrappedMergeLink link,FileData)])
                      )
                   (contents object)
@@ -498,7 +498,7 @@ instance HasMerging MMiSSFile where
             -- (2) Merge linked objects
             linkedObject1WE <- attemptLinkedObjectMerge
                linkReAssigner newView newLink
-                  (map 
+                  (map
                      (\ (view,link,folder) -> (view,toLinkedObject folder))
                      vlos1
                      )
@@ -507,9 +507,9 @@ instance HasMerging MMiSSFile where
 
             -- (3) Merge dictionaries
             let
-               -- This is the function passed to 
+               -- This is the function passed to
                -- MMiSSVariantObject.attemptMergeVariantObject.
-               reAssign :: View -> Link MMiSSFileVersion 
+               reAssign :: View -> Link MMiSSFileVersion
                   -> IO (Link MMiSSFileVersion)
                reAssign oldView link0 =
                   return (mapLink linkReAssigner oldView link0)
@@ -522,7 +522,7 @@ instance HasMerging MMiSSFile where
             canClone <- case vlosRest of
                [] ->
                   do
-                     linkedsSame <- linkedObjectsSame linkedObject1 
+                     linkedsSame <- linkedObjectsSame linkedObject1
                         (toLinkedObject headFile)
                      if linkedsSame
                         then
@@ -533,8 +533,8 @@ instance HasMerging MMiSSFile where
                               return variantsSame
                          else
                             return False
-               _ -> return False 
-                            
+               _ -> return False
+
 
             if canClone
                then
@@ -586,7 +586,7 @@ instance HasMerging MMiSSFileVersion where
                   cloneLink oldView oldLink newView newLink
                   return (hasValue ())
             _ ->
-               return (hasError 
+               return (hasError
                   "Unexpected merge required of MMiSSFileVersion")
       )
 
@@ -598,7 +598,7 @@ instance HasMerging MMiSSFileVersion where
 instance HasBundleNodeData MMiSSFile where
    getBundleNodeData view mmissFile exportOpts =
       do
-         (allFileVariants :: [(MMiSSVariantSpec,Link MMiSSFileVersion)]) 
+         (allFileVariants :: [(MMiSSVariantSpec,Link MMiSSFileVersion)])
             <- getAllVariants (contents mmissFile)
          (variants :: [(Maybe MMiSSVariantSpec,BundleText)]) <-
             mapM
@@ -623,9 +623,9 @@ instance HasBundleNodeData MMiSSFile where
       do
          icslOpt <- lookupMMiSSFileVariantWithSpec view mmissFile variantSearch
          case icslOpt of
-            Nothing -> 
+            Nothing ->
                do
-                  errorMess ("No variant matching " ++ show variantSearch 
+                  errorMess ("No variant matching " ++ show variantSearch
                      ++ " found")
                   return NoData
             Just (icsl,variantSpec) ->
@@ -640,11 +640,11 @@ instance HasBundleNodeData MMiSSFile where
                         else
                            NoText -- fairly pointless but consistent
 
-                  bundleNodeData = MMiSSBundle.Object 
+                  bundleNodeData = MMiSSBundle.Object
                      [(Just variantSpec,bundleText)]
                in
                   return bundleNodeData
-                  
+
 -- ----------------------------------------------------------------------
 -- ObjectType instance
 -- ----------------------------------------------------------------------
@@ -662,21 +662,21 @@ instance ObjectType MMiSSFileType MMiSSFile where
 
    toLinkedObjectOpt object = Just (linkedObject object)
 
-   nodeTitlePrim = fullTitle 
+   nodeTitlePrim = fullTitle
 
    getNodeDisplayData = getFilesNodeDisplayData
- 
 
-getFilesNodeDisplayData :: 
-   (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+
+getFilesNodeDisplayData ::
+   (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   => View -> WrappedDisplayType -> MMiSSFileType 
+   => View -> WrappedDisplayType -> MMiSSFileType
    -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms 
+   -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms
          MMiSSFileType MMiSSFile))
-getFilesNodeDisplayData view displayType mmissFileType 
-      (getDisplayedView :: IO (DisplayedView graph graphParms 
+getFilesNodeDisplayData view displayType mmissFileType
+      (getDisplayedView :: IO (DisplayedView graph graphParms
          node nodeType nodeTypeParms arc arcType arcTypeParms)) =
    do
       let
@@ -714,7 +714,7 @@ getFilesNodeDisplayData view displayType mmissFileType
 
          nodeTypeParms = case fileTypeMenu fileType0 of
             Nothing -> nodeTypeParms0
-            Just menuId -> 
+            Just menuId ->
                LocalMenu (mkMenu menuId) $$$ nodeTypeParms0
 
          mkMenu :: String -> MenuPrim (Maybe String) (Link MMiSSFile -> IO ())
@@ -722,19 +722,19 @@ getFilesNodeDisplayData view displayType mmissFileType
             Just (MMiSSFiles.Menu menuAttrs subMenus) ->
                MenuType.Menu (menuTitle menuAttrs) (map mkSubMenu subMenus)
 
-         mkSubMenu :: Menu_ 
+         mkSubMenu :: Menu_
             -> MenuPrim (Maybe String) (Link MMiSSFile -> IO ())
-         mkSubMenu (Menu_DisplayVariants 
+         mkSubMenu (Menu_DisplayVariants
                (DisplayVariants {displayVariantsTitle = title})) =
             Button (fromDefaultable title) (displayVariants view)
-         mkSubMenu (Menu_SelectVariants 
+         mkSubMenu (Menu_SelectVariants
                (SelectVariants {selectVariantsTitle = title})) =
              Button (fromDefaultable title) (selectVariants view)
-         mkSubMenu (Menu_EditPermissions 
+         mkSubMenu (Menu_EditPermissions
                (EditPermissions {editPermissionsTitle = title})) =
              Button (fromDefaultable title) (editObjectPermissions view)
-         mkSubMenu (Menu_ViewAllPermissions 
-               (ViewAllPermissions {viewAllPermissionsTitle = title})) = 
+         mkSubMenu (Menu_ViewAllPermissions
+               (ViewAllPermissions {viewAllPermissionsTitle = title})) =
              Button (fromDefaultable title) (showAllPermissions view)
          mkSubMenu (Menu_SubMenu (SubMenu {subMenuMenu = subMenuMenu})) =
             mkMenu subMenuMenu
@@ -755,7 +755,7 @@ getFilesNodeDisplayData view displayType mmissFileType
       return (Just nodeDisplayData)
 
 displayVariants :: View -> Link MMiSSFile -> IO ()
-displayVariants view link = 
+displayVariants view link =
    do
       mmissFile <- readLink view link
       displayObjectVariants (contents mmissFile)
@@ -770,7 +770,7 @@ selectVariants view link =
          then
             dirtyLink view link
          else
-            done 
+            done
 
 -- ----------------------------------------------------------------------
 -- HasBundleNodeWrite instance
@@ -785,7 +785,7 @@ instance HasBundleNodeWrite MMiSSFile where
                do
                   let
                      Just ext1 = ext . objectType . fileLoc $ node
-                     Just mmissFileType = 
+                     Just mmissFileType =
                         lookupFM (fileTypes mmissFilesState) ext1
                      Just title = name . fileLoc $ node
 
@@ -808,7 +808,7 @@ instance HasBundleNodeWrite MMiSSFile where
             (\ (variantSpecOpt,bundleText) ->
                do
                   let
-                     variantSpec 
+                     variantSpec
                         = fromMaybe emptyMMiSSVariantSpec variantSpecOpt
                   text <- case MMiSSBundle.charType bundleText of
                      Byte -> return (MMiSSBundle.contents bundleText)
@@ -829,7 +829,7 @@ instance HasBundleNodeWrite MMiSSFile where
                                     ++ "that doesn't fit into 8 bits")
                               else
                                  return (fromString str2)
-                  return 
+                  return
                      (variantSpec,
                         MMiSSFileVersion {
                            text = MMiSSBundle.contents bundleText
@@ -840,14 +840,14 @@ instance HasBundleNodeWrite MMiSSFile where
 
          file <- readLink view fileLink
 
-         updateVariantObject view fileLink (contents file) id (return . id) 
+         updateVariantObject view fileLink (contents file) id (return . id)
             newVersions
 
 -- ------------------------------------------------------------------
 -- Executing commands
 -- ------------------------------------------------------------------
 
-execCommand :: View -> String -> Maybe String -> String -> Link MMiSSFile 
+execCommand :: View -> String -> Maybe String -> String -> Link MMiSSFile
    -> IO ()
 execCommand view title0 confirm command0 link =
    do
@@ -859,7 +859,7 @@ execCommand view title0 confirm command0 link =
          tag = fileTypeTag . fileType . mmissFileType $ mmissFile
 
          fullName = combineNames tempDir (name ++ "." ++ tag)
-      
+
          dict :: Char -> Maybe String
          dict 'F' = Just fullName
          dict 'N' = Just name
@@ -872,7 +872,7 @@ execCommand view title0 confirm command0 link =
                let
                   confirmString1 = doFormatString confirmString0 dict
                seq confirmString1 done
-               confirmMess confirmString1  
+               confirmMess confirmString1
 
       if goAhead
          then
@@ -882,14 +882,14 @@ execCommand view title0 confirm command0 link =
                seq command1 done
 
                createDirectory tempDir
-               fileVersionLink 
+               fileVersionLink
                   <- readContents . toVariantObjectCache . contents $ mmissFile
                fileVersion <- readLink view fileVersionLink
                copyICStringLenToFile (text fileVersion) fullName
                withDir tempDir (runCommand title0 command1)
-               done        
+               done
          else
-            done            
+            done
 
 
 
@@ -925,6 +925,6 @@ unsplitSpecialWE :: String -> String -> WithError EntityName
 unsplitSpecialWE name ext = fromStringWE (name ++ [specialChar] ++ ext)
 
 -- Our converter function, which is rather trivial.
-converter :: MMiSSVariantSpec -> Link MMiSSFileVersion 
+converter :: MMiSSVariantSpec -> Link MMiSSFileVersion
    -> IO (Link MMiSSFileVersion)
 converter _ fileVersionLink = return fileVersionLink

@@ -1,12 +1,12 @@
--- | The Cache module allows us to cache results of expensive stateful 
--- computations in memory.  
--- Possible improvements - 
+-- | The Cache module allows us to cache results of expensive stateful
+-- computations in memory.
+-- Possible improvements -
 --    (1) use hashing instead
 module Cache(
    Cache,    -- a cache (a stateful object).  Takes parameters key and elt.
              -- key must be an instance of Ord.
    newCache, -- :: Ord key => (key -> IO elt) -> IO(Cache key elt)
-   getCached -- :: Ord key => Cache key elt -> key -> IO elt  
+   getCached -- :: Ord key => Cache key elt -> key -> IO elt
    ) where
 
 import DeprecatedFiniteMap
@@ -14,7 +14,7 @@ import Control.Concurrent
 
 import Computation
 
-data Ord key => 
+data Ord key =>
    Cache key elt = Cache (MVar(FiniteMap key (MVar elt))) (key -> IO elt)
 
 newCache :: Ord key => (key -> IO elt) -> IO(Cache key elt)
@@ -31,7 +31,7 @@ getCached (Cache cacheMVar getAct) key =
       cacheMap <- takeMVar cacheMVar
       case lookupFM cacheMap key of
          Just mVar ->
-            do 
+            do
                putMVar cacheMVar cacheMap
                readMVar mVar
          Nothing ->
@@ -41,5 +41,5 @@ getCached (Cache cacheMVar getAct) key =
                value <- getAct key
                putMVar mVar value
                return value
-               
+
 

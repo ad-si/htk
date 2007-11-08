@@ -23,7 +23,7 @@ import System.IO.Unsafe
 import Data.Typeable
 import Control.Monad.Fix
 
-import BinaryAll 
+import BinaryAll
 import AtomString
 import Computation
 import ExtendedPrelude
@@ -59,7 +59,7 @@ newtype NoAccessObject = NoAccessObject {
 -- -----------------------------------------------------------------------
 -- Trivial instances
 -- -----------------------------------------------------------------------
-   
+
 instance Monad m => HasBinary NoAccessObjectType m where
    readBin = error "NoAccessObject: attempt to read NoAccessObjectType"
    writeBin = error "NoAccessObject: attempt to write NoAccessObjectType"
@@ -69,7 +69,7 @@ instance Monad m => HasBinary NoAccessObject m where
    writeBin = error "NoAccessObject: attempt to write NoAccessObject"
 
 instance HasLinkedObject NoAccessObject where
-   toLinkedObject = linkedObject 
+   toLinkedObject = linkedObject
 
 -- | We don't attempt merging at all.  We can't, because we would need
 -- to read the object to reassign its locations.
@@ -84,7 +84,7 @@ instance HasMerging NoAccessObject where
             ++ name))
 
 instance ObjectType NoAccessObjectType NoAccessObject where
-   objectTypeTypeIdPrim _ = noAccessObjectTypeId 
+   objectTypeTypeIdPrim _ = noAccessObjectTypeId
    objectTypeIdPrim _ = noAccessTypeKey
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim _ = NoAccessObjectType
@@ -115,7 +115,7 @@ instance ObjectType NoAccessObjectType NoAccessObject where
             }
       in
          return (Just nodeDisplayData)
-   
+
 -- -------------------------------------------------------------------
 -- Creating and distinguishing
 -- -------------------------------------------------------------------
@@ -131,7 +131,7 @@ createNoAccessObject view (wrappedLink @ (WrappedLink link)) =
 
             insertionOpt <- getInsertion view wrappedLink
 
-            linkedObject 
+            linkedObject
                <- newLinkedObjectNoParent view wrappedLink2 insertionOpt
 
             return (
@@ -142,7 +142,7 @@ createNoAccessObject view (wrappedLink @ (WrappedLink link)) =
          )
 
 isNoAccessLink :: WrappedLink -> Bool
-isNoAccessLink wrappedLink = 
+isNoAccessLink wrappedLink =
    linkObjectTypeTypeId wrappedLink == noAccessObjectTypeId
 
 -- | to go into the .hi-boot file.
@@ -173,49 +173,49 @@ getInsertion view wrappedLink1 =
          Nothing -> return Nothing
          Just parentLocation ->
             do
-               parentWrappedLinkOpt 
+               parentWrappedLinkOpt
                   <- getWrappedLinkFromLocation view parentLocation
                case parentWrappedLinkOpt of
                   Nothing -> return Nothing
                   Just parentWrappedLink ->
                      do
-                        (parentObject :: WrappedObject) 
+                        (parentObject :: WrappedObject)
                            <- wrapReadLink view parentWrappedLink
                         let
-                           parentLinkedObjectOpt 
+                           parentLinkedObjectOpt
                               = wrapToLinkedObjectOpt parentObject
                         case parentLinkedObjectOpt of
                            Nothing -> return Nothing
                            Just parentLinkedObject ->
                               do
-                                 (parentContents 
+                                 (parentContents
                                        :: [(EntityName,WrappedLink)])
                                     <- readContents (
-                                       listObjectContentsAsWrappedLinks 
+                                       listObjectContentsAsWrappedLinks
                                           parentLinkedObject)
                                  return (findJust
                                     (\ (name,wrappedLink2) ->
-                                       if toKey wrappedLink1 
+                                       if toKey wrappedLink1
                                              == toKey wrappedLink2
                                           then
-                                             Just (mkInsertion 
+                                             Just (mkInsertion
                                                 parentLinkedObject name)
                                           else
                                              Nothing
                                        )
                                     parentContents
                                     )
-                                  
+
 
 -- -------------------------------------------------------------------
 -- Registering
 -- -------------------------------------------------------------------
-   
+
 
 registerNoAccessObjectType :: IO ()
-registerNoAccessObjectType = 
+registerNoAccessObjectType =
    registerObjectType (error "Unknown FolderType" :: NoAccessObjectType)
-          
+
 -- -------------------------------------------------------------------
 -- The Global Registry.  This will in fact be empty.
 -- -------------------------------------------------------------------
@@ -229,4 +229,4 @@ noAccessTypeKey = oneOffKey "NoAccessObject" "NoAccessObject"
 
 mkGlobalRegistry :: IO (GlobalRegistry NoAccessObjectType)
 mkGlobalRegistry = createGlobalRegistry
-   
+

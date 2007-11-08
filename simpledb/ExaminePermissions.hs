@@ -1,4 +1,4 @@
--- | 'ExaminePermissions.examinePermissions' examines a 
+-- | 'ExaminePermissions.examinePermissions' examines a
 -- 'Permissions.Permissions' and determines whether they either grant or
 -- deny access.
 module ExaminePermissions(
@@ -14,22 +14,22 @@ import {-# SOURCE #-} VersionState
 
 examinePermissions :: VersionState -> GroupFile -> String
    -> ObjectVersion -> Activity -> Permissions -> IO (Maybe Bool)
-examinePermissions versionState groupFile userId version activity 
+examinePermissions versionState groupFile userId version activity
       permissions0 =
    case permissions0 of
       [] -> return Nothing
       (permission : permissions1) ->
          do
-            resultOpt <- examinePermission versionState groupFile userId 
+            resultOpt <- examinePermission versionState groupFile userId
                version activity permission
             case resultOpt of
-               Nothing -> examinePermissions versionState groupFile 
+               Nothing -> examinePermissions versionState groupFile
                   userId version activity permissions1
                Just _ -> return resultOpt
 
-examinePermission :: VersionState -> GroupFile -> String 
+examinePermission :: VersionState -> GroupFile -> String
    -> ObjectVersion -> Activity -> Permission -> IO (Maybe Bool)
-examinePermission versionState groupFile userId version activity 
+examinePermission versionState groupFile userId version activity
       permission =
    let
       activityIsIn = elem activity (activities permission)
@@ -46,14 +46,14 @@ examinePermission versionState groupFile userId version activity
                   isAncestor = versionIsAncestor versionState
 
                -- most expensive and therefore last test
-               versionIsIn <- case 
+               versionIsIn <- case
                      (fromVersion permission,toVersion permission) of
                   (Nothing,Nothing) -> return True
-                  (Just fromVersion0,Nothing) 
+                  (Just fromVersion0,Nothing)
                      -> isAncestor fromVersion0 version
                   (Nothing,Just toVersion0)
                      -> isAncestor version toVersion0
-                  (Just fromVersion0,Just toVersion0) 
+                  (Just fromVersion0,Just toVersion0)
                      -> if fromVersion0 == toVersion0
                         then
                            return (fromVersion0 == version)
@@ -67,11 +67,11 @@ examinePermission versionState groupFile userId version activity
                                     return False
                return (
                   if versionIsIn then Just (grant permission) else Nothing)
-                   
+
          else
             return Nothing
 
-examineGlobalPermissions :: GroupFile -> String -> Activity -> Permissions 
+examineGlobalPermissions :: GroupFile -> String -> Activity -> Permissions
    -> Maybe Bool
 examineGlobalPermissions _ _ _ [] = Nothing
 examineGlobalPermissions groupFile userId activity (permission:permissions) =

@@ -105,4 +105,4 @@ instance (HasSelection w,Widget w) => HasBorder (Selection w) where
   getBorderwidth w = cget w "selectborderwidth"
   -- Dummy.
   relief  _ w      = return w
-  getRelief _      = return Raised 
+  getRelief _      = return Raised

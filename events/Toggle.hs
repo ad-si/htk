@@ -10,7 +10,7 @@ module Toggle(
    toggle2, -- if toggles are both true, change them to false, otherwise
    -- leave the toggle settings unchanged and return them.
    ifToggle, -- :: Toggle -> IO () -> IO ()
-   -- If the toggle is true, change it to false and execute action. 
+   -- If the toggle is true, change it to false and execute action.
    peekToggle, -- :: Toggle -> IO Bool
    -- peek at the contents of a toggle, without changing it.
 
@@ -32,7 +32,7 @@ import Object
 newtype SimpleToggle = SimpleToggle (MVar Bool)
 
 newSimpleToggle :: IO SimpleToggle
-newSimpleToggle = 
+newSimpleToggle =
    do
       mVar <- newMVar True
       return (SimpleToggle mVar)
@@ -56,7 +56,7 @@ simpleToggle2 (SimpleToggle mVar1) (SimpleToggle mVar2) =
    do
       oldVal1 <- takeMVar mVar1
       oldVal2 <- takeMVar mVar2
-      if (oldVal1 && oldVal2) 
+      if (oldVal1 && oldVal2)
          then
             do
                putMVar mVar2 False
@@ -80,7 +80,7 @@ peekSimpleToggle (SimpleToggle mVar) = readMVar mVar
 data Toggle = Toggle !ObjectID !SimpleToggle
 
 newToggle :: IO Toggle
-newToggle = 
+newToggle =
    do
       uniqVal <- newObject
       stoggle <- newSimpleToggle
@@ -88,7 +88,7 @@ newToggle =
 
 toggle1 :: Toggle -> IO Bool
 -- switch bool to false, returning original value.
-toggle1 (Toggle _ stoggle) = simpleToggle stoggle 
+toggle1 (Toggle _ stoggle) = simpleToggle stoggle
 
 ifToggle :: Toggle -> IO () -> IO ()
 ifToggle toggle action =
@@ -108,7 +108,7 @@ toggle2 (Toggle unique1 stoggle1) (Toggle unique2 stoggle2) =
             case result of
                Nothing -> return Nothing
                Just (r1,r2) -> return (Just (r2,r1))
-      EQ -> 
+      EQ ->
          do
             r <- peekSimpleToggle stoggle1
             return (Just (r,r))

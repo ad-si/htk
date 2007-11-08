@@ -19,8 +19,8 @@ newNullGuardedChannel = newNullGuardedChannelPrim (error "newNull")
 -- The argument to newNullGuardedChannelPrim is not looked at,
 -- but helps us to avoid overloading woes.
 newNullGuardedChannelPrim :: value -> IO (NullGuardedChannel value)
-newNullGuardedChannelPrim (_ :: value) = 
-   newGuardedChannel (error "newNull1" :: (GQ NullGuardQueue value)) 
+newNullGuardedChannelPrim (_ :: value) =
+   newGuardedChannel (error "newNull1" :: (GQ NullGuardQueue value))
       (error "newNull2" :: (VQ (NullValueQueue value)))
 
 
@@ -36,7 +36,7 @@ instance Guard () where
 -- The Value Queue.
 -- --------------------------------------------------------------------
 
-data NullValueQueue value valueCont = 
+data NullValueQueue value valueCont =
    NullValueQueue (DeleteQueue (value,valueCont))
 
 emptyNullValueQueue :: NullValueQueue value a

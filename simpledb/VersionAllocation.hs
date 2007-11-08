@@ -37,7 +37,7 @@ initVersions bdb =
 allocVersion :: SimpleDB -> User -> IO ObjectVersion
 allocVersion simpleDB user =
    do
-      newVersion <- atomicModifyIORef (nextVersion simpleDB) 
+      newVersion <- atomicModifyIORef (nextVersion simpleDB)
          (\ version -> (succ version,version))
       reuseVersion simpleDB user newVersion
       return newVersion
@@ -55,18 +55,18 @@ useVersion simpleDB user version =
 
       case userOpt of
          Nothing -> notAllowed
-         Just user2 
+         Just user2
             | user == user2 -> done
-            | True -> 
+            | True ->
                 do
                    reuseVersion simpleDB user2 version
                    notAllowed
-                                                  
+
 
 -- | Put a version back into 'openVersions'
 -- (used when a commit fails).
 reuseVersion :: SimpleDB -> User -> ObjectVersion -> IO ()
-reuseVersion simpleDB user version = 
+reuseVersion simpleDB user version =
    atomicModifyIORef (openVersions simpleDB)
       (\ fm0 -> (addToFM fm0 version user,()))
 
@@ -79,10 +79,10 @@ forgetUsersVersions simpleDB user0 =
             let
                old :: [(ObjectVersion,User)]
                old = fmToList fm0
-              
+
                toDelete :: [ObjectVersion]
                toDelete = mapMaybe
-                  (\ (ov,user1) -> 
+                  (\ (ov,user1) ->
                      if user1 == user0
                         then
                            Just ov
@@ -98,7 +98,7 @@ forgetUsersVersions simpleDB user0 =
             in
                (fm1,sizeFM fm1)
             )
-      
+
       seq l done
 
 flushVersion :: SimpleDB -> TXN -> IO ()

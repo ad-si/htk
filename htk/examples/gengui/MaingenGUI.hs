@@ -82,9 +82,9 @@ addTxt newID gui name ent =
 addCol :: IO Id -> GenGUI Obj -> String -> String -> IO ()
 addCol newID gui name ent =
   do
-    mpar <- getRef foldref 
+    mpar <- getRef foldref
     case mpar of
-      Just par -> 
+      Just par ->
         do
           id <- newID
           let nm = createName name
@@ -150,7 +150,7 @@ addExampleFolders newID gui =
         do
           id <- newID
           let val = MyNum id num
-              nm = createName (name ++ show i) 
+              nm = createName (name ++ show i)
           return (LeafItem (Obj nm ic val) Nothing)
 
       addNumFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->

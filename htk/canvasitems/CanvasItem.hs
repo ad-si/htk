@@ -70,7 +70,7 @@ instance CanvasItem w => HasCoords w where
 
 -- | Any canvas item has a filling, outline, outline width and stipple
 -- configuration.
-class CanvasItem w => FilledCanvasItem w where 
+class CanvasItem w => FilledCanvasItem w where
   -- Sets the filling of a canvas item.
   filling         :: ColourDesignator c => c -> Config w
   -- Gets the filling of a canvas item.
@@ -162,7 +162,7 @@ putItemAtBottom item = execMethod item (\nm -> tkLowerItem nm Nothing)
 
 
 -- -----------------------------------------------------------------------
--- utility 
+-- utility
 -- -----------------------------------------------------------------------
 
 -- | Raises an exception if two given items do not have the same parent
@@ -176,7 +176,7 @@ onSameCanvas i1 i2 =
 
 -- | Exception raised by @CanasItem.onSameCanvas@.
 itemsNotOnSameCanvas :: IOError
-itemsNotOnSameCanvas = 
+itemsNotOnSameCanvas =
   userError "the two canvas items are not on the same canvas"
 
 
@@ -186,7 +186,7 @@ itemsNotOnSameCanvas =
 
 tkMoveItem :: ObjectName -> Distance -> Distance -> TclScript
 tkMoveItem (CanvasItemName nm item) x y =
-   declVar item ++ 
+   declVar item ++
       [show nm ++ " move " ++ show item ++ " " ++ show x ++ " " ++ show y]
 
 tkMoveItem _ _ _ = []
@@ -212,7 +212,7 @@ tkCoordItem _ _ = []
 
 tkGetCoordItem :: ObjectName -> TclScript
 tkGetCoordItem (CanvasItemName nm item) =
-   declVar item ++  
+   declVar item ++
      [show nm ++ " coords " ++ show item]
 tkGetCoordItem _ = []
 
@@ -221,17 +221,17 @@ tkRaiseItem (CanvasItemName nm item) Nothing =
    declVar item ++
      [show nm ++ " raise " ++ show item]
 tkRaiseItem (CanvasItemName nm item1) (Just (CanvasItemName _ item2)) =
-   declVar item1 ++ declVar item2 ++  
+   declVar item1 ++ declVar item2 ++
      [show nm ++ " raise " ++ show item1 ++ " " ++ show item2]
 tkRaiseItem _ _ = []
 {-# INLINE tkRaiseItem #-}
 
 tkLowerItem :: ObjectName -> Maybe ObjectName -> TclScript
 tkLowerItem (CanvasItemName nm item) Nothing  =
-   declVar item ++ 
+   declVar item ++
      [show nm ++ " lower " ++ show item]
 tkLowerItem (CanvasItemName nm item1) (Just (CanvasItemName _ item2)) =
-   declVar item1 ++ declVar item2 ++ 
+   declVar item1 ++ declVar item2 ++
      [show nm ++ " lower " ++ show item1 ++ " " ++ show item2]
 tkLowerItem _ _  = []
 {-# INLINE tkLowerItem #-}

@@ -9,8 +9,8 @@
 #endif
 
 module Bytes(
-   Byte, 
-      -- this type is expected to be an instance of Eq, Ord, Num, Bits, 
+   Byte,
+      -- this type is expected to be an instance of Eq, Ord, Num, Bits,
       -- Integral, Show and contain (at least) the values 0..255.
    Bytes,
       -- an array of values of type Byte.
@@ -125,7 +125,7 @@ getByteFromBytes (Bytes ptr) i =
 
 putBytesToBytes :: Bytes -> Int -> Bytes -> Int -> Int -> IO ()
 putBytesToBytes (Bytes sourcePtr) sourceIndex (Bytes destPtr) destIndex len
-   = copyArray (advancePtr destPtr destIndex) 
+   = copyArray (advancePtr destPtr destIndex)
       (advancePtr sourcePtr sourceIndex) len
 
 hPutByte :: Handle -> Byte -> IO ()
@@ -195,7 +195,7 @@ unMkBytes (Bytes ptr) = ptr
 -- ----------------------------------------------------------------------
 -- Throw an EOF error
 -- ----------------------------------------------------------------------
- 
+
 throwEOF :: Handle -> IO a
 throwEOF handle =
    do
@@ -217,7 +217,7 @@ compareBytes (Bytes p1) (Bytes p2) len =
       res <- compareBytesPrim p1 p2 (fromIntegral len)
       return (compare res 0)
 
-foreign import ccall unsafe "string.h memcmp" 
+foreign import ccall unsafe "string.h memcmp"
    compareBytesPrim :: Ptr CChar -> Ptr CChar -> CSize -> IO CInt
 
 #ifdef FIX_hGetBuf
@@ -235,33 +235,33 @@ fillReadBufferWithoutBlocking fd is_stream
   puts ("fillReadBufferLoopNoBlock: bytes = " ++ show bytes ++ "\n")
 #endif
   res <- readRawBufferNoBlock "fillReadBuffer" fd is_stream b
-  		       0 (fromIntegral size)
+                       0 (fromIntegral size)
   let res' = fromIntegral res
 #ifdef DEBUG_DUMP
   puts ("fillReadBufferLoopNoBlock:  res' = " ++ show res' ++ "\n")
 #endif
   return buf{ bufRPtr=0, bufWPtr=res' }
- 
+
 readRawBufferNoBlock :: String -> FD -> Bool -> RawBuffer -> Int -> CInt -> IO CInt
-readRawBufferNoBlock loc fd is_stream buf off len = 
+readRawBufferNoBlock loc fd is_stream buf off len =
   throwErrnoIfMinus1RetryOnBlock loc
-	    (read_rawBuffer fd is_stream buf off len)
-	    (return 0)
+            (read_rawBuffer fd is_stream buf off len)
+            (return 0)
 
 -- -----------------------------------------------------------------------------
 -- utils
 
 throwErrnoIfMinus1RetryOnBlock  :: String -> IO CInt -> IO CInt -> IO CInt
-throwErrnoIfMinus1RetryOnBlock loc f on_block  = 
+throwErrnoIfMinus1RetryOnBlock loc f on_block  =
   do
     res <- f
     if (res :: CInt) == -1
       then do
-	err <- getErrno
-	if err == eINTR
-	  then throwErrnoIfMinus1RetryOnBlock loc f on_block
+        err <- getErrno
+        if err == eINTR
+          then throwErrnoIfMinus1RetryOnBlock loc f on_block
           else if err == eWOULDBLOCK || err == eAGAIN
-	         then do on_block
+                 then do on_block
                  else throwErrno loc
       else return res
 
@@ -284,10 +284,10 @@ hGetBuf :: Handle -> Ptr a -> Int -> IO Int
 hGetBuf h ptr count
   | count == 0 = return 0
   | count <  0 = illegalBufferSize h "hGetBuf" count
-  | otherwise = 
-      wantReadableHandle "hGetBuf" h $ 
-	\ handle_@Handle__{ haFD=fd, haBuffer=ref, haIsStream=is_stream } -> do
-	    bufRead fd ref is_stream ptr 0 count
+  | otherwise =
+      wantReadableHandle "hGetBuf" h $
+        \ handle_@Handle__{ haFD=fd, haBuffer=ref, haIsStream=is_stream } -> do
+            bufRead fd ref is_stream ptr 0 count
 
 -- small reads go through the buffer, large reads are satisfied by
 -- taking data first from the buffer and then direct from the file
@@ -297,74 +297,74 @@ bufRead fd ref is_stream ptr so_far count =
   buf@Buffer{ bufBuf=raw, bufWPtr=w, bufRPtr=r, bufSize=sz } <- readIORef ref
   if bufferEmpty buf
      then if count > sz  -- small read?
-		then do rest <- readChunk fd is_stream ptr count
-			return (so_far + rest)
-	 	else do mb_buf <- maybeFillReadBuffer fd True is_stream buf
-			case mb_buf of
-		          Nothing -> return so_far -- got nothing, we're done
-		          Just new_buf -> do 
-			    writeIORef ref new_buf
-		   	    bufRead fd ref is_stream ptr so_far count
-     else do 
-  	let avail = w - r
-	if (count == avail)
-	   then do 
-		memcpy_ptr_baoff ptr raw r (fromIntegral count)
-		writeIORef ref buf{ bufWPtr=0, bufRPtr=0 }
-		return (so_far + count)
-	   else do
-	if (count < avail)
-	   then do 
-		memcpy_ptr_baoff ptr raw r (fromIntegral count)
-		writeIORef ref buf{ bufRPtr = r + count }
-		return (so_far + count)
-	   else do
-  
-	memcpy_ptr_baoff ptr raw r (fromIntegral avail)
-	writeIORef ref buf{ bufWPtr=0, bufRPtr=0 }
-	let remaining = count - avail
-	    so_far' = so_far + avail
-	    ptr' = ptr `plusPtr` avail
+                then do rest <- readChunk fd is_stream ptr count
+                        return (so_far + rest)
+                else do mb_buf <- maybeFillReadBuffer fd True is_stream buf
+                        case mb_buf of
+                          Nothing -> return so_far -- got nothing, we're done
+                          Just new_buf -> do
+                            writeIORef ref new_buf
+                            bufRead fd ref is_stream ptr so_far count
+     else do
+        let avail = w - r
+        if (count == avail)
+           then do
+                memcpy_ptr_baoff ptr raw r (fromIntegral count)
+                writeIORef ref buf{ bufWPtr=0, bufRPtr=0 }
+                return (so_far + count)
+           else do
+        if (count < avail)
+           then do
+                memcpy_ptr_baoff ptr raw r (fromIntegral count)
+                writeIORef ref buf{ bufRPtr = r + count }
+                return (so_far + count)
+           else do
 
-	if remaining < sz
-	   then bufRead fd ref is_stream ptr' so_far' remaining
-	   else do 
+        memcpy_ptr_baoff ptr raw r (fromIntegral avail)
+        writeIORef ref buf{ bufWPtr=0, bufRPtr=0 }
+        let remaining = count - avail
+            so_far' = so_far + avail
+            ptr' = ptr `plusPtr` avail
 
-	rest <- readChunk fd is_stream ptr' remaining
-	return (so_far' + rest)
+        if remaining < sz
+           then bufRead fd ref is_stream ptr' so_far' remaining
+           else do
+
+        rest <- readChunk fd is_stream ptr' remaining
+        return (so_far' + rest)
 
 readChunk :: FD -> Bool -> Ptr a -> Int -> IO Int
-readChunk fd is_stream ptr bytes = loop 0 bytes 
+readChunk fd is_stream ptr bytes = loop 0 bytes
  where
   loop :: Int -> Int -> IO Int
   loop off bytes | bytes <= 0 = return off
   loop off bytes = do
     r <- fromIntegral `liftM`
-           readRawBufferPtr "readChunk" (fromIntegral fd) is_stream 
-	   		    (castPtr ptr) off (fromIntegral bytes)
+           readRawBufferPtr "readChunk" (fromIntegral fd) is_stream
+                            (castPtr ptr) off (fromIntegral bytes)
     if r == 0
-	then return off
-	else loop (off + r) (bytes - r)
+        then return off
+        else loop (off + r) (bytes - r)
 
 
 maybeFillReadBuffer fd is_line is_stream buf
-  = catch 
+  = catch
      (do buf <- fillReadBuffer fd is_line is_stream buf
-	 return (Just buf)
+         return (Just buf)
      )
-     (\e -> do if isEOFError e 
-		  then return Nothing 
-		  else ioError e)
+     (\e -> do if isEOFError e
+                  then return Nothing
+                  else ioError e)
 
 
 -----------------------------------------------------------------------------
 -- Internal Utils
 
 illegalBufferSize :: Handle -> String -> Int -> IO a
-illegalBufferSize handle fn (sz :: Int) = 
-	ioException (IOError (Just handle)
-			    InvalidArgument  fn
-			    ("illegal buffer size " ++ showsPrec 9 sz [])
-			    Nothing)
+illegalBufferSize handle fn (sz :: Int) =
+        ioException (IOError (Just handle)
+                            InvalidArgument  fn
+                            ("illegal buffer size " ++ showsPrec 9 sz [])
+                            Nothing)
 
 #endif

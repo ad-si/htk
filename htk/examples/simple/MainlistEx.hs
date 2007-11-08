@@ -17,8 +17,8 @@ main =
     spawnEvent (forever
                   (press >> always (do
                                       sel<- getSelection lb;
-				      putStrLn ("Selected "++ 
-					        show (sel::
+                                      putStrLn ("Selected "++
+                                                show (sel::
                                                         Maybe [Int])))))
     finishHTk
 

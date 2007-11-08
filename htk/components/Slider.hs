@@ -32,9 +32,9 @@ class Widget w => HasSlider w where
   getRepeatDelay     :: (Slider w) -> IO Int
 
   repeatInterval c w  = cset w "repeatinterval" c
-  getRepeatInterval w = cget w "repeatinterval" 
+  getRepeatInterval w = cget w "repeatinterval"
   repeatDelay c w     = cset w "repeatdelay" c
-  getRepeatDelay w    = cget w "repeatdelay"    
+  getRepeatDelay w    = cget w "repeatdelay"
 
 
 -- -----------------------------------------------------------------------

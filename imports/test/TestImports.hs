@@ -92,7 +92,7 @@ nPre = [
          Import [Rename {newName = fromString "BBc",
             oldName = fromString "BB.c"}] (fromString "Parent.A"),
          Import [Qualified] (fromString "Parent.B")
-         ], 
+         ],
       Just ("C",1)
       ),
    (3,
@@ -139,14 +139,14 @@ folderStructure = FolderStructure {
       ),
    getParent = (return . staticSimpleSource . p . toN)
    }
-    
+
 
 
 toN :: Int -> N
 toN i =
    let
       nOpt = findJust
-         (\ n0 -> if n n0 == i then Just n0 else Nothing) 
+         (\ n0 -> if n n0 == i then Just n0 else Nothing)
          ns
    in
       fromMaybe
@@ -172,7 +172,7 @@ monitor mod name =
       source <- lookupNode importsState modNode (fromString name)
       let
          disp :: LookupResult Int -> IO ()
-         disp lr = 
+         disp lr =
             putStrLn (mod ++ ":" ++ name ++ " "
                ++ (case lr of
                   Found i -> show i
@@ -181,16 +181,16 @@ monitor mod name =
                   )
                )
 
-      lookedUp <- addNewAction 
+      lookedUp <- addNewAction
          source
-         (\ lr -> 
+         (\ lr ->
             do
                disp lr
                return True
             )
 
-      disp lookedUp      
-      
+      disp lookedUp
+
 getNode :: String -> IO Int
 getNode str =
    do

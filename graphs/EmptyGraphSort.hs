@@ -1,6 +1,6 @@
 -- | This module describes an empty display graph sort.  In other words, it
 -- displays nothing.  Not a lot of use you might think, but we use it for
--- the MMiSS API to get a version graph without invoking daVinci. 
+-- the MMiSS API to get a version graph without invoking daVinci.
 module EmptyGraphSort(
    emptyGraphSort,
    ) where
@@ -56,14 +56,14 @@ data EmptyArcTypeParms value = EmptyArcTypeParms
 -- The sort
 -- ---------------------------------------------------------------------------
 
-emptyGraphSort :: Graph EmptyGraph 
+emptyGraphSort :: Graph EmptyGraph
    EmptyGraphParms EmptyNode EmptyNodeType EmptyNodeTypeParms
-   EmptyArc EmptyArcType EmptyArcTypeParms 
+   EmptyArc EmptyArcType EmptyArcTypeParms
 emptyGraphSort = displaySort
 
-instance GraphAllConfig EmptyGraph EmptyGraphParms 
+instance GraphAllConfig EmptyGraph EmptyGraphParms
    EmptyNode EmptyNodeType EmptyNodeTypeParms
-   EmptyArc EmptyArcType EmptyArcTypeParms 
+   EmptyArc EmptyArcType EmptyArcTypeParms
 
 -- ---------------------------------------------------------------------------
 -- Instances for EmptyGraph/EmptyGraphParms
@@ -80,12 +80,12 @@ instance Destroyable EmptyGraph where
 
 instance Destructible EmptyGraph where
    destroyed graph = receive (destructChan graph)
-   
+
 instance HasDelayer EmptyGraph where
    toDelayer = delayer
 
 instance GraphClass EmptyGraph where
-   redrawPrim _ = done   
+   redrawPrim _ = done
 
 instance NewGraph EmptyGraph EmptyGraphParms where
    newGraphPrim _ =
@@ -104,12 +104,12 @@ instance NewGraph EmptyGraph EmptyGraphParms where
 instance GraphParms EmptyGraphParms where
    emptyGraphParms = EmptyGraphParms
 
-instance GraphConfig graphConfig 
+instance GraphConfig graphConfig
    => HasConfig graphConfig EmptyGraphParms where
 
    ($$) _ parms = parms
 
-   configUsed _ _ = True 
+   configUsed _ _ = True
 
 -- ---------------------------------------------------------------------------
 -- Instances for EmptyNode, EmptyNodeType, EmptyNodeTypeParms
@@ -156,12 +156,12 @@ instance SetNodeFocus EmptyGraph EmptyNode where
 instance NewNodeType EmptyGraph EmptyNodeType EmptyNodeTypeParms where
    newNodeTypePrim _ _ = return EmptyNodeType
 
-instance NodeTypeConfig nodeTypeConfig 
+instance NodeTypeConfig nodeTypeConfig
    => HasConfigValue nodeTypeConfig EmptyNodeTypeParms where
 
    ($$$) _ parms = parms
 
-   configUsed' _ _ = True 
+   configUsed' _ _ = True
 
 instance HasModifyValue FontStyle EmptyGraph EmptyNode where
    modify _ _ _ = done
@@ -188,7 +188,7 @@ instance Eq1 EmptyArcType where
 instance Ord1 EmptyArcType where
    compare1 = mapOrd oIdET
 
-instance ArcClass EmptyArc 
+instance ArcClass EmptyArc
 
 instance ArcTypeClass EmptyArcType where
    invisibleArcType = EmptyArcType {oIdET = staticObject 1}
@@ -201,7 +201,7 @@ instance ArcTypeParms EmptyArcTypeParms where
    coMapArcTypeParms _ _ = EmptyArcTypeParms
 
 instance NewArcType EmptyGraph EmptyArcType EmptyArcTypeParms where
-   newArcTypePrim _ _ = 
+   newArcTypePrim _ _ =
       do
          oId <- newObject
          return (EmptyArcType {oIdET = oId})
@@ -218,7 +218,7 @@ instance NewArc EmptyGraph EmptyNode EmptyNode EmptyArc EmptyArcType where
 instance SetArcType EmptyGraph EmptyArc EmptyArcType where
    setArcTypePrim _ _ _ = done
 
-listDrawer :: ListDrawer 
+listDrawer :: ListDrawer
    (EmptyArcType value,value,WrappedNode EmptyNode) (EmptyArc value)
 listDrawer =
    let
@@ -250,11 +250,11 @@ instance DeleteArc EmptyGraph EmptyArc where
          case valueOpt of
             Just value -> return value
 
-  
-instance ArcTypeConfig arcTypeConfig 
+
+instance ArcTypeConfig arcTypeConfig
    => HasConfigValue arcTypeConfig EmptyArcTypeParms where
 
    ($$$) _ parms = parms
 
-   configUsed' _ _ = True 
+   configUsed' _ _ = True
 

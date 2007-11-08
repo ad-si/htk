@@ -95,7 +95,7 @@ instance CItem c => CItem (Item c) where
   getIcon = getIcon . content
 
 -- | Returns whether an item is a folder or not.
-isItemFolder :: Item c 
+isItemFolder :: Item c
    -- ^ the concerned item.
    -> Bool
    -- ^ @True@ if the given item is a folder,
@@ -145,7 +145,7 @@ root gui = return (Root (root_obj gui))
 type GenGUIState c = [NewItem c]
 
 -- | Exports the gui\'s state.
-exportGenGUIState :: CItem c => GenGUI c 
+exportGenGUIState :: CItem c => GenGUI c
    -- ^ the concerned GenGUI.
    -> IO (GenGUIState c)
    -- ^ the gui\'s state.
@@ -220,9 +220,9 @@ data GenGUI c =
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new gui and returns a handler.
-newGenGUI :: CItem c => Maybe (GenGUIState c) 
+newGenGUI :: CItem c => Maybe (GenGUIState c)
    -- ^ an optional GenGUI state to recover.
-   -> Bool 
+   -> Bool
    -- ^ @True@ if lleaves should be
    -- displayed in the tree list.
    -> IO (GenGUI c)
@@ -285,7 +285,7 @@ newGenGUI mstate showLeavesInTree =
                         tlstate <- constructTreeListState 0 state
                         return (Just tlstate)
         Nothing -> return Nothing
-    
+
     tix <- isTixAvailable
     (tl, np, edscr, ed) <-
       (if tix then
@@ -389,7 +389,7 @@ newGenGUI mstate showLeavesInTree =
                                              undoLastMotion np
                                          else
                                            if x2 == xRoot ev_inf &&
-                                              y2 == yRoot ev_inf && 
+                                              y2 == yRoot ev_inf &&
                                               isJust mitem then
                                              do
                                                let item = fromJust mitem
@@ -696,11 +696,11 @@ openedFolder :: CItem c=> GenGUI c-> IO (Maybe (Item c))
 openedFolder = getRef . open_obj
 
 -- | Adds a gengui object.
-addItem :: CItem c => GenGUI c 
+addItem :: CItem c => GenGUI c
    -- ^ the concerned gui.
-   -> Item c 
+   -> Item c
    -- ^ the parent (folder) object.
-   -> NewItem c 
+   -> NewItem c
    -- ^ the external representation of the new object.
    -> IO (Item c)
    -- ^ the internal representation of the new object.
@@ -784,7 +784,7 @@ content _ = error "GenGUI (content) : called for root"
 
 -- | The @GenGUIEvent@ datatype.
 data GenGUIEvent c =
-    FocusTreeList (Maybe (Item c)) 
+    FocusTreeList (Maybe (Item c))
   | SelectTreeList (Maybe (Item c))
   | FocusNotepad (Item c, Bool) -- what's the Bool?
   | Dropped (Item c, [Item c])
@@ -795,7 +795,7 @@ data GenGUIEvent c =
 
 -- | Binds a listener for gengui events to the gengui and returns
 -- a corresponding event and an unbind action.
-bindGenGUIEv :: CItem c => GenGUI c 
+bindGenGUIEv :: CItem c => GenGUI c
    -- ^ the concerned gui.
    -> IO (Event (GenGUIEvent c), IO())
    -- ^ A pair of (event, unbind action).

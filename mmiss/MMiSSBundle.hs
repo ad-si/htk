@@ -1,14 +1,14 @@
 -- |
 -- Description: Bundles
--- 
+--
 -- A Bundle encodes a collection of MMiSS objects, packages,
 -- package folders and so on to be imported into or exported from the
--- repository.  A BundleNode encodes a single object. 
--- 
--- Thus the types correspond fairly closely to the (files) and (file) 
--- elements, respectively, in MMiSSRequest.dtd.  Conversion functions are 
+-- repository.  A BundleNode encodes a single object.
+--
+-- Thus the types correspond fairly closely to the (files) and (file)
+-- elements, respectively, in MMiSSRequest.dtd.  Conversion functions are
 -- "MMiSSToFromBundle".
--- 
+--
 -- We also define the ExportOpts type, because that parallels the
 -- GetObject_Attrs type in "MMiSSRequest".
 module MMiSSBundle (
@@ -20,7 +20,7 @@ module MMiSSBundle (
    BundleNode(..),
    BundleNodeData(..),
    BundleText(..),
-   CharType(..),      
+   CharType(..),
    ExportOpts(..),
 
    HasBundleNodeData(..),
@@ -45,12 +45,12 @@ import MMiSSFormat
 newtype Bundle = Bundle [(PackageId,BundleNode)] deriving (Show)
 
 data FileLoc = FileLoc {
-   name :: Maybe String, 
+   name :: Maybe String,
       -- Nothing for the preamble and in some other cases, for example
       -- when we haven't worked out the name of a package yet.
    objectType :: BundleType
    } deriving (Ord,Eq,Show)
-   
+
 data BundleType = BundleType {
    base :: BundleTypeEnum,
    ext :: Maybe String,
@@ -59,7 +59,7 @@ data BundleType = BundleType {
       -- otherwise; specifically for plain files and plain folders.
    } deriving (Ord,Eq,Show)
 
-data BundleTypeEnum = FolderEnum | FileEnum 
+data BundleTypeEnum = FolderEnum | FileEnum
    | MMiSSFolderEnum | MMiSSObjectEnum | MMiSSFileEnum | MMiSSPreambleEnum
    | UnknownType
    deriving (Ord,Eq,Show)
@@ -78,7 +78,7 @@ data BundleNodeData =
          -- data left out for some reason.
    deriving (Show)
 
-data BundleText = 
+data BundleText =
       BundleString {
          contents :: ICStringLen,
          charType :: CharType
@@ -95,7 +95,7 @@ data BundleText =
 
 instance Show BundleText where
    show (BundleString {contents = icsl,charType = charType}) =
-      "BundleString {contents = " 
+      "BundleString {contents = "
       ++ show icsl
       ++ ",charType = "
       ++ show charType
@@ -116,8 +116,8 @@ data ExportOpts = ExportOpts {
       -- or subdirectories (for folders).
       -- This type is more general than the corresponding attribute in
       -- MMiSSRequest.dtd, which just allows the equivalent of 1 and infinity.
-   }              
-   
+   }
+
 -- --------------------------------------------------------------------------
 -- Although for many object types, the BundleNodeData is constructed
 -- in MMiSSExportEntireBundleNode, MMiSSFileType and MMiSSObjectType
@@ -127,7 +127,7 @@ data ExportOpts = ExportOpts {
 
 class HasBundleNodeData object where
    getBundleNodeData :: View -> object -> ExportOpts -> IO BundleNodeData
-   getBundleNodeDataForVariant :: View -> object -> ExportOpts 
+   getBundleNodeDataForVariant :: View -> object -> ExportOpts
       -> MMiSSVariantSearch -> IO BundleNodeData
 
 

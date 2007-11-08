@@ -1,4 +1,4 @@
--- | NewNames is used for generating new names for Node's, Arc's, 
+-- | NewNames is used for generating new names for Node's, Arc's,
 -- NodeType's and ArcType's in a graph on a globally unique basis.
  module NewNames (
    NameSource,
@@ -8,7 +8,7 @@
    -- To make a new separate root use branch followed by useBranch
    initialBranch, -- :: NameSourceBranch
    -- Use this with useBranch to start the thing off.
-                 
+
    getNewName, -- :: NameSource -> IO String
    -- These strings always begin with a '.'.
 
@@ -17,8 +17,8 @@
    freezeNameSource, -- :: NameSource -> IO FrozenNameSource
    defrostNameSource, -- :: NameSource -> FrozenNameSource -> IO ()
    -- freeze/defrostNameSource convert and restore the current name source
-   -- to and from a string.  
-   -- defrostNameSource should be handed a NameSource created from the 
+   -- to and from a string.
+   -- defrostNameSource should be handed a NameSource created from the
    -- same NameSourceBranch as that for which freezeNameSource was
    -- called, otherwise it raises an error.
    ) where
@@ -41,13 +41,13 @@ data NameSource = NameSource {
    }
 
 -----------------------------------------------------------------------------
--- Creating and branching NameSource's  
+-- Creating and branching NameSource's
 -----------------------------------------------------------------------------
 
 newtype NameSourceBranch = NameSourceBranch [Int] deriving (Read,Show)
 
 branch :: NameSource -> IO NameSourceBranch
-branch (NameSource 
+branch (NameSource
       {nameSourceId = nameSourceId,branchCounter = branchCounter}) =
    do
       branchNo <- takeMVar branchCounter
@@ -74,7 +74,7 @@ initialBranch = NameSourceBranch []
 -----------------------------------------------------------------------------
 
 getNewName :: NameSource -> IO String
-getNewName 
+getNewName
       (NameSource {nameSourceId = nameSourceId,nameCounter=nameCounter}) =
    do
       nameNo <- takeMVar nameCounter
@@ -113,12 +113,12 @@ freezeNameSource (NameSource {
          })
 
 defrostNameSource :: NameSource -> FrozenNameSource -> IO ()
-defrostNameSource 
+defrostNameSource
    (NameSource {
       nameSourceId = nameSourceId,
       branchCounter = branchCounter,
       nameCounter = nameCounter
-      })  
+      })
    (FrozenNameSource {
       frozenId = frozenId,
       frozenBranch = frozenBranch,
@@ -129,7 +129,7 @@ defrostNameSource
          fail mess =
             ioError(userError("NewNames.defrostNameSource: "++mess))
 
-      if (nameSourceId /= frozenId) 
+      if (nameSourceId /= frozenId)
          then
             fail "Name source mismatch"
          else

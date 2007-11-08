@@ -9,7 +9,7 @@ import AttributesType
 import Registrations
 
 main :: IO ()
-main = 
+main =
    do
       withdrawWish
 
@@ -24,9 +24,9 @@ main =
                attributesOpt <- inputAttributes view attributesType Nothing
                case attributesOpt of
                   Nothing -> putStrLn "Attributes entry cancelled"
-                  Just attributes -> 
+                  Just attributes ->
                      do
                         (keys :: [String]) <- listKeys attributes
                         putStrLn ("Keys read: "++show keys)
       cleanupWish
- 
+

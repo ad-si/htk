@@ -31,7 +31,7 @@ data TextItemName =
         | EmbeddedWindowName ObjectName
 
 data CanvasTagOrID = CanvasTagOrID ObjectID
-                   | CanvasTagNot CanvasTagOrID 
+                   | CanvasTagNot CanvasTagOrID
                    | CanvasTagAnd CanvasTagOrID CanvasTagOrID
                    | CanvasTagOr  CanvasTagOrID CanvasTagOrID
                    | CanvasTagXOr CanvasTagOrID CanvasTagOrID
@@ -47,7 +47,7 @@ toWidgetName (ObjectName s) = WidgetName s
 
 instance Show ObjectName where
    showsPrec d p r =
-      (case p of 
+      (case p of
          ObjectName s -> s
          MenuItemName s _ -> show s
          TextPaneItemName s _ -> show s
@@ -61,8 +61,8 @@ instance Show ObjectName where
            "[global v" ++ show oid ++ ";set dummy $v" ++ show oid ++ "]") ++ r
 
 instance Show TextItemName where
-   showsPrec d p r = 
-      (case p of 
+   showsPrec d p r =
+      (case p of
                 (TextTagID (ObjectID i)) -> "tag" ++ show i
                 (TextItemPosition p) -> show p
                 (EmbeddedWindowName p) -> show p
@@ -83,7 +83,7 @@ abr s = "("++s++")"
 -- widget path names
 -- -----------------------------------------------------------------------
 
-data WidgetName = WidgetName String 
+data WidgetName = WidgetName String
 
 
 -- -----------------------------------------------------------------------

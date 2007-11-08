@@ -12,10 +12,10 @@ import GraphDispTest
 import DaVinciGraph
 
 main :: IO ()
-main = 
+main =
    do
       parseArguments
       forkIO (setUpGraph daVinciSort)
-      setUpGraph daVinciSort 
+      setUpGraph daVinciSort
       shutdown
-   
+

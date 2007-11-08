@@ -7,7 +7,7 @@ import Char (isSpace)
 
 {-Type decls-}
 
-newtype Hosts = Hosts [Host] 		deriving (Eq,Show)
+newtype Hosts = Hosts [Host]            deriving (Eq,Show)
 data Host = Host
     { hostHostName :: String
     , hostPort :: (Defaultable String)
@@ -44,7 +44,7 @@ instance XmlAttributes Host where
           , hostDescription = possibleA fromAttrToStr "description" as
           , hostUser = possibleA fromAttrToStr "user" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "hostName" (hostHostName v)
         , defaultToAttr toAttrFrStr "port" (hostPort v)
         , maybeToAttr toAttrFrStr "description" (hostDescription v)

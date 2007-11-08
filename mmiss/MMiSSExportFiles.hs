@@ -2,7 +2,7 @@
 -- MMiSS objects such as elements and so on) to be exported to some directory.
 module MMiSSExportFiles(
    ExportFiles,
-   exportFiles, -- :: View -> FilePath -> ExportFiles -> IO () 
+   exportFiles, -- :: View -> FilePath -> ExportFiles -> IO ()
 
    ) where
 
@@ -31,7 +31,7 @@ type ExportFiles = [(MMiSSPackageFolder,EntityFullName,MMiSSVariantSearch)]
 -- | Export the given ExportFiles to the directory by the given filePath.
 -- NB.  We do not abort this operation, instead complaining from time to
 -- time via errorMess
-exportFiles :: View -> FilePath -> ExportFiles -> IO () 
+exportFiles :: View -> FilePath -> ExportFiles -> IO ()
 exportFiles view dir0 exportFiles0 =
    do
       -- Remove duplicate elements
@@ -39,8 +39,8 @@ exportFiles view dir0 exportFiles0 =
          exportFiles1 :: ExportFiles
          exportFiles1 = uniqOrd exportFiles0
 
-      -- Get the list of all matching files to export, and a 
-      (exportFiles2 :: 
+      -- Get the list of all matching files to export, and a
+      (exportFiles2 ::
            [((EntityFullName,String),
               (Link MMiSSFile,MMiSSVariantSearch))],
          notFound1 :: [EntityFullName])
@@ -58,7 +58,7 @@ exportFiles view dir0 exportFiles0 =
                               )]
                            files1 =
                               map
-                                 (\ (link,name1,ext) -> 
+                                 (\ (link,name1,ext) ->
                                     ((name1,ext),(link,variantSearch))
                                     )
                                  files0
@@ -72,13 +72,13 @@ exportFiles view dir0 exportFiles0 =
       case notFound1 of
          [] -> done
          _ -> errorMess
-            ("Unable to find files in repository: " 
+            ("Unable to find files in repository: "
                ++ (concat (map (\ file -> "\n   " ++ toString file) notFound1))
                )
 
       -- Check for duplicates and construct map
       let
-         (exportFiles3 :: FiniteMap (EntityFullName,String) 
+         (exportFiles3 :: FiniteMap (EntityFullName,String)
                  (Link MMiSSFile,MMiSSVariantSearch),
                duplicates :: [(EntityFullName,String)])
             = foldl
@@ -86,15 +86,15 @@ exportFiles view dir0 exportFiles0 =
                   case lookupFM exportFiles0 nameExt of
                      Just linkVariant1 | linkVariant1 /= linkVariant
                         -> (exportFiles0,nameExt : duplicates0)
-                     _ -> 
+                     _ ->
                         (addToFM exportFiles0 nameExt linkVariant,duplicates0)
-                  ) 
+                  )
                (emptyFM,[])
                exportFiles2
 
       case duplicates of
          [] -> done
-         _ -> errorMess 
+         _ -> errorMess
             ("Multiple variants of the same file cannot be printed; sorry:"
                ++ (concat (map (\ (name,ext) -> "\n   "
                   ++ unsplitExtension (show name) ext) duplicates))
@@ -112,4 +112,4 @@ exportFiles view dir0 exportFiles0 =
       case fromWithError (listWithError unitWEs) of
          Left mess -> errorMess mess
          Right _ -> done
- 
+

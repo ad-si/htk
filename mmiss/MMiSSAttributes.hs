@@ -1,10 +1,10 @@
 -- | This file turns [XmlTypes.AttDef] lists into AttributesType's, and
 -- [XmlTypes.Attribute] lists into Attribute's and back.  Various restrictions
 -- are placed on these; for example defaults and non-String types are not
--- permitted. 
+-- permitted.
 module MMiSSAttributes(
    fromXmlAttributesDef, -- :: [XmlTypes.AttDef] -> WithError AttributesType
-   fromXmlAttributes, 
+   fromXmlAttributes,
       -- :: View -> [XmlTypes.Attribute] -> IO (WithError Attributes)
    toXmlAttributes, -- :: Attributes -> IO [XmlTypes.Attribute]
    ) where
@@ -26,7 +26,7 @@ fromXmlAttributesDef attDefs =
       fromXmlAttributeDef attDef =
          case attDef of
             AttDef name StringType IMPLIED -> hasValue name
-            AttDef _ StringType _ 
+            AttDef _ StringType _
                -> hasError "Attribute default is not IMPLIED"
             AttDef _ _ _ -> hasError "Attribute does not have String type"
 
@@ -70,7 +70,7 @@ fromXmlAttributes view xmlAttributes =
                return attributes
             )
          attributeSettingsWE
-         )                     
+         )
 
 toXmlAttributes :: Attributes -> IO [XmlTypes.Attribute]
 toXmlAttributes attributes =
@@ -81,5 +81,5 @@ toXmlAttributes attributes =
             do
                value <- getValue attributes key
                return (key,AttValue [Left value])
-            ) 
-         keys      
+            )
+         keys

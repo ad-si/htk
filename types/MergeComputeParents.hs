@@ -21,7 +21,7 @@ import NoAccessObject -- used for dummy wrapped link
 -- | Compute all the parents information for the merge given by the
 -- 'LinkReAssigner'.  This means listing *all* the parents for links not
 -- in the head view.
-computeParents 
+computeParents
    :: View -- ^ the head view
    -> LinkReAssigner -- ^ the reassigner
    -> IO [(Location,Location)] -- ^ list (object, its parent)
@@ -54,16 +54,16 @@ computeParents headView linkReAssigner =
          mapM
             (\ (_,view,wml) ->
                do
-                  (Just (version :: ObjectVersion)) <- getParentVersion view 
+                  (Just (version :: ObjectVersion)) <- getParentVersion view
                   let
                      location :: Location
                      location = toKey wml
                   return (GetParentLocation (version,location))
-               )             
+               )
             parentsToFind
 
       (MultiResponse (parentData :: [SimpleDBResponse])) <-
-         queryRepository (repository headView) 
+         queryRepository (repository headView)
             (MultiCommand getParentsCommands)
       (parentLocations :: [Maybe Location]) <- mapM
          (\ response -> case response of
@@ -76,7 +76,7 @@ computeParents headView linkReAssigner =
          parentData
 
       let
-         foundParents 
+         foundParents
             :: [((WrappedMergeLink,View,WrappedMergeLink),Maybe Location)]
          foundParents = zip parentsToFind parentLocations
 
@@ -89,9 +89,9 @@ computeParents headView linkReAssigner =
 
                keyWrappedLink :: WrappedMergeLink
                keyWrappedLink = WrappedMergeLink keyLink
-               
-               Just targetLink = 
-                  lookupFM (linkMap linkReAssigner) 
+
+               Just targetLink =
+                  lookupFM (linkMap linkReAssigner)
                      (viewId view,keyWrappedLink)
             in
                toKey targetLink
@@ -103,12 +103,12 @@ computeParents headView linkReAssigner =
                   Nothing -> Nothing
                   Just location ->
                      let
-                        translatedLocation 
+                        translatedLocation
                            = translateParentLocation view location
                      in
                         Just (toKey originalWML,translatedLocation)
                )
             foundParents
-                  
-      return parents         
-  
+
+      return parents
+

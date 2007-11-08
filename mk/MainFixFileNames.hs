@@ -20,7 +20,7 @@ import Directory
 import System
 
 main :: IO ()
-main = 
+main =
    do
       input <- getContents
       args <- getArgs
@@ -28,16 +28,16 @@ main =
       let
          key = case args of
            [arg] -> arg
-           [] -> "PWD"   
+           [] -> "PWD"
 
-         escapeString s = 
+         escapeString s =
             let
                withQuotes @ ('\"':rest) = show s
             in
                take (length rest - 1) rest
 
          quoted = escapeString toInsert
-            
+
 
          transform [] = []
          transform (s@(c:rest)) = case isPrefix ("#"++key) s of
@@ -47,7 +47,7 @@ main =
 
 isPrefix :: Eq a => [a] -> [a] -> Maybe [a]
 isPrefix [] s = Just s
-isPrefix (c1 : c1s) (c2 : c2s) | c1 == c2 
+isPrefix (c1 : c1s) (c2 : c2s) | c1 == c2
    = isPrefix c1s c2s
 isPrefix _ _ = Nothing
 

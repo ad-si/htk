@@ -21,7 +21,7 @@ data ErrorType =
       AccessError
    |  NotFoundError
    |  InternalError
-   |  MiscError 
+   |  MiscError
    |  ClientError -- ^ an error thrown on the client side.
    deriving (Enum)
 
@@ -30,7 +30,7 @@ data ErrorType =
 -- ------------------------------------------------------------------
 
 instance Show ErrorType where
-   showsPrec n et acc = 
+   showsPrec n et acc =
       let
          st = case et of
             AccessError -> "Access"
@@ -55,7 +55,7 @@ instance Monad m => HasBinary ErrorType m where
 
 -- | Throw an error
 throwError :: ErrorType -> String -> a
-throwError errorType mess 
+throwError errorType mess
    = mkBreakFn (fst fallOut) (encodeError errorType mess)
 
 catchError :: IO b -> (ErrorType -> String -> b) -> IO b
@@ -82,7 +82,7 @@ fallOut = unsafePerformIO newFallOut
 {-# NOINLINE fallOut #-}
 
 
-      
+
 
 -- ------------------------------------------------------------------
 -- Encode and Decode access/misc errors as strings
@@ -112,4 +112,4 @@ decodeError (c:mess) =
          'C' -> ClientError
          _ -> error "Unknown error type"
    in
-      (errorType,mess)         
+      (errorType,mess)

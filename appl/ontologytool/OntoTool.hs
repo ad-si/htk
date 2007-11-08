@@ -21,19 +21,19 @@ main =
    do args <- System.getArgs
       if ((length (elemIndices "--help" args)) > 0)
         then do putStr "Tool for checking and converting MMiSS ontologies"
-		putStr "usage:\n  ontotool [OPTIONS] INPUTFILE [> OUTFILE]\n"
-		putStr "Options are:\n"
-		exitWith ExitSucess
+                putStr "usage:\n  ontotool [OPTIONS] INPUTFILE [> OUTFILE]\n"
+                putStr "Options are:\n"
+                exitWith ExitSucess
         else done
-      if ((length args) == 0 
+      if ((length args) == 0
         then fail "You must specify a ontology file!"
         else let fileName = last args
       case fromWithError weOntology of
-         Left message -> let str = "The following errors occured during parsing:\n" 
+         Left message -> let str = "The following errors occured during parsing:\n"
                          in error (str ++ message)
          Right o -> let messages = isComplete o
                     in if (messages == [])
-                         then hPutStr stderr "Parse: Successfull\nChecking Ontology: Successfull\n" 
+                         then hPutStr stderr "Parse: Successfull\nChecking Ontology: Successfull\n"
                          else hPutStr stderr (unlines messages)
       exit
 

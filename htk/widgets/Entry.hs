@@ -27,7 +27,7 @@ import ScrollBar
 --import Index exported by ICursor
 import Selection hiding (HasIndex, getBaseIndex)
 import XSelection
-import ICursor 
+import ICursor
 import Computation
 import Destructible
 import Synchronized
@@ -51,10 +51,10 @@ newtype Entry a = Entry GUIOBJECT deriving Eq
 
 -- | Constructs a new entry field and returns a handler.
 newEntry :: (Container par, GUIValue a) =>
-   par 
+   par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config (Entry a)] 
+   -> [Config (Entry a)]
    -- ^ the list of configuration options for this entry
    -- field.
    -> IO (Entry a)
@@ -70,7 +70,7 @@ newEntry par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject (Entry a) where 
+instance GUIObject (Entry a) where
   toGUIObject (Entry  w) = w
   cname _ = "Entry"
 
@@ -163,7 +163,7 @@ instance HasIndex (Entry a) EndOfText BaseIndex where
 -- | An @XCoord@ is a valid index for an entry widget.
 instance HasIndex (Entry a) XCoord BaseIndex where
   getBaseIndex ent i = return (IndexText (show i))
-        
+
 -- | The entries insertion cursor is a valid index for an entry widget.
 instance HasIndex (Entry a) (ICursor (Entry a)) BaseIndex where
   getBaseIndex ent i = return (IndexText "insert")
@@ -264,7 +264,7 @@ instance HasXSelection (Entry a)
 -- | An entry widget has an insertion cursor.
 instance HasInsertionCursor (Entry a)
 
--- | 
+-- |
 instance HasIndex (Entry a) i BaseIndex =>
            HasInsertionCursorIndexSet (Entry a) i where
   -- Sets the position of the insertion cursor.
@@ -284,7 +284,7 @@ instance HasInsertionCursorIndexGet (Entry a) Int where
 
 -- | An entry widget can be a subwidget, e.g. in a combo box
 instance GUIValue a => CanBeSubwidget (Entry a) where
-  createAsSubwidget megaWidget 
+  createAsSubwidget megaWidget
      = do e <- createSubwidget ENTRY entryMethods megaWidget
           return (Entry e)
 
@@ -294,9 +294,9 @@ instance GUIValue a => CanBeSubwidget (Entry a) where
 
 -- | Sets a character to display instead of contents (e.g. for password
 -- fields).
-showText :: GUIValue a => Char 
+showText :: GUIValue a => Char
    -- ^ the character to display.
-   -> Entry a 
+   -> Entry a
    -- ^ the concerned entry field.
    -> IO (Entry a)
    -- ^ The concerned entry field.
@@ -334,15 +334,15 @@ tkSelection wn _ = show wn ++ " selection range end end"
 {-# INLINE tkSelection #-}
 
 tkSelectionRange :: ObjectName -> BaseIndex ->  BaseIndex -> TclCmd
-tkSelectionRange wn start end = show wn ++ " selection range " ++ 
+tkSelectionRange wn start end = show wn ++ " selection range " ++
   show start ++ " " ++ show end
 {-# INLINE tkSelectionRange #-}
 
 tkCreateEntry :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
                  [ConfigOption] -> TclScript
-tkCreateEntry pnm kind name oid confs = 
-  tkDeclVar ("sv" ++ show oid) (show name) ++ 
-  (createCmd defMethods) pnm kind name oid confs 
+tkCreateEntry pnm kind name oid confs =
+  tkDeclVar ("sv" ++ show oid) (show name) ++
+  (createCmd defMethods) pnm kind name oid confs
 
 tkCleanupEntry :: ObjectID -> ObjectName -> TclScript
 tkCleanupEntry oid _ = []

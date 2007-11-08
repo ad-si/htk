@@ -8,7 +8,7 @@ module DialogWin (
         createErrorWin,
         createWarningWin,
         createConfirmWin,
-	createMessageWin,
+        createMessageWin,
         createAlertWin',
         createErrorWin',
         createWarningWin',
@@ -40,7 +40,7 @@ import MarkupText
 import Separator
 
 -- --------------------------------------------------------------------------
---  Types 
+--  Types
 -- --------------------------------------------------------------------------
 
 -- | A @Choice@ represents the name of a button (@String@) and the
@@ -50,16 +50,16 @@ type Choice a = (String,a)
 -- | The @Dialog@ datatype.
 data Dialog a = Dialog {
                         fWindow    :: Toplevel,
-                        fEditor    :: Maybe Editor,  -- we only have 
-			fMsg       :: Maybe Message, -- one of these two
+                        fEditor    :: Maybe Editor,  -- we only have
+                        fMsg       :: Maybe Message, -- one of these two
                         fLabel     :: Label,
                         fSelectBox :: SelectBox,
                         fEvents    :: (Event a)
                         }
 
 -- --------------------------------------------------------------------------
---  Instances 
--- --------------------------------------------------------------------------            
+--  Instances
+-- --------------------------------------------------------------------------
 -- | Internal.
 instance GUIObject (Dialog a) where
         toGUIObject dlg = toGUIObject (fWindow dlg)
@@ -71,21 +71,21 @@ instance HasPhoto (Dialog a) where
 
 -- | The programm message is displayed as @MarkupText@
 instance HasMarkupText (Dialog a) where
-  new t dlg = 
-    case fEditor dlg of 
-      Just e -> do {e # new t; return dlg} 
+  new t dlg =
+    case fEditor dlg of
+      Just e -> do {e # new t; return dlg}
       _      -> return dlg
 
 
 -- | The message displayed as plain text.
 instance GUIValue v=> HasText (Dialog a) v where
-  text t dlg = 
-    case fMsg dlg of 
-      Just l -> do {l # text t; return dlg} 
+  text t dlg =
+    case fMsg dlg of
+      Just l -> do {l # text t; return dlg}
       _      -> return dlg
 
 
--- | Returns configuration option for dialogs that displays text using a 
+-- | Returns configuration option for dialogs that displays text using a
 -- scrollbox if it is bigger than the default size (currently (60,6).
 -- It also returns a Bool which indicates if we are to use createDialogWin
 -- (False) or createDialogWin' (True).
@@ -106,26 +106,26 @@ scrollText1 size str =
       then
          (new [scrollMarkupText (39,6) [prose str]],True)
       else
-         (text str,False) 
+         (text str,False)
    where
       biggerThan (xMax,yMax) str =
          let
             strl = lines str
          in
-            length strl > fromIntegral yMax 
+            length strl > fromIntegral yMax
                || any (\ line -> length line > fromIntegral xMax) strl
 
 -- --------------------------------------------------------------------------
---  Derived Dialog Window 
+--  Derived Dialog Window
 -- --------------------------------------------------------------------------
 
 -- | Constructs an alert window with the given text
-createAlertWin :: String 
+createAlertWin :: String
    -- ^ the text to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO ()
-createAlertWin str wol = 
-      do 
+createAlertWin str wol =
+      do
          catchDestroyedFallOut (createFn choices Nothing confs (defs ++ wol))
          done
    where
@@ -137,14 +137,14 @@ createAlertWin str wol =
        createFn = if complex then createDialogWin' else createDialogWin
 
 -- | Constructs an alert window with the given markuptext
-createAlertWin' :: [MarkupText] 
+createAlertWin' :: [MarkupText]
    -- ^ the markuptext to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO ()
 createAlertWin' str wol =
-  do 
+  do
      catchDestroyedFallOut (
-        createDialogWin' choices Nothing (confs++[photo warningImg]) 
+        createDialogWin' choices Nothing (confs++[photo warningImg])
            (defs ++ wol)
         )
      done
@@ -153,15 +153,15 @@ createAlertWin' str wol =
         confs   = [new str]
 
 -- | Constructs an error window with the given text
-createErrorWin :: String 
+createErrorWin :: String
    -- ^ the text to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO ()
-createErrorWin str wol = 
+createErrorWin str wol =
     do
        catchDestroyedFallOut (createFn choices Nothing confs (defs++wol))
        done
-    where 
+    where
        choices = [("Continue",())]
        defs    = [text "Error Message"]
 
@@ -170,12 +170,12 @@ createErrorWin str wol =
        createFn = if complex then createDialogWin' else createDialogWin
 
 -- | Constructs an error window with the given markuptext
-createErrorWin' :: [MarkupText] 
+createErrorWin' :: [MarkupText]
    -- ^ the markuptext to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO ()
 createErrorWin' str wol =
-   do 
+   do
       catchDestroyedFallOut (
          createDialogWin' choices Nothing (confs++[photo errorImg]) (defs++wol)
          )
@@ -183,36 +183,36 @@ createErrorWin' str wol =
  where choices = [("Continue",())]
        defs = [text "Error Message"]
        confs = [new str]
-       
+
 
 -- | Constructs an warning window with the given text
-createWarningWin :: String 
+createWarningWin :: String
    -- ^ the text to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO ()
 createWarningWin str confs = createAlertWin str (text "Warning Message": confs)
 
 -- | Constructs an warning window with the given markuptext
-createWarningWin' :: [MarkupText] 
+createWarningWin' :: [MarkupText]
    -- ^ the markuptext to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO ()
-createWarningWin' str confs = 
+createWarningWin' str confs =
   createAlertWin' str (text "Warning Message": confs)
 
 -- | Constructs an confirm window with the given text
-createConfirmWin :: String 
+createConfirmWin :: String
    -- ^ the text to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO Bool
    -- ^ True(Ok) or False(Cancel)
-createConfirmWin str wol = 
+createConfirmWin str wol =
     do
        bOpt <- catchDestroyedFallOut (
           createFn choices (Just 0) confs (defs ++ wol)
           )
        return (fromMaybe False bOpt)
-    where 
+    where
        choices = [("Ok",True),("Cancel",False)]
        defs    = [text "Confirm Window"]
 
@@ -221,15 +221,15 @@ createConfirmWin str wol =
        createFn = if complex then createDialogWin' else createDialogWin
 
 -- | Constructs an confirm window with the given markuptext
-createConfirmWin' :: [MarkupText] 
+createConfirmWin' :: [MarkupText]
    -- ^ the markuptext to be displayed
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -> IO Bool
    -- ^ True(Ok) or False(Cancel)
-createConfirmWin' str wol = 
+createConfirmWin' str wol =
    do
       bOpt <- catchDestroyedFallOut (
-         createDialogWin' choices (Just 0) (confs++[photo questionImg]) 
+         createDialogWin' choices (Just 0) (confs++[photo questionImg])
             (defs ++ wol)
          )
       return (fromMaybe False bOpt)
@@ -246,21 +246,21 @@ createMessageWin' :: [MarkupText]
 createMessageWin' str wol =
    do
       catchDestroyedFallOut (
-         createDialogWin' [("Dismiss", ())] Nothing 
-	    [new str, photo infoImg] 
-	    (text "Information": wol)
+         createDialogWin' [("Dismiss", ())] Nothing
+            [new str, photo infoImg]
+            (text "Information": wol)
          )
       done
 
 
-            
+
 -- | Constructs a message (info) window with the given string.
 createMessageWin :: String
    -- ^ the string to be displayed
    -> [Config Toplevel]
    -> IO ()
    -- ^ ()
-createMessageWin str wol = 
+createMessageWin str wol =
    do
       catchDestroyedFallOut (
          createFn [("Dismiss", ())] Nothing confs (text "Information": wol)
@@ -270,56 +270,56 @@ createMessageWin str wol =
       (scrollConf,complex) = scrollText str
       confs = [scrollConf,photo infoImg]
       createFn = if complex then createDialogWin' else createDialogWin
-       
+
 
 -- | Constructs a new dialogue window for plain text
-createDialogWin :: [Choice a] 
+createDialogWin :: [Choice a]
    -- ^ the available buttons in this window
-   -> Maybe Int 
+   -> Maybe Int
    -- ^ default button
-   -> [Config (Dialog a)] 
+   -> [Config (Dialog a)]
    -- ^ the list of configuration options for this separator
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -- ^ the list of configuration options for the window
    -> IO a
-   -- ^ 
-createDialogWin choices def confs wol = 
-   do 
+   -- ^
+createDialogWin choices def confs wol =
+   do
       dlg <- dialog True choices def confs wol
       result <- modalInteraction (fWindow dlg) True True (fEvents dlg)
       return result
 
 -- | Constructs a new dialow window for markup text
-createDialogWin' :: [Choice a] 
+createDialogWin' :: [Choice a]
    -- ^ the available buttons in this window
-   -> Maybe Int 
+   -> Maybe Int
    -- ^ default button
-   -> [Config (Dialog a)] 
+   -> [Config (Dialog a)]
    -- ^ the list of configuration options for this separator
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -- ^ the list of configuration options for the window
    -> IO a
-   -- ^ 
-createDialogWin' choices def confs wol = 
-   do 
+   -- ^
+createDialogWin' choices def confs wol =
+   do
       dlg <- dialog False choices def confs wol
       result <- modalInteraction (fWindow dlg) True True (fEvents dlg)
       return result
 
 
 -- --------------------------------------------------------------------------
---  Base Dialog Window 
+--  Base Dialog Window
 -- --------------------------------------------------------------------------
 -- | Creates a new dialogue with its label, text and buttons.
 dialog :: Bool
    -- ^ the available button in this window
-   -> [Choice a] 
+   -> [Choice a]
    -- ^ true if we just want a label to display message, false if we want a fancy read-only text editor
-   -> Maybe Int 
+   -> Maybe Int
    -- ^ default button
-   -> [Config (Dialog a)] 
+   -> [Config (Dialog a)]
    -- ^ the list of configuration options for this separator
-   -> [Config Toplevel] 
+   -> [Config Toplevel]
    -- ^ the list of configuration options for the window
    -> IO (Dialog a)
    -- ^ a dialog
@@ -329,42 +329,42 @@ dialog plain choices def confs tpconfs =
          do
             tp <- createToplevel tpconfs
             pack tp [Expand On, Fill Both]
-          
+
             b <- newVBox tp []
             pack b [Expand On, Fill Both]
-          
+
             b2 <- newHBox b []
             pack b2 [Expand On, Fill Both]
-          
+
             lbl <- newLabel b2 []
             pack lbl [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
 
-	    (lmsg, emsg) <-           
-  	      if plain then
-	         do l <- newMessage b2 [borderwidth 0, 
-		                        justify JustCenter,
-					aspect 750,
-		                        HTk.font (Helvetica, Roman, 18::Int)]
+            (lmsg, emsg) <-
+              if plain then
+                 do l <- newMessage b2 [borderwidth 0,
+                                        justify JustCenter,
+                                        aspect 750,
+                                        HTk.font (Helvetica, Roman, 18::Int)]
                     pack l [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
-		    return (Just l, Nothing)
-	         else do msg <- newEditor b2 [size (30,5), borderwidth 0,
-					      state Disabled, wrap WordWrap,
-					      HTk.font (Helvetica, Roman, 18::Int)]
-                         pack msg [Expand On, Fill Both, PadX (cm 0.5), 
-		                                         PadY (cm 0.5)]
+                    return (Just l, Nothing)
+                 else do msg <- newEditor b2 [size (30,5), borderwidth 0,
+                                              state Disabled, wrap WordWrap,
+                                              HTk.font (Helvetica, Roman, 18::Int)]
+                         pack msg [Expand On, Fill Both, PadX (cm 0.5),
+                                                         PadY (cm 0.5)]
                          return (Nothing, Just msg)
-          
+
             sp1 <- newSpace b (cm 0.15) []
             pack sp1 [Expand Off, Fill X, Side AtBottom]
-          
+
             newHSeparator b
-          
+
             sp2 <- newSpace b (cm 0.15) []
             pack sp2 [Expand Off, Fill X, Side AtBottom]
-          
+
             sb <- newSelectBox b Nothing []
             pack sb [Expand Off, Fill X, Side AtBottom]
-          
+
             events0 <- mapM (createChoice sb) choices
             let ev0 = choose events0
 
@@ -372,9 +372,9 @@ dialog plain choices def confs tpconfs =
             (destroyEvent,unbindAction)  <- bindSimple tp Destroy
 
             let
-               ev = 
+               ev =
                      (do
-                         result <- ev0 
+                         result <- ev0
                          always unbindAction
                          return result
                      )
@@ -388,7 +388,7 @@ dialog plain choices def confs tpconfs =
       dlg <- configure (Dialog tp emsg lmsg lbl sb ev) confs
       return dlg
  where createChoice :: SelectBox -> Choice a -> IO (Event a)
-       createChoice sb (str,val) = 
+       createChoice sb (str,val) =
         do
          but <- addButton sb [text str] [Expand On, Side AtRight]
          clickedbut <- clicked but
@@ -430,7 +430,7 @@ useHTk = setMessFns htkMessFns
 
 -- Deprecate the alternative
 {-# DEPRECATED createAlertWin,createErrorWin,createWarningWin,
-   createConfirmWin,createMessageWin 
+   createConfirmWin,createMessageWin
    "Please use the functions in util/Messages instead"
    #-}
 
@@ -439,7 +439,7 @@ useHTk = setMessFns htkMessFns
 -- --------------------------------------------------------------------------
 
 loadHTkImages :: ()
-loadHTkImages = foldr seq () [errorImg,warningImg,questionImg,infoImg] 
+loadHTkImages = foldr seq () [errorImg,warningImg,questionImg,infoImg]
 
 -- It's important that we create these with unsafePerformIO, this lets
 -- Tk reuse the definition-- otherwise we send the whole image data

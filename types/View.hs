@@ -1,6 +1,6 @@
--- | This module defines the fundamental structure of the (untyped) 
--- objects in a repository. 
--- 
+-- | This module defines the fundamental structure of the (untyped)
+-- objects in a repository.
+--
 -- We depend circularly on CodedValue.hs.  This module is compiled
 -- first and uses CodedValue.hi-boot.
 module View(
@@ -11,7 +11,7 @@ module View(
    listViews, -- :: Repository -> IO [ObjectVersion]
       -- This lists the object versions for all currently checked-in
       -- (global) versions.
-   Version, 
+   Version,
       -- type of the version of a view
    getView, -- :: Repository -> VersionGraphClient -> Version -> IO View
       -- This checks out a particular view.
@@ -29,11 +29,11 @@ module View(
 
    synchronizeView, -- :: View -> IO b -> IO b
       -- Perform some action during which no commit should take place.
-   createViewObject, 
+   createViewObject,
       -- :: (HasCodedValue object)
       -- => View -> Link y -> (Link object -> IO (object,extra))
       -- -> IO extra
-      -- Function for creating an object which requires its own link.  
+      -- Function for creating an object which requires its own link.
    createWrappedViewObject,
       -- :: (HasCodedValue object)
       -- => View -> WrappedLink -> (Link object -> IO (Maybe object,extra))
@@ -85,7 +85,7 @@ import GlobalRegistry
 
 type Version = ObjectVersion
 
-data CommitInfo = 
+data CommitInfo =
       OnlyVersionNumber
    |  OnlyUserInfo
    |  AllVersionInfo
@@ -102,7 +102,7 @@ newView :: Repository -> IO View
 -- newView creates a wholly new view without respect to version.
 -- This should be used for initialising the repository, and never again.
 newView repository =
-   createView repository (error 
+   createView repository (error
       "Attempt to read version graph during initialisation") topVersionInfo
 
 listViews :: Repository -> IO [Version]
@@ -111,7 +111,7 @@ listViews repository = listVersions repository
 getView :: Repository -> VersionGraphClient -> Version -> IO View
 getView repository graphClient objectVersion =
    do
-      viewString <- retrieveString repository objectVersion specialLocation1 
+      viewString <- retrieveString repository objectVersion specialLocation1
       let
          viewCodedValue = fromString viewString
 
@@ -146,7 +146,7 @@ commitView view =
       commitView1 OnlyUserInfo newVersion1 view
 
 commitView1 :: CommitInfo -> ObjectVersion -> View -> IO Version
-commitView1 commitInfo newVersion1 
+commitView1 commitInfo newVersion1
    (view @ View {repository = repository,objects = objects,
       commitLock = commitLock}) =
    synchronizeGlobal commitLock (
@@ -160,7 +160,7 @@ commitView1 commitInfo newVersion1
          locations <- listKeys objects
 
          let
-            mkCommitChange :: ObjectData -> ObjectVersion 
+            mkCommitChange :: ObjectData -> ObjectVersion
                -> IO (Maybe CommitChange)
             mkCommitChange (PresentObject {mkObjectSource = mkObjectSource})
                objectVersion = mkObjectSource objectVersion
@@ -186,7 +186,7 @@ commitView1 commitInfo newVersion1
             objectsData1 = catMaybes objectsData0
 
          viewInfo0 <- readContents (viewInfoBroadcaster view)
-               
+
          let
             viewData =
                ViewData {
@@ -197,17 +197,17 @@ commitView1 commitInfo newVersion1
             phantomView = error "CodedValue for view needs View (2)!"
 
          viewCodedValue <- doEncodeIO viewData phantomView
-         viewObjectSource <- importICStringLen viewCodedValue 
+         viewObjectSource <- importICStringLen viewCodedValue
 
          let
             objectsData2 :: [(Location,CommitChange)]
-            objectsData2 = (specialLocation1,Left viewObjectSource) 
+            objectsData2 = (specialLocation1,Left viewObjectSource)
                : objectsData1
 
             user0 = user viewInfo0
             user1 = user0 {version = newVersion1}
 
-            versionInformation = 
+            versionInformation =
               case commitInfo of
                  OnlyVersionNumber -> Version1 newVersion1
                  OnlyUserInfo -> UserInfo1 user1
@@ -313,9 +313,9 @@ setUserInfo view userInfo =
             versionInfo1 = versionInfo0 {user = user1}
          in
             versionInfo1
-  
-         )        
-   
+
+         )
+
 readVersionInfo :: View -> IO VersionInfo
 readVersionInfo view = readContents (viewInfoBroadcaster view)
 
@@ -323,11 +323,11 @@ readVersionInfo view = readContents (viewInfoBroadcaster view)
 -- createViewObject
 -- ----------------------------------------------------------------------
 
--- | Function for creating an object which requires its own link. 
+-- | Function for creating an object which requires its own link.
 -- The function provided returns Nothing if there was an error and the
--- object should not, after all, be inserted. 
-createViewObject :: (HasCodedValue object) 
-   => View 
+-- object should not, after all, be inserted.
+createViewObject :: (HasCodedValue object)
+   => View
    -> Link y -- ^ parent link
    -> (Link object -> IO (Maybe object,extra))
        -- ^ construct object given link.
@@ -365,13 +365,13 @@ instance Destroyable View where
    destroy view =
       do
          allObjectTypeTypes <- getAllObjectTypeTypes
-         mapM_ 
+         mapM_
             (\ (WrappedObjectTypeTypeData objectType) ->
-               deleteViewFromGlobalRegistry 
+               deleteViewFromGlobalRegistry
                   (objectTypeGlobalRegistry objectType)
                   view
                )
-            allObjectTypeTypes 
+            allObjectTypeTypes
 
          allDisplayTypes <- getAllDisplayTypeTypes
          mapM_
@@ -381,4 +381,4 @@ instance Destroyable View where
                   view
                )
             allDisplayTypes
- 
+

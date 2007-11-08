@@ -18,7 +18,7 @@ import Computation
 import ChildProcess
 
 safeSystem :: String -> IO ExitCode
-safeSystem command = 
+safeSystem command =
    let
       -- We ignore blank output lines.
       outputSink "" = done
@@ -29,14 +29,14 @@ safeSystem command =
 -- | Run \"command\", displaying any output using the supplied
 -- outputSink function.  (This output had better not include
 -- \"EXITCODE [number]\".)
--- 
+--
 -- outputSink is fed output line by line, and without the newlines.
 safeSystemGeneral :: String -> (String -> IO ()) -> IO ExitCode
 safeSystemGeneral command outputSink =
    do
       -- Get location of runCommand
       top <- getTOP
-      let 
+      let
          fullName = (trimDir top) `combineNames`
             ("posixutil" `combineNames` "runCommand")
       childProcess <- newChildProcess fullName [
@@ -60,6 +60,6 @@ safeSystemGeneral command outputSink =
                         [(0,"")] -> return ExitSuccess
                         [(n,"")] -> return (ExitFailure n)
                         _ -> notExit nextLine
-                  _ -> notExit nextLine 
-      readOutput                     
-                  
+                  _ -> notExit nextLine
+      readOutput
+

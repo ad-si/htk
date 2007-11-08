@@ -34,10 +34,10 @@ newtype NoteBook = NoteBook GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new notebook widget and returns it as a value.
-newNoteBook :: Container par => par 
+newNoteBook :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config NoteBook] 
+   -> [Config NoteBook]
    -- ^ the list of configuration options for this notebook.
    -> IO NoteBook
    -- ^ A notebook widget.
@@ -53,7 +53,7 @@ newNoteBook par cnf =
 
 -- | Internal.
 instance GUIObject NoteBook where
-  toGUIObject (NoteBook w) = w 
+  toGUIObject (NoteBook w) = w
   cname _ = "NoteBook"
 
 -- | You can specify the size of a notebook widget.
@@ -88,13 +88,13 @@ newtype NoteBookPage = NoteBookPage GUIOBJECT deriving Eq
 
 -- | Constructs a new page inside a notebook widget and returns it as a
 -- value.
-createNoteBookPage :: NoteBook 
+createNoteBookPage :: NoteBook
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> String 
+   -> String
    -- ^ the list of configuration options for this notebook
    -- page.
-   -> [Config NoteBookPage] 
+   -> [Config NoteBookPage]
    ->
    IO NoteBookPage
    -- ^ A notebook page.
@@ -153,7 +153,7 @@ tkCreateNoteBookPage parnm (NOTEBOOKPAGE title) _ oid args =
 
 -- | Internal.
 instance GUIObject NoteBookPage where
-  toGUIObject (NoteBookPage w) = w 
+  toGUIObject (NoteBookPage w) = w
   cname _ = "NoteBookPage"
 
 -- | A notebook page can be destroyed.
@@ -182,7 +182,7 @@ instance HasBorder NoteBookPage
 instance HasTooltip NoteBookPage
 
 -- | A notebook page has a background colour.
-instance HasColour NoteBookPage where 
+instance HasColour NoteBookPage where
   legalColourID = hasBackGroundColour
 
 -- | You can synchronize on a notebook page (in JAVA style).

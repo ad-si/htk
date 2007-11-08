@@ -1,4 +1,4 @@
--- | This module is the top-level one which does merging. 
+-- | This module is the top-level one which does merging.
 module Merging(
    mergeNodes,
 
@@ -36,13 +36,13 @@ import MergeComputeParents
 
 -- | Do all the work of merging, checking out views before merging as
 -- necessary.
--- 
+--
 -- For the time being, we permit only ObjectVersion\'s to be merged.
--- The reason for this is we cannot guarantee that identical nodes have a 
--- unique distinguishing originating version (as returned by 
+-- The reason for this is we cannot guarantee that identical nodes have a
+-- unique distinguishing originating version (as returned by
 -- Link.getLastChange)
 mergeNodes :: Repository -> VersionGraphClient
-   -> [Either View ObjectVersion] 
+   -> [Either View ObjectVersion]
    -> IO (WithError View)
 mergeNodes repository versionGraph nodes =
    addFallOutWE (\ break ->
@@ -51,9 +51,9 @@ mergeNodes repository versionGraph nodes =
          -- merge.
          (viewData :: [(View,Bool)]) <- mapM
             (\ node -> case node of
-               Left view -> 
+               Left view ->
                   break "Sorry, we can only merge checked-in versions."
-  
+
                   {- return (view,False) -}
                Right version ->
                   do
@@ -64,7 +64,7 @@ mergeNodes repository versionGraph nodes =
 
          viewWE <- mergeViews (map fst viewData)
 
-         mapM_ 
+         mapM_
             (\ (view,doDestroy) -> if doDestroy then destroy view else done)
             viewData
 
@@ -85,7 +85,7 @@ mergeViews (views @ (firstView:_)) =
       let
          viewId1 = ViewId viewIdObject
 
-      (allObjectTypeTypes :: [WrappedObjectTypeTypeData]) 
+      (allObjectTypeTypes :: [WrappedObjectTypeTypeData])
          <- getAllObjectTypeTypes
 
       (allDisplayTypeTypes :: [WrappedDisplayType])
@@ -128,10 +128,10 @@ mergeViews (views @ (firstView:_)) =
 
             (allTypes :: [(WrappedObjectTypeTypeData,
                [(GlobalKey,[(View,WrappedObjectType)])])])
-               <- mapM 
+               <- mapM
                   (\ wrappedObjectTypeTypeData ->
                      do
-                        theseTypes <- mergeObjectTypeTypeData 
+                        theseTypes <- mergeObjectTypeTypeData
                            break views newView
                            wrappedObjectTypeTypeData
                         return (wrappedObjectTypeTypeData,theseTypes)
@@ -146,7 +146,7 @@ mergeViews (views @ (firstView:_)) =
 
             -- (4) Do merging
             let
-               mergeOne :: (WrappedMergeLink,[(View,WrappedMergeLink)]) 
+               mergeOne :: (WrappedMergeLink,[(View,WrappedMergeLink)])
                   -> IO PostMerge
                mergeOne (WrappedMergeLink (newLink :: Link object),
                     linkViewData0) =
@@ -154,9 +154,9 @@ mergeViews (views @ (firstView:_)) =
                      (linkViewData1 :: [(View,Link object,object)]) <-
                         mapM
                            (\ (view,wrappedLink) ->
-                              do 
+                              do
                                  let
-                                    linkOpt 
+                                    linkOpt
                                        = unpackWrappedMergeLink wrappedLink
 
                                     link = fromMaybe
@@ -168,29 +168,29 @@ mergeViews (views @ (firstView:_)) =
                                     readLink view link
                                     )
                                  return (view,link,object)
-                              )      
+                              )
                            linkViewData0
 
-                     postMergeWE <- attemptMergeWithPostMerge linkReAssigner 
+                     postMergeWE <- attemptMergeWithPostMerge linkReAssigner
                         newView newLink linkViewData1
                      coerceWithErrorOrBreakIO break postMergeWE
 
             -- (5) compute parent information for merging.
-            (parentLocations :: [(Location,Location)]) 
+            (parentLocations :: [(Location,Location)])
                <- computeParents firstView linkReAssigner
-            mapM_ 
-               (\ (object,parent) 
+            mapM_
+               (\ (object,parent)
                   -> setValue (parentChanges newView) object parent
                   )
                parentLocations
 
             -- (6) do post-merge operations
-            postMergesOrExcep <- mapMConcurrent 
-               (\ wrappedMergeLink 
+            postMergesOrExcep <- mapMConcurrent
+               (\ wrappedMergeLink
                   -> Control.Exception.try (mergeOne wrappedMergeLink))
                (fmToList (allMergesMap linkReAssigner))
 
-            mapM_ 
+            mapM_
                (\ postMergeOrExcep ->
                   do
                      postMerge <- propagate postMergeOrExcep
@@ -206,16 +206,16 @@ mergeViews (views @ (firstView:_)) =
             do
                -- Delete view from global registries.
                let
-                  deleteObjectTypeTypeData :: WrappedObjectTypeTypeData 
+                  deleteObjectTypeTypeData :: WrappedObjectTypeTypeData
                      -> IO ()
-                  deleteObjectTypeTypeData 
+                  deleteObjectTypeTypeData
                         (WrappedObjectTypeTypeData objectType) =
-                     deleteViewIdFromGlobalRegistry 
+                     deleteViewIdFromGlobalRegistry
                         (objectTypeGlobalRegistry objectType) viewId1
 
                   deleteDisplayTypeTypeData :: WrappedDisplayType -> IO ()
                   deleteDisplayTypeTypeData (WrappedDisplayType displayType) =
-                     deleteViewIdFromGlobalRegistry 
+                     deleteViewIdFromGlobalRegistry
                         (displayTypeGlobalRegistry displayType) viewId1
 
                mapM_ deleteObjectTypeTypeData allObjectTypeTypes
@@ -224,27 +224,27 @@ mergeViews (views @ (firstView:_)) =
             done
 
       return resultWE
-            
+
 
 -- | mergeObjectTypeTypeData is used to get all the WrappedObjectTypes
 -- with corresponding GlobalKey's obtained by merging the argument views
 -- into the new view.
 -- It is exported because CopyVersion.hs also finds it handy.
-mergeObjectTypeTypeData 
-   :: BreakFn -> [View] -> View -> WrappedObjectTypeTypeData 
+mergeObjectTypeTypeData
+   :: BreakFn -> [View] -> View -> WrappedObjectTypeTypeData
    -> IO [(GlobalKey,[(View,WrappedObjectType)])]
-mergeObjectTypeTypeData break views newView 
+mergeObjectTypeTypeData break views newView
     (WrappedObjectTypeTypeData objectType) =
    do
-      allRegistryTypesWE <- mergeViewsInGlobalRegistry 
+      allRegistryTypesWE <- mergeViewsInGlobalRegistry
          (objectTypeGlobalRegistry objectType) views newView
-      allRegistryTypes 
+      allRegistryTypes
          <- coerceWithErrorOrBreakIO break allRegistryTypesWE
       let
-         allRegistryTypes1 = map 
+         allRegistryTypes1 = map
             (\ (key,viewTypes) ->
                (key,map
-                  (\ (view,objectType) 
+                  (\ (view,objectType)
                      -> (view,WrappedObjectType objectType))
                   viewTypes
                   )
@@ -258,7 +258,7 @@ mergeObjectTypeTypeData break views newView
          getExtraObjectTypes :: IO [WrappedObjectType]
          getExtraObjectTypes =
             do
-               extraObjectTypes1 
+               extraObjectTypes1
                   <- getExtraObjectTypes1 objectType
                return (map WrappedObjectType extraObjectTypes1)
 
@@ -267,7 +267,7 @@ mergeObjectTypeTypeData break views newView
          extraObjectTypes2 = map
             (\ wrappedObjectType  ->
                (objectTypeId wrappedObjectType,
-                  map 
+                  map
                      (\ view -> (view,wrappedObjectType))
                      views
                   )

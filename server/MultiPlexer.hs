@@ -1,8 +1,8 @@
 -- | This module provides a general mechanism for bunching up commands to
--- a server and sending them in one go. 
+-- a server and sending them in one go.
 module MultiPlexer(
    MultiPlexer,
-   newMultiPlexer, 
+   newMultiPlexer,
       -- :: ([command] -> IO [response]) -> IO (MultiPlexer command response)
       -- The supplied action executes the given commands, and returns a
       -- list of responses to be dispatched; the list of responses should
@@ -28,7 +28,7 @@ data State command response = State {
       -- Invariant: when busy is False, the queue is empty.
    }
 
-newMultiPlexer :: ([command] -> IO [response]) 
+newMultiPlexer :: ([command] -> IO [response])
    -> IO (MultiPlexer command response)
 newMultiPlexer queryFn =
    do
@@ -46,7 +46,7 @@ sendCommand (multiPlexer :: MultiPlexer command response) command =
       responseMVar <- newEmptyMVar
 
       (alreadyBusy :: Bool) <- modifyMVar (stateMVar multiPlexer)
-         (\ state -> 
+         (\ state ->
             let
                queue1 = insertQ (queue state) (command,responseMVar)
                alreadyBusy = busy state
@@ -62,7 +62,7 @@ sendCommand (multiPlexer :: MultiPlexer command response) command =
                yield
                unBusy True multiPlexer
 
-      takeMVar responseMVar               
+      takeMVar responseMVar
 
 unBusy :: Bool -> MultiPlexer command response -> IO ()
 unBusy doFork (multiPlexer :: MultiPlexer command response) =
@@ -84,12 +84,12 @@ unBusy doFork (multiPlexer :: MultiPlexer command response) =
                   do
                      responses <- queryFn multiPlexer (map fst list)
                      zipWithM_
-                        (\ (_,responseMVar) response 
+                        (\ (_,responseMVar) response
                            -> putMVar responseMVar response)
                         list responses
                      unBusy False multiPlexer
             in
-               if doFork 
+               if doFork
                   then
                      do
                         forkIO action

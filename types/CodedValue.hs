@@ -1,7 +1,7 @@
 -- | This module provides a particular instance of the "Binary" modules
 -- for binary encoding values.  What's new here is that the encoding
 -- functions can also get hold of the 'View'.
--- 
+--
 -- We also require that instances of 'HasCodedValue' instance 'Typeable'.
 -- This makes it easier to track down the type with the problem when
 -- things go wrong.
@@ -13,14 +13,14 @@ module CodedValue(
 
    doEncodeIO, -- :: HasCodedValue a => a -> View -> IO CodedValue
    doDecodeIO, -- :: HasCodedValue a => CodedValue -> View -> IO a
-   equalByEncode, 
+   equalByEncode,
       -- :: HasCodedValue value => (View,value) -> (View,value) -> IO Bool
 
    -- Functions for constructing instances (when mapWrite/mapRead aren't
    -- enough)
-   mapWriteViewIO, 
+   mapWriteViewIO,
       -- :: HasBinary value2 CodingMonad
-      -- => (View -> value1 -> IO value2) -- this you must provide 
+      -- => (View -> value1 -> IO value2) -- this you must provide
       -- -> WriteBinary CodingMonad -> value1 -> CodingMonad ()
    mapReadViewIO,
       -- :: HasBinary value2 CodingMonad
@@ -28,9 +28,9 @@ module CodedValue(
       -- -> ReadBinary CodingMonad -> CodingMonad value1
    mapReadPairViewIO,
       -- :: HasBinary typeKey CodingMonad
-      -- => (View ­> typeKey -> IO (WrappedRead value)) 
-      -- -> ReadBinary CodingMonad -> CodingMonad value 
-      -- How to read values of wrapped type, 
+      -- => (View ­> typeKey -> IO (WrappedRead value))
+      -- -> ReadBinary CodingMonad -> CodingMonad value
+      -- How to read values of wrapped type,
       --    eg WrappedLink, WrappedDisplayType, and friends.
       -- To write values, write a pair (typeKey,value2) where value2 is
       -- the value inside the wrapped type.
@@ -62,8 +62,8 @@ import ViewType
 -- The HasCodedValue class, now a synonym for several existing classes.
 -- --------------------------------------------------------------------------
 
--- | This monad is used as the argument to the 'HasBinary' class. 
-newtype CodingMonad a = CodingMonad (ArgMonad View StateBinArea a) 
+-- | This monad is used as the argument to the 'HasBinary' class.
+newtype CodingMonad a = CodingMonad (ArgMonad View StateBinArea a)
    deriving (Monad)
    -- Thus instances of CodedValue will be able to write to a BinArea
    -- (so can be coded) and know the containing view.
@@ -111,22 +111,22 @@ doEncodeIO1 desc (a ::  a) view =
          do
             binArea1 <- mkEmptyBinArea 1024
             ((),binArea2) <-
-               runStateT 
-                  (runArgMonad view 
+               runStateT
+                  (runArgMonad view
                      (unCodingMonad
                         (writeBin wb2 a)
                         )
                      )
-                  binArea1 
+                  binArea1
             bl <- closeBinArea binArea2
             bytesToICStringLen bl
          )
 
       case encodeResult of
          Left excep ->
-            throwError ClientError 
+            throwError ClientError
                ("Error " ++ show excep ++ " encoding " ++ desc)
-         Right result -> return result 
+         Right result -> return result
    where
       wb1 :: WriteBinary (ArgMonad View StateBinArea)
       wb1 = writeBinaryToArgMonad writeBinaryBinArea
@@ -136,7 +136,7 @@ doEncodeIO1 desc (a ::  a) view =
 
 -- | Decode a value in a view.
 doDecodeIO :: HasCodedValue a => CodedValue -> View -> IO a
-doDecodeIO codedValue view = 
+doDecodeIO codedValue view =
    let
       act = doDecodeIO1 desc codedValue view
       desc = show (typeOf (undefinedIO act))
@@ -147,7 +147,7 @@ doDecodeIO codedValue view =
        undefinedIO _ = error "CodedValue.undefinedIO"
 
 
-doDecodeIO1 :: forall a . HasBinary a CodingMonad => String -> CodedValue 
+doDecodeIO1 :: forall a . HasBinary a CodingMonad => String -> CodedValue
             -> View -> IO a
 doDecodeIO1 desc icsl view =
    do
@@ -176,7 +176,7 @@ doDecodeIO1 desc icsl view =
                putStrLn ("Error " ++ show excep ++ " decoding "
                   ++ desc)
                throw excep
-         Right result -> return result 
+         Right result -> return result
    where
       rb1 :: ReadBinary (ArgMonad View StateBinArea)
       rb1 = readBinaryToArgMonad readBinaryBinArea
@@ -185,7 +185,7 @@ doDecodeIO1 desc icsl view =
       rb2 = liftReadBinary CodingMonad rb1
 
 -- | Check if two values are equal by comparing their encoding.
-equalByEncode :: HasCodedValue value => (View,value) -> (View,value) 
+equalByEncode :: HasCodedValue value => (View,value) -> (View,value)
    -> IO Bool
 equalByEncode vv1 vv2 =
    do
@@ -193,7 +193,7 @@ equalByEncode vv1 vv2 =
       return (ord == EQ)
 
 -- | Compare two values by comparing their encoding.
-compareByEncode :: HasCodedValue value => (View,value) -> (View,value) 
+compareByEncode :: HasCodedValue value => (View,value) -> (View,value)
    -> IO Ordering
 compareByEncode (view1,val1) (view2,val2) =
    do
@@ -210,26 +210,26 @@ compareByEncode (view1,val1) (view2,val2) =
 -- | Used for constructing the 'writeBin' value inside 'HasBinary',
 -- if you have a function which, given the view and the value, computes
 -- something already an instance of 'HasBinary'
--- 
+--
 -- If you don't need the view, use 'mapWrite' or 'mapWriteIO' instead.
 mapWriteViewIO :: HasBinary value2 CodingMonad
-   => (View -> value1 -> IO value2) 
+   => (View -> value1 -> IO value2)
    -> (WriteBinary CodingMonad -> value1 -> CodingMonad ())
 mapWriteViewIO viewFn wb value1 =
    do
-      view <- thisView      
+      view <- thisView
       value2 <- liftIO (viewFn view value1)
       writeBin wb value2
 
 -- | Used for constructing the 'readBin' value inside 'HasBinary',
 -- if you have a function which, given the view and something already
 -- an instance of 'HasBinary', computes it.
--- 
+--
 -- If you don't need the view, use 'mapRead' or 'mapReadIO' instead.
 mapReadViewIO :: HasBinary value2 CodingMonad
    => (View -> value2 -> IO value1)
-   -> (ReadBinary CodingMonad -> CodingMonad value1) 
-mapReadViewIO viewFn rb = 
+   -> (ReadBinary CodingMonad -> CodingMonad value1)
+mapReadViewIO viewFn rb =
    do
       value2 <- readBin rb
       view <- thisView
@@ -241,11 +241,11 @@ mapReadViewIO viewFn rb =
 -- with the typeKey first.
 -- --------------------------------------------------------------------------
 
-data WrappedRead value = 
-   forall value2 . 
+data WrappedRead value =
+   forall value2 .
       HasBinary value2 CodingMonad => WrappedRead value2 (value2 -> value)
       -- value2 is the type to be put inside a wrapped type.
-      -- 
+      --
       -- The first argument to WrappedRead only gives the type, and is
       --    not evaluated.
       -- The second argument will be the constructor giving the value to
@@ -265,5 +265,5 @@ mapReadPairViewIO lookupFn rb =
                val <- readBin rb
                return (fn val)
       doWrappedRead wrappedRead
-   
+
 

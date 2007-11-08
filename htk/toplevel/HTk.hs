@@ -137,7 +137,7 @@ module HTk (
   -- withDraw as a configuration
 
   resourceFile, -- :: String-> Config HTk
-  -- loads resource file 
+  -- loads resource file
 
   finishHTk, -- :: IO ()
   -- waits for all wish to finish and then terminates
@@ -149,7 +149,7 @@ module HTk (
   AbstractWidget(..),    -- TD: needed ?
 
   updateAllTasks,
-  updateIdleTasks, 
+  updateIdleTasks,
 
   Destructible(..),
   Destroyable(..),
@@ -250,7 +250,7 @@ instance GUIObject HTk where
   cname _ = "HTk"
 
 -- | Internal.
-instance Eq HTk where 
+instance Eq HTk where
   (HTk obj1) == (HTk obj2) = obj1 == obj2
 
 -- | The wish instance can be destroyed.
@@ -285,10 +285,10 @@ instance Synchronized HTk where
 -- used, you should use it before any other HTk action.
 theHTkMVar :: MVar (Maybe HTk)
 theHTkMVar = unsafePerformIO (newMVar Nothing)
-{-# NOINLINE theHTkMVar #-} 
+{-# NOINLINE theHTkMVar #-}
 
 -- | Initializes HTk.
-initHTk :: [Config HTk] 
+initHTk :: [Config HTk]
    -- ^ the list of configuration options for the wish
    -- instance \/ main window.
    -> IO HTk
@@ -342,18 +342,18 @@ withdrawMainWin htk =
     return htk
 
 --- @doc readResourceFile
--- Load a resource file 
+-- Load a resource file
 -- A resource files specifies the default options for fonts, colours, &c.
 resourceFile :: String-> Config HTk
 resourceFile file htk =
   do execCmd ("option readfile "++ file++ " startup")
-		    -- "startup" is the priority; we could make this user-
-		    -- configurable if wished?
+                    -- "startup" is the priority; we could make this user-
+                    -- configurable if wished?
      return htk
 
 --- @doc finishHTk
--- waits for HTk to finish, and calls cleanupWish to clean up. 
--- This rebinds the Destroy event of the main window, so 
+-- waits for HTk to finish, and calls cleanupWish to clean up.
+-- This rebinds the Destroy event of the main window, so
 -- do not call this function if you have bound anything to that.
 -- In that case, call cleanupWish after you have finished with wish.
 finishHTk :: IO ()

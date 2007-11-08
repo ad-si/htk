@@ -1,6 +1,6 @@
 -- |
 -- Description: Low-level Repository Functions
--- 
+--
 -- This is the user-interface to the SimpleDB.
 module SimpleDB(
    Repository,
@@ -10,14 +10,14 @@ module SimpleDB(
    initialise, -- :: (?server :: HostPort) => IO Repository
    initialiseInternal, -- :: VersionState -> IO Repository
 
-   ObjectVersion, 
+   ObjectVersion,
    -- type of versions of objects in the repository
    -- instance of Show/StringClass
 
    module ObjectSource,
 
    Location,
-   -- represents Location of object in the repository.  Instance of 
+   -- represents Location of object in the repository.  Instance of
    -- Read/Show/Eq.
    specialLocation1, -- :: Location
    specialLocation2, -- :: Location
@@ -34,7 +34,7 @@ module SimpleDB(
    newVersion, -- :: Repository -> IO ObjectVersion
    -- allocate a new unique version in the repository.
 
-   lastChange, 
+   lastChange,
       -- :: Repository -> Location -> ObjectVersion -> IO ObjectVersion
       -- return the ObjectVersion in which this object was last updated.
    retrieveFile, -- :: Repository -> Location -> ObjectVersion -> FilePath ->
@@ -43,7 +43,7 @@ module SimpleDB(
    -- by copying it to file at FilePath.
    retrieveString, -- :: Repository -> Location -> ObjectVersion -> IO String
    -- retrieveFile retrieves the given version of the object as a String
-   retrieveObjectSource, 
+   retrieveObjectSource,
       -- :: Repository -> Location -> ObjectVersion -> IO ObjectSource
       -- retrieves the given version as an ObjectSource.
 
@@ -51,7 +51,7 @@ module SimpleDB(
    -- listVersion lists all versions in the repository.
 
    commit,
-      --  :: Repository 
+      --  :: Repository
       --  -> VersionInformation
       --  -> [(Location,Either ObjectVersion (Maybe Location))]
       --  -> [(Location,CommitChange)] -> IO ()
@@ -65,12 +65,12 @@ module SimpleDB(
       --    redirects.  I can't be bothered to explain them now, see
       --    definition of SimpleDBServer.Commit.  For normal (non-session
       --    management) commits, this list will be empty.
-      -- [(Location,Either ObjectSource (Location,ObjectVersion))] 
+      -- [(Location,Either ObjectSource (Location,ObjectVersion))]
       --    is the list of updates.  Later updates take priority over
-      --    earlier ones. 
+      --    earlier ones.
       --    An update is either Left ObjectSource, for completely new text,
       --    or Right (loc,version), indicating the same text of an existing
-      --    version.  
+      --    version.
       --       NB.  The locations list ONLY has to contain what's different
       --       from the parent version, if any.  The Right .. option is
       --       normally only used during merging.
@@ -86,7 +86,7 @@ module SimpleDB(
       -- :: Repository -> VersionInfo -> IO ()
 
    getDiffs,
-      -- :: Repository -> ObjectVersion -> [ObjectVersion] 
+      -- :: Repository -> ObjectVersion -> [ObjectVersion]
       -- -> IO ([(Location,Diff)],[(Location,Location)])
       -- Compare the given object version with the (presumably parent)
       -- object versions.
@@ -105,7 +105,7 @@ module SimpleDB(
    getParentLocation,
       -- :: Repository -> (ObjectVersion,Location) -> IO (Maybe Location)
       -- Get the object's parent location.
-   setAdminStatus, 
+   setAdminStatus,
       -- :: Repository -> Bool -> IO ()
 
    Diff(..),
@@ -117,7 +117,7 @@ module SimpleDB(
    SimpleDBCommand(..),SimpleDBResponse(..),
 
    module ServerErrors,
- 
+
    catchNotFound,
       -- :: IO a -> IO (Maybe a)
       -- Detect a NotFound error and replacing it by 'Nothing'.
@@ -185,7 +185,7 @@ initialise =
          queryRepository1 =
            if isDebug
               then
-                 (\ simpleDBCommand -> 
+                 (\ simpleDBCommand ->
                     do
                        debug simpleDBCommand
                        response <- queryRepository0 simpleDBCommand
@@ -201,9 +201,9 @@ initialise =
             do
                response <- queryRepository1 command
                return [response]
-         queryRepository2 commands =         
+         queryRepository2 commands =
             do
-               (MultiResponse responses) <- queryRepository1 
+               (MultiResponse responses) <- queryRepository1
                   (MultiCommand commands)
                return responses
 
@@ -218,7 +218,7 @@ initialiseInternal versionState =
 
       bSem <- newBSem
 
-   
+
 
       adminMVar <- newMVar False
 
@@ -229,12 +229,12 @@ initialiseInternal versionState =
       user <- createUser userId1
 
       let
-         queryRepository command = 
+         queryRepository command =
             synchronize bSem (querySimpleDB user simpleDB command)
 
       initialise1 queryRepository done
 
-initialise1 :: (SimpleDBCommand -> IO SimpleDBResponse) -> IO () 
+initialise1 :: (SimpleDBCommand -> IO SimpleDBResponse) -> IO ()
    -> IO Repository
 initialise1 queryRepository1 closeDown =
    do
@@ -280,17 +280,17 @@ newVersion repository =
 lastChange :: Repository -> ObjectVersion -> Location -> IO ObjectVersion
 lastChange repository objectVersion location =
    do
-      response 
+      response
          <- queryRepository repository (LastChange objectVersion location)
       return (toObjectVersion response)
 
 listVersions :: Repository -> IO [ObjectVersion]
 listVersions repository =
    do
-      response <- queryRepository repository ListVersions 
+      response <- queryRepository repository ListVersions
       return (toObjectVersions response)
 
-retrieveObjectSource :: Repository -> ObjectVersion -> Location 
+retrieveObjectSource :: Repository -> ObjectVersion -> Location
    -> IO ObjectSource
 retrieveObjectSource repository objectVersion location =
    do
@@ -315,15 +315,15 @@ retrieveFile repository objectVersion location filePath =
 
 type CommitChange = Either ObjectSource (ObjectVersion,Location)
 
-commit :: Repository 
+commit :: Repository
    -> VersionInformation
    -> [(Location,Maybe ObjectVersion)]
-   -> [(Location,CommitChange)] 
+   -> [(Location,CommitChange)]
    -> [(Location,Location)]
    -> IO ()
 commit repository versionInformation redirects newStuff0 parentChanges =
    do
-      (newStuff1 
+      (newStuff1
             :: [(Location,Either ICStringLen (ObjectVersion,Location))]) <-
          mapM
             (\ (location,newItem) ->
@@ -341,7 +341,7 @@ commit repository versionInformation redirects newStuff0 parentChanges =
 
       case response of
          IsOK -> done
-         IsObjectVersion objectVersion -> 
+         IsObjectVersion objectVersion ->
             throwError MiscError ("ObjectVersion " ++ show objectVersion
                ++ " cannot be committed as it already exists")
          _ -> unpackError "commit" response
@@ -351,28 +351,28 @@ commit repository versionInformation redirects newStuff0 parentChanges =
 modifyUserInfo :: Repository -> UserInfo -> IO ()
 modifyUserInfo repository userInfo =
    do
-      response 
+      response
          <- queryRepository repository (ModifyUserInfo (UserInfo1 userInfo))
       case response of
          IsOK -> done
-         IsObjectVersion objectVersion -> 
+         IsObjectVersion objectVersion ->
             error ("modifyUserInfo: " ++ toString objectVersion)
          _ -> unpackError "modifyUserInfo" response
 
 modifyVersionInfo :: Repository -> VersionInfo -> IO ()
 modifyVersionInfo repository versionInfo =
    do
-      response 
-         <- queryRepository repository 
+      response
+         <- queryRepository repository
             (ModifyUserInfo (VersionInfo1 versionInfo))
       case response of
          IsOK -> done
-         IsObjectVersion objectVersion -> 
+         IsObjectVersion objectVersion ->
             throwError MiscError ("ObjectVersion " ++ show objectVersion
                ++ " cannot be modified as it already exists")
          _ -> unpackError "modifyVersionInfo" response
 
-getDiffs :: Repository -> ObjectVersion -> [ObjectVersion] 
+getDiffs :: Repository -> ObjectVersion -> [ObjectVersion]
    -> IO ([(Location,Diff)],[(Location,Location)])
 getDiffs repository version versions =
    do
@@ -387,7 +387,7 @@ getDiffs repository version versions =
 
 -- | Retrieve the permissions for the object with given object version
 -- and location.
-getPermissions 
+getPermissions
    :: Repository -> Maybe (ObjectVersion,Location) -> IO Permissions
 getPermissions repository ovOpt =
    do
@@ -398,7 +398,7 @@ getPermissions repository ovOpt =
 
 -- | Set the permissions for the object with given object version and
 -- location.
-setPermissions 
+setPermissions
    :: Repository -> Maybe (ObjectVersion,Location) -> Permissions -> IO ()
 setPermissions repository ovOpt permissions =
    do
@@ -409,11 +409,11 @@ setPermissions repository ovOpt permissions =
 
 -- | Get the parent location of the object with given object version and
 -- location.
-getParentLocation 
+getParentLocation
    :: Repository -> ObjectVersion -> Location -> IO (Maybe Location)
 getParentLocation repository version location =
    do
-      response <- queryRepository repository 
+      response <- queryRepository repository
          (GetParentLocation (version,location))
       case response of
          IsLocation location -> return (Just location)
@@ -450,7 +450,7 @@ toData (IsData icsl) = icsl
 toData r = unpackError "object" r
 
 unpackError :: String -> SimpleDBResponse -> a
-unpackError s r = 
+unpackError s r =
    let
       (errorType,mess) = case r of
          IsError errorType mess -> (errorType,mess)
@@ -466,7 +466,7 @@ unpackError s r =
 catchNotFound :: IO a -> IO (Maybe a)
 catchNotFound act =
    do
-      aOpt <- catchError 
+      aOpt <- catchError
          (do
             a <- act
             return (Just a)
@@ -516,5 +516,5 @@ displayErrors act =
             )
       case messOpt of
          Nothing -> done
-         Just mess -> errorMess mess 
-               
+         Just mess -> errorMess mess
+

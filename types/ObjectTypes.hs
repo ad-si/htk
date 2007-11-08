@@ -1,8 +1,8 @@
 -- |
 -- Description: General class repository objects need to instance.
--- 
+--
 -- Here we define ObjectType's and their factories
--- 
+--
 -- For each object we have two Haskell values with
 --    associated types.  These two types are declared to be
 --    functionally dependent (in the ObjectType class) so that
@@ -12,23 +12,23 @@
 --    are defined by the object's objectType.
 -- Both objectTypes and objects are instances of HasCodedValue.
 -- This is how they can be read in and out.
--- 
+--
 -- We do not fix the available objectTypes in this part of the
 -- repository.  Instead, we provide a register function, which
 -- is passed a type parameter.
---    
+--
 -- Both objectTypes and objects must be instances of HasCodedValue.
 module ObjectTypes(
-   ObjectType(..), 
+   ObjectType(..),
       -- the class giving ALL the methods (thank heaven for functional
       -- dependencies).
 
    WrappedObject(..), -- monomorphic object type
    WrappedObjectType(..), -- monomorphic objectType type
-   WrappedObjectTypeTypeData(..), 
+   WrappedObjectTypeTypeData(..),
       -- monomorphic objectType type representing a particular class (or
       -- Haskell type) of object types.
-   
+
 
    NodeDisplayData(..), -- how to display a particular node type with
       -- a particular display type.
@@ -38,8 +38,8 @@ module ObjectTypes(
    emptyArcEnds,
       -- :: ArcEnds
       -- For the simple case of no arcs.
-   emptySpecialNodeActions, 
-      -- :: HasCodedValue object => object 
+   emptySpecialNodeActions,
+      -- :: HasCodedValue object => object
       -- -> SimpleSource (graph -> node (Link object) -> IO ())
       -- For the simple case of no actions.
 
@@ -47,10 +47,10 @@ module ObjectTypes(
       -- implementation for particular arcs and arc types in a display.
       -- They correspond to Strings and are instances of StringClass; this is
       -- how you create and read them.
-   NodeType, 
+   NodeType,
 
 
-   registerObjectType, -- :: ObjectType objectType object 
+   registerObjectType, -- :: ObjectType objectType object
       -- => objectType -> IO ()
    -- Register a new Haskell type objectType.  NB - this must not be
    -- done for each new objectType, just for each Haskell type for an
@@ -65,9 +65,9 @@ module ObjectTypes(
    -- Unpacking wrapped types.
    unpackWrappedLink,  -- :: ObjectType objectType object =>
      -- WrappedLink -> Maybe (Link object)
-   unpackWrappedLinkWE, 
+   unpackWrappedLinkWE,
       -- :: ObjectType objectType object =>
-      -- WrappedLink -> WithError (Link object) 
+      -- WrappedLink -> WithError (Link object)
    toWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink
    fromWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink -> WrappedLink
    wrappedLinkTypeName, -- :: WrappedLink -> String
@@ -76,7 +76,7 @@ module ObjectTypes(
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
    wrapReadLink, -- :: View -> WrappedLink -> IO WrappedObject
-   wrapCreateLink, 
+   wrapCreateLink,
       -- :: HasCodedValue x => View -> WrappedLink -> x -> IO (Link x)
    wrapNewEmptyLink,
       -- :: HasCodedValue x => View -> WrappedLink -> IO (Link x)
@@ -84,7 +84,7 @@ module ObjectTypes(
       -- :: View -> WrappedLink -> WrappedLink -> IO ()
 
    wrapPreFetchLinks, -- :: View -> [WrappedLink] -> IO ()
-   
+
    wrapToLinkedObjectOpt, -- :: WrappedObject -> Maybe LinkedObject
 
    -- Extract the object type of an object, wrapped.
@@ -112,16 +112,16 @@ module ObjectTypes(
    -- Get the object type's entry in the object creation menu.
    -- We return True if the object was created.  The object should be inserted
    -- in the folder.
-   createObjectMenuItem, -- :: WrappedObjectType 
+   createObjectMenuItem, -- :: WrappedObjectType
    -- -> Maybe (String,View -> LinkedObject -> IO Bool
 
    -- How to save references to object types
    ShortObjectType(..),
 
-   getObjectTypeByKey, 
+   getObjectTypeByKey,
       -- :: ObjectType objectType object => View -> GlobalKey -> IO objectType
    getObjectTypeByKeyOpt,
-      -- :: ObjectType objectType object => View -> GlobalKey 
+      -- :: ObjectType objectType object => View -> GlobalKey
       -- -> IO (Maybe objectType)
       -- How to look up an object by its global key.
 
@@ -129,15 +129,15 @@ module ObjectTypes(
    -- types.
    importObjectTypes, -- :: CodedValue -> View -> IO ()
    exportObjectTypes, -- :: View -> IO CodedValue
-   
+
 
    -- getAllObjectTypes returns every object type known to the view.
    getAllObjectTypes, -- :: View -> IO [WrappedObjectType]
 
    -- Like getAllObjectTypes, but additionally attaches a sink to
    -- monitor new object types.
-   getAllObjectTypesSinked, 
-      -- :: View -> Sink WrappedObjectType -> IO [WrappedObjectType] 
+   getAllObjectTypesSinked,
+      -- :: View -> Sink WrappedObjectType -> IO [WrappedObjectType]
 
    -- getAllObjectTypeTypes returns every registered sort of object type..
    getAllObjectTypeTypes, -- :: IO [WrappedObjectTypeTypeData]
@@ -186,15 +186,15 @@ import MergeTypes
 -- The ObjectType class
 -- ----------------------------------------------------------------
 
-class (HasCodedValue objectType,HasCodedValue object,HasMerging object) 
+class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
    => ObjectType objectType object
       | objectType -> object, object -> objectType where
    objectTypeTypeIdPrim :: objectType -> String
       -- ^ This function should not look at its argument but return a
       -- unique identifier for this objectType, which is totally unique
-      -- across everything.  
+      -- across everything.
       -- To preserve uniqueness, the string should begin with the
-      -- module name where the instance is defined.  If there is further 
+      -- module name where the instance is defined.  If there is further
       -- information, the module name should be followed by a period.  So
       -- for a module named \"A\", \"A\" and \"A.B\" are legal values for this
       -- string, but not \"AB\" or \"C\".
@@ -221,16 +221,16 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
       -- This is what the outside actually calls, but the implementation may
       -- instead choose to provide 'createObjectTypeMenuItemNoInsert'.
 
-   createObjectTypeMenuItemNoInsert :: 
+   createObjectTypeMenuItemNoInsert ::
         Maybe (String,View -> IO (Maybe objectType))
       -- ^ This is a menu item (label + creation function) which creates a new
       -- object type but does NOT insert it in the global registry.
-      --      
+      --
 
-   createObjectMenuItemPrim :: objectType 
+   createObjectMenuItemPrim :: objectType
       -> Maybe (String,View -> LinkedObject -> IO Bool)
       -- ^ This is a menu item (label + creation function) which creates
-      -- a link to an object of this type in the supplied linked object, and 
+      -- a link to an object of this type in the supplied linked object, and
       -- inserts it in the folder, returning True if successful.
 
    toLinkedObjectOpt :: object -> Maybe LinkManager.LinkedObject
@@ -256,24 +256,24 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
    nodeTitleSourcePrim object = staticSimpleSource (nodeTitlePrim object)
 
    nodeTitlePrim object =
-      seq (nodeTitleSourcePrim object) 
+      seq (nodeTitleSourcePrim object)
          (error "Only nodeTitleSourcePrim should call nodeTitlePrim!")
       -- pointless definition except that it avoids warning messages
       -- about not defining nodeTitlePrim, when nodeTitleSourcePrim is
       -- defined.
 
-   getNodeDisplayData :: 
-      (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+   getNodeDisplayData ::
+      (GraphAllConfig graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-      => View -> WrappedDisplayType -> objectType 
+      => View -> WrappedDisplayType -> objectType
       -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-      -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms 
+      -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms
             objectType object))
       -- ^ Get everything we need to display objects of this type.
       -- This will be called for each existing object type
       -- when we start a new display.
- 
+
       -- Nothing means that this object is not displayed at all in the
       -- display.  The implementation is also responsible for making sure
       -- it never occurs on the RHS of a 'getNodeLinks'.
@@ -284,21 +284,21 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
 
       -- The 'IO' 'DisplayedView action' returns the DisplayedView in which
       -- this node is being displayed.  However it should not be executed
-      -- to produce the 'NodeDisplayData' or we will get deadlock; 
+      -- to produce the 'NodeDisplayData' or we will get deadlock;
       -- it should only
       -- be executed as part of the actions attached to nodes and edges, when
       -- it will return quickly (provided the displayed view has actually been
       -- set up.
 
    getNodeDisplayData1 ::
-      (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+      (GraphAllConfig graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
       => Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms
-      -> View -> WrappedDisplayType -> objectType 
+      -> View -> WrappedDisplayType -> objectType
       -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-      -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms 
+      -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms
             objectType object))
       -- ^ Slightly generalised version of getNodeDisplayData which also
       -- takes the enclosing graph (to be used as a display sort for
@@ -320,7 +320,7 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
                         Nothing -> done
                         Just (objectType :: objectType) ->
                            do
-                              let 
+                              let
                                  registry = objectTypeGlobalRegistry objectType
                                  key = objectTypeIdPrim objectType
                               addToGlobalRegistry registry view key objectType
@@ -334,7 +334,7 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
 
    createObjectMenuItemPrim objectType = Nothing
 
-   fixedLinksPrim _ _ = return [] 
+   fixedLinksPrim _ _ = return []
 
 toObjectValue :: ObjectType objectType object => objectType -> object
 toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"
@@ -343,17 +343,17 @@ toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"
 -- Basic Types
 -- ----------------------------------------------------------------
 
-data WrappedObject = forall objectType object . 
+data WrappedObject = forall objectType object .
    ObjectType objectType object => WrappedObject object deriving (Typeable)
 
 data WrappedObjectType = forall objectType object .
    ObjectType objectType object => WrappedObjectType objectType
 
-data WrappedVersioned = forall objectType object . 
+data WrappedVersioned = forall objectType object .
    ObjectType objectType object => WrappedVersioned (Versioned object)
 
 data WrappedLink = forall objectType object .
-   ObjectType objectType object => WrappedLink (Link object) 
+   ObjectType objectType object => WrappedLink (Link object)
       deriving (Typeable)
 
 instance Eq WrappedLink where
@@ -369,15 +369,15 @@ instance Ord WrappedLink where
 -- | Returns Nothing if the types don\'t match.
 unpackWrappedLink :: ObjectType objectType object =>
    WrappedLink -> Maybe (Link object)
-unpackWrappedLink (WrappedLink link) = fromDynamic (toDyn link) 
+unpackWrappedLink (WrappedLink link) = fromDynamic (toDyn link)
 
 unpackWrappedLinkWE :: forall objectType object .
-   ObjectType objectType object => WrappedLink -> WithError (Link object) 
+   ObjectType objectType object => WrappedLink -> WithError (Link object)
 unpackWrappedLinkWE (WrappedLink link) =
    case fromDynamic (toDyn link) of
       Just link2 -> hasValue link2
       (Nothing :: Maybe (Link object)) ->
-         hasError ("Type failure: looking for a " 
+         hasError ("Type failure: looking for a "
             ++ showLink (undefined :: Link object)
             ++ " but found a " ++ showLink link
             )
@@ -385,11 +385,11 @@ unpackWrappedLinkWE (WrappedLink link) =
       showLink :: forall objectType object .
           ObjectType objectType object => Link object -> String
       showLink link = objectTypeTypeIdPrim (typeHack link)
- 
+
       typeHack :: forall objectType object .
           ObjectType objectType object => Link object -> objectType
       typeHack = undefined
-   
+
 
 toWrappedMergeLink :: WrappedLink -> WrappedMergeLink
 toWrappedMergeLink (WrappedLink link) = WrappedMergeLink link
@@ -420,7 +420,7 @@ objectTypeTypeId (WrappedObjectType objectType) =
    objectTypeTypeIdPrim objectType
 
 linkObjectTypeTypeId :: WrappedLink -> String
-linkObjectTypeTypeId (WrappedLink link) 
+linkObjectTypeTypeId (WrappedLink link)
       = objectTypeTypeIdPrim (toObjectType link)
    where
       toObjectType :: ObjectType objectType object => Link object -> objectType
@@ -431,7 +431,7 @@ objectTypeId :: WrappedObjectType -> GlobalKey
 objectTypeId (WrappedObjectType objectType) = objectTypeIdPrim objectType
 
 getObjectType :: WrappedObject -> WrappedObjectType
-getObjectType (WrappedObject object) = 
+getObjectType (WrappedObject object) =
    WrappedObjectType (getObjectTypePrim object)
 
 nodeTitleSource :: WrappedObject -> SimpleSource String
@@ -450,9 +450,9 @@ fixedLinks view (WrappedObjectType objectType) =
       links <- fixedLinksPrim view objectType
       return (map WrappedMergeLink links)
 
-createObjectMenuItem :: WrappedObjectType 
+createObjectMenuItem :: WrappedObjectType
    -> Maybe (String,View -> LinkedObject -> IO Bool)
-createObjectMenuItem (WrappedObjectType objectType) 
+createObjectMenuItem (WrappedObjectType objectType)
    = createObjectMenuItemPrim objectType
 
 -- ----------------------------------------------------------------
@@ -475,7 +475,7 @@ data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
       arcTypes :: [(ArcType,arcTypeParms ())],
          -- ^ the 'ArcType's used by this particular object type
          -- and the associated parameters.
-       
+
       nodeTypes :: [(NodeType,nodeTypeParms (Link object))],
          -- ^ the 'NodeType's used by this particular object type
          -- and the associated parameters.
@@ -486,7 +486,7 @@ data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
       getNodeLinks :: Link object -> IO ArcEnds,
          -- ^ the arcs out of this node.
 
-      specialNodeActions :: object -> 
+      specialNodeActions :: object ->
          SimpleSource (graph -> node (Link object) -> IO ())
          -- ^ allow the object to make dynamic
          -- modifications to graph nodes representing it.
@@ -495,7 +495,7 @@ data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
          -- NB.  This is not really a frightfully good way of getting the
          -- objects to make dynamic changes to the way they are represented,
          -- since you have to keep track of the last change if objects are
-         -- deleted and then redisplayed.  A better way is to attach a 
+         -- deleted and then redisplayed.  A better way is to attach a
          -- 'FontStyleSource' (or appropriate source for whatever the changing
          -- appearance is) to the node.
       }
@@ -507,8 +507,8 @@ type ArcEnds = VariableList.VariableList (
 emptyArcEnds :: ArcEnds
 emptyArcEnds = VariableList.emptyVariableList
 
--- | Used for empty 'specialNodeActions' 
-emptySpecialNodeActions :: HasCodedValue object => object 
+-- | Used for empty 'specialNodeActions'
+emptySpecialNodeActions :: HasCodedValue object => object
    -> SimpleSource (graph -> node (Link object) -> IO ())
 emptySpecialNodeActions _ = SimpleSource (staticSource (\ graph node -> done))
 
@@ -562,7 +562,7 @@ wrapReadLink :: View -> WrappedLink -> IO WrappedObject
 wrapReadLink view wrappedLink =
    do
       versioned <- wrapFetchLink view wrappedLink
-      wrapReadObject view versioned 
+      wrapReadObject view versioned
 
 -- | Create a child for a 'WrappedLink', like 'createLink'.
 wrapCreateLink :: HasCodedValue x => View -> WrappedLink -> x -> IO (Link x)
@@ -591,7 +591,7 @@ wrapPreFetchLinks view wrappedLinks =
                done
              )
              (\ _ _ -> ())
-         ) 
+         )
       wrappedLinks
 
 -- | Get the LinkedObject for an object, if there is one.
@@ -602,7 +602,7 @@ wrapToLinkedObjectOpt (WrappedObject object) = toLinkedObjectOpt object
 -- Accessing the GlobalRegistry's
 -- ----------------------------------------------------------------
 
-newtype ShortObjectType objectType = ShortObjectType objectType 
+newtype ShortObjectType objectType = ShortObjectType objectType
    deriving (Typeable)
 
 instance ObjectType objectType object
@@ -617,7 +617,7 @@ instance ObjectType objectType object
       )
 
 -- | Retrieve an 'ObjectType' by its key.
-getObjectTypeByKey 
+getObjectTypeByKey
    :: ObjectType objectType object => View -> GlobalKey -> IO objectType
 getObjectTypeByKey view key =
    do
@@ -633,12 +633,12 @@ getObjectTypeByKey view key =
 
 -- | Retrieve an 'ObjectType' by its key.
 getObjectTypeByKeyOpt
-   :: ObjectType objectType object => View -> GlobalKey 
+   :: ObjectType objectType object => View -> GlobalKey
    -> IO (Maybe objectType)
 getObjectTypeByKeyOpt view key =
    do
-      let 
-         globalRegistry = objectTypeGlobalRegistry 
+      let
+         globalRegistry = objectTypeGlobalRegistry
             (error "Don't look at me" :: objectType)
       objectTypeOpt  <- lookupInGlobalRegistryOpt globalRegistry view key
       case objectTypeOpt of
@@ -648,7 +648,7 @@ getObjectTypeByKeyOpt view key =
                objectTypes <- extraObjectTypes
                let
                   objectTypeOpt = findJust
-                     (\ objectType0 -> 
+                     (\ objectType0 ->
                         if objectTypeIdPrim objectType0 == key
                            then
                               Just objectType0
@@ -658,12 +658,12 @@ getObjectTypeByKeyOpt view key =
                      objectTypes
 
                return objectTypeOpt
-    
+
 -- -----------------------------------------------------------------
 -- Initialising and writing the Global Registries
 -- -----------------------------------------------------------------
 
--- | The String is the key into the objectTypeTypeDataRegistry; 
+-- | The String is the key into the objectTypeTypeDataRegistry;
 type ObjectTypeData = [(String,CodedValue)]
 
 -- | Decode all the object type data for this value and put it in the
@@ -686,12 +686,12 @@ importObjectTypes codedValue view =
 -- | This decodes all the object types associated with a particular
 -- Haskell type objectType, which is not looked at.  The codedValue represents
 -- a list of type [objectType].
-importOneObjectType :: ObjectType objectType object 
+importOneObjectType :: ObjectType objectType object
    => objectType -> CodedValue -> View -> IO ()
 importOneObjectType objectType codedValue view =
    do
       let globalRegistry = objectTypeGlobalRegistry objectType
-      addViewToGlobalRegistry globalRegistry view codedValue 
+      addViewToGlobalRegistry globalRegistry view codedValue
 
 -- | Inverse to importObjectTypes, producing a CodedValue for all types
 -- present in this view.
@@ -703,7 +703,7 @@ exportObjectTypes view =
       allObjectTypes <- listRegistryContents objectTypeTypeDataRegistry
       let
          processObjectTypes [] acc = return acc
-         processObjectTypes 
+         processObjectTypes
             ((key,WrappedObjectTypeTypeData objectType):rest) acc =
             do
                codedValueOpt <- exportOneObjectType objectType view
@@ -712,7 +712,7 @@ exportObjectTypes view =
                   Nothing -> acc
                   Just codedValue -> (key,codedValue) : acc
                   )
-      (objectTypeData :: ObjectTypeData) 
+      (objectTypeData :: ObjectTypeData)
          <- processObjectTypes allObjectTypes []
       doEncodeIO objectTypeData view
 
@@ -730,7 +730,7 @@ exportOneObjectType objectType view =
 
 -- | Extract all object type-types.
 getAllObjectTypeTypes :: IO [WrappedObjectTypeTypeData]
-getAllObjectTypeTypes = 
+getAllObjectTypeTypes =
    do
       contents <- listRegistryContents objectTypeTypeDataRegistry
       return (map snd contents)
@@ -746,7 +746,7 @@ getWrappedLinkFromLocation view location =
       objectDataOpt <- getValueOpt (objects view) location
       let
          versionedOpt :: Maybe Dyn
-         versionedOpt = 
+         versionedOpt =
             do
                objectData <- objectDataOpt
                case objectData of
@@ -759,16 +759,16 @@ getWrappedLinkFromLocation view location =
          Just versioned ->
             do
                let
-                  tryType :: ObjectType objectType object 
+                  tryType :: ObjectType objectType object
                      => objectType -> Maybe (Versioned object)
                   tryType _ = Data.Dynamic.fromDynamic versioned
 
                   tryLink :: WrappedObjectTypeTypeData -> Maybe WrappedLink
-                  tryLink (WrappedObjectTypeTypeData objectType) = 
+                  tryLink (WrappedObjectTypeTypeData objectType) =
                      do
                         versioned <- tryType objectType
                         return (WrappedLink (makeLink versioned))
-                        
+
                objectTypeTypeDatas <- getAllObjectTypeTypes
 
                return (findJust tryLink objectTypeTypeDatas)
@@ -797,19 +797,19 @@ getAllObjectTypes view =
 -- Extract all ObjectTypes in a view and also get any updates
 -- -----------------------------------------------------------------
 
-getAllObjectTypesSinked :: View -> Sink WrappedObjectType 
-   -> IO [WrappedObjectType] 
+getAllObjectTypesSinked :: View -> Sink WrappedObjectType
+   -> IO [WrappedObjectType]
 getAllObjectTypesSinked view sink =
    do
       allObjectTypeTypes <- getAllObjectTypeTypes
       allWrappedObjectTypes <- mapM
          (\ (WrappedObjectTypeTypeData objectType) ->
             do
-               let 
+               let
                   globalRegistry = objectTypeGlobalRegistry objectType
                   sink' = coMapSink WrappedObjectType sink
                objectTypes1 <- getAllElementsSinked globalRegistry view sink'
-               objectTypes2 <- extraObjectTypes 
+               objectTypes2 <- extraObjectTypes
                return (map WrappedObjectType (objectTypes1 ++ objectTypes2))
             )
          allObjectTypeTypes
@@ -818,12 +818,12 @@ getAllObjectTypesSinked view sink =
 
 -- -----------------------------------------------------------------
 -- We make WrappedObjectType an instance of HasCodedValue.
--- The representation is as 
+-- The representation is as
 -- (displayTypeTypeIdPrim,ShortObjectType displayType)
 -- -----------------------------------------------------------------
 
 instance HasBinary WrappedObjectType CodingMonad where
-   writeBin = mapWrite 
+   writeBin = mapWrite
       (\ (WrappedObjectType objectType) ->
          (objectTypeTypeIdPrim objectType,
             WrapBinary (ShortObjectType objectType)
@@ -831,14 +831,14 @@ instance HasBinary WrappedObjectType CodingMonad where
                )
          )
    readBin =
-      mapReadPairViewIO 
+      mapReadPairViewIO
          (\ view (typeKey :: String) ->
             do
                Just (WrappedObjectTypeTypeData objectType') <-
                   getValueOpt objectTypeTypeDataRegistry typeKey
                return (WrappedRead
                   (ShortObjectType objectType')
-                  (\ (ShortObjectType objectType) 
+                  (\ (ShortObjectType objectType)
                      -> WrappedObjectType objectType)
                   )
             )
@@ -879,7 +879,7 @@ instance HasBinary WrappedLink CodingMonad where
          )
 
 -- -----------------------------------------------------------------
--- We make WrappedObjectType and WrappedObjectTypeTypeData instance 
+-- We make WrappedObjectType and WrappedObjectTypeTypeData instance
 -- HasKey, Eq and Ord
 -- -----------------------------------------------------------------
 

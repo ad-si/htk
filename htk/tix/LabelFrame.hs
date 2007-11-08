@@ -38,10 +38,10 @@ newtype LabelFrame = LabelFrame GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new label frame and returns it as a value.
-newLabelFrame :: Container par => par 
+newLabelFrame :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config LabelFrame] 
+   -> [Config LabelFrame]
    -- ^ the list of configuration options for this labelled
    -- frame.
    ->
@@ -172,7 +172,7 @@ instance Container LabelFrame
 instance HasBorder LabelFrame
 
 -- | A labelled frame has a background colour.
-instance HasColour LabelFrame where 
+instance HasColour LabelFrame where
   legalColourID = hasBackGroundColour
 
 -- | A labelled frame can have a tooltip.

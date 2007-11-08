@@ -1,4 +1,4 @@
--- | This module controls the 
+-- | This module controls the
 module GroupFile(
    GroupOrUser(..),
    GroupFile,
@@ -38,25 +38,25 @@ import Text.ParserCombinators.Parsec
 -- Each list is represented by a line in the group file of the form
 --    group1:#user1,#user2,group2
 -- No spaces are permitted in such a line, except at the end.
--- 
+--
 -- Comment lines are also permitted.  They must begin
 -- with a "%" character.  The rest of the text in the line is ignored.
--- 
+--
 
 -- | This is the type corresponding to the GroupFile as initially read in.
 newtype GroupFile1 = GroupFile1 [GroupFileEntry] deriving (Show)
 
 type GroupFileEntry = (String,[GroupOrUser])
 
--- | This is a type containing the GroupFile after it has been indexed. 
--- Each group or user maps to the set of names of groups which explicitly 
+-- | This is a type containing the GroupFile after it has been indexed.
+-- Each group or user maps to the set of names of groups which explicitly
 -- include it.
 newtype GroupFile = GroupFile GroupFileMap
 
 type GroupFileMap = FiniteMap GroupOrUser (Set String)
 
-data GroupOrUser = 
-      User String -- ^ User with this identifier 
+data GroupOrUser =
+      User String -- ^ User with this identifier
    |  Group String -- ^ Group with this identifier
    deriving (Eq,Ord,Show)
 
@@ -130,11 +130,11 @@ indexGroupFile (GroupFile1 groupList) =
 -- -----------------------------------------------------------------------
 
 -- | Returns 'True' if the user is in the group
-userIsInGroup :: 
-   GroupFile 
+userIsInGroup ::
+   GroupFile
    -> String -- ^ user name
    -> String -- ^ group name
-   -> Bool 
+   -> Bool
 userIsInGroup groupFile user targetGroup =
       not (isJust (scanContainingGroups (User user) emptySet))
    where
@@ -144,7 +144,7 @@ userIsInGroup groupFile user targetGroup =
       -- groups) or wasting time going down known blind alleys.
       scanContainingGroups :: GroupOrUser -> Set String -> Maybe (Set String)
       scanContainingGroups groupOrUser visitedSet0 =
-         let               
+         let
             containingGroups :: Set String
             containingGroups = findContainingGroups groupFile groupOrUser
          in
@@ -156,7 +156,7 @@ userIsInGroup groupFile user targetGroup =
                      containingGroupsList :: [String]
                      containingGroupsList = setToList containingGroups
 
-                     scanList :: [String] -> Set String 
+                     scanList :: [String] -> Set String
                         -> Maybe (Set String)
                      scanList [] visitedSet = Just visitedSet
                      scanList (group:groups) visitedSet0 =
@@ -166,7 +166,7 @@ userIsInGroup groupFile user targetGroup =
                   in
                      scanList containingGroupsList visitedSet0
 
-      groupIsIn :: String -> Set String -> Maybe (Set String) 
+      groupIsIn :: String -> Set String -> Maybe (Set String)
          -- groupIsIn returns (Just set) if the group is not contained
          -- in 'targetGroup', otherwise Nothing.
       groupIsIn group visitedSet0 =
@@ -192,7 +192,7 @@ extractInfoForUser groupFile user =
 
 -- | List groups containing this user.
 listContainingGroups :: GroupFile -> String -> [String]
-listContainingGroups groupFile user 
+listContainingGroups groupFile user
    = setToList (extractAllContainingGroups groupFile user)
 
 extractAllContainingGroups :: GroupFile -> String -> Set String
@@ -210,7 +210,7 @@ extractAllContainingGroups groupFile user = extract1 (User user) emptySet
 
       extract :: String -> Set String -> Set String
       extract group foundSoFar0 =
-         if elementOf group foundSoFar0 
+         if elementOf group foundSoFar0
             then
                foundSoFar0
             else
@@ -225,8 +225,8 @@ extractAllContainingGroups groupFile user = extract1 (User user) emptySet
          scanList groups (extract group foundSoFar0)
 
 findContainingGroups :: GroupFile -> GroupOrUser -> Set String
-findContainingGroups (GroupFile fm) gOrU 
-   = lookupWithDefaultFM fm emptySet gOrU  
+findContainingGroups (GroupFile fm) gOrU
+   = lookupWithDefaultFM fm emptySet gOrU
 
 
 
@@ -259,23 +259,23 @@ initialGroupFileData = GroupFileData {
    }
 
 
-getGroupFile :: IO GroupFile 
+getGroupFile :: IO GroupFile
 getGroupFile = modifyMVar groupFileMVar (\ groupFileData0 ->
    do
       currentClockTime <- getClockTime
       let
          checkClockTime = addToClockTime howOftenCheck
-            (lastChecked groupFileData0) 
+            (lastChecked groupFileData0)
       if checkClockTime > currentClockTime
          then
             return (groupFileData0,groupFile groupFileData0)
          else
             do
-               modificationTimeOpt 
+               modificationTimeOpt
                   <- catchDoesNotExist (getModificationTime groupFileName)
                case modificationTimeOpt of
-                  Just modificationTime 
-                     | modificationTime /= lastModificationTime groupFileData0 
+                  Just modificationTime
+                     | modificationTime /= lastModificationTime groupFileData0
                      -> do
                            groupFileOpt <- getGroupFile1
                            let
@@ -293,7 +293,7 @@ getGroupFile = modifyMVar groupFileMVar (\ groupFileData0 ->
                         return (
                            groupFileData0 {lastChecked = currentClockTime},
                            groupFile groupFileData0)
-                  Nothing -> 
+                  Nothing ->
                      let
                         emptyGroupFile = GroupFile emptyFM
 
@@ -309,8 +309,8 @@ getGroupFile = modifyMVar groupFileMVar (\ groupFileData0 ->
 getGroupFile1 :: IO (Maybe GroupFile)
 getGroupFile1 =
    do
-      errorOrGroupFile <- IO.try (parseFromFile groupFileParser groupFileName) 
-      case errorOrGroupFile of       
+      errorOrGroupFile <- IO.try (parseFromFile groupFileParser groupFileName)
+      case errorOrGroupFile of
          Left err1 ->
             do
                errorMess (show err1)
@@ -320,7 +320,7 @@ getGroupFile1 =
                errorMess (show err2)
                return Nothing
          Right (Right groupFile) -> return (Just groupFile)
-  
+
 
 
 groupFileName :: FilePath
@@ -329,7 +329,7 @@ groupFileName = unsafePerformIO getGroupFileName
 
 getGroupFileName :: IO FilePath
 getGroupFileName = getServerFile "groups"
-               
+
 -- -----------------------------------------------------------------------
 -- Parsing
 -- -----------------------------------------------------------------------
@@ -339,7 +339,7 @@ groupFileParser =
    do
       groupFileEntryOpts <- sepBy lineParser (char '\n')
       let
-         groupFile1 = GroupFile1 (catMaybes groupFileEntryOpts) 
+         groupFile1 = GroupFile1 (catMaybes groupFileEntryOpts)
       return (indexGroupFile groupFile1)
 
 lineParser :: Parser (Maybe GroupFileEntry)
@@ -371,7 +371,7 @@ commentParser =
    do
       char '%'
       skipMany (satisfy (/= '\n'))
-          
+
 
 unparseGroupOrUser :: GroupOrUser -> String
 unparseGroupOrUser (User name) = '#' : name

@@ -1,4 +1,4 @@
--- | Calling into ActivMath from the Repository. 
+-- | Calling into ActivMath from the Repository.
 module MMiSSActiveMath(
    mmiss2AM,
    ) where
@@ -50,14 +50,14 @@ script top str = trimDir top `combineNames`
 
 -- Guarded call into AM.
 mmiss2AM :: View-> Link MMiSSObject-> IO ()
-mmiss2AM view linke = 
+mmiss2AM view linke =
   do active <- takeMVar guard
      if not active then do putMVar guard True
-			   mmiss2AMu view linke
+                           mmiss2AMu view linke
                            takeMVar guard -- empty MVar, then reset to False
-			   putMVar guard False
+                           putMVar guard False
        else do putMVar guard True -- we need to fill it again
-  	       alertMess "ActiveMath already running."
+               alertMess "ActiveMath already running."
 
 -- Unguarded call into AM
 mmiss2AMu :: View -> Link MMiSSObject-> IO ()
@@ -66,13 +66,13 @@ mmiss2AMu view link =
       workingDir <- newTempFile
       createDirectory workingDir
 
-      addFallOut (\ break -> 
-         do 
+      addFallOut (\ break ->
+         do
             -- Get the XML representation of the object.
-            (res :: WithError (String,ExportFiles)) 
+            (res :: WithError (String,ExportFiles))
                  <- extractMMiSSObject view link XML
             (contents, expFiles) <- coerceWithErrorOrBreakIO break res
- 
+
             -- Get the name, and from that the filename
             object <- readLink view link
             fileName <- objectName object
@@ -85,12 +85,12 @@ mmiss2AMu view link =
             -- Write the String to a file.
             copyStringToFile contents fullXmlFile
 
-            top <- getTOP 
-	    let -- construct the command string
+            top <- getTOP
+            let -- construct the command string
                commandArgs = script top "activemath" : [workingDir, xmlFile ]
-	       commandArgsEscaped = map (\ arg -> '\"':(bashEscape arg ++ "\""))
-				           commandArgs
-	       cmdline = unwords commandArgsEscaped
+               commandArgsEscaped = map (\ arg -> '\"':(bashEscape arg ++ "\""))
+                                           commandArgs
+               cmdline = unwords commandArgsEscaped
 
             -- call ActiveMatch script
             runCommand "ActiveMath" cmdline

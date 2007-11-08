@@ -1,5 +1,5 @@
 -- | VariableMap is analagous to VariableSet and provides a mutable map ordered
--- by key whose changes can be tracked. 
+-- by key whose changes can be tracked.
 module VariableMap(
    VariableMapData,
    VariableMapUpdate(..),
@@ -39,25 +39,25 @@ import Sources
 newtype VariableMapData key elt = VariableMapData (FiniteMap key elt)
 
 -- | We recycle the VariableSetUpdate type for this.
-newtype VariableMapUpdate key elt = 
+newtype VariableMapUpdate key elt =
    VariableMapUpdate (VariableSetUpdate (key,elt))
 
 -- | The Bool indicates whether the operation was successfully carried out.
 -- We block updating a value which is already in the map, or
 -- deleting one that isn\'t.
-update :: Ord key 
-   => VariableMapUpdate key elt -> VariableMapData key elt 
+update :: Ord key
+   => VariableMapUpdate key elt -> VariableMapData key elt
    -> (VariableMapData key elt,[VariableMapUpdate key elt],Bool)
-update (variableUpdate @ (VariableMapUpdate update)) 
+update (variableUpdate @ (VariableMapUpdate update))
        (variableMap @ (VariableMapData map)) =
    case update of
       AddElement (key,elt) ->
-         if member key 
-            then 
-               (variableMap,[],False) 
+         if member key
+            then
+               (variableMap,[],False)
             else
                (VariableMapData (addToFM map key elt),[variableUpdate],True)
-      DelElement (key,_) -> 
+      DelElement (key,_) ->
          -- we ignore the element, allowing delFromVariable map to put an
          -- error there.
          case lookupFM map key of
@@ -70,8 +70,8 @@ update (variableUpdate @ (VariableMapUpdate update))
    where
       member key = isJust (lookupFM map key)
 
-newtype VariableMap key elt = 
-   VariableMap (GeneralBroadcaster (VariableMapData key elt) 
+newtype VariableMap key elt =
+   VariableMap (GeneralBroadcaster (VariableMapData key elt)
       (VariableMapUpdate key elt))
    deriving (Typeable)
 
@@ -81,7 +81,7 @@ newtype VariableMap key elt =
 
 -- | Create a new empty variable map.
 newEmptyVariableMap :: Ord key => IO (VariableMap key elt)
-newEmptyVariableMap = 
+newEmptyVariableMap =
    do
       broadcaster <- newGeneralBroadcaster (VariableMapData emptyFM)
       return (VariableMap broadcaster)
@@ -90,20 +90,20 @@ newEmptyVariableMap =
 newVariableMap :: Ord key => [(key,elt)] -> IO (VariableMap key elt)
 newVariableMap contents = newVariableMapFromFM (listToFM contents)
 
-newVariableMapFromFM :: Ord key 
+newVariableMapFromFM :: Ord key
    => FiniteMap key elt -> IO (VariableMap key elt)
 newVariableMapFromFM fmap =
    do
       broadcaster <- newGeneralBroadcaster (VariableMapData fmap)
       return (VariableMap broadcaster)
-      
+
 
 -- | Update a variable map in some way.  Returns True if the update was
 -- sucessful (so for insertions, the object is not already there; for
 -- deletions the object is not there).
-updateMap :: Ord key => VariableMap key elt -> VariableMapUpdate key elt 
+updateMap :: Ord key => VariableMap key elt -> VariableMapUpdate key elt
    -> IO Bool
-updateMap (VariableMap broadcaster) mapUpdate = 
+updateMap (VariableMap broadcaster) mapUpdate =
    applyGeneralUpdate broadcaster (update mapUpdate)
 
 
@@ -115,7 +115,7 @@ updateMap (VariableMap broadcaster) mapUpdate =
 -- | Unlike VariableSet, the contents of a variable map are not returned in
 -- concrete form but as the abstract data type VariableMapData.  We provide
 -- functions for querying this.
-instance Ord key => HasSource (VariableMap key elt) 
+instance Ord key => HasSource (VariableMap key elt)
       (VariableMapData key elt) (VariableMapUpdate key elt)
       where
    toSource (VariableMap broadcaster) = toSource broadcaster
@@ -124,7 +124,7 @@ lookupMap :: Ord key => VariableMapData key elt -> key -> Maybe elt
 lookupMap (VariableMapData map) key = lookupFM map key
 
 lookupWithDefaultMap :: Ord key => VariableMapData key elt -> elt -> key -> elt
-lookupWithDefaultMap (VariableMapData map) def key 
+lookupWithDefaultMap (VariableMapData map) def key
    = lookupWithDefaultFM map def key
 
 mapToList :: Ord key => VariableMapData key elt -> [(key,elt)]
@@ -144,18 +144,18 @@ data VariableMapSet key elt element = VariableMapSet {
    }
 
 -- | Given a variable map and conversion function, produce a VariableSetSource
-mapToVariableSetSource :: Ord key => (key -> elt -> element) 
+mapToVariableSetSource :: Ord key => (key -> elt -> element)
    -> VariableMap key elt -> VariableSetSource element
-mapToVariableSetSource mkElement variableMap = toSource (VariableMapSet 
+mapToVariableSetSource mkElement variableMap = toSource (VariableMapSet
       {variableMap = variableMap,mkElement = mkElement})
 
-instance Ord key => HasSource (VariableMapSet key elt element) [element] 
+instance Ord key => HasSource (VariableMapSet key elt element) [element]
      (VariableSetUpdate element)
    where
-      toSource (VariableMapSet 
+      toSource (VariableMapSet
          {variableMap = variableMap,mkElement = mkElement}) =
             (map1
-               (\ (VariableMapData contents) -> 
+               (\ (VariableMapData contents) ->
                   map (uncurry mkElement) (fmToList contents)
                   )
                )
@@ -166,7 +166,7 @@ instance Ord key => HasSource (VariableMapSet key elt element) [element]
                   )
                )
             $
-            (toSource variableMap)   
+            (toSource variableMap)
 
 -- --------------------------------------------------------------------
 -- A couple of simple access functions
@@ -175,11 +175,11 @@ instance Ord key => HasSource (VariableMapSet key elt element) [element]
 -- --------------------------------------------------------------------
 
 addToVariableMap :: Ord key => VariableMap key elt -> key -> elt -> IO Bool
-addToVariableMap variableMap key elt = 
+addToVariableMap variableMap key elt =
    updateMap variableMap (VariableMapUpdate (AddElement (key,elt)))
 
 delFromVariableMap :: Ord key => VariableMap key elt -> key -> IO Bool
-delFromVariableMap variableMap key = 
+delFromVariableMap variableMap key =
    updateMap variableMap (VariableMapUpdate (DelElement (key,
       error ("VariableMap.delFromVariableMap"))))
 
@@ -202,7 +202,7 @@ lookupVariableMap (VariableMap broadcaster) key =
 -- the type.
 -- --------------------------------------------------------------------
 
-getVariableMapByKey :: Ord key => VariableMap key elt -> key 
+getVariableMapByKey :: Ord key => VariableMap key elt -> key
    -> SimpleSource (Maybe elt)
 getVariableMapByKey variableMap key =
    let

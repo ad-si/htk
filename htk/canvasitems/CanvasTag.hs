@@ -35,7 +35,7 @@ import Synchronized
 import Computation
 import Geometry (Position,Distance)
 import GUIObjectName (CanvasTagOrID (..))
- 
+
 
 infixr 3 &#&
 infixr 2 |#|
@@ -72,9 +72,9 @@ newtype CanvasTag = CanvasTag GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new canvas tag.
-createCanvasTag :: Canvas 
+createCanvasTag :: Canvas
    -- ^ the parent canvas.
-   -> [Config CanvasTag] 
+   -> [Config CanvasTag]
    -- ^ the list of configuration options for this canvas tag.
    -> IO CanvasTag
    -- ^ A canvas tag.
@@ -84,18 +84,18 @@ createCanvasTag cnv cnf =
                            tagMethods
     configure (CanvasTag wid) cnf
 
-                
+
 -- -----------------------------------------------------------------------
 -- instances
 -- -----------------------------------------------------------------------
 
 {-
-instance Eq CanvasTag where 
+instance Eq CanvasTag where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 -}
 
 -- | Internal.
-instance GUIObject CanvasTag where 
+instance GUIObject CanvasTag where
   toGUIObject (CanvasTag wid) = wid
   cname _ = "CanvasTag"
 
@@ -113,16 +113,16 @@ instance Synchronized CanvasTag where
   -- Synchronizes on a canvas tag.
   synchronize w = synchronize (toGUIObject w)
 
-                
+
 -- -----------------------------------------------------------------------
 -- commands
 -- -----------------------------------------------------------------------
 
 -- | Adds the canvas items identified by the @SearchSpec@ to
 -- the tag.
-addCanvasTag :: SearchSpec 
+addCanvasTag :: SearchSpec
    -- ^ the search specification.
-   -> CanvasTag 
+   -> CanvasTag
    -- ^ the tag to add items to.
    -> IO ()
    -- ^ None.
@@ -132,11 +132,11 @@ addCanvasTag spec@(SearchSpec cmd) tag =
     execMethod tag (\tnm -> tkAddTag tnm spec')
 
 -- | Removes a canvas item from a canvas tag.
-removeCanvasTag :: CanvasItem i => i 
+removeCanvasTag :: CanvasItem i => i
    -- ^ the item to remove from the tag.
-   -> CanvasTag 
+   -> CanvasTag
    -- ^ the tag to remove the item from.
-   -> IO () 
+   -> IO ()
    -- ^ None.
 removeCanvasTag item tag =
   do
@@ -149,24 +149,24 @@ removeCanvasTag item tag =
 -- -----------------------------------------------------------------------
 
 -- | Forms the conjunction of two canvas tags
-(&#&) :: CanvasTag -> CanvasTag 
+(&#&) :: CanvasTag -> CanvasTag
    -> IO CanvasTag -- ^ new canvas tag corresponding to (t1&&t2)
 (&#&)  = complexCanvasTag CanvasTagAnd
 
 -- | Forms the disjunction of two canvas tags
-(|#|) :: CanvasTag -> CanvasTag 
+(|#|) :: CanvasTag -> CanvasTag
    -> IO CanvasTag -- ^ new canvas tag corresponding to (t1||t2)
 (|#|)  = complexCanvasTag CanvasTagOr
 
 -- | Forms "either - or" of two canvas tags
-(^#) :: CanvasTag -> CanvasTag 
+(^#) :: CanvasTag -> CanvasTag
    -> IO CanvasTag
       -- ^ new canvas tag corresponding to (t1^t2)
       -- equals (!t1&&t2)||(t1&&!t2)
 (^#)  = complexCanvasTag CanvasTagXOr
 
 -- Forms the negation of a canvas tag
-tagNot :: CanvasTag 
+tagNot :: CanvasTag
    -> IO CanvasTag -- ^ new canvas tag corresponding to !t
 tagNot t = complexCanvasTag (\ x _ -> CanvasTagNot x) t t
 
@@ -174,8 +174,8 @@ tagNot t = complexCanvasTag (\ x _ -> CanvasTagNot x) t t
 -- auxilliary function for &#&,|#|,^# and tagNot
 complexCanvasTag :: (CanvasTagOrID -> CanvasTagOrID -> CanvasTagOrID)
                  -> CanvasTag -> CanvasTag -> IO CanvasTag
-complexCanvasTag f t1 t2 
-  = do 
+complexCanvasTag f t1 t2
+  = do
      CanvasItemName oid tid1 <- getObjectName (toGUIObject t1)
      tid2 <- getCanvasTagOrID (toGUIObject t2)
      Just par <- getParentObject (toGUIObject t1)
@@ -200,9 +200,9 @@ allItems :: SearchSpec
 allItems = SearchSpec (return "all")
 
 -- | Adds the item just above the given item in the display list.
-aboveItem ::  CanvasItem item => item 
+aboveItem ::  CanvasItem item => item
    -- ^ the item below the item to add.
-   -> SearchSpec 
+   -> SearchSpec
    -- ^ A @SearchSpec@ object.
 aboveItem item = SearchSpec (do {
         tid <- getCanvasTagOrID (toGUIObject item);
@@ -210,9 +210,9 @@ aboveItem item = SearchSpec (do {
         })
 
 -- | Adds the item just below in the given item in the display list.
-belowItem ::  CanvasItem item => item 
+belowItem ::  CanvasItem item => item
    -- ^ the item above the item to add.
-   -> SearchSpec 
+   -> SearchSpec
    -- ^ A @SearchSpec@ object.
 belowItem item = SearchSpec (do {
         tid <- getCanvasTagOrID (toGUIObject item);
@@ -221,9 +221,9 @@ belowItem item = SearchSpec (do {
 
 -- | Adds the item(s) identified by the given handler (which can also be
 -- another canvas tag).
-withTag ::  CanvasItem item => item 
+withTag ::  CanvasItem item => item
    -- ^ the canvas item handler.
-   -> SearchSpec 
+   -> SearchSpec
    -- ^ A @SearchSpec@ object.
 withTag item = SearchSpec (do {
         tid <- getCanvasTagOrID (toGUIObject item);
@@ -231,7 +231,7 @@ withTag item = SearchSpec (do {
         })
 
 -- | Adds the item closest to the given position.
-closest :: Position 
+closest :: Position
    -- ^ the concerned position.
    -> SearchSpec
    -- ^ A @SearchSpec@ object.
@@ -239,9 +239,9 @@ closest pos@(x, y) =
   SearchSpec (return ("closest " ++ show x ++ " " ++ show y))
 
 -- | Adds the items enclosed in the specified region.
-enclosed :: Position 
+enclosed :: Position
    -- ^ the upper left position of the region.
-   -> Position 
+   -> Position
    -- ^ the lower right position of the region.
    -> SearchSpec
    -- ^ A @SearchSpec@ object.
@@ -249,13 +249,13 @@ enclosed pos1 pos2 =
    SearchSpec (return ("enclosed " ++ showPos pos1 ++ " " ++ showPos pos2))
 
 -- | Adds the items overpalling the specified region.
-overlapping :: Position 
+overlapping :: Position
    -- ^ the upper left position of the region.
-   -> Position 
+   -> Position
    -- ^ the lower right position of the region.
    -> SearchSpec
    -- ^ A @SearchSpec@ object.
-overlapping pos1 pos2 = 
+overlapping pos1 pos2 =
    SearchSpec (return ("overlapping " ++ showPos pos1 ++ " " ++ showPos pos2))
 
 showPos :: (Distance,Distance) -> String
@@ -267,7 +267,7 @@ getCanvasTagOrID wid =
   do
     nm <- getObjectName wid
     case nm of
-      CanvasItemName name tid -> return tid  
+      CanvasItemName name tid -> return tid
       _ -> error "CanvasTag (getCanvasTagOrID) : not a canvas item name"
 
 
@@ -295,5 +295,5 @@ tkAddTag (CanvasItemName name tid) spec =
 
 tkDTag :: ObjectName -> ObjectName -> TclScript
 tkDTag (CanvasItemName name cid) (CanvasItemName _ tid) =
-   declVar tid ++ declVar cid ++ 
+   declVar tid ++ declVar cid ++
       [show name ++ " dtag " ++ show cid ++ " " ++ show tid]

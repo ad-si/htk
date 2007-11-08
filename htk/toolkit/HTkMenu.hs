@@ -1,5 +1,5 @@
--- | HTkMenu is a user-friendly interface to HTk's menu operations, which 
--- compiles a version of MenuType.MenuPrim to an HTk menu. 
+-- | HTkMenu is a user-friendly interface to HTk's menu operations, which
+-- compiles a version of MenuType.MenuPrim to an HTk menu.
 module HTkMenu(
    HTkMenu(..),
    compileHTkMenu,
@@ -19,14 +19,14 @@ import MenuCascade
 import MenuSeparator
 import MenuCommand
 
-import MenuType 
-   
+import MenuType
+
 
 -- ----------------------------------------------------------------------
 -- The HTkMenu type
 -- ----------------------------------------------------------------------
 
--- | Describes a menu to be compiled.  
+-- | Describes a menu to be compiled.
 -- The value identifies the buttons in the menu so the client
 -- can tell which was clicked.
 -- The String is a title which is given to menu cascades.
@@ -39,7 +39,7 @@ newtype HTkMenu value = HTkMenu (MenuPrim String value)
 -- | compileHTkMenu compiles a menu to a MenuButton.  It does not display it;
 -- the caller should pack the MenuButton in the parent with whatever options
 -- are desired.
-compileHTkMenu :: Container parent => parent -> HTkMenu value 
+compileHTkMenu :: Container parent => parent -> HTkMenu value
    -> IO (MenuButton,Event value)
 compileHTkMenu parent htkMenu =
    do
@@ -52,8 +52,8 @@ compileHTkMenu parent htkMenu =
 
 -- | normalise decomposes the menu into a title plus a list of submenus.
 normalise :: HTkMenu value -> (String,[MenuPrim String value])
-normalise (HTkMenu menuPrim) = 
-   case menuPrim of 
+normalise (HTkMenu menuPrim) =
+   case menuPrim of
       MenuType.Menu title subMenus -> (title,subMenus)
       Button s value -> (s,[menuPrim])
       Blank -> ("",[Blank])
@@ -72,7 +72,7 @@ compileMenuPrim parent menuPrim =
       Button string value ->
          do
             menuCommand <- createMenuCommand parent [text string]
-            event <- clicked menuCommand 
+            event <- clicked menuCommand
             return (event >> return value)
       Blank ->
          do

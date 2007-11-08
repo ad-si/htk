@@ -4,7 +4,7 @@ module Bell (
   Window,
   ringBell,
   bell
-        
+
 ) where
 
 import Window
@@ -13,7 +13,7 @@ import Core
 
 
 -- -----------------------------------------------------------------------
--- Ring Bell 
+-- Ring Bell
 -- -----------------------------------------------------------------------
 
 -- | Rings the bell for the given window.
@@ -32,5 +32,5 @@ bell = ringBell (Nothing :: Maybe Toplevel)
 
 tkRing :: Maybe ObjectName -> TclCmd
 tkRing Nothing = "bell"
-tkRing (Just win) = "bell -displayof " ++ show win 
+tkRing (Just win) = "bell -displayof " ++ show win
 {-# INLINE tkRing #-}

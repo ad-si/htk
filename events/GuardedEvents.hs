@@ -1,12 +1,12 @@
 -- | In GuardedEvents we extend the notion of PrimEvents to allow Guarded
 -- Events, which can be guarded with the new (|>) operator.  GuardedChannels
 -- will implement guarded events on channels, which will hopefully be the
--- only guarded event we will ever need. 
+-- only guarded event we will ever need.
 module GuardedEvents(
-   GuardedEvent(..), 
+   GuardedEvent(..),
       -- the datatype of guarded events. Instance of HasGuard,
       -- IsBaseEvent (and hence IsEvent), HasContinuation, HasChoice
-      -- 
+      --
    HasGuard(..), -- the class implementing |>
    Guard(..), -- the class of guards.
 
@@ -17,9 +17,9 @@ import Events
 
 -- | A GuardedEvent guard a represents a source of values of type a, which
 -- may be selected from according to guards of type guard.
-data Guard guard => GuardedEvent guard a = 
+data Guard guard => GuardedEvent guard a =
    GuardedEvent !(guard -> Event a) !guard
-        
+
 -- ----------------------------------------------------------------------
 -- The Guard class
 -- ----------------------------------------------------------------------
@@ -33,17 +33,17 @@ class Guard guard where
    -- everyone else.
 
    -- | this should be the guard that always matches
-   nullGuard :: guard 
+   nullGuard :: guard
 
    -- | this should be the guard that corresponds to the conjunction
    -- of the two given guards.
-   andGuard :: guard -> guard -> guard 
+   andGuard :: guard -> guard -> guard
 
 -- ----------------------------------------------------------------------
 -- The HasGuard class
 -- ----------------------------------------------------------------------
 
-infixr 2 |> 
+infixr 2 |>
 -- So higher precedence than >>>/>>>= or +>
 
 

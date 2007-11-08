@@ -72,7 +72,7 @@ data NotepadItem a =
 
 createNotepadItem :: a -> Notepad a -> [Config (NotepadItem a)] ->
                      IO (NotepadItem a)
-createNotepadItem val notepad@(Notepad cnv _ imgsize _ _ entereditemref _ 
+createNotepadItem val notepad@(Notepad cnv _ imgsize _ _ entereditemref _
                                        _ _ _ _) cnf =
   do
     img <- createImageItem cnv []
@@ -292,7 +292,7 @@ selectAll np@(Notepad cnv _ _ notepaditemsref selecteditemsref _ _ smsgQ
     setRef selecteditemsref notepaditems
 
 deselectAll :: Notepad a -> IO ()
-deselectAll np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ smsgQ 
+deselectAll np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ smsgQ
                         _ _ _) =
   do
     notepaditems <- getRef notepaditemsref
@@ -521,7 +521,7 @@ newNotepad par scrolltype imgsize cnf =
                               selecteditems <- getRef selecteditemsref
                               moveItem t (rootx - x0) (rooty - y0)
                               setRef dropref Nothing
-                              destroy rect1 
+                              destroy rect1
                               destroy rect2
                               spawnEvent
                                 (noWait (send dmsgQ

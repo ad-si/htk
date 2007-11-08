@@ -3,7 +3,7 @@
 -- the arcs going out of a node, meaning that to find out if two
 -- nodes are connected requires searching all the arcs out of one
 -- of the nodes, or all the arcs into the other.
--- 
+--
 -- Notes on synchronicity.
 --    The Update operations Set*Label are intrinsically unsafe in
 --    this implementation since if two communicating SimpleGraphs
@@ -11,23 +11,23 @@
 --    they may end up with each others values.  It is recommended that
 --    Set*Label only be used during the initialisation of the object,
 --    as a way of tieing the knot.
--- 
+--
 --    In addition, Update operations which create a value based on a previous
 --    value (EG a NewNode creates a Node based on a NodeType), do
 --    assume that the previous value has already been created.
--- 
+--
 --    I realise this is somewhat informal.  It may be necessary to
 --    replace SimpleGraph by something more complicated later . . .
 module SimpleGraph(
    SimpleGraph, -- implements Graph
 
-   getNameSource, 
+   getNameSource,
    -- :: SimpleGraph -> NameSource
    -- We need to hack the name source as part of the backup process.
 
 
    delayedAction,
-      -- :: Graph graph 
+      -- :: Graph graph
       -- => graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
       -- -> Node -- node
       -- -> IO () -- action to perform when the node is created in the graph.
@@ -74,7 +74,7 @@ data SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
          [ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel],
       parentDeRegister :: IO (),
          -- deRegister in GraphConnection from which graph was created.
-      graphID :: ObjectID, 
+      graphID :: ObjectID,
          -- used to identify the graph (for InfoBus actually)
       bSem :: BSem -- All access operations should synchronize here.
       }
@@ -83,7 +83,7 @@ getNameSource :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel ->
    NameSource
 getNameSource simpleGraph = nameSource simpleGraph
 
-instance Synchronized 
+instance Synchronized
       (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) where
    synchronize graph command = synchronize (bSem graph) command
 
@@ -108,13 +108,13 @@ data ArcData arcLabel = ArcData {
 data ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
    ClientData {
       clientID :: ObjectID,
-      clientSink :: (Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      clientSink :: (Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel
          -> IO())
       }
 
 instance Eq (ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
       where
-   (==) clientData1 clientData2 = 
+   (==) clientData1 clientData2 =
       (clientID clientData1) == (clientID clientData2)
    (/=) clientData1 clientData2 =
       (clientID clientData1) /= (clientID clientData2)
@@ -152,9 +152,9 @@ instance Graph SimpleGraph where
          synchronize graph (
             do
                graphState <- cannGraph graph
-               clientID <- newObject 
+               clientID <- newObject
                let
-                  clientData = ClientData 
+                  clientData = ClientData
                      {clientID = clientID,clientSink = clientSink}
                   mVar = clientsMVar graph
                oldClients <- takeMVar mVar
@@ -166,12 +166,12 @@ instance Graph SimpleGraph where
                         -- I don't see how it can matter.
                         oldClients <- takeMVar mVar
                         putMVar mVar (delete clientData oldClients)
-                  graphUpdate update = 
+                  graphUpdate update =
                      applyUpdateFromClient graph update clientData
 
                nameSourceBranch <- branch (nameSource graph)
 
-               return 
+               return
                   (GraphConnectionData {
                      graphState = graphState,
                      deRegister = deRegister,
@@ -190,20 +190,20 @@ instance Graph SimpleGraph where
             graphUpdate = graphUpdate,
             nameSourceBranch = nameSourceBranch
             } <- getGraphConnection (sync . noWait . (send graphUpdatesQueue))
-         
+
          graph <- uncannGraph graphState deRegister nameSourceBranch
          let
             mVar = clientsMVar graph
 
-         -- modify client list  
+         -- modify client list
          (oldClients@[]) <- takeMVar mVar
          -- if uncannGraph is later changed to add clients,
          -- we probably need to synchronize the changes to graph
          -- in this method!
-         clientID <- newObject 
+         clientID <- newObject
          let
             clientSink update = graphUpdate update
-            clientData = ClientData 
+            clientData = ClientData
                {clientID = clientID,clientSink = clientSink}
          putMVar mVar (clientData : oldClients)
 
@@ -251,7 +251,7 @@ instance Graph SimpleGraph where
 
    newEmptyGraph = newEmptyGraphWithSource initialBranch
 
-getNodeInfo :: 
+getNodeInfo ::
    (NodeData nodeLabel -> result)
    -> (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
    -> Node
@@ -263,7 +263,7 @@ getNodeInfo converter graph node =
          return (converter nodeData)
       )
 
-getArcInfo :: 
+getArcInfo ::
    (ArcData arcLabel -> result)
    -> (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
    -> Arc
@@ -311,11 +311,11 @@ applyUpdateFromClient ::
    -> ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> IO ()
 applyUpdateFromClient graph update client =
-   applyUpdate graph update 
+   applyUpdate graph update
       (\ clientToBroadcast -> client /= clientToBroadcast)
 
 applyUpdate ::
-   SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+   SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> (ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> Bool)
    -> IO ()
@@ -334,8 +334,8 @@ applyUpdate graph update proceedFn =
                   if proceedFn clientData
                      then
                         do
-                           result <- Control.Exception.try 
-                              (clientSink clientData update) 
+                           result <- Control.Exception.try
+                              (clientSink clientData update)
                            case result of
                               Left exception ->
                                  putStrLn ("Client error "++(show exception))
@@ -348,10 +348,10 @@ applyUpdate graph update proceedFn =
       )
 
 innerApplyUpdate ::
-   SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+   SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> IO [ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel]
-innerApplyUpdate 
+innerApplyUpdate
       (graph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
       update =
    let
@@ -367,7 +367,7 @@ innerApplyUpdate
       -- In these cases we (a) do nothing;
       -- (b) return a null client list, to prevent the update
       -- being passed on to anyone else.
-      -- We don't give 
+      -- We don't give
       case update of
          NewNodeType nodeType nodeTypeLabel ->
             do
@@ -387,7 +387,7 @@ innerApplyUpdate
                      arcsOut = []
                      })
                passOnUpdate
-         DeleteNode node -> 
+         DeleteNode node ->
             do
                nodeDataOpt <- getValueOpt nodeRegistry node
                case nodeDataOpt of
@@ -397,7 +397,7 @@ innerApplyUpdate
                      do
                         sequence_
                            (map
-                              (\ arc -> 
+                              (\ arc ->
                                  innerApplyUpdate graph (DeleteArc arc))
                               (arcsIn ++ arcsOut)
                               )
@@ -408,9 +408,9 @@ innerApplyUpdate
                nodeDataOpt <- getValueOpt nodeRegistry node
                case nodeDataOpt of
                   Nothing -> killUpdate
-                  Just (nodeData :: NodeData nodeLabel) -> 
+                  Just (nodeData :: NodeData nodeLabel) ->
                      do
-                        setValue nodeRegistry node 
+                        setValue nodeRegistry node
                            (nodeData {nodeLabel = nodeLabel})
                         passOnUpdate
          SetNodeType node nodeType ->
@@ -418,9 +418,9 @@ innerApplyUpdate
                nodeDataOpt <- getValueOpt nodeRegistry node
                case nodeDataOpt of
                   Nothing -> killUpdate
-                  Just (nodeData :: NodeData nodeLabel) -> 
+                  Just (nodeData :: NodeData nodeLabel) ->
                      do
-                        setValue nodeRegistry node 
+                        setValue nodeRegistry node
                            (nodeData {nodeType = nodeType})
                         passOnUpdate
          NewArcType arcType arcTypeLabel ->
@@ -447,29 +447,29 @@ innerApplyUpdate
                               target = nodeTarget
                               }
                         setValue arcRegistry arc newArcData
-                        if (nodeSource == nodeTarget) 
+                        if (nodeSource == nodeTarget)
                            then
                               do
                                  let
                                     newNodeSourceData = nodeSourceData {
-                                       arcsOut = 
+                                       arcsOut =
                                           arc : arc : (arcsOut nodeSourceData)
                                        }
-                                 setValue nodeRegistry nodeSource 
+                                 setValue nodeRegistry nodeSource
                                     newNodeSourceData
                            else
                               do
                                  let
                                     newNodeSourceData = nodeSourceData {
-                                       arcsOut = arc : 
+                                       arcsOut = arc :
                                           (arcsOut nodeSourceData)
                                        }
                                     newNodeTargetData = nodeTargetData {
                                        arcsIn = arc : (arcsIn nodeTargetData)
                                        }
-                                 setValue nodeRegistry nodeSource 
+                                 setValue nodeRegistry nodeSource
                                     newNodeSourceData
-                                 setValue nodeRegistry nodeTarget 
+                                 setValue nodeRegistry nodeTarget
                                     newNodeTargetData
                         passOnUpdate
                   _ -> killUpdate
@@ -478,21 +478,21 @@ innerApplyUpdate
                arcDataOpt <- getValueOpt arcRegistry arc
                case arcDataOpt of
                   Nothing -> killUpdate
-                  Just (ArcData {source = source,target = target} 
+                  Just (ArcData {source = source,target = target}
                      :: ArcData arcLabel) ->
                      do
                         -- The getValue operations for the source and
                         -- target must succeed, because if the arc is
                         -- still there, the nodes must also still be there.
                         deleteFromRegistry arcRegistry arc
-                        (nodeSourceData :: NodeData nodeLabel) 
+                        (nodeSourceData :: NodeData nodeLabel)
                            <- getValue nodeRegistry source
                         let
                            newNodeSourceData = nodeSourceData {
                               arcsOut = delete arc (arcsOut nodeSourceData)
                               }
                         setValue nodeRegistry source newNodeSourceData
-               
+
                         (nodeTargetData :: NodeData nodeLabel)
                            <- getValue' "DeleteArc" nodeRegistry target
                         let
@@ -507,7 +507,7 @@ innerApplyUpdate
                case arcDataOpt of
                   Just (arcData :: ArcData arcLabel) ->
                      do
-                        setValue arcRegistry arc 
+                        setValue arcRegistry arc
                            (arcData {arcLabel = arcLabel})
                         passOnUpdate
                   Nothing -> killUpdate
@@ -517,11 +517,11 @@ innerApplyUpdate
                case arcDataOpt of
                   Just (arcData :: ArcData arcLabel) ->
                      do
-                        setValue arcRegistry arc 
+                        setValue arcRegistry arc
                            (arcData {arcType = arcType})
                         passOnUpdate
                   Nothing -> killUpdate
-         MultiUpdate updates -> 
+         MultiUpdate updates ->
             do
                mapM_ (innerApplyUpdate graph) updates
                passOnUpdate
@@ -531,7 +531,7 @@ innerApplyUpdate
 -- These are the part of sharing graphs not involving communication.
 ------------------------------------------------------------------------
 
-cannGraph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+cannGraph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> IO (CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 cannGraph (SimpleGraph{
    nodeData = nodeData,
@@ -544,11 +544,11 @@ cannGraph (SimpleGraph{
       nodeRegistryContents <- listRegistryContents nodeData
       arcTypes <- listRegistryContents arcTypeData
       arcRegistryContents <- listRegistryContents arcData
-  
+
       let
          nodeTypeUpdates =
             map
-               (\ (nodeType,nodeTypeLabel) 
+               (\ (nodeType,nodeTypeLabel)
                   -> NewNodeType nodeType nodeTypeLabel
                   )
                nodeTypes
@@ -557,45 +557,45 @@ cannGraph (SimpleGraph{
                (\ (node,NodeData {nodeType = nodeType,nodeLabel = nodeLabel})
                   -> NewNode node nodeType nodeLabel
                   )
-               nodeRegistryContents 
+               nodeRegistryContents
          arcTypeUpdates =
             map
-               (\ (arcType,arcTypeLabel) 
+               (\ (arcType,arcTypeLabel)
                   -> NewArcType arcType arcTypeLabel
                   )
                arcTypes
          arcUpdates =
             map
                (\ (arc,ArcData {arcType = arcType,arcLabel = arcLabel,
-                     source = source,target = target}) 
+                     source = source,target = target})
                   -> NewArc arc arcType arcLabel source target
                   )
                arcRegistryContents
 
       return (CannedGraph {
-         updates = nodeTypeUpdates ++ nodeUpdates ++ arcTypeUpdates 
+         updates = nodeTypeUpdates ++ nodeUpdates ++ arcTypeUpdates
             ++ arcUpdates
             })
-            
+
 uncannGraph :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> IO () -> NameSourceBranch
    -> IO (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 -- the second argument is the deregistration function of the parent,
 -- which we need to put in the SimpleGraph.  The third argument is
 -- the graph's NameSource, ditto.
-uncannGraph 
-      ((CannedGraph {updates = updates}) 
-         :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
+uncannGraph
+      ((CannedGraph {updates = updates})
+         :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
       parentDeRegister nameSourceBranch =
    do
-      (graph' :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
+      (graph' :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
          <- newEmptyGraphWithSource nameSourceBranch
       let
          graph = graph' {parentDeRegister = parentDeRegister}
       sequence_ (map (update graph) updates)
       return graph
 
-newEmptyGraphWithSource :: NameSourceBranch 
+newEmptyGraphWithSource :: NameSourceBranch
    -> IO (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 newEmptyGraphWithSource nameSourceBranch =
    do
@@ -627,13 +627,13 @@ newEmptyGraphWithSource nameSourceBranch =
 -- at one end of the arc is created.
 ------------------------------------------------------------------------
 
-delayedAction :: 
+delayedAction ::
    SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> Node -- node
    -> IO () -- action to perform when the node is created in the graph.
    -> IO ()
-delayedAction 
-      (graph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
+delayedAction
+      (graph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
       node action =
    do
       doNow <- transformValue (nodeData graph) node
@@ -652,12 +652,12 @@ delayedAction
                            }
 
                         clientSink update = case update of
-                           NewNode node1 _ _ 
+                           NewNode node1 _ _
                               | node1 == node
                               ->
                                  do
                                     forkIO action
-                                    modifyMVar_ clients 
+                                    modifyMVar_ clients
                                        (return . delete clientData)
                            _ -> done
 

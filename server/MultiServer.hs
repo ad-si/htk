@@ -1,8 +1,8 @@
--- | This is a different abstraction to the standard server package, designed 
+-- | This is a different abstraction to the standard server package, designed
 -- for the Emacs encapsulation.
 module MultiServer(
    MultiServer,
-   
+
    newMultiServer, -- :: Bool -> (Maybe PortNumber) -> IO MultiServer
    -- We only accept clients from machines other than this one
    -- if the Bool is True.
@@ -14,7 +14,7 @@ module MultiServer(
 
    MultiServerKey, -- Key identifying a particular client.
 
-   newMultiServerKey, -- :: MultiServer -> IO MultiServerKey   
+   newMultiServerKey, -- :: MultiServer -> IO MultiServerKey
    -- Generate a new unique MultiServerKey.
 
    fromMultiServerKey, -- :: MultiServerKey -> String
@@ -75,7 +75,7 @@ newMultiServer acceptNonLocal portNumberOpt =
 
       let
          hostNameFilter otherHostName =
-            if acceptNonLocal then return True else 
+            if acceptNonLocal then return True else
                do
                   otherHostEntry <- Network.BSD.getHostByName otherHostName
                   let
@@ -117,7 +117,7 @@ workerThread multiServer =
          else
             putStrLn ("MultiServer: Attempt to connect from "++hostName++
                " rejected")
-      workerThread multiServer      
+      workerThread multiServer
 
 -- ------------------------------------------------------------------------
 -- Other functions on MultiServer's.
@@ -130,7 +130,7 @@ waitForClient :: MultiServer -> MultiServerKey -> IO () -> IO Handle
 waitForClient multiServer multiServerKey action =
    do
       mVar <- newEmptyMVar
-      setValue (awaitedClients multiServer) 
+      setValue (awaitedClients multiServer)
          (fromMultiServerKey multiServerKey) mVar
       action
       takeMVar mVar
@@ -144,7 +144,7 @@ fromMultiServerKey (MultiServerKey str) = str
 
 -- We try to make these fairly unguessable though they are hardly
 -- cryptographically secure.
-newMultiServerKey :: MultiServer -> IO MultiServerKey   
+newMultiServerKey :: MultiServer -> IO MultiServerKey
 newMultiServerKey _ =
    do
       i1 <- Object.newInt -- this forces uniqueness

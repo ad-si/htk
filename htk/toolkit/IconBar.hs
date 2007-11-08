@@ -14,7 +14,7 @@ module IconBar (
 
   getIconButtons,
   getIconBarItems
-        
+
 )
 
 where
@@ -44,10 +44,10 @@ data IconBar = IconBar Box (Ref [Either Separator Button])
 -- -----------------------------------------------------------------------
 
 -- | Creates a new icon bar and returns a handler.
-newIconBar :: Container par => par 
+newIconBar :: Container par => par
    -- ^ the parent widget (which has to be a container
    -- widget).
-   -> [Config IconBar] 
+   -> [Config IconBar]
    -- ^ the list of configuration options for this icon bar.
    -> IO IconBar
    -- ^ An icon bar.
@@ -82,7 +82,7 @@ instance HasColour IconBar where
 
 -- | An icon bar has standard widget properties
 -- (concerning focus, cursor).
-instance Widget IconBar where 
+instance Widget IconBar where
   cursor c ib@(IconBar b pv) =
     synchronize ib
       (do
@@ -100,7 +100,7 @@ instance HasBorder IconBar
 -- | An icon bar is a stateful widget, it can be enabled or disabled.
 instance HasEnable IconBar where
   -- Sets the icon bar\'s state.
-  state st ib = 
+  state st ib =
     synchronize ib (do
                       ibs <- getIconButtons ib
                       foreach ibs (\ib -> configure ib [state st])
@@ -117,7 +117,7 @@ instance HasEnable IconBar where
                       return (foldr (||) False (map (/= Disabled) sl)) )
 
 -- | An icon bar has either a vertical or horizontal orientation.
-instance HasOrientation IconBar where 
+instance HasOrientation IconBar where
   -- Sets the icon bar\'s orientation.
   orient o sb@(IconBar b bts) =
     do
@@ -137,7 +137,7 @@ instance Synchronized IconBar where
 -- -----------------------------------------------------------------------
 
 -- | Adds a separator at the end of the icon bar.
-addSeparator :: IconBar 
+addSeparator :: IconBar
    -- ^ the concerned icon bar.
    -> IO Separator
    -- ^ A separator.
@@ -151,9 +151,9 @@ addSeparator ib@(IconBar box _) =
     return f
 
 -- | Adds a button at the end of the icon bar.
-addButton :: IconBar 
+addButton :: IconBar
    -- ^ the concerned icon bar.
-   -> [Config Button] 
+   -> [Config Button]
    -- ^ the list of configuration options for the button to
    -- add.
    -> IO Button
@@ -170,7 +170,7 @@ addButton ib@(IconBar box _) cnf =
 -- -----------------------------------------------------------------------
 
 -- | Gets the buttons from an icon bar.
-getIconButtons :: IconBar 
+getIconButtons :: IconBar
    -- ^ the concerned icon bar.
    -> IO [Button]
    -- ^ A list of the contained buttons.
@@ -181,7 +181,7 @@ getIconButtons ib@(IconBar _ elemsref) =
   where buttons elems = filter (either (\_ -> False) (\_ -> True)) elems
 
 -- | Gets the items from an icon bar.
-getIconBarItems :: IconBar 
+getIconBarItems :: IconBar
    -- ^ the concerned icon bar.
    -> IO [Either Frame Button]
    -- ^ Alist of the contained buttons and separators.

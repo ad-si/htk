@@ -22,13 +22,13 @@ main =
     m2 <- createPulldownMenu menubar [text "Buttons"]
     v1 <- createTkVariable True
     c1 <- createMenuCheckButton m2 [text "I am cool", variable v1]
- 
+
     createMenuSeparator m2 []
 
     v2 <- createTkVariable (0::Int)
     r1 <- createMenuRadioButton m2 [text "No milk or sugar",
                                     value (0::Int), variable v2]
-    r2 <- createMenuRadioButton m2 [text "Milk, no sugar", 
+    r2 <- createMenuRadioButton m2 [text "Milk, no sugar",
                                     value (1::Int), variable v2]
     r3 <- createMenuRadioButton m2 [text "Sugar and milk",
                                     value (2::Int), variable v2]
@@ -37,7 +37,7 @@ main =
     spawnEvent (forever (
          (cl >>> do val1 <- readTkVariable v1
                     val2 <- readTkVariable v2
-                    putStrLn ("v1: "++  show val1++ 
+                    putStrLn ("v1: "++  show val1++
                               ", v2: "++ show val2))))
     finishHTk
 

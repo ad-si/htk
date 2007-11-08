@@ -1,6 +1,6 @@
--- | A FileSystem is a space on disk (or wherever files are kept) with a 
--- function (ensureFiles) that extracts files via a given action 
--- on demand, creating directories as required. 
+-- | A FileSystem is a space on disk (or wherever files are kept) with a
+-- function (ensureFiles) that extracts files via a given action
+-- on demand, creating directories as required.
 module FileSystem(
    FileSystem,
    FileSystemName,
@@ -61,19 +61,19 @@ newFileSystem =
 
 class HasFileSystem fileSystem where
    getFileSystemLocation :: fileSystem -> FilePath
-   
+
 -- | Get the location of the directory containing the FileSystem.
 instance HasFileSystem FileSystem where
    getFileSystemLocation (FileSystem {location = location}) = location
 
 -- | Get the location corresponding to a particular file in the file system
 -- (It doesn\'t ensure it is present; for that you need ensureFile\/ensureFiles).
-getFileSystemNameLocation :: HasFileSystem fileSystem 
+getFileSystemNameLocation :: HasFileSystem fileSystem
    => fileSystem -> FileSystemName -> FilePath
 getFileSystemNameLocation fileSystem fileSystemName =
    unbreakName ((getFileSystemLocation fileSystem):fileSystemName)
 
--- | Returns the parent directories strictly containing the given 
+-- | Returns the parent directories strictly containing the given
 -- file system name, from the immediate parent up to but not including
 -- the root.
 parentDirectories :: FileSystemName -> [FilePath]
@@ -103,7 +103,7 @@ ensureDirectories fileSystem fileSystemName =
                   Nothing ->
                      do
                         doContainingDirs rest
-                        createDirectory 
+                        createDirectory
                            (combineNames (location fileSystem) this)
                         return (Just (),())
                   )
@@ -112,23 +112,23 @@ ensureDirectories fileSystem fileSystemName =
 -- | Ensure a particular file is present, calling the supplied action if
 -- necessary.  This action should retrieve the object to the specified FilePath
 -- (which will be the real location of the object).
-ensureFile :: FileSystem -> (FileSystemName -> FilePath -> IO ()) 
+ensureFile :: FileSystem -> (FileSystemName -> FilePath -> IO ())
    -> FileSystemName -> IO ()
 ensureFile fileSystem extractFn fileSystemName =
-   transformValue (alreadyCopied fileSystem) fileSystemName 
+   transformValue (alreadyCopied fileSystem) fileSystemName
       (\ unitOpt ->
          case unitOpt of
             Just () -> return (unitOpt,())
             Nothing ->
                do
                   ensureDirectories fileSystem fileSystemName
-                  extractFn fileSystemName 
+                  extractFn fileSystemName
                      (getFileSystemNameLocation fileSystem fileSystemName)
                   return (Just (),())
          )
 
 -- | ensureFile for zero or more fileSystemNames.
-ensureFiles :: FileSystem -> (FileSystemName -> FilePath -> IO ()) 
+ensureFiles :: FileSystem -> (FileSystemName -> FilePath -> IO ())
    -> [FileSystemName] -> IO ()
 ensureFiles fileSystem extractFn fileSystemNames =
    mapM_ (ensureFile fileSystem extractFn) fileSystemNames

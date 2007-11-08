@@ -19,7 +19,7 @@ import Maybe
 import Text.ParserCombinators.Parsec
 
 import BinaryAll
-import Computation 
+import Computation
 
 import SimpleForm
 
@@ -34,7 +34,7 @@ import ServerErrors
 -- -------------------------------------------------------------------------
 
 data Permission = Permission {
-   grant :: Bool, 
+   grant :: Bool,
       -- ^ If 'True', we hereby grant permission, otherwise we deny it.
    domain :: Maybe GroupOrUser,
       -- ^ Who this permission applies to.  If 'Nothing`, it applies to
@@ -46,17 +46,17 @@ data Permission = Permission {
    activities :: [Activity]
       -- ^ What activities this permission applies to.
       -- This list will always be nonempty.
-   } deriving (Show) 
+   } deriving (Show)
 
 
-data Activity = ReadActivity | WriteActivity | PermissionsActivity 
+data Activity = ReadActivity | WriteActivity | PermissionsActivity
    deriving (Show,Eq,Enum)
-   
+
 
 -- | In 'Permissions', those to whom the permission applies are given
--- by the 'GroupOrUser'.  If this is empty, the permission applies to 
+-- by the 'GroupOrUser'.  If this is empty, the permission applies to
 -- everyone.
--- 
+--
 -- The permissions are checked in order until we find one that matches
 -- and gives Just True or Just False.
 type Permissions = [Permission]
@@ -97,7 +97,7 @@ editPermissions permissions0 =
          permissionsForm2 = mapForm parsePermissions permissionsForm1
 
          example :: Form ()
-         example = nullForm 
+         example = nullForm
             "Example: +#trustedUser:rw -readOnlyGroup:w -*:rw"
 
          permissionsForm3 = fmap fst (permissionsForm2 // example)
@@ -145,13 +145,13 @@ unparsePermissions permissions1 =
                Just groupOrUser -> unparseGroupOrUser groupOrUser
             ++ ":"
             ++ map unparseActivity (activities permission)
-            ++ unparseVersionPair (fromVersion permission) 
+            ++ unparseVersionPair (fromVersion permission)
                (toVersion permission)
             )
          permissions1
    in
       unwords permissions2
-                   
+
 
 unparseActivity :: Activity -> Char
 unparseActivity activity = case activity of
@@ -165,7 +165,7 @@ unparseVersionPair fromVersionOpt toVersionOpt =
       (Nothing,Nothing) -> ""
       (fromV,Nothing) -> p fromV True Nothing
       (Nothing,toV) -> p  Nothing True toV
-      (fromV,toV) 
+      (fromV,toV)
          | fromV == toV -> p fromV False Nothing
          | True -> p fromV True toV
    where
@@ -223,7 +223,7 @@ permissions1Parser =
                return (permission : permissions)
             )
       )
-      
+
 
 allowEOF :: Parser [a] -> Parser [a]
 allowEOF parser0 =
@@ -232,7 +232,7 @@ allowEOF parser0 =
          return []
       )
    <|>parser0
-      
+
 
 -- | A single permission
 permissionParser :: Parser Permission
@@ -240,7 +240,7 @@ permissionParser =
    do
       grant <- plusMinusParser
       domain <-
-            (do 
+            (do
                groupOrUser <- groupOrUserParser
                return (Just groupOrUser)
             )
@@ -321,7 +321,7 @@ versionInterval =
       return (fromMaybe (Nothing,Nothing) intervalOpt)
 
 -- | The range of applicable object versions
-versionInterval1 :: Parser (Maybe ObjectVersion,Maybe ObjectVersion) 
+versionInterval1 :: Parser (Maybe ObjectVersion,Maybe ObjectVersion)
 versionInterval1 =
    do
       char '['
@@ -330,7 +330,7 @@ versionInterval1 =
       versionBOpt <- optional0 versionParser
       char ']'
       case (versionAOpt,dotsOpt,versionBOpt) of
-         (Just versionA,Nothing,Nothing) 
+         (Just versionA,Nothing,Nothing)
             -> return (Just versionA,Just versionA)
          (Just versionA,Just (),Nothing)
             -> return (Just versionA,Nothing)
@@ -339,7 +339,7 @@ versionInterval1 =
          (Nothing,Just (),Just versionB)
             -> return (Nothing,Just versionB)
          _ -> unexpected "Unable to parse range of applicable object versions"
-      
+
 -- | The parser combinator Parsec doesn't define
 optional0 :: Parser a -> Parser (Maybe a)
 optional0 parser =

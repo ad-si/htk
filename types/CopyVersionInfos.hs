@@ -1,17 +1,17 @@
 -- | The code in this module has the job of copying the VersionInfo for a version
--- (such things as the user description and so on, but not the actual 
+-- (such things as the user description and so on, but not the actual
 -- checked-in objects) from one repository to another, unless that has
 -- already been done.  It also does the same for all the version's ancestors.
 module CopyVersionInfos(
-   copyVersionInfos, 
-   -- :: FromTo VersionGraph -> [ObjectVersion] 
+   copyVersionInfos,
+   -- :: FromTo VersionGraph -> [ObjectVersion]
    -- -> IO (ObjectVersion -> IO VersionInfo)
    -- Copy all the object versions in the list from the from VersionGraph
    -- to the toVersionGraph.
-   -- 
+   --
    -- We return a function which takes any ObjectVersion in the from repository
-   -- and returns the corresponding VersionInfo (current or planned) in the 
-   -- to repository.  
+   -- and returns the corresponding VersionInfo (current or planned) in the
+   -- to repository.
    ) where
 
 import Maybe
@@ -40,7 +40,7 @@ import CopyVersion(FromTo(..))
 data ProtoState = ProtoState {
       -- we give all ProtoVersions both in a finite map, and in a list.
    fm :: FiniteMap ServerInfo ProtoVersion,
-   list :: [ProtoVersion] 
+   list :: [ProtoVersion]
       -- parents always occur before their children in this list.
    }
 
@@ -64,12 +64,12 @@ newtype ServerInfoDict = ServerInfoDict (FiniteMap ServerInfo ObjectVersion)
 
 -- | Copy all the object versions in the list from the from VersionGraph
 -- to the toVersionGraph.
--- 
+--
 -- We return a function which takes any ObjectVersion in the from repository
--- and returns the corresponding VersionInfo (current or planned) in the 
--- to repository.  
-copyVersionInfos 
-   :: FromTo VersionGraph -> [ObjectVersion] 
+-- and returns the corresponding VersionInfo (current or planned) in the
+-- to repository.
+copyVersionInfos
+   :: FromTo VersionGraph -> [ObjectVersion]
    -> IO (ObjectVersion -> IO VersionInfo)
 copyVersionInfos (FromTo {from = fromGraph,to = toGraph}) oldVersions =
    do
@@ -95,22 +95,22 @@ copyVersionInfos (FromTo {from = fromGraph,to = toGraph}) oldVersions =
                Nothing ->
                   do
                      fromVersionInfo <- getVersionInfo fromClient fromVersion
-                     case lookupServerInfo serverInfoDict 
+                     case lookupServerInfo serverInfoDict
                            (server fromVersionInfo) of
                         Nothing -> error ("CopyVersionInfo bug: unknown or "
                            ++ "uncopied version " ++ toString fromVersion)
                         Just toVersion ->
                            do
-                              toVersionInfo 
+                              toVersionInfo
                                  <- getVersionInfo toClient toVersion
                               return toVersionInfo
-      return resultMap 
+      return resultMap
 
 -- ------------------------------------------------------------------------
 -- Initial pass for all the versions
 -- ------------------------------------------------------------------------
 
-prepareVersions :: FromTo VersionGraphClient -> [ObjectVersion] 
+prepareVersions :: FromTo VersionGraphClient -> [ObjectVersion]
    -> IO (ProtoState,ServerInfoDict)
 prepareVersions (FromTo {from = fromGraph,to = toGraph}) versions =
    do
@@ -151,15 +151,15 @@ prepareOneVersion fromGraph serverInfoDict protoState0 fromVersion =
          Nothing -> case lookupVersion protoState0 serverInfo of
             Just _ -> -- already in protoState0
                return (protoState0,Right fromVersion)
-            Nothing -> 
+            Nothing ->
                -- This node must be inserted in protoState0, along with all
                -- its ancestors not alreadyd entered.
                do
                   (protoState1,toParentVersionsRev) <- foldM
                      (\ (protoState0,toParentVersions0) fromParentVersion ->
                         do
-                           (protoState1,toParentVersion) 
-                              <- prepareOneVersion fromGraph serverInfoDict 
+                           (protoState1,toParentVersion)
+                              <- prepareOneVersion fromGraph serverInfoDict
                                  protoState0 fromParentVersion
                            return (protoState1,
                               toParentVersion : toParentVersions0)
@@ -223,7 +223,7 @@ mkServerInfoDict versionGraphClient =
 -- ProtoState.
 --
 -- The first argument is the destination VersionGraph.
-copyProtoStateVersions :: VersionGraph -> ProtoState 
+copyProtoStateVersions :: VersionGraph -> ProtoState
    -> IO (FiniteMap ObjectVersion VersionInfo)
 copyProtoStateVersions toGraph protoState =
    do
@@ -235,7 +235,7 @@ copyProtoStateVersions toGraph protoState =
          protoVersions :: [ProtoVersion]
          protoVersions = reverse (list protoState)
 
-      -- We try to structure this to use only a constant number of 
+      -- We try to structure this to use only a constant number of
       -- server-requests.
       -- (1) Pass 1.  Allocate the new ObjectVersions.
       let
@@ -247,7 +247,7 @@ copyProtoStateVersions toGraph protoState =
          case response1 of
             MultiResponse responses1 ->
                return (
-                  zipWith 
+                  zipWith
                      (\ (IsObjectVersion newVersion) protoVersion ->
                         (newVersion,protoVersion)
                          )
@@ -258,7 +258,7 @@ copyProtoStateVersions toGraph protoState =
          -- Map from old object versions which have not yet been constructed
          -- to the corresponding new object version.
          oldToNew :: FiniteMap ObjectVersion ObjectVersion
-         oldToNew = 
+         oldToNew =
             listToFM (
                map
                   (\ (newVersion,protoVersion) ->
@@ -266,7 +266,7 @@ copyProtoStateVersions toGraph protoState =
                      )
                   protoVersions2
                )
- 
+
          mkParents :: FiniteMap ObjectVersion ObjectVersion ->
             [Either ObjectVersion ObjectVersion] -> [ObjectVersion]
          mkParents oldToNew parents =
@@ -280,18 +280,18 @@ copyProtoStateVersions toGraph protoState =
                          fromVersion
                    )
                 parents
-  
+
       -- (2) Pass 2.  Set the data.
       -- Here we have a potential problem: someone may be simultaneously
       -- trying to copy the identical version to the repository.  In this
       -- case, it can happen that we try to set a VersionInfo which has
       -- already been set, and ModifyUserInfo will return an IsObjectVersion
-      -- for the existing version.  
+      -- for the existing version.
       --     Should that happen, what we do is (1) modify oldToNew1
       -- appropriately; (2) for all versionInfos which we committed with a
       -- parent whose VersionInfo was set elsewhere, recommit with the
       -- parent number correctly.  Thus this will require a third pass.
-      
+
       let
          -- the first ObjectVersion is the old objectVersion.
          newVersionInfos :: [(ObjectVersion,VersionInfo)]
@@ -320,15 +320,15 @@ copyProtoStateVersions toGraph protoState =
          command2 :: SimpleDBCommand
          command2 = MultiCommand
             (map
-               (\ (_,newVersionInfo) 
-                  -> ModifyUserInfo (VersionInfo1 newVersionInfo)) 
+               (\ (_,newVersionInfo)
+                  -> ModifyUserInfo (VersionInfo1 newVersionInfo))
                newVersionInfos
                )
 
       (MultiResponse responses2) <- queryRepository toRepository command2
 
       -- (3) Pass 3.  (See comments to Pass 2)
-      -- fixups lists pairs in which the first element is the 
+      -- fixups lists pairs in which the first element is the
       -- new version number we tried to give a version, and the second
       -- the version number it turns out already to have.
       (fixups1 :: [Maybe FixOldNew]) <-
@@ -345,7 +345,7 @@ copyProtoStateVersions toGraph protoState =
                   throwError ClientError ("Copying failed: " ++ show errorType
                      ++ ": " ++ mess)
                )
-            responses2 newVersionInfos          
+            responses2 newVersionInfos
 
       let
          fixups2 :: [FixOldNew]
@@ -353,9 +353,9 @@ copyProtoStateVersions toGraph protoState =
 
          -- map from old parent to new parent.
          fixupFM :: FiniteMap ObjectVersion ObjectVersion
-         fixupFM = listToFM 
+         fixupFM = listToFM
             (map
-               (\ fixOldNew -> 
+               (\ fixOldNew ->
                   (failedNewVersion fixOldNew,actualNewVersion fixOldNew)
                   )
                fixups2
@@ -363,12 +363,12 @@ copyProtoStateVersions toGraph protoState =
 
          -- fixedUpVersionInfos contains the altered version infos which
          -- do not belong to versions which were already entered.
-         -- 
+         --
          -- newVersionInfosFM2 contains all the version infos.
          (fixedUpVersionInfos1 :: [VersionInfo],
                newVersionInfosFM2 :: FiniteMap ObjectVersion VersionInfo) =
             foldFM
-               (\ oldVersion oldVersionInfo 
+               (\ oldVersion oldVersionInfo
                      (state0 @ (fixedUpVersionInfos0,fm0)) ->
                   let
                      oldParents :: [ObjectVersion]
@@ -410,46 +410,46 @@ copyProtoStateVersions toGraph protoState =
                               addToFM fm0 oldVersion newVersionInfo
                               )
                   )
-                     
+
                ([],newVersionInfosFM)
                newVersionInfosFM
 
       case (fixups2,fixedUpVersionInfos1) of
          ([],_) -> return newVersionInfosFM -- no fixups
-         (_,[]) -> return newVersionInfosFM2 
+         (_,[]) -> return newVersionInfosFM2
             -- fixups, but no need to change parent settings in repository.
          (_,_) ->
             do
                let
                   command3 = MultiCommand (
                      map
-                        (\ versionInfo 
+                        (\ versionInfo
                            -> ModifyUserInfo (VersionInfo1 versionInfo))
                         fixedUpVersionInfos1
                      )
 
-               (MultiResponse responses3) 
+               (MultiResponse responses3)
                   <- queryRepository toRepository command3
 
                let
                   (responseErrors :: [String]) = map
                      (\ response -> case response of
                         IsOK -> ""
-                        IsError errorType mess -> show errorType ++ ": " 
+                        IsError errorType mess -> show errorType ++ ": "
                           ++ mess ++ "\n"
                         _ -> "CopyVersionInfo: mysterious error\n"
                         )
                      responses3
 
                case concat responseErrors of
-                  "" -> done 
+                  "" -> done
                   errorMess -> throwError ClientError errorMess
                return newVersionInfosFM2
 
 -- Record for a version which needs to be fixed in Pass 3 (see above).
 data FixOldNew = FixOldNew {
    oldVersion :: ObjectVersion, -- the version it had in the from repository.
-   failedNewVersion :: ObjectVersion, 
+   failedNewVersion :: ObjectVersion,
       -- the version we tried to give it in the new version
    actualNewVersion :: ObjectVersion
       -- the version someone else had already saved it under.

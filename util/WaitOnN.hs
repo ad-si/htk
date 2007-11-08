@@ -1,7 +1,7 @@
 -- | Run a list of actions simultaneously, finishing when each of the
 -- actions finishes, and returning their results.  So sort of like
 -- a concurrent sequence.
--- 
+--
 -- Obviously it's rather important to be sure that all of the
 -- actions actually will finish!!!
 module WaitOnN(
@@ -13,13 +13,13 @@ import Control.Concurrent
 
 waitOnN :: [IO a] -> IO [a]
 waitOnN [] = return []
-waitOnN [action] = 
+waitOnN [action] =
    do
       res <- action
       return [res]
 waitOnN (first:rest) =
    do
-      mVar <- newEmptyMVar 
+      mVar <- newEmptyMVar
       forkIO (
          do
             list <- waitOnN rest
@@ -27,4 +27,4 @@ waitOnN (first:rest) =
          )
       firstRes <- first
       restRes <- takeMVar mVar
-      return (firstRes:restRes)   
+      return (firstRes:restRes)

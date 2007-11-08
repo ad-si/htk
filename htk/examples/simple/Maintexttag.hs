@@ -29,7 +29,7 @@ main =
         line_event n =
           do (entered_line, _) <- bindSimple (lines !! n) Enter
              (left_line, _) <- bindSimple (lines !! n) Leave
-             return 
+             return
                (   (entered_line >>>
                       (ed # tooltip ("this is line " ++ show (n + 1) ++
                                      " of the editor widget") >>

@@ -2,13 +2,13 @@
 -- views, retaining those whose version is not the ancestor of another version
 -- in the same list.   This is useful in merging, since normally direct
 -- ancestors of versions being merged can be disregarded.
--- 
+--
 -- NB.  We assume for the time being that all views are recently checked out.
--- This means every object has an originating Version (the value 
--- returned by getVersion).  The module Merging enforces this 
+-- This means every object has an originating Version (the value
+-- returned by getVersion).  The module Merging enforces this
 -- restriction, which perhaps will be lifted one day.
 module MergePrune(
-   mergePrune, 
+   mergePrune,
       -- :: [(View,Link object,object)] -> IO [(View,Link object,object)]
       -- The type of the list is chosen to be compatible with that of
       -- ObjectTypes.attemptMerge.  The objects should match the links.
@@ -45,7 +45,7 @@ mergePrune ((linkList0 @ ((firstView,_,_):_)) :: [(View,Link object,object)]) =
          fMap :: FiniteMap (Link object) [(View,Link object,object)]
          fMap = foldl
             (\ map0 (vlo@(view,link,object)) ->
-               addToFM map0 link 
+               addToFM map0 link
                   (vlo : (lookupWithDefaultFM map0 [] link))
                )
             emptyFM
@@ -66,7 +66,7 @@ mergePrune ((linkList0 @ ((firstView,_,_):_)) :: [(View,Link object,object)]) =
       return linkList3
 
 mergePruneInner :: HasCodedValue object
-   => VersionGraphClient -> [(View,Link object,object)] 
+   => VersionGraphClient -> [(View,Link object,object)]
    -> IO [(View,Link object,object)]
 mergePruneInner graphClient (linkList0 :: [(View,Link object,object)])
       =
@@ -77,7 +77,7 @@ mergePruneInner graphClient (linkList0 :: [(View,Link object,object)])
          <- getInputGraphBack graphClient (\ _ _ -> ())
       let
          getVersionParents :: ObjectVersion -> [ObjectVersion]
-         getVersionParents ov = case getParents inputGraphBack 
+         getVersionParents ov = case getParents inputGraphBack
                (CheckedInNode ov) of
             Nothing -> error ("MergePrune.mergePruneInner: View not in "
                ++ "version graph")
@@ -109,9 +109,9 @@ mergePruneInner graphClient (linkList0 :: [(View,Link object,object)])
 
          prunedVersions = removeAncestorsByPure getVersionParents versions
 
-         result = 
+         result =
             map
-               (lookupWithDefaultFM nodeMap (error "MergePrune.1")) 
+               (lookupWithDefaultFM nodeMap (error "MergePrune.1"))
                prunedVersions
 
       return result
@@ -119,7 +119,7 @@ mergePruneInner graphClient (linkList0 :: [(View,Link object,object)])
 getVersion :: HasCodedValue object => View -> Link object -> IO Version
 getVersion view link =
    do
-      objectVersionOpt <- getLastChange view link 
+      objectVersionOpt <- getLastChange view link
       case objectVersionOpt of
          Just objectVersion -> return objectVersion
-   
+

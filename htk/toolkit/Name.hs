@@ -10,14 +10,14 @@ module Name (
 
 -- | The @Name@ datatype.
 data Name = Name { short :: Int -> String,
-	           full  :: String }
+                   full  :: String }
 
 shortdef :: String -> Int -> String
 shortdef str i =
   if length str > i then take (i - 2) str ++ ".." else str
 
 -- | Creates a new name.
-createName :: String 
+createName :: String
    -- ^ the full name.
    -> Name
    -- ^ A name.

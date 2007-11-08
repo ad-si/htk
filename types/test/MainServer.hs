@@ -6,7 +6,7 @@ import Server
 import SimpleDBService
 
 main :: IO ()
-main = 
+main =
    do
-      services <- mkSimpleDBServices 
+      services <- mkSimpleDBServices
       runServer services

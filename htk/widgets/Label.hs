@@ -32,10 +32,10 @@ newtype Label = Label GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new label widget and returns a handler.
-newLabel :: Container par => par 
+newLabel :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Label] 
+   -> [Config Label]
    -- ^ the list of configuration options for this label.
    -> IO Label
    -- ^ A label widget.
@@ -50,7 +50,7 @@ newLabel par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Label where 
+instance GUIObject Label where
   toGUIObject (Label w) = w
   cname _ = "Label"
 
@@ -67,7 +67,7 @@ instance Widget Label
 instance HasBorder Label
 
 -- | A label widget has a foreground and background colour.
-instance HasColour Label where 
+instance HasColour Label where
   legalColourID = hasForeGroundColour
 
 -- | You can specify the font of a label.

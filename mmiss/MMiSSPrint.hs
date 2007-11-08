@@ -1,4 +1,4 @@
--- | This module contains the functions for printing objects 
+-- | This module contains the functions for printing objects
 module MMiSSPrint(
    printMMiSSObject
    ) where

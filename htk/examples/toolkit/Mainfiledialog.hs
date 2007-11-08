@@ -15,9 +15,9 @@ main =
     fref <- newRef dir
     main <- initHTk [text "file dialog example"]
     open <- newButton main [text ("Open file dialog ("++ dir++ ")"),
-		            width 60]
+                            width 60]
     nuopen <- newButton main [text ("Open new file dialog ("++ dir++ ")"),
-		              width 60]
+                              width 60]
     pack open [PadX 10, PadY 5]
     pack nuopen [PadX 10, PadY 5]
     msg <- newLabel main [text "Welcome", font (Lucida, 12::Int),
@@ -31,16 +31,16 @@ main =
     spawnEvent (forever ((clickedquit >> always (destroy main)) +>
                          (clickedopen >>>
                             do selev <- fileDialog "Open file" fref
-			       file  <- sync selev
-			       case file of
+                               file  <- sync selev
+                               case file of
                                  Just fp ->
                                    msg # text ("selected " ++ fp) >> done
                                  _ -> msg #
                                         text "dialog canceled" >> done) +>
                          (clickednuopen >>>
                             do selev <- newFileDialog "Open file" fref
-			       file  <- sync selev
-			       case file of
+                               file  <- sync selev
+                               case file of
                                  Just fp ->
                                    msg # text ("selected " ++ fp) >> done
                                  _ -> msg #

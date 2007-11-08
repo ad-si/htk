@@ -1,5 +1,5 @@
-{-- OntoParser stellt eine Funktion zum Parsen von mmisslatex-Ontologiebefehlen 
-    in LaTeX-Files (oder anderen Textfiles) zur Verfügung. 
+{-- OntoParser stellt eine Funktion zum Parsen von mmisslatex-Ontologiebefehlen
+    in LaTeX-Files (oder anderen Textfiles) zur Verfügung.
 --}
 
 module OntoParser (
@@ -61,8 +61,8 @@ data ObjectLink = ObjectLink {
   linkRelation :: String
 } deriving(Read, Show)
 
-data OFrag = 
-   ClassDeclFrag ClassDecl 
+data OFrag =
+   ClassDeclFrag ClassDecl
  | ObjectDeclFrag ObjectDecl
  | BaseRelationDeclFrag BaseRelationDecl
  | RelationTypeDeclFrag RelationTypeDecl
@@ -71,28 +71,28 @@ data OFrag =
 
 {--
 parseMMiSSOntologyFile :: SourceName -> IO(WithError MMiSSOntology)
-parseMMiSSOntologyFile s = 
+parseMMiSSOntologyFile s =
  do peFs <- parseFromFile (ontoDoc [] []) s
     case peFs of
       Right fs -> return (generateOntology (emptyMMiSSOntology "Test" AutoInsert) fs)
       Left err -> return (hasError (show err))
 --}
-{-- ontoDoc ist die Hauptparser-Funktion. Jedes erkannte Fragment wird direkt verarbeitet und in 
+{-- ontoDoc ist die Hauptparser-Funktion. Jedes erkannte Fragment wird direkt verarbeitet und in
     Ontologie-Datenstruktur aufgenommen. Relationen werden so beim Parsen aufgesammelt und dem
     Parser für Objekt-Links zur Verfügung gestellt.
 --}
 
 parseOntology :: String -> Either ParseError [OFrag]
-parseOntology str = parse (ontoDoc [] []) "" str 
+parseOntology str = parse (ontoDoc [] []) "" str
 
 
 ontoDoc :: [String] -> [OFrag] -> GenParser Char st [OFrag]
-ontoDoc rels fs =  
+ontoDoc rels fs =
   do eof
      return(fs)
   <|> do f <- (frag rels) <?> "Fragment"
          ontoDoc rels (fs ++ [f])
- 
+
 
 
 
@@ -101,7 +101,7 @@ ontoDoc rels fs =
 -- ontologyElement-Parser) die Makros, die einem Relationsnamen entsprechen als Links erkennen kann.
 
 frag :: [String] -> GenParser Char st OFrag
-frag rels = 
+frag rels =
        comment
        <|> do backslash
               (try (ontologyElement rels)) <|> escapedChar <|> return(OtherFrag "\\")
@@ -127,7 +127,7 @@ comment = do char '%'
              return (OtherFrag "")
 
 value :: String -> GenParser Char st String
-value rightClosure = 
+value rightClosure =
   try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
          s2 <- try(between (char '{') (char '}') (try(value rightClosure)))
          s3 <- option "" (value rightClosure)
@@ -146,14 +146,14 @@ value rightClosure =
 
 
 ontologyElement :: [String] -> GenParser Char st OFrag
-ontologyElement rels = declClassP <|> declObjectP  -- <|> declRelationP 
-                       <|> declBaseRelationP <|> declRelTypeP 
+ontologyElement rels = declClassP <|> declObjectP  -- <|> declRelationP
+                       <|> declBaseRelationP <|> declRelTypeP
                        <|> objRelationP
 
 
 declClassP :: GenParser Char st OFrag
 
-declClassP = 
+declClassP =
   do try (string "DeclClass") <|> (try (string "Class"))
      name <- try(between (char '{') (char '}') idParser)
      spaces
@@ -162,10 +162,10 @@ declClassP =
      superClass <- try(between (char '{') (char '}') idParser)
      superClassValue <- if (superClass == "")
                           then return(Nothing)
-                          else return(Just(superClass))     
+                          else return(Just(superClass))
      return(ClassDeclFrag (ClassDecl name defaultText superClassValue))
 
-declObjectP = 
+declObjectP =
   do try (string "DeclObject") <|> (try (string "Object"))
      name <- try(between (char '{') (char '}') idParser)
      spaces
@@ -174,10 +174,10 @@ declObjectP =
      instanceOf <- try(between (char '{') (char '}') idParser)
      return(ObjectDeclFrag (ObjectDecl name defaultText instanceOf))
 {--
-declRelationP = 
+declRelationP =
   do try (string "DeclRelation")
-     card <- option "" (try(between (char '{') (char '}') idParser)) 
-     cardValue <- if (card == "") 
+     card <- option "" (try(between (char '{') (char '}') idParser))
+     cardValue <- if (card == "")
                     then return(Nothing)
                     else return(Just(card))
      name <- try(between (char '{') (char '}') idParser)
@@ -190,38 +190,38 @@ declRelationP =
      return(RelationDeclFrag (RelationDecl cardValue name defaultText sourceClass targetClass))
 --}
 
-declBaseRelationP = 
-  do try (string "DeclRel") <|> (try (string "RelationName")) 
+declBaseRelationP =
+  do try (string "DeclRel") <|> (try (string "RelationName"))
      name <- try(between (char '{') (char '}') idParser)
      spaces
      defaultText <- try(between (char '{') (char '}') idParser)
 --     spaces
---     super <- choice ((try(string "{}")):(try(between (char '{') (char '}') idParser)):[]) 
---     superRel <- if (super == "{}") 
+--     super <- choice ((try(string "{}")):(try(between (char '{') (char '}') idParser)):[])
+--     superRel <- if (super == "{}")
 --                    then return(Nothing)
 --                    else return(Just(super))
      return(BaseRelationDeclFrag (BaseRelationDecl name defaultText))
 
-declRelTypeP = 
+declRelTypeP =
   do try (string "Relation")
      card <- option [] (parenthesed False '[' ']')
-     cardValue <- if (card == []) 
+     cardValue <- if (card == [])
                     then return(Nothing)
                     else return(Just(card))
      spaces
      name <- try(between (char '{') (char '}') idParser)
      spaces
      source <- try(between (char '{') (char '}') idParser)
-     spaces     
+     spaces
      target <- try(between (char '{') (char '}') idParser)
      spaces
-     super <- choice ((try(string "{}")):(try(between (char '{') (char '}') idParser)):[]) 
-     superRelation <- if (super == "{}") 
+     super <- choice ((try(string "{}")):(try(between (char '{') (char '}') idParser)):[])
+     superRelation <- if (super == "{}")
                         then return(Nothing)
                         else return(Just(super))
      return(RelationTypeDeclFrag (RelationTypeDecl cardValue name source target superRelation))
 
-objRelationP = 
+objRelationP =
   do try (string "Relate")
      name <- try(between (char '{') (char '}') idParser)
      spaces
@@ -231,12 +231,12 @@ objRelationP =
      return(ObjectLinkFrag (ObjectLink source target name))
 
 parenthesed :: Bool -> Char -> Char -> GenParser Char st String
-parenthesed printParens opening closing = 
+parenthesed printParens opening closing =
    do char opening
       s1 <- anyWithoutThisParens parSymbols ""
-      l <- many ( do str <- parenthesed True opening closing 
-		     str2 <- (anyWithoutThisParens parSymbols "")
-		     return (str ++ str2))
+      l <- many ( do str <- parenthesed True opening closing
+                     str2 <- (anyWithoutThisParens parSymbols "")
+                     return (str ++ str2))
       s2 <- anyWithoutThisParens parSymbols ""
       char closing
       p1 <- if printParens then return [opening] else return ""
@@ -246,9 +246,9 @@ parenthesed printParens opening closing =
      parSymbols = [opening] ++ [closing]
 
 anyWithoutThisParens :: String -> String -> GenParser Char st String
-anyWithoutThisParens parSymbols inStr = 
+anyWithoutThisParens parSymbols inStr =
   do s <- try (escapedBracket)
-     anyWithoutThisParens parSymbols (inStr ++ s) 
+     anyWithoutThisParens parSymbols (inStr ++ s)
   <|> do char '\\'
          anyWithoutThisParens parSymbols (inStr ++ "\\")
   <|> do s <- many1 (noneOf ("\\" ++ parSymbols))
@@ -258,12 +258,12 @@ anyWithoutThisParens parSymbols inStr =
 escapedBracket :: GenParser Char st String
 escapedBracket = do try (char '\\')
                     c <- try (oneOf "([{}])")
-                    return ("\\" ++ [c]) 
+                    return ("\\" ++ [c])
 
 
 {--
 objLinkP :: [String] -> GenParser Char st OFrag
-objLinkP rels = 
+objLinkP rels =
   try(
    do possibleRel <- try (many1 (noneOf "{\\\n"))
       if (possibleRel `elem` rels)

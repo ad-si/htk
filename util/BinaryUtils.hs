@@ -2,14 +2,14 @@
 module BinaryUtils(
    mapWrite, -- :: HasBinary b m => (a -> b) -> (WriteBinary m -> a -> m ())
    mapRead, -- :: (Monad m,HasBinary b m) => (b -> a) -> (ReadBinary m -> m a)
-   mapWriteIO, 
-      -- :: (HasBinary b m,MonadIO m) 
+   mapWriteIO,
+      -- :: (HasBinary b m,MonadIO m)
       -- => (a -> IO b) -> (WriteBinary m -> a -> m ())
    mapReadIO,
-      -- :: (HasBinary b m,MonadIO m) 
+      -- :: (HasBinary b m,MonadIO m)
       -- => (b -> IO a) -> (ReadBinary m -> m a)
 
-   ArgMonad, 
+   ArgMonad,
       -- A type for encoding a monadic action which requires an
       -- extra argument (of type "arg").
       --    ArgMonad arg m
@@ -19,9 +19,9 @@ module BinaryUtils(
       -- require a bit of context.  Thus you would write something like
       --
       -- instance Monad m => HasBinary MyType1 (ArgMonad context m) where
-      --    writeBinary wb (MyType1 v1 v2) = mkArgMonad 
+      --    writeBinary wb (MyType1 v1 v2) = mkArgMonad
       --       (\ context ->
-      --           do 
+      --           do
       --              runArgMonad context (writeBinary rb v1)
       --                 -- this is something which is automatically
       --                 -- an instance of HasBinary for (ArgMonad context m)
@@ -37,11 +37,11 @@ module BinaryUtils(
       -- this context, you could write
       --
       -- instance Monad m => HasBinary MyType2 m where
-      --    writeBinary wb (MyType2 v3 v4) = 
+      --    writeBinary wb (MyType2 v3 v4) =
       --       do
       --          context <- ...
       --          writeBinary wb v3 -- encoding v3 doesn't need context
-      --          runArgMonad context 
+      --          runArgMonad context
       --             (writeBinary (writeBinaryToArgMonad wb) v4)
       --             -- encoding v4 does need context.
    mkArgMonad, -- :: (arg -> m a) -> ArgMonad arg m a
@@ -57,7 +57,7 @@ module BinaryUtils(
    hWriteWrappedBinary, -- :: Handle -> WrappedBinary -> IO ()
 
    WrapBinary(..),
-      -- more general wrapped for any monad. 
+      -- more general wrapped for any monad.
    ) where
 
 import IO(Handle)
@@ -89,16 +89,16 @@ mapRead fn rb =
 
 -- | Like 'mapWrite', but the conversion function is also allowed to use
 -- 'IO'.
-mapWriteIO :: (HasBinary b m,MonadIO m) 
+mapWriteIO :: (HasBinary b m,MonadIO m)
    => (a -> IO b) -> (WriteBinary m -> a -> m ())
-mapWriteIO fn wb a = 
+mapWriteIO fn wb a =
    do
       b <- liftIO (fn a)
       writeBin wb b
 
 -- | LIke 'mapRead', but the conversion function is also allowed to use
 -- 'IO'.
-mapReadIO :: (HasBinary b m,MonadIO m) 
+mapReadIO :: (HasBinary b m,MonadIO m)
    => (b -> IO a) -> (ReadBinary m -> m a)
 mapReadIO fn rb =
    do
@@ -111,7 +111,7 @@ mapReadIO fn rb =
 -- context
 -- ----------------------------------------------------------------------
 
--- | A monad which hides an additional value which the 'HasBinary' 
+-- | A monad which hides an additional value which the 'HasBinary'
 -- instances should be able to get at.  This is used, for example,
 -- by "CodedValue", to make the 'View' available to instances.
 newtype ArgMonad arg m a = ArgMonad (arg -> m a)
@@ -131,12 +131,12 @@ readBinaryToArgMonad = liftReadBinary toArgMonad
 runArgMonad :: arg -> ArgMonad arg m a -> m a
 runArgMonad arg (ArgMonad fn) = fn arg
 
-instance Functor m => Functor (ArgMonad arg m) where 
+instance Functor m => Functor (ArgMonad arg m) where
    fmap mapFn (ArgMonad fn) =
       let
          fn2 arg = fmap mapFn (fn arg)
       in
-         ArgMonad fn2 
+         ArgMonad fn2
 
 instance Monad m => Monad (ArgMonad arg m) where
    (>>=) (ArgMonad fn1) getArgMonad =
@@ -164,7 +164,7 @@ instance MonadIO m => MonadIO (ArgMonad arg m) where
 
 -- | A wrapper for instances of Binary.  This can be written, but not
 -- read (since we wouldn't know what type to decode).
-data WrappedBinary = 
+data WrappedBinary =
    forall v . HasBinary v IO => WrappedBinary v
 
 -- | Write a 'WrappedBinary'

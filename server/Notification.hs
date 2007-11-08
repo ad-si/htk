@@ -32,7 +32,7 @@ data Notifier =
       oID :: ObjectID,
       writeAction :: String -> IO (),
       closeAction :: IO(),
-      
+
       eventChannel :: EqGuardedChannel String ()
       }
 
@@ -68,7 +68,7 @@ mkNotifier1 =
             do
                key <- receiveAction
                sync (send eventChannel (key,()))
-               readerThread            
+               readerThread
 
       forkIO readerThread
       registerTool notifier

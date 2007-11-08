@@ -23,7 +23,7 @@ import MMiSSSessionState
 import MMiSSImportExportErrors
 import MMiSSGetPut
 
-getPermissions :: MMiSSSessionState -> GetPermissions 
+getPermissions :: MMiSSSessionState -> GetPermissions
    -> IO GetPermissionsResponse
 getPermissions state (GetPermissions whichPermissions) =
    do
@@ -31,9 +31,9 @@ getPermissions state (GetPermissions whichPermissions) =
       permissions <- VersionDB.getPermissions repository ovOpt
       return (GetPermissionsResponse (Permissions (
          unparsePermissions permissions)))
-            
-      
-setPermissions :: MMiSSSessionState -> SetPermissions 
+
+
+setPermissions :: MMiSSSessionState -> SetPermissions
    -> IO SetPermissionsResponse
 setPermissions state (SetPermissions whichPermissions (Permissions str)) =
    do
@@ -61,8 +61,8 @@ setAdminStatus state (SetAdminStatus
       VersionDB.setAdminStatus repository isClaim
       return SetAdminStatusResponse
 
-decodeWhichPermissions 
-   :: MMiSSSessionState -> WhichPermissions 
+decodeWhichPermissions
+   :: MMiSSSessionState -> WhichPermissions
    -> IO (VersionDB.Repository,Maybe (ObjectVersion,VersionDB.Location))
 decodeWhichPermissions state whichPermissions =
    case whichPermissions of
@@ -72,14 +72,14 @@ decodeWhichPermissions state whichPermissions =
             return (toVersionGraphRepository versionGraph,Nothing)
       WhichPermissionsVersionRef_ObjectFullName (versionRef,objectFullName) ->
          do
-            view <- lookupView state versionRef  
+            view <- lookupView state versionRef
             linkedObject <- getLinkedObject view objectFullName
             let
                wrappedLink :: WrappedLink
                wrappedLink = toWrappedLink linkedObject
-               
+
                location :: VersionDB.Location
                location = toKey wrappedLink
 
-            (Just objectVersion) <- getParentVersion view 
+            (Just objectVersion) <- getParentVersion view
             return (repository view,Just (objectVersion,location))

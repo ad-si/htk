@@ -1,9 +1,9 @@
 -- |
 -- Description: Simple Events
--- 
--- We implement the Source type and combinators for it. 
+--
+-- We implement the Source type and combinators for it.
 module Sources(
-   Source, 
+   Source,
       -- A Source x d represents something that stores a value of
       -- type x and sends change messages of type d.
 
@@ -53,11 +53,11 @@ module Sources(
       -- To be used with care, since the IO action ties up the source.
 
    foldSource,
-      -- :: (x -> state) -> (state -> d1 -> (state,d2)) 
+      -- :: (x -> state) -> (state -> d1 -> (state,d2))
       --    -> Source x d1 -> Source (state,x) d2
 
    foldSourceIO,
-      -- :: (x1 -> IO (state,x2)) -> (state -> d1 -> IO (state,d2)) 
+      -- :: (x1 -> IO (state,x2)) -> (state -> d1 -> IO (state,d2))
       -- -> Source x1 d1 -> Source (state,x2) d2
 
    stepSource,
@@ -70,13 +70,13 @@ module Sources(
    choose,
       -- :: Source x1 d1 -> Source x2 d2 -> Source (x1,x2) (Either d1 d2)
    seqSource,
-      -- :: Source x1 x1 -> (x1 -> Source x2 x2) -> Source x2 x2   
+      -- :: Source x1 x1 -> (x1 -> Source x2 x2) -> Source x2 x2
    flattenSource,
       -- :: Source x [d] -> Source x d
       -- A Source combinator which "flattens" lists of updates.
 
    -- Monadic Sources
-   SimpleSource(..), 
+   SimpleSource(..),
       -- newtype for Source x x
       -- Instance of Functor and Monad
 
@@ -89,7 +89,7 @@ module Sources(
    HasSource(..),
    HasSimpleSource(..),
 
-   readContents, 
+   readContents,
       -- :: HasSource source x d => source -> IO x
       -- Get the current contents of the source, but don't specify any other
       -- action.
@@ -99,9 +99,9 @@ module Sources(
    mkHistorySimpleSource, -- :: x -> SimpleSource x -> SimpleSource (x,x)
    uniqSimpleSource, -- :: Eq x => SimpleSource x -> SimpleSource x
 
-   pairSimpleSources, 
+   pairSimpleSources,
       -- :: SimpleSource x1 -> SimpleSource x2 -> SimpleSource (x1,x2)
-      -- Pair two SimpleSource's.  This is probably better than using >>=, 
+      -- Pair two SimpleSource's.  This is probably better than using >>=,
       -- since it does not require reregistering with the second SimpleSource
 
    sequenceSimpleSource, -- :: [SimpleSource x] -> SimpleSource [x]
@@ -116,8 +116,8 @@ module Sources(
       -- allow us to sequence a SimpleSource where the continuation function
       -- uses an IO action.
 
-   addNewSourceActions, 
-      -- :: Source x d -> (x -> IO ()) -> (d -> IO ()) 
+   addNewSourceActions,
+      -- :: Source x d -> (x -> IO ()) -> (d -> IO ())
       -- -> SinkID -> ParallelExec -> IO x
    -- Run the specified actions for the source, using the given SinkID and
    -- in the ParallelExec thread.
@@ -139,7 +139,7 @@ module Sources(
       -- Used when we are worried that a SimpleSource recursively constructed
       -- by mapIOSeq, >>= and friends may actually try to call itself, and
       -- so loop forever.   The Strings identify the SimpleSource,
-      -- and so the [String] is effectively a backtrace of the TSems, 
+      -- and so the [String] is effectively a backtrace of the TSems,
       -- revealing what chain of simple sources might have caused the loop.
 
    mkIOSimpleSource,
@@ -172,7 +172,7 @@ newtype Client d = Client (d -> IO (Maybe (Client d)))
 data SourceData x d = SourceData {
    x :: x,
    client :: Maybe (Client d)
-   } 
+   }
 
 -- -----------------------------------------------------------------
 -- Producer side
@@ -235,7 +235,7 @@ variableGeneralSource x =
          update updateFn =
             do
                (SourceData {x = x1,client = clientOpt}) <- takeMVar mVar
- 
+
                let
                   (x2,ds,extra) = updateFn x1
                   sendUpdates (Just (Client clientFn)) (d:ds) =
@@ -269,7 +269,7 @@ combineClients (Client clientFn1) (Client clientFn2) =
                (Nothing,Nothing) -> return Nothing
                (Just newClient1,Nothing) -> return (Just newClient1)
                (Nothing,Just newClient2) -> return (Just newClient2)
-               (Just newClient1,Just newClient2) 
+               (Just newClient1,Just newClient2)
                   -> return (Just (combineClients newClient1 newClient2))
    in
       Client clientFn
@@ -306,7 +306,7 @@ mkTemporaryClient client =
                   then
                      do
                         newClientOpt <- oldClientFn d
-                        return (fmap newClient newClientOpt) 
+                        return (fmap newClient newClientOpt)
                   else
                      return Nothing
       return (newClient client,writeIORef ioRef False)
@@ -331,7 +331,7 @@ mkComputedClient getClient =
 
 -- | mkComputedClient is like mkComputedClient, but still more dangerously
 -- allows an IO action to compute the client.
--- 
+--
 -- It also allows the supplied function to provide Nothing, indicating no
 -- client.
 mkComputedClientIO :: (x -> IO (Maybe (Client d))) -> IO (Client d,x -> IO ())
@@ -453,7 +453,7 @@ filterClient filterFn (Client clientFn2) =
          in
             case d2Opt of
                Nothing -> return (Just client1)
-               Just d2 -> 
+               Just d2 ->
                   do
                      newClient2Opt <- clientFn2 d2
                      return (fmap
@@ -480,7 +480,7 @@ filterClientIO filterFn (Client clientFn2) =
             d2Opt <- filterFn d1
             case d2Opt of
                Nothing -> return (Just client1)
-               Just d2 -> 
+               Just d2 ->
                   do
                      newClient2Opt <- clientFn2 d2
                      return (fmap
@@ -490,7 +490,7 @@ filterClientIO filterFn (Client clientFn2) =
    in
       client1
 
-foldSource :: (x -> state) -> (state -> d1 -> (state,d2)) 
+foldSource :: (x -> state) -> (state -> d1 -> (state,d2))
    -> Source x d1 -> Source (state,x) d2
 foldSource xFn foldFn =
    let
@@ -500,9 +500,9 @@ foldSource xFn foldFn =
       foldSourceIO xFnIO foldFnIO
 
 -- | Fold a Source so that it can carry state around.
-foldSourceIO :: (x1 -> IO (state,x2)) -> (state -> d1 -> IO (state,d2)) 
+foldSourceIO :: (x1 -> IO (state,x2)) -> (state -> d1 -> IO (state,d2))
    -> Source x1 d1 -> Source (state,x2) d2
-foldSourceIO (xFnIO :: x1 -> IO (state,x2)) 
+foldSourceIO (xFnIO :: x1 -> IO (state,x2))
       (foldFnIO :: state -> d1 -> IO (state,d2))
       ((Source addClient1) :: Source x1 d1) =
    let
@@ -510,18 +510,18 @@ foldSourceIO (xFnIO :: x1 -> IO (state,x2))
       addClient2 client2 =
          do
             let
-               createClient :: state -> Client d1  
+               createClient :: state -> Client d1
                createClient state = foldClientIO state foldFnIO client2
             (computedClient,writeState) <- mkComputedClient createClient
             x1 <- addClient1 computedClient
-            
+
             (state,x2) <- xFnIO x1
             writeState state
             return (state,x2)
    in
       Source addClient2
 
-foldClientIO 
+foldClientIO
    :: state -> (state -> d1 -> IO (state,d2)) -> Client d2 -> Client d1
 foldClientIO state1 foldFnIO (Client clientFn2) =
    let
@@ -547,7 +547,7 @@ stepSource fromX fromD (Source addClient1) =
             writeClientOpt clientOpt
             return x
    in
-      Source addClient2 
+      Source addClient2
 
 -- | A Source combinator which \"flattens\" lists of updates.
 flattenSource :: Source x [d] -> Source x d
@@ -575,7 +575,7 @@ flattenClient client0 = Client (mkClientFn client0)
 
 -- Combinators
 choose :: Source x1 d1 -> Source x2 d2 -> Source (x1,x2) (Either d1 d2)
-choose ((Source addClient1) :: Source x1 d1) 
+choose ((Source addClient1) :: Source x1 d1)
        ((Source addClient2) :: Source x2 d2) =
    let
       addClient (client :: Client (Either d1 d2)) =
@@ -584,14 +584,14 @@ choose ((Source addClient1) :: Source x1 d1)
             let
                client1 = Client clientFn1
 
-               clientFn1 d1 = 
+               clientFn1 d1 =
                   do
                      continue <- staticClientFn (Left d1)
                      return (fmap (\ _ -> client1) continue)
-             
+
                client2 = Client clientFn2
 
-               clientFn2 d2 = 
+               clientFn2 d2 =
                   do
                      continue <- staticClientFn (Right d2)
                      return (fmap (\ _ -> client2) continue)
@@ -602,15 +602,15 @@ choose ((Source addClient1) :: Source x1 d1)
    in
       Source addClient
 
-seqSource :: Source x1 x1 -> (x1 -> Source x2 x2) -> Source x2 x2   
+seqSource :: Source x1 x1 -> (x1 -> Source x2 x2) -> Source x2 x2
 seqSource source getSource = seqSourceIO source (\ x1 -> return (getSource x1))
 
-seqSourceIO :: Source x1 x1 -> (x1 -> (IO (Source x2 x2))) -> Source x2 x2   
+seqSourceIO :: Source x1 x1 -> (x1 -> (IO (Source x2 x2))) -> Source x2 x2
 seqSourceIO (source1 :: Source x1 x1) (getSource2 :: x1 -> IO (Source x2 x2)) =
    let
       addClient client2 =
          do
-            (staticClient2 @ (Client staticClientFn),clientRunning) 
+            (staticClient2 @ (Client staticClientFn),clientRunning)
                <- mkStaticClientGeneral client2
 
             let
@@ -628,12 +628,12 @@ seqSourceIO (source1 :: Source x1 x1) (getSource2 :: x1 -> IO (Source x2 x2)) =
                            if continue
                               then
                                  do
-                                    (staticClient2',write) 
-                                       <- mkComputedClient 
+                                    (staticClient2',write)
+                                       <- mkComputedClient
                                           (const staticClient2)
 
-                                    (x2,newTerminator) 
-                                       <- attachClientTemporary 
+                                    (x2,newTerminator)
+                                       <- attachClientTemporary
                                              staticClient2' source2
                                     staticClientFn x2
                                     write ()
@@ -667,15 +667,15 @@ staticSimpleSourceIO :: IO x -> SimpleSource x
 staticSimpleSourceIO act = SimpleSource (staticSourceIO act)
 
 instance Functor SimpleSource where
-   fmap mapFn (SimpleSource source) = 
+   fmap mapFn (SimpleSource source) =
       SimpleSource ( (map1 mapFn) . (map2 mapFn) $ source)
 
 instance HasMapIO SimpleSource where
    mapIO mapFn (SimpleSource source) =
       SimpleSource (
-         (map1IO mapFn) 
-         . (filter2IO 
-            (\ x -> 
+         (map1IO mapFn)
+         . (filter2IO
+            (\ x ->
                do
                   y <- mapFn x
                   return (Just y)
@@ -686,7 +686,7 @@ instance HasMapIO SimpleSource where
 
 
 mapIOSeq :: SimpleSource a -> (a -> IO (SimpleSource b)) -> SimpleSource b
-mapIOSeq (SimpleSource (source1 :: Source a a)) 
+mapIOSeq (SimpleSource (source1 :: Source a a))
       (getSimpleSource :: (a -> IO (SimpleSource b))) =
    let
       getSource :: a -> IO (Source b b)
@@ -741,7 +741,7 @@ readContents :: HasSource source x d => source -> IO x
 readContents hasSource =
    let
       trivialClient = Client (\ _ -> return Nothing)
-   in   
+   in
       attachClient trivialClient (toSource hasSource)
 
 -- -----------------------------------------------------------------
@@ -754,7 +754,7 @@ instance HasSource hasSource x d => CanAddSinks hasSource x d where
          let
             client = Client clientFn
 
-            clientFn d = 
+            clientFn d =
                do
                   continue <- putSink sink d
                   return (if continue
@@ -776,9 +776,9 @@ pairSimpleSources (SimpleSource source1) (SimpleSource source2) =
    let
       sourceChoose = choose source1 source2
       source =
-         foldSource 
-            id 
-            (\ (x1,x2) change -> 
+         foldSource
+            id
+            (\ (x1,x2) change ->
                let
                   new = case change of
                      Left newX1 -> (newX1,x2)
@@ -825,10 +825,10 @@ uniqSimpleSource (SimpleSource source0) =
 -- The state is recomputed for each client.
 foldSimpleSourceIO :: (x1 -> IO (state,x2)) -> (state -> x1 -> IO (state,x2))
    -> SimpleSource x1 -> SimpleSource x2
-foldSimpleSourceIO (getStateIO :: x1 -> IO (state,x2)) updateStateIO 
+foldSimpleSourceIO (getStateIO :: x1 -> IO (state,x2)) updateStateIO
       (SimpleSource (source :: Source x1 x1)) =
    let
-      source1 :: Source (state,x2) x2 
+      source1 :: Source (state,x2) x2
       source1 = foldSourceIO getStateIO updateStateIO source
    in
       SimpleSource (map1 snd source1)
@@ -841,20 +841,20 @@ change1 (SimpleSource source) x = SimpleSource (map1 (\ _ -> x) source)
 -- in the ParallelExec thread.
 -- The x -> IO () action is guaranteed to be performed before any of the
 -- d -> IO () actions.
-addNewSourceActions :: Source x d -> (x -> IO ()) -> (d -> IO ()) 
+addNewSourceActions :: Source x d -> (x -> IO ()) -> (d -> IO ())
    -> SinkID -> ParallelExec -> IO x
 addNewSourceActions (source1 :: Source x d) actionX actionD sinkID parallelX =
    do
       mVar <- newEmptyMVar -- used to return the first x value
       let
-         actionX' x = 
+         actionX' x =
             do
                putMVar mVar x
                actionX x
 
          (source2 :: Source x (IO ())) = stepSource actionX' actionD source1
-      addNewQuickSinkGeneral 
-         source2 
+      addNewQuickSinkGeneral
+         source2
          (\ action -> parallelExec parallelX action)
          sinkID
       takeMVar mVar
@@ -869,7 +869,7 @@ addNewSourceActions (source1 :: Source x d) actionX actionD sinkID parallelX =
 traceSimpleSource :: (a -> String) -> SimpleSource a -> SimpleSource a
 traceSimpleSource toS (SimpleSource source) =
    SimpleSource (
-      (map1IO 
+      (map1IO
          (\ a ->
             do
                putStrLn ("Initialising "++toS a)
@@ -877,7 +877,7 @@ traceSimpleSource toS (SimpleSource source) =
             )
          )
       .
-      (filter2IO 
+      (filter2IO
          (\ a ->
             do
                putStrLn ("Updating "++toS a)
@@ -893,7 +893,7 @@ traceSimpleSource toS (SimpleSource source) =
 -- for each active client.)
 traceSource :: (a -> String) -> (d -> String) -> Source a d -> Source a d
 traceSource toS1 toS2 source =
-   (map1IO 
+   (map1IO
       (\ a ->
          do
             putStrLn ("Initialising "++toS1 a)
@@ -901,7 +901,7 @@ traceSource toS1 toS2 source =
          )
       )
    .
-   (filter2IO 
+   (filter2IO
       (\ d ->
          do
             putStrLn ("Updating "++toS2 d)
@@ -915,7 +915,7 @@ traceSource toS1 toS2 source =
 -- noLoop functions.  (Only noLoopSimpleSource is exported, for now.)
 -- -----------------------------------------------------------------
 
-noLoopSource :: TSem -> ([String] -> x) -> ([String] -> d)  
+noLoopSource :: TSem -> ([String] -> x) -> ([String] -> d)
    -> Source x d -> Source x d
 noLoopSource tSem toX toD (Source addClient0 :: Source x d) =
    let
@@ -925,12 +925,12 @@ noLoopSource tSem toX toD (Source addClient0 :: Source x d) =
       mkClientFn :: Client d -> d -> IO (Maybe (Client d))
       mkClientFn (client @ (Client clientFn0)) d =
          do
-            (looped :: Either [String] (Maybe (Client d))) 
+            (looped :: Either [String] (Maybe (Client d)))
                <- synchronizeTSem tSem (clientFn0 d)
             case looped of
                Left strings ->
                   do
-                     debug ("mkClientFn loop caught " ++ show strings) 
+                     debug ("mkClientFn loop caught " ++ show strings)
                      -- repeat with the artificial d (which had better
                      -- not cause a loop).
                      mkClientFn client (toD strings)
@@ -939,7 +939,7 @@ noLoopSource tSem toX toD (Source addClient0 :: Source x d) =
       addClient1 :: Client d -> IO x
       addClient1 client =
          do
-            stringsOrX <- synchronizeTSem tSem 
+            stringsOrX <- synchronizeTSem tSem
                (addClient0 (mkClient client))
             case stringsOrX of
                Left strings -> return (toX strings)
@@ -952,12 +952,12 @@ noLoopSource tSem toX toD (Source addClient0 :: Source x d) =
 -- so loop forever.   The Strings identify the SimpleSource,
 -- and so the [String] is effectively a backtrace of the TSems, revealing what
 -- chain of simple sources might have caused the loop.
-noLoopSimpleSource :: TSem -> ([String] -> a) -> SimpleSource a 
+noLoopSimpleSource :: TSem -> ([String] -> a) -> SimpleSource a
    -> SimpleSource a
 noLoopSimpleSource tSem toA (SimpleSource source0) =
    let
       source1 = noLoopSource tSem toA toA source0
-   in 
+   in
       SimpleSource source1
 
 -- ---------------------------------------------------------------------------

@@ -32,45 +32,45 @@ newtype Screen w = Screen w
 -- -----------------------------------------------------------------------
 
 -- | Gets the height of the screen.
-getScreenHeight :: Window a => Screen a 
+getScreenHeight :: Window a => Screen a
    -- ^ the concerned screen.
    -> IO Distance
    -- ^ The screen\'s height.
-getScreenHeight scr@(Screen win) = 
+getScreenHeight scr@(Screen win) =
         evalMethod win (\nm -> ["winfo screenheight " ++ show nm])
 
 -- | Gets the width of the screen.
-getScreenWidth :: Window a => Screen a 
+getScreenWidth :: Window a => Screen a
    -- ^ the concerned screen.
    -> IO Distance
    -- ^ The screen\'s width.
-getScreenWidth scr@(Screen win)= 
+getScreenWidth scr@(Screen win)=
         evalMethod win (\nm -> ["winfo screenwidth " ++ show nm])
 
 -- | Gets the visual properties of the screen.
-getScreenVisual :: Window a => Screen a 
+getScreenVisual :: Window a => Screen a
    -- ^ the concerned screen.
-   -> IO VisualClass     
+   -> IO VisualClass
    -- ^ The visual properties.
-getScreenVisual scr@(Screen win) = 
-        evalMethod win (\nm -> ["winfo screenvisual " ++ show nm])      
+getScreenVisual scr@(Screen win) =
+        evalMethod win (\nm -> ["winfo screenvisual " ++ show nm])
 
 -- | Gets the screen manager from a screen.
-getScreenManager :: Window a => Screen a 
+getScreenManager :: Window a => Screen a
    -- ^ the concerned screen.
-   -> IO String 
+   -> IO String
    -- ^ A textual representation of the screen manager.
-getScreenManager (Screen win) = 
-        evalMethod win (\nm -> ["winfo manager " ++ show nm])   
-        
+getScreenManager (Screen win) =
+        evalMethod win (\nm -> ["winfo manager " ++ show nm])
+
 
 -- -----------------------------------------------------------------------
--- Screen Colours 
+-- Screen Colours
 -- -----------------------------------------------------------------------
 
 -- | The @VisualClass@ datatype (see
 -- @Screen.getScreenVisual@).
-data VisualClass = 
+data VisualClass =
           DirectColour
         | GrayScale
         | PseudoColour
@@ -97,8 +97,8 @@ instance Read VisualClass where
 
 -- | Internal.
 instance Show VisualClass where
-   showsPrec d p r = 
-      (case p of 
+   showsPrec d p r =
+      (case p of
          DirectColour -> "directcolor"
          GrayScale -> "grayscale"
          PseudoColour -> "pseudocolor"

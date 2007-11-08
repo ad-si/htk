@@ -1,5 +1,5 @@
 -- | Datatype for describing the contents of an extent, and functions for
--- parsing it. 
+-- parsing it.
 module EmacsContent(
    EmacsDataItem(..),
    EmacsContent(..),
@@ -19,13 +19,13 @@ data EmacsDataItem linkType =
       EmacsLink linkType -- key to some other emacs object
    |  EditableText String -- key to text to be edited
    deriving (Show)
-   
-newtype EmacsContent linkType = EmacsContent [EmacsDataItem linkType]   
+
+newtype EmacsContent linkType = EmacsContent [EmacsDataItem linkType]
    deriving (Show)
 
 instance Functor EmacsContent where
    fmap fn (EmacsContent dataItems) =
-      EmacsContent (map 
+      EmacsContent (map
          (\ dataItem -> case dataItem of
             EditableText text -> EditableText text
             EmacsLink link -> EmacsLink (fn link)
@@ -94,16 +94,16 @@ parseEmacsContentGeneral str =
 collapseEmacsContent :: EmacsContent linkType -> EmacsContent linkType
 collapseEmacsContent (EmacsContent list :: EmacsContent linkType) =
    let
-      collapse :: [String] -> [EmacsDataItem linkType] 
-         -> [EmacsDataItem linkType] 
+      collapse :: [String] -> [EmacsDataItem linkType]
+         -> [EmacsDataItem linkType]
       collapse inhand (remaining@(first:rest)) =
          case (inhand,first) of
-            (strs,EmacsLink l) 
+            (strs,EmacsLink l)
                -> addText strs (EmacsLink l : collapse [] rest)
             (strs,EditableText t) -> collapse (t:strs) rest
       collapse strs [] = addText strs []
 
-      addText :: [String] -> [EmacsDataItem linkType] 
+      addText :: [String] -> [EmacsDataItem linkType]
          -> [EmacsDataItem linkType]
       addText strs dataItems =
          case concat (reverse strs) of
@@ -111,8 +111,8 @@ collapseEmacsContent (EmacsContent list :: EmacsContent linkType) =
             str -> EditableText str : dataItems
    in
       EmacsContent (collapse [] list)
- 
+
 parsingError :: Int -> a
 parsingError i = error ("EmacsContent error "++show i)
-      
+
 

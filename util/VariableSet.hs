@@ -1,7 +1,7 @@
--- | VariableSet allow us to track changes to an unordered mutable set.  
+-- | VariableSet allow us to track changes to an unordered mutable set.
 -- The elements of the set are keyed by instancing HasKey with some Ord
--- instance; this allows us to set up a special HasKey instance for this 
--- module without committing us to that Ord instance everywhere. 
+-- instance; this allows us to set up a special HasKey instance for this
+-- module without committing us to that Ord instance everywhere.
 module VariableSet(
    HasKey(..),
    Keyed(..),
@@ -47,7 +47,7 @@ newtype Keyed x = Keyed x
 unKey :: Keyed x -> x
 unKey (Keyed x) = x
 
-lift :: (HasKey x1 key1,HasKey x2 key2) 
+lift :: (HasKey x1 key1,HasKey x2 key2)
    => (key1 -> key2 -> a) -> (Keyed x1 -> Keyed x2 -> a)
 lift f x1 x2 = f (toKey . unKey $ x1) (toKey . unKey $ x2)
 
@@ -73,10 +73,10 @@ newtype VariableSetData x = VariableSetData (Set (Keyed x))
 
 -- | Encodes the updates to a variable set.
 -- BeginGroup does not actually alter the set itself, but
--- indicate that a group of updates is about to begin, terminated by EndGroup.  
+-- indicate that a group of updates is about to begin, terminated by EndGroup.
 -- This prevents the client from trying to recalculate the state after every single
 -- update.
--- 
+--
 -- BeginGroup\/EndGroup may be nested (though I don\'t have any application for that
 -- yet).
 data VariableSetUpdate x =
@@ -85,8 +85,8 @@ data VariableSetUpdate x =
    |  BeginGroup
    |  EndGroup
 
-update :: HasKey x key 
-   => VariableSetUpdate x -> VariableSetData x 
+update :: HasKey x key
+   => VariableSetUpdate x -> VariableSetData x
    -> (VariableSetData x,[VariableSetUpdate x])
 update setUpdate (variableSet @ (VariableSetData set)) =
    let
@@ -95,7 +95,7 @@ update setUpdate (variableSet @ (VariableSetData set)) =
       oneop newSet = (VariableSetData newSet,[setUpdate])
    in
       case setUpdate of
-         AddElement x -> 
+         AddElement x ->
             let
                kx = Keyed x
                isElement = elementOf kx set
@@ -111,7 +111,7 @@ update setUpdate (variableSet @ (VariableSetData set)) =
          BeginGroup -> grouper
          EndGroup -> grouper
 
-newtype VariableSet x 
+newtype VariableSet x
    = VariableSet (Broadcaster (VariableSetData x) (VariableSetUpdate x))
    deriving (Typeable)
 
@@ -121,7 +121,7 @@ newtype VariableSet x
 
 -- | Create a new empty variable set.
 newEmptyVariableSet :: HasKey x key => IO (VariableSet x)
-newEmptyVariableSet = 
+newEmptyVariableSet =
    do
       broadcaster <- newBroadcaster (VariableSetData emptySet)
       return (VariableSet broadcaster)
@@ -130,13 +130,13 @@ newEmptyVariableSet =
 newVariableSet :: HasKey x key => [x] -> IO (VariableSet x)
 newVariableSet contents =
    do
-      broadcaster 
+      broadcaster
          <- newBroadcaster (VariableSetData (mkSet (fmap Keyed contents)))
       return (VariableSet broadcaster)
 
 -- | Update a variable set in some way.
 updateSet :: HasKey x key => VariableSet x -> VariableSetUpdate x -> IO ()
-updateSet (VariableSet broadcaster) setUpdate 
+updateSet (VariableSet broadcaster) setUpdate
    = applyUpdate broadcaster (update setUpdate)
 
 -- | Set the elements of the variable set.
@@ -148,11 +148,11 @@ setVariableSet (VariableSet broadcaster) newList =
 
         updateFn (VariableSetData oldSet) =
            let
-              toAddList 
-                 = List.filter 
+              toAddList
+                 = List.filter
                     (\ el -> not (elementOf (Keyed el) oldSet)) newList
               toDeleteList = fmap unKey (setToList (minusSet oldSet newSet))
-              updates = 
+              updates =
                  [BeginGroup] ++ (fmap AddElement toAddList)
                     ++ (fmap DelElement toDeleteList) ++ [EndGroup]
            in
@@ -164,7 +164,7 @@ setVariableSet (VariableSet broadcaster) newList =
 -- The client's interface
 -- --------------------------------------------------------------------
 
-instance HasKey x key => HasSource (VariableSet x) [x] (VariableSetUpdate x) 
+instance HasKey x key => HasSource (VariableSet x) [x] (VariableSetUpdate x)
       where
    toSource (VariableSet broadcaster) =
       map1
@@ -185,7 +185,7 @@ emptyVariableSetSource = staticSource []
 -- Combinators for VariableSetSource
 -- --------------------------------------------------------------------
 
-mapVariableSetSourceIO' :: (x -> IO (Maybe y)) -> VariableSetSource x 
+mapVariableSetSourceIO' :: (x -> IO (Maybe y)) -> VariableSetSource x
    -> VariableSetSource y
 mapVariableSetSourceIO' mapFn=
    (map1IO
@@ -216,21 +216,21 @@ mapVariableSetSourceIO' mapFn=
          )
       )
 
-concatVariableSetSource :: VariableSetSource x -> VariableSetSource x 
+concatVariableSetSource :: VariableSetSource x -> VariableSetSource x
    -> VariableSetSource x
 concatVariableSetSource (source1 :: VariableSetSource x) source2 =
    let
-      pair :: Source ([x],[x]) 
+      pair :: Source ([x],[x])
          (Either (VariableSetUpdate x) (VariableSetUpdate x))
       pair = choose source1 source2
 
       res :: Source [x] (VariableSetUpdate x)
-      res = 
+      res =
          (map1 (\ (x1,x2) -> x1 ++ x2))
          .
-         (map2 
-            (\ xlr -> case xlr of 
-               Left x -> x 
+         (map2
+            (\ xlr -> case xlr of
+               Left x -> x
                Right x -> x
                )
             )
@@ -238,7 +238,7 @@ concatVariableSetSource (source1 :: VariableSetSource x) source2 =
          pair
    in
       res
-   
+
 -- --------------------------------------------------------------------
 -- VariableSetUpdate is an instance of Functor.
 -- mapVariableSetSource is functor-like for VariableSetSource.
@@ -312,5 +312,5 @@ listToSetSource (simpleSource :: SimpleSource [x]) =
    in
       source4
 
-      
-      
+
+

@@ -8,7 +8,7 @@ module ListBox (
 
   ListBox,
   newListBox,
-        
+
   SelectMode(..),
   selectMode,
   getSelectMode,
@@ -52,11 +52,11 @@ newtype ListBox a = ListBox GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new listbox widget and returns a handler.
-newListBox :: (Container par, GUIValue a) => par 
+newListBox :: (Container par, GUIValue a) => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
    ->
-   [Config (ListBox a)] 
+   [Config (ListBox a)]
    -- ^ the list of configuration options for this listbox
    -- widget.
    ->
@@ -64,7 +64,7 @@ newListBox :: (Container par, GUIValue a) => par
    -- ^ A listbox widget.
 newListBox par cnf =
   do
-    w <- createGUIObject (toGUIObject par) (LISTBOX []) lboxMethods 
+    w <- createGUIObject (toGUIObject par) (LISTBOX []) lboxMethods
     configure (ListBox w) cnf
 
 
@@ -73,7 +73,7 @@ newListBox par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject (ListBox a) where 
+instance GUIObject (ListBox a) where
    toGUIObject (ListBox w) = w
    cname _ = "ListBox"
 
@@ -95,7 +95,7 @@ instance Synchronized (ListBox a) where
 instance HasBorder (ListBox a)
 
 -- | A listbox widget has a foreground and background colour.
-instance HasColour (ListBox a) where 
+instance HasColour (ListBox a) where
   legalColourID = hasForeGroundColour
 
 -- | A listbox is a stateful widget - it can be enabled or disabled.
@@ -132,7 +132,7 @@ instance HasXSelection (ListBox a)
 -- --------------------------------------------------------
 
 instance GUIValue a => CanBeSubwidget (ListBox a) where
-  createAsSubwidget megaWidget 
+  createAsSubwidget megaWidget
      = do lb <- createSubwidget (LISTBOX []) lboxMethods megaWidget
           return (ListBox lb)
 
@@ -141,18 +141,18 @@ instance GUIValue a => CanBeSubwidget (ListBox a) where
 -- -----------------------------------------------------------------------
 
 -- | Sets the select mode of a listbox.
-selectMode :: GUIValue a => SelectMode 
+selectMode :: GUIValue a => SelectMode
    -- ^ the select mode to set.
-   -> ListBox a 
+   -> ListBox a
    -- ^ the concerned listbox.
    -> IO (ListBox a)
    -- ^ The concerned listbox.
 selectMode sm lbox = cset lbox "selectmode" sm
 
 -- | Gets the set select mode from a listbox.
-getSelectMode :: GUIValue a => (ListBox a) 
+getSelectMode :: GUIValue a => (ListBox a)
    -- ^ the concerned listbox.
-   -> IO SelectMode 
+   -> IO SelectMode
    -- ^ The current select mode.
 getSelectMode lbox = cget lbox "selectmode"
 
@@ -200,12 +200,12 @@ instance HasIndex (ListBox a) Pixels Int where
 
 -- | A listbox element is a valid index position inside an editor widget.
 instance (Eq a,GUIValue a) => HasIndex (ListBox [a])
-                                        (ListBoxElem a) Int where 
+                                        (ListBoxElem a) Int where
   getBaseIndex lb (ListBoxElem val) =
     do
       kind <- getObjectKind (toGUIObject lb)
       case kind of
-        LISTBOX elems -> 
+        LISTBOX elems ->
           case findIndex (\e -> show e == val') elems of
             Nothing  -> raise elemNotFound
             Just i -> return i
@@ -213,7 +213,7 @@ instance (Eq a,GUIValue a) => HasIndex (ListBox [a])
 
 -- | Internal.
 instance (Eq a, GUIValue a, GUIValue [a]) =>
-         HasIndex (ListBox a) Int (ListBoxElem a) where 
+         HasIndex (ListBox a) Int (ListBoxElem a) where
   getBaseIndex lb i =
     synchronize lb
       (do
@@ -275,7 +275,7 @@ instance (HasIndex (ListBox a) i1 Int, HasIndex (ListBox a) i2 Int) =>
          end' <- getBaseIndex lb end
          execMethod lb (\ nm -> tkSelectionSet nm start' end')
          return lb)
-        
+
 -- | You can select a range of entries inside a listbox widget.
 instance HasSelectionBaseIndexRange (ListBox a) Int where
   -- Gets the start index of the listbox\'es selection.
@@ -283,7 +283,7 @@ instance HasSelectionBaseIndexRange (ListBox a) Int where
     do
       sel <- getSelection lb
       case sel of
-        Nothing -> return Nothing 
+        Nothing -> return Nothing
         Just (v:_) -> return (Just v)
   -- Gets the end index of the listbox\'es selection.
   getSelectionEnd lb =
@@ -299,9 +299,9 @@ instance HasSelectionBaseIndexRange (ListBox a) Int where
 -- -----------------------------------------------------------------------
 
 -- | Activates the specified line.
-activateElem :: HasIndex (ListBox a) i Int => ListBox a 
+activateElem :: HasIndex (ListBox a) i Int => ListBox a
    -- ^ the concerned listbox.
-   -> i 
+   -> i
    -- ^ the index of the line to activate.
    -> IO ()
    -- ^ Nothing.
@@ -312,9 +312,9 @@ activateElem lb i  =
        execMethod lb (\ nm -> tkActivate nm binx))
 
 -- | Anchors the selection at the specified line.
-selectionAnchor :: HasIndex (ListBox a) i Int => ListBox a 
+selectionAnchor :: HasIndex (ListBox a) i Int => ListBox a
    -- ^ the concerned listbox.
-   -> i 
+   -> i
    -- ^ the index of the line to anchor the selection at.
    -> IO ()
    -- ^ Nothing.
@@ -335,7 +335,7 @@ data SelectMode =
 
 instance GUIValue SelectMode where
   cdefault = Single
-        
+
 instance Read SelectMode where
    readsPrec p b =
      case dropWhile (isSpace) b of
@@ -346,8 +346,8 @@ instance Read SelectMode where
         _ -> []
 
 instance Show SelectMode where
-   showsPrec d p r = 
-      (case p of 
+   showsPrec d p r =
+      (case p of
          Single -> "single"
          Browse -> "browse"
          Multiple -> "multiple"
@@ -389,12 +389,12 @@ tkCleanupListBox oid _ = tkUndeclVar ("sv" ++ show oid)
 {-# INLINE tkCleanupListBox #-}
 
 tkCreateListBoxElems ::  ObjectName -> [GUIVALUE] -> TclScript
-tkCreateListBoxElems name elems = 
+tkCreateListBoxElems name elems =
         [show name ++ " insert 0 " ++ showElements elems]
 {-# INLINE tkCreateListBoxElems #-}
 
 showElements :: [GUIVALUE] -> String
-showElements = concatMap (++ " ") . (map show) 
+showElements = concatMap (++ " ") . (map show)
 {-# INLINE showElements #-}
 
 tkActivate :: ObjectName -> Int -> TclScript
@@ -410,7 +410,7 @@ tkDelete name first last = show name ++ " delete " ++ first ++ " " ++ last
 {-# INLINE tkDelete #-}
 
 tkInsert ::  ObjectName -> Int -> [GUIVALUE] -> TclScript
-tkInsert name inx elems = 
+tkInsert name inx elems =
   [tkDelete name "0" "end",
    show name ++ " insert " ++ show inx ++ " " ++ showElements elems]
 {-# INLINE tkInsert #-}
@@ -425,12 +425,12 @@ tkSelectionAnchor name inx =
 {-# INLINE tkSelectionAnchor #-}
 
 tkSelectionIncludes :: ObjectName -> Int -> TclScript
-tkSelectionIncludes name inx = 
-  [show name ++ " selection includes " ++ show inx]  
+tkSelectionIncludes name inx =
+  [show name ++ " selection includes " ++ show inx]
 {-# INLINE tkSelectionIncludes #-}
 
 tkSelectionClear :: ObjectName -> Int -> Int -> TclScript
-tkSelectionClear name first last = 
+tkSelectionClear name first last =
   [show name ++ " selection clear " ++ show first ++ " " ++ show last]
 {-# INLINE tkSelectionClear #-}
 
@@ -439,11 +439,11 @@ tkSelectionClearAll name = [show name ++ " selection clear 0 end"]
 {-# INLINE tkSelectionClearAll #-}
 
 tkSelectionSet :: ObjectName -> Int -> Int -> TclScript
-tkSelectionSet name first last = 
+tkSelectionSet name first last =
   [show name ++ " selection set " ++ show first ++ " " ++ show last]
 {-# INLINE tkSelectionSet #-}
 
 tkSelectionSetItem :: ObjectName -> Int -> TclScript
-tkSelectionSetItem name first = 
+tkSelectionSetItem name first =
   [show name ++ " selection set " ++ show first]
 {-# INLINE tkSelectionSetItem #-}

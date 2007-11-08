@@ -1,19 +1,19 @@
 -- |
 -- Description: Run servers defined by 'ServiceClass.ServiceClass' instances.
--- 
+--
 -- In Server we implement a general framework for a server, which
--- is supposed to make it easier to share information between 
+-- is supposed to make it easier to share information between
 -- computers, in a similar method to inetd.  Unlike inetd however
 -- each client computer maintains a session with the server.  Also
 -- we only use one port for all services, though an additional
 -- integer is sent at the start of opening a connection to specify
 -- which service is to be used.
--- 
+--
 -- To specify a new service you need to define an instance of
 -- the class ServerClass, defined in the module of that name.
 module Server(
-   runServer 
-   -- :: [Service] -> IO () 
+   runServer
+   -- :: [Service] -> IO ()
    -- runs a server on the standard port.  It does not return until
    -- the server is interrupted in some way.
    ) where
@@ -60,7 +60,7 @@ instance Eq ClientData where
 
 data ServiceData = ServiceData {
 --   clients :: MVar [ClientData],
-   newClientAction :: Handle -> User -> IO (), 
+   newClientAction :: Handle -> User -> IO (),
    disconnect :: IO ()
    }
 
@@ -74,7 +74,7 @@ runServer serviceList =
 ------------------------------------------------------------------------
       (serviceDataList :: [(String,ServiceData)]) <-
          mapM
-            (\ (Service service) -> 
+            (\ (Service service) ->
                do
 ------------------------------------------------------------------------
 -- For each service to provide . . .
@@ -84,7 +84,7 @@ runServer serviceList =
                      serviceKey = serviceId service
 
                   clients <- newMVar []
-                  initial <- initialState service 
+                  initial <- initialState service
                   stateMVar <- newMVar initial
 ------------------------------------------------------------------------
 -- Note on concurrency.  We have two MVars, stateMVar and clients.
@@ -106,13 +106,13 @@ runServer serviceList =
                   backupTick <- -- do after each update
                      case backupDelay of
                         BackupEvery howOft ->
-                           do 
+                           do
                               counter <- newMVar howOft
                               let
                                  backupTick =
                                     do
                                        cVal <- takeMVar counter
-                                       if cVal <= 1 
+                                       if cVal <= 1
                                           then
                                              do
                                                 doBackup
@@ -120,7 +120,7 @@ runServer serviceList =
                                           else
                                              putMVar counter (cVal - 1)
                               return backupTick
-                  
+
                         _ -> return done
 
                      -- Deal with BackupAfter type backups
@@ -145,20 +145,20 @@ runServer serviceList =
                      deleteClient clientData =
                         do
                            oldClients <- takeMVar clients
-                           putMVar clients 
+                           putMVar clients
                               (delete clientData oldClients)
 
                      -- This should not be done unless stateMVar
                      -- is empty.
-                     broadcastAction 
+                     broadcastAction
                         :: ClientData -> (Handle -> IO ()) -> IO ()
                      -- The first argument is the client who initiated
-                     -- the request; the second is an action sending the 
+                     -- the request; the second is an action sending the
                      -- message
                      broadcastAction =
                         case serviceMode service of
                            Reply ->
-                              (\ clientData outputAction -> 
+                              (\ clientData outputAction ->
                                  outputAction (handle clientData)
                                  )
                            BroadcastOther ->
@@ -168,7 +168,7 @@ runServer serviceList =
                                     let
                                        otherClients =
                                           filter (/= clientData) clientList
-                                    broadcastToClients otherClients 
+                                    broadcastToClients otherClients
                                        outputAction
                                  )
                            _ ->
@@ -180,14 +180,14 @@ runServer serviceList =
 
                      -- This should not be done unless stateMVar
                      -- is empty.
-                     broadcastToClients :: [ClientData] -> (Handle -> IO ()) 
+                     broadcastToClients :: [ClientData] -> (Handle -> IO ())
                         -> IO ()
                      -- Broadcasts the string to all clients listed
                      broadcastToClients clientList outputAction =
                         sequence_ (
                            map
                               (\ clientData ->
-                                 do 
+                                 do
                                     -- If fail, delete clientData
                                     success <- IO.try(
                                        outputAction (handle clientData)
@@ -196,7 +196,7 @@ runServer serviceList =
                                        Left error ->
                                           deleteClient clientData
                                        Right () -> done
-                                 ) 
+                                 )
                               clientList
                            )
 
@@ -211,11 +211,11 @@ runServer serviceList =
                         do
                            oldState <- takeMVar stateMVar
                            input <- inputAction
-                           newStateEither <- 
+                           newStateEither <-
                               Control.Exception.try
                                  (do
-                                    (output,newState) <- handleRequest 
-                                       service (user clientData) 
+                                    (output,newState) <- handleRequest
+                                       service (user clientData)
                                        (input,oldState)
                                     let
                                        outputAction handle =
@@ -249,10 +249,10 @@ runServer serviceList =
                               clientStartup =
                                  do
                                     state <- takeMVar stateMVar
-                                    -- Send initial stuff and add client to 
+                                    -- Send initial stuff and add client to
                                     -- client list
 
-                                    wrappedHeader <- sendOnConnectWrapped 
+                                    wrappedHeader <- sendOnConnectWrapped
                                        service user state
                                     hWriteWrappedBinary handle wrappedHeader
                                     hFlush handle
@@ -260,7 +260,7 @@ runServer serviceList =
                                     putMVar clients (clientData:oldClients)
                                     putMVar stateMVar state
 
-                              -- clientReadAction is basically thread for 
+                              -- clientReadAction is basically thread for
                               -- reading client output
                               clientReadAction :: IO ()
                               clientReadAction =
@@ -276,18 +276,18 @@ runServer serviceList =
                                     done
                               _ ->
                                  do
-                                    -- clientReadAction needs a wrapper so 
-                                    -- harmless (EOF) errors don't cause any 
+                                    -- clientReadAction needs a wrapper so
+                                    -- harmless (EOF) errors don't cause any
                                     -- trouble.
                                     forkIO(
                                        do
                                           clientStartup
-                                          Left exception 
+                                          Left exception
                                              <- Control.Exception.try
                                              clientReadAction
-                                          -- clientReadAction cannot return 
+                                          -- clientReadAction cannot return
                                           -- otherwise
-                                          case exception of 
+                                          case exception of
                                              IOException excep
                                                 | isEOFError excep
                                                    -> done
@@ -299,12 +299,12 @@ runServer serviceList =
                                                    )
                                           state0 <- takeMVar stateMVar
                                           deleteClient clientData
-                                          state1 <- 
+                                          state1 <-
                                              handleClientDisconnect service
                                                 user state0
                                           putMVar stateMVar state1
-                                          
-                                     
+
+
                                        ) -- end of forkIO
                                     done
 
@@ -316,8 +316,8 @@ runServer serviceList =
 --     If the program is going to continue, it would be a good
 --     idea to kill all the threads.
 ------------------------------------------------------------------------
-                     disconnect = 
-                        -- what to do at end of program with this 
+                     disconnect =
+                        -- what to do at end of program with this
                         -- server
                         do
                            -- backup and stop anyone updating state.
@@ -344,14 +344,14 @@ runServer serviceList =
                            register handleValue
                      _ -> done
 
-                  -- Now construct (key,new service data) 
+                  -- Now construct (key,new service data)
                   return (serviceKey,
                      ServiceData{
                         newClientAction=newClientAction,
                         disconnect=disconnect
                         }
                      )
-               ) -- end of map function   
+               ) -- end of map function
             serviceList
 
 ------------------------------------------------------------------------
@@ -361,7 +361,7 @@ runServer serviceList =
 ------------------------------------------------------------------------
       let
          serviceMap = listToFM serviceDataList
- 
+
       portNumber <- getPortNumber portDesc
       socket <- listenOn (PortNumber portNumber)
       let
@@ -376,9 +376,9 @@ runServer serviceList =
                connectionOpt <- initialConnect serviceMap handle
                case connectionOpt of
                   Nothing -> done
-                  Just (serviceData,user) 
+                  Just (serviceData,user)
                      -> newClientAction serviceData handle user
-               serverAction  
+               serverAction
 
       Control.Exception.try serverAction
       -- disconnect everything
@@ -396,7 +396,7 @@ runServer serviceList =
 -- Function for doing the initial service lookup-up and authentication.
 ------------------------------------------------------------------------
 
-initialConnect :: FiniteMap String ServiceData -> Handle 
+initialConnect :: FiniteMap String ServiceData -> Handle
    -> IO (Maybe (ServiceData,User))
 initialConnect serviceMap handle =
    do
@@ -407,12 +407,12 @@ initialConnect serviceMap handle =
             resultOrString <- addFallOut (\ break ->
                do
                   connectDataWE <- hReadLtd 256 handle
-                  (key,userId,password) <- 
+                  (key,userId,password) <-
                      coerceWithErrorOrBreakIO break connectDataWE
 
                   -- (1) find the service
                   serviceData <- case lookupFM serviceMap key of
-                     Nothing -> break ("Service " ++ show key 
+                     Nothing -> break ("Service " ++ show key
                         ++ " not recognised")
                      Just serviceData -> return serviceData
 
@@ -426,9 +426,9 @@ initialConnect serviceMap handle =
                      Nothing -> authError
                      Just user -> return user
 
-                  passwordOK <- verifyPassword password 
+                  passwordOK <- verifyPassword password
                      (encryptedPassword user)
-                  if passwordOK 
+                  if passwordOK
                      then
                         return (serviceData,user)
                      else
@@ -436,7 +436,7 @@ initialConnect serviceMap handle =
                )
 
             case resultOrString of
-               Right result -> 
+               Right result ->
                  do
                      hPutStrLn handle "OK"
                      hFlush handle
@@ -445,7 +445,7 @@ initialConnect serviceMap handle =
                   do
                      hClose handle
                      return Nothing
-               Left mess -> 
+               Left mess ->
                   do
                      hPutStrLn handle mess
                      hClose handle
@@ -453,18 +453,18 @@ initialConnect serviceMap handle =
          )
 
       case resultOrExcep of
-         Left excep -> 
+         Left excep ->
             do
-               case excep of 
+               case excep of
                  IOException _ ->
-                    done 
+                    done
                        -- we ignore this, because mmiss/test/IsConnected
                        -- provokes it.
                  _ ->
                     putStrLn ("IO error in initial connect " ++ show excep)
                hClose handle
                return Nothing
-         Right result -> 
+         Right result ->
             do
                case result of
                   Just (serviceData,user) ->
@@ -473,8 +473,8 @@ initialConnect serviceMap handle =
                         calendarTime <- toCalendarTime clockTime
 
                         putStrLn (userId user ++ ":"
-                           ++ calendarTimeToString calendarTime) 
-                        hFlush stdout         
+                           ++ calendarTimeToString calendarTime)
+                        hFlush stdout
                   Nothing -> done
                return result
 

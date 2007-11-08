@@ -5,7 +5,7 @@ module ImageItem (
 
   ImageItem,
   createImageItem
- 
+
 ) where
 
 import Core
@@ -32,9 +32,9 @@ newtype ImageItem = ImageItem GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new bitmap item.
-createImageItem :: Canvas 
+createImageItem :: Canvas
    -- ^ the parent canvas.
-   -> [Config ImageItem] 
+   -> [Config ImageItem]
    -- ^ the list of configuration options for this image
    -- item.
    -> IO ImageItem
@@ -48,7 +48,7 @@ createImageItem cnv cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject ImageItem where 
+instance GUIObject ImageItem where
   toGUIObject (ImageItem w) = w
   cname _ = "ImageItem"
 

@@ -1,9 +1,9 @@
 -- |
 -- Description: Extended Interface for Graph Display
--- 
+--
 -- GraphConfigure contains definitions for the various configuration
 -- options for "GraphDisp" objects.  These should be implemented
--- using the 'HasConfig', 'HasConfigValue' and 'ModifyHasDef', 
+-- using the 'HasConfig', 'HasConfigValue' and 'ModifyHasDef',
 -- applied to instances of
 -- 'GraphParms', 'NodeTypeParms' and 'ArcTypeParms'.
 module GraphConfigure(
@@ -15,7 +15,7 @@ module GraphConfigure(
    HasArcTypeConfigs, -- ditto arc types
 
    HasConfig(($$),configUsed), -- from Computation
-   HasConfigValue(($$$),configUsed'), 
+   HasConfigValue(($$$),configUsed'),
                    -- HasConfig lifted to options/configurations of kind
                    -- 1 which take a Typeable value.
    HasModifyValue(..),
@@ -39,7 +39,7 @@ module GraphConfigure(
    mapMenuPrim',
    mapMMenuPrim,
    mapMMenuPrim',
-   
+
    -- Titles for graphs and objects
    GraphTitle(..),
    ValueTitle(..),
@@ -77,7 +77,7 @@ module GraphConfigure(
    DoubleClickAction(..),
 
    -- Graph Miscellaneous Flags
-   OptimiseLayout(..),   
+   OptimiseLayout(..),
    SurveyView(..),
    AllowDragging(..),
    AllowClose(..),
@@ -109,15 +109,15 @@ import GraphDisp
 ------------------------------------------------------------------------
 
 class HasConfigValue option configuration where
-   ($$$) :: Typeable value 
+   ($$$) :: Typeable value
       => option value -> configuration value -> configuration value
 
-   configUsed' :: Typeable value 
+   configUsed' :: Typeable value
       => option value -> configuration value -> Bool
 
 infixr 0 $$$
 
-instance (Typeable value,HasConfigValue option configuration) 
+instance (Typeable value,HasConfigValue option configuration)
    => HasConfig (option value) (configuration value) where
    ($$) = ($$$)
    configUsed = configUsed'
@@ -138,7 +138,7 @@ infixr 0 $$$?
 class HasModifyValue option graph object where
    modify :: Typeable value => option -> graph -> object value -> IO ()
 
-instance HasModifyValue option graph object 
+instance HasModifyValue option graph object
    => HasModifyValue (Maybe option) graph object
    where
       modify Nothing _ _ = done
@@ -161,7 +161,7 @@ instance NodeTypeConfig LocalMenu
 
 instance ArcTypeConfig LocalMenu
 
-newtype LocalMenu value = 
+newtype LocalMenu value =
    LocalMenu(MenuPrim (Maybe String) (value -> IO()))
 
 instance HasCoMapIO LocalMenu where
@@ -195,7 +195,7 @@ instance GraphConfig GraphTitle
 
 instance GraphConfig (SimpleSource GraphTitle)
 
--- | Provide a function which computes a node or arc title string to be 
+-- | Provide a function which computes a node or arc title string to be
 -- displayed.
 data ValueTitle value = ValueTitle (value -> IO String)
 
@@ -213,7 +213,7 @@ instance ArcTypeConfig ValueTitle
 instance HasCoMapIO ValueTitle where
    coMapIO a2bAct (ValueTitle b2StringAct) =
       ValueTitle (
-         \ aValue -> 
+         \ aValue ->
             do
                bValue <- a2bAct aValue
                b2StringAct bValue
@@ -228,19 +228,19 @@ instance HasCoMapIO ValueTitle where
 -- operator should also have been set for the graph.
 ------------------------------------------------------------------------
 
--- | Action to be performed after mouse action not involving any node but 
+-- | Action to be performed after mouse action not involving any node but
 -- somewhere on the graph.
 --
--- If you want to use this, the graph parameters need to include 
+-- If you want to use this, the graph parameters need to include
 -- 'AllowDragging' 'True'
 data GraphGesture = GraphGesture (IO ())
 
 instance GraphConfig GraphGesture
 
 -- | Action to be performed when the user drags a node somewhere else,
--- but not onto another node. 
+-- but not onto another node.
 --
--- If you want to use this, the graph parameters need to include 
+-- If you want to use this, the graph parameters need to include
 -- 'AllowDragging' 'True'
 data NodeGesture value = NodeGesture (value -> IO ())
 
@@ -249,7 +249,7 @@ instance NodeTypeConfig NodeGesture
 instance HasCoMapIO NodeGesture where
    coMapIO a2bAct (NodeGesture b2StringAct) =
       NodeGesture (
-         \ aValue -> 
+         \ aValue ->
             do
                bValue <- a2bAct aValue
                b2StringAct bValue
@@ -259,7 +259,7 @@ instance HasCoMapIO NodeGesture where
 -- The dragged node's value is passed as a Dyn (since it could have any
 -- type).
 --
--- If you want to use this, the graph parameters need to include 
+-- If you want to use this, the graph parameters need to include
 -- 'AllowDragging' 'True'
 data NodeDragAndDrop value = NodeDragAndDrop (Dyn -> value -> IO ())
 
@@ -283,7 +283,7 @@ instance ArcTypeConfig DoubleClickAction
 -- | This datatype is based on "DaVinciClasses", including several
 -- name clashes.  However we omit 'Textual', add the file argument
 -- to 'Icon' and the shape 'Triangle'.  This datatype may get bigger!
-data Shape value = Box | Circle | Ellipse | Rhombus | Triangle | 
+data Shape value = Box | Circle | Ellipse | Rhombus | Triangle |
    Icon FilePath deriving (Read,Show)
 
 instance NodeTypeConfig Shape
@@ -291,12 +291,12 @@ instance NodeTypeConfig Shape
 -- | The user is responsible for making sure this String is properly
 -- formatted.  To quote from the daVinci documentation:
 --
--- > Can be used to define the background color of a node. The value of this 
+-- > Can be used to define the background color of a node. The value of this
 -- > attribute may be any X-Window colorname (see file lib/rgb.txt in your X11
--- > directory) or any RGB color specification in a format like "#0f331e", 
--- > where 0f is the hexadecimal value for the red part of the color, 33 is 
--- > the green part and 1e is the blue.  Hence, a pallet of 16.7 million 
--- > colors is supported. The default color for nodes is "white".  
+-- > directory) or any RGB color specification in a format like "#0f331e",
+-- > where 0f is the hexadecimal value for the red part of the color, 33 is
+-- > the green part and 1e is the blue.  Hence, a pallet of 16.7 million
+-- > colors is supported. The default color for nodes is "white".
 --
 -- There is a function for constructing \"RGB color specification\"s in
 -- "Colour".
@@ -306,7 +306,7 @@ instance NodeTypeConfig Color
 instance ArcTypeConfig Color
 
 -- | The pattern of an edge
-data EdgePattern value = Solid | Dotted | Dashed | Thick | Double 
+data EdgePattern value = Solid | Dotted | Dashed | Thick | Double
    deriving (Read,Show)
 
 instance ArcTypeConfig EdgePattern
@@ -315,11 +315,11 @@ instance ArcTypeConfig EdgePattern
 -- formatted.  To quote from the daVinci documentation:
 --
 -- > This attribute is used to control the arrow of an edge. In a graph visualization,
--- > each edge usually has an arrow pointing to the child node. This attribute can be 
+-- > each edge usually has an arrow pointing to the child node. This attribute can be
 -- > used to let the arrow be drawn inverse (i.e. pointing to the parent), to get an arrow
--- > at both sides of an edge or to suppress arrows for a particular edge. The supported 
--- > attribute values are: "last" (1 arrow pointing to the child, default), \"first\" 
--- >(1 arrow to the parent), "both" (2 arrows to the parent and to children) and "none" 
+-- > at both sides of an edge or to suppress arrows for a particular edge. The supported
+-- > attribute values are: "last" (1 arrow pointing to the child, default), \"first\"
+-- >(1 arrow to the parent), "both" (2 arrows to the parent and to children) and "none"
 -- >(no arrows).
 --
 data EdgeDir value = Dir String deriving (Read, Show)
@@ -330,8 +330,8 @@ instance ArcTypeConfig EdgeDir
 -- | The user is responsible for making sure this String is properly
 -- formatted.  To quote from the daVinci documentation:
 --
--- >  With this attribute you can control the shape of the edge's arrows. 
--- > The possible values are: "farrow" (default), "arrow", "fcircle", and "circle", 
+-- >  With this attribute you can control the shape of the edge's arrows.
+-- > The possible values are: "farrow" (default), "arrow", "fcircle", and "circle",
 -- > where a leading 'f' means filled.
 --
 data Head value = Head String deriving (Read, Show)
@@ -343,7 +343,7 @@ instance ArcTypeConfig Head
 ------------------------------------------------------------------------
 
 class ModifyHasDef modification where
-   def :: modification 
+   def :: modification
    isDef :: modification -> Bool
 
 -- | If True, arcs from the node are not displayed.
@@ -361,7 +361,7 @@ data BorderSource value = BorderSource (value -> IO (SimpleSource Border))
 
 instance NodeTypeConfig BorderSource
 
-{- Modification is no longer approved of for Borders, which should be 
+{- Modification is no longer approved of for Borders, which should be
    set by Sources. -}
 {-
 instance ModifyHasDef Border where
@@ -371,7 +371,7 @@ instance ModifyHasDef Border where
 -}
 
 -- | The font in which the label of this node is displayed.
-data FontStyle = NormalFontStyle | BoldFontStyle | ItalicFontStyle 
+data FontStyle = NormalFontStyle | BoldFontStyle | ItalicFontStyle
    | BoldItalicFontStyle deriving (Eq)
 
 {- Modification is no longer approved for FontStyle's, which should
@@ -406,18 +406,18 @@ instance GraphConfig OptimiseLayout
 -- screen (without displaying everything)
 -- as well as a picture of the details (which may not
 -- fit onto the screen).
--- 
+--
 -- (The user can do this anyway from daVinci's menus.)
 newtype SurveyView = SurveyView Bool
 
 instance GraphConfig SurveyView
 
--- | If True, allow Drag-and-Drop operators.  
+-- | If True, allow Drag-and-Drop operators.
 newtype AllowDragging = AllowDragging Bool
 
--- | If set, action which is invoked if the user attempts to close the 
+-- | If set, action which is invoked if the user attempts to close the
 -- window.  If the action returns True, we close it.
--- 
+--
 -- WARNING.  This action is performed in the middle of the event loop,
 -- so please don't attempt to do any further graph interactions during it.
 -- (But HTk interactions should be fine.)
@@ -428,21 +428,21 @@ defaultAllowClose = AllowClose (confirmMess "Really close window?")
 
 
 -- | The following options are provided specially by DaVinci (see, for now,
--- <http://www.informatik.uni-bremen.de/daVinci/old/docs/reference/api/api_app_menu_cmd.html> 
+-- <http://www.informatik.uni-bremen.de/daVinci/old/docs/reference/api/api_app_menu_cmd.html>
 -- for the daVinci2.1 documentation.  If a 'FileMenuAct' is used as
--- a configuration with a specified action, the corresponding option is 
--- enabled in the daVinci File menu, and the action is performed when the 
+-- a configuration with a specified action, the corresponding option is
+-- enabled in the daVinci File menu, and the action is performed when the
 -- option is selected.
 --
 -- The 'AllowClose' configuration and 'CloseMenuOption' both set the action
 -- to be taken when the user selects a close event, and each overrides the
 -- other.
 --
--- By default the Close and Print options are enabled, however these 
+-- By default the Close and Print options are enabled, however these
 -- and other options can be disabled by specifing 'Nothing' as the
 -- second argument to FileMenuAct.
-data FileMenuOption = 
-      NewMenuOption | OpenMenuOption | SaveMenuOption | SaveAsMenuOption 
+data FileMenuOption =
+      NewMenuOption | OpenMenuOption | SaveMenuOption | SaveAsMenuOption
    |  PrintMenuOption | CloseMenuOption | ExitMenuOption deriving (Ord,Eq)
 
 data FileMenuAct = FileMenuAct FileMenuOption (Maybe (IO ()))
@@ -458,10 +458,10 @@ instance GraphConfig Delayer
 instance GraphConfig AllowClose
 
 -- | Which way up the graph is.
--- 
+--
 -- We copy the DaVinciTypes constructors, though of course this will
 -- mean we have to painfully convert one to the other.
-data Orientation = TopDown | BottomUp | LeftRight | RightLeft 
+data Orientation = TopDown | BottomUp | LeftRight | RightLeft
 
 instance GraphConfig Orientation
 
@@ -567,24 +567,24 @@ instance (
    HasConfigValue Head arcTypeParms)
    => HasArcTypeConfigs arcTypeParms
 
-class 
+class
    (GraphAll graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms,
    HasGraphConfigs graphParms,
    HasNodeTypeConfigs nodeTypeParms,
    HasNodeModifies graph node,
    HasArcTypeConfigs arcTypeParms
-   ) 
+   )
    => GraphAllConfig graph graphParms node nodeType nodeTypeParms
-         arc arcType arcTypeParms  
+         arc arcType arcTypeParms
 
-instance 
+instance
    (GraphAll graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms,
    HasGraphConfigs graphParms,
    HasNodeTypeConfigs nodeTypeParms,
    HasNodeModifies graph node,
    HasArcTypeConfigs arcTypeParms
-   ) 
+   )
    => GraphAllConfig graph graphParms node nodeType nodeTypeParms
-         arc arcType arcTypeParms  
+         arc arcType arcTypeParms

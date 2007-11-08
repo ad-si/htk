@@ -7,10 +7,10 @@ import SimpleDB
 getActs =
    do
       repository <- initialise
-      
+
       let
          n = newLocation repository
-         c s l = 
+         c s l =
             do
                objectSource <- importString s
                commit repository objectSource l Nothing
@@ -18,6 +18,6 @@ getActs =
          lv l = listVersions repository l
       return (n,c,r,lv)
 
-     
-               
+
+
 

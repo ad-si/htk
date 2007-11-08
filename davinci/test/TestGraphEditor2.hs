@@ -15,7 +15,7 @@ main :: IO ()
 main =
    do
       parseArguments
-      (graph :: Displayable SimpleGraph) <- newEmptyGraph 
+      (graph :: Displayable SimpleGraph) <- newEmptyGraph
       graphEditor <- newGraphEditor daVinciSort graph
       putStrLn "Graph displayed"
       let

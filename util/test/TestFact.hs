@@ -6,7 +6,7 @@ import Huffman
 
 fact :: Integer -> Integer
 fact n =
-   if n<2 
+   if n<2
    then
       if n<0 then error "factorial of negative numbers is infinite" else 1
    else
@@ -16,15 +16,15 @@ main :: IO ()
 main =
    do
       s <- getLine
-      let 
+      let
          n = read s
          fn = fact n
       if fn>0 then putStrLn "Factorial computed" else error "Impossible!"
       print fn
 
 
--- Some competing implementations of fact 
--- (1) the first and second "fastest" from 
+-- Some competing implementations of fact
+-- (1) the first and second "fastest" from
 --     http://www.willamette.edu/~fruehr/haskell/evolution.html
 fact1 :: Integer -> Integer
 s f g x = f x (g x)
@@ -42,9 +42,9 @@ fact2 = facAcc 1
 
 -- (2) My original effort to do better
 fact3 :: Integer -> Integer
-fact3 n = 
-  if n<2 
-  then 
+fact3 n =
+  if n<2
+  then
      if n>=0 then 1 else error "Negative factorials are infinite"
   else
      pairProd [2..n]
@@ -58,5 +58,5 @@ multiplyPairs [] d = d
 multiplyPairs [x] d = x:d
 multiplyPairs (x1:x2:xs) d = multiplyPairs xs ((x1*x2):d)
 
-  
- 
+
+

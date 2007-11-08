@@ -4,6 +4,6 @@ module ObjectVersion where
 import Dynamics
 import DeepSeq
 
-newtype ObjectVersion = ObjectVersion Integer 
+newtype ObjectVersion = ObjectVersion Integer
    deriving (Eq,Ord,Typeable,DeepSeq,Enum)
    -- Type of handle referring to a version.

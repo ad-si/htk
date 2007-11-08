@@ -1,5 +1,5 @@
--- | This is the implementation of modules GraphDisp and GraphConfigure for 
--- daVinci.   See those files for explanation of the names. 
+-- | This is the implementation of modules GraphDisp and GraphConfigure for
+-- daVinci.   See those files for explanation of the names.
 -- We encode, for example, the type parameter node as DaVinciNode,
 -- and so on for other type parameters, prefixing with \"DaVinci\" and
 -- capitalising the next letter.  But the only variable you should normally
@@ -59,14 +59,14 @@ import DaVinciBasic
 -- How you refer to everything
 ------------------------------------------------------------------------
 
-daVinciSort :: Graph DaVinciGraph 
+daVinciSort :: Graph DaVinciGraph
    DaVinciGraphParms DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
-   DaVinciArc DaVinciArcType DaVinciArcTypeParms 
+   DaVinciArc DaVinciArcType DaVinciArcTypeParms
 daVinciSort = displaySort
 
-instance GraphAllConfig DaVinciGraph DaVinciGraphParms 
+instance GraphAllConfig DaVinciGraph DaVinciGraphParms
    DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
-   DaVinciArc DaVinciArcType DaVinciArcTypeParms 
+   DaVinciArc DaVinciArcType DaVinciArcTypeParms
 
 -- -----------------------------------------------------------------------
 -- Graphs.
@@ -75,7 +75,7 @@ instance GraphAllConfig DaVinciGraph DaVinciGraphParms
 data DaVinciGraph = DaVinciGraph {
    context :: Context,
 
-   -- For each node and edge we give (a) its type, (b) its value. 
+   -- For each node and edge we give (a) its type, (b) its value.
    nodes :: Registry NodeId NodeData,
    edges :: Registry EdgeId ArcData,
 
@@ -88,7 +88,7 @@ data DaVinciGraph = DaVinciGraph {
       -- cause this list to be flushed, as does redrawPrim.
    pendingChangesLock :: BSem,
       -- This lock is acquired during, flushPendingChanges, newNodePrim,
-      -- and setNodeTitle.  
+      -- and setNodeTitle.
       -- Where both pendingChangesLock and pendingChangesMVar are needed,
       -- the first should be got first.
 
@@ -104,17 +104,17 @@ data DaVinciGraph = DaVinciGraph {
    destructionChannel :: Channel (),
 
    destroyActions :: IO (),
-   -- Various actions to be done when the graph is closed. 
+   -- Various actions to be done when the graph is closed.
 
    redrawChannel :: Channel Bool,
-   -- Sending True along this channel indicates that a 
+   -- Sending True along this channel indicates that a
    -- redraw is desired.
    -- Sending False along it ends the appropriate thread.
 
    delayer :: Delayer,
    redrawAction :: DelayedAction
       -- this is the action that actually gets done when the user actually
-      -- asks for a redraw.   
+      -- asks for a redraw.
    } deriving (Typeable)
 
 data LastSelection = LastNone | LastNode NodeId | LastEdge EdgeId
@@ -123,7 +123,7 @@ data DaVinciGraphParms = DaVinciGraphParms {
    graphConfigs :: [DaVinciGraph -> IO ()], -- General setups
    surveyView :: Bool,
    configDoImprove :: Bool,
-   configFileMenuActions 
+   configFileMenuActions
       :: FiniteMap FileMenuOption (DaVinciGraph -> IO ()),
    configGlobalMenu :: Maybe GlobalMenu,
    configActionWrapper :: IO () -> IO (),
@@ -156,14 +156,14 @@ instance Destroyable DaVinciGraph where
          signalDestruct daVinciGraph
 
 instance Destructible DaVinciGraph where
-   destroyed (DaVinciGraph {destructionChannel = destructionChannel}) = 
+   destroyed (DaVinciGraph {destructionChannel = destructionChannel}) =
       receive destructionChannel
 
 getDaVinciGraphContext :: DaVinciGraph -> Context
 getDaVinciGraphContext g = context g
 
 signalDestruct :: DaVinciGraph -> IO ()
-signalDestruct daVinciGraph = 
+signalDestruct daVinciGraph =
    sync(noWait(send (destructionChannel daVinciGraph) ()))
 
 -- | We run a separate thread for redrawing.  The idea is that when more than
@@ -182,8 +182,8 @@ redrawThread (daVinciGraph @ DaVinciGraph{
                flushPendingChanges daVinciGraph
                if doImprove
                   then
-                     doInContext (DaVinciTypes.Menu(Layout(ImproveAll))) 
-                        context 
+                     doInContext (DaVinciTypes.Menu(Layout(ImproveAll)))
+                        context
                   else
                      done
                redrawThread daVinciGraph
@@ -214,18 +214,18 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          otherActions <- newRegistry
          lastSelectionRef <- newIORef LastNone
 
-         graphMVar <- newEmptyMVar 
+         graphMVar <- newEmptyMVar
             -- this will hold the graph when it's completed.  This is needed
             -- by some of the handler actions.
 
-         
+
          let
             -- We now come to write the handler function for
             -- the context.  This is quite complex so we handle the
             -- various cases one by one, in separate functions.
 
             handler :: DaVinciAnswer -> IO ()
-            handler daVinciAnswer 
+            handler daVinciAnswer
                = configActionWrapper (handler1 daVinciAnswer)
             --
             -- The handler needs to depend on the context, so that it
@@ -248,7 +248,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   actEdgeMenu edgeId menuId
                CreateNodeAndEdge nodeId -> actCreateNodeAndEdge nodeId
                CreateEdge nodeFrom nodeTo -> actCreateEdge nodeFrom nodeTo
-               _ -> 
+               _ ->
                   do
                      action <- getValueDefault done otherActions daVinciAnswer
                      action
@@ -256,15 +256,15 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             -- last selected node or edge, in case we are about to
             -- double-click or call a menu.
             actNodeSelections :: [NodeId] -> IO ()
-            actNodeSelections [nodeId] = 
+            actNodeSelections [nodeId] =
                writeIORef lastSelectionRef (LastNode nodeId)
             actNodeSelections _ = done -- not a double-click.
 
             actEdgeSelections :: EdgeId -> IO ()
-            actEdgeSelections edgeId = 
+            actEdgeSelections edgeId =
                writeIORef lastSelectionRef (LastEdge edgeId)
 
-            -- With node and edge double clicks we also expect the 
+            -- With node and edge double clicks we also expect the
             -- node or edge to be recently selected and in lastSelectionRef
             nodeDoubleClick :: IO ()
             nodeDoubleClick =
@@ -277,7 +277,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                            (nodeDoubleClickAction (typeData nodeDataData))
                               (valueData nodeDataData)
                      _ -> error "DaVinciGraph: confusing node double click"
-  
+
             edgeDoubleClick :: IO ()
             edgeDoubleClick =
                do
@@ -285,18 +285,18 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   case lastSelection of
                      LastEdge edgeId ->
                         do
-                           ArcData arcType arcValue 
+                           ArcData arcType arcValue
                               <- getValueHere edges edgeId
                            (arcDoubleClickAction arcType) arcValue
                      _ -> error "DaVinciGraph: confusing edge double click"
             actGlobalMenu :: MenuId -> IO ()
             actGlobalMenu (MenuId ('#':'%':fileMenuStr)) =
                case toFileMenuOption fileMenuStr of
-                  Nothing -> alertMess ("Mysterious daVinci fileMenu " 
+                  Nothing -> alertMess ("Mysterious daVinci fileMenu "
                      ++ fileMenuStr ++ " ignored")
                   Just reservedMenuOption ->
                      case lookupFM configFileMenuActions reservedMenuOption of
-                        Nothing -> 
+                        Nothing ->
                            if fileMenuStr == "close"
                               then
                                  alertMess ("The application has disabled "
@@ -330,11 +330,11 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
 
             -- We now do the drag-and-drops.  There is no special
             -- handler for the create node action, since this is
-            -- done by the otherActions handler. 
+            -- done by the otherActions handler.
             actCreateNodeAndEdge nodeId =
                do
                   NodeData nodeDataData <- getValueHere nodes nodeId
-                  (createNodeAndEdgeAction (typeData nodeDataData)) 
+                  (createNodeAndEdgeAction (typeData nodeDataData))
                      (valueData nodeDataData)
 
             actCreateEdge :: NodeId -> NodeId -> IO ()
@@ -342,9 +342,9 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                do
                   NodeData nodeDataData1 <- getValueHere nodes nodeId2
                   NodeData nodeDataData2 <- getValueHere nodes nodeId1
-  
+
                   (createEdgeAction (typeData nodeDataData2))
-                     (toDyn (valueData nodeDataData1)) 
+                     (toDyn (valueData nodeDataData1))
                      (valueData nodeDataData2)
 
          context <- newContext handler
@@ -356,11 +356,11 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
 
          let
             setTitle :: GraphTitle -> IO ()
-            setTitle (GraphTitle graphTitle) 
+            setTitle (GraphTitle graphTitle)
                = doInContext (Window (Title graphTitle)) context
 
          -- Sink for changing the title
-         (addSink,destroySink) <-  
+         (addSink,destroySink) <-
             case graphTitleSource of
                Nothing -> return (done,done)
                Just graphTitleSource ->
@@ -374,7 +374,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                      return (addSink,invalidate sink)
          let
             setOrientation :: GraphConfigure.Orientation -> IO ()
-            setOrientation orientation0 = 
+            setOrientation orientation0 =
                let
                   orientation1 = case orientation0 of
                      GraphConfigure.TopDown -> DaVinciTypes.TopDown
@@ -383,7 +383,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                      GraphConfigure.RightLeft -> DaVinciTypes.RightLeft
                in
                   doInContext (DaVinciTypes.Menu (Layout (
-                        Orientation orientation1))) 
+                        Orientation orientation1)))
                      context
 
          case configOrientation of
@@ -438,9 +438,9 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             Just globalMenu -> mkGlobalMenu daVinciGraph globalMenu
 
          -- Activate global menus.
-         doInContext 
+         doInContext
             (AppMenu (ActivateMenus (fileMenuIds ++ globalMenuIds)))
-            context        
+            context
 
          addSink
 
@@ -462,7 +462,7 @@ instance GraphParms DaVinciGraphParms where
       graphConfigs = [],configDoImprove = False,surveyView = False,
       graphTitleSource = Nothing,delayerOpt = Nothing,
       configFileMenuActions = initialFileMenuActions,
-      configActionWrapper = (\ act -> 
+      configActionWrapper = (\ act ->
          do
             forkIODebug act
             done
@@ -474,11 +474,11 @@ instance GraphParms DaVinciGraphParms where
 initialFileMenuActions :: FiniteMap FileMenuOption (DaVinciGraph -> IO ())
 initialFileMenuActions = listToFM [
    (PrintMenuOption,
-      (\ graph -> doInContext  
+      (\ graph -> doInContext
          (DaVinciTypes.Menu (File (Print Nothing))) (context graph))
       ),
    (CloseMenuOption,
-      (\ graph -> 
+      (\ graph ->
          do
             proceed <- confirmMess "Really close window?"
             if proceed then destroy graph else done
@@ -490,7 +490,7 @@ addGraphConfigCmd :: DaVinciCmd -> DaVinciGraphParms -> DaVinciGraphParms
 addGraphConfigCmd daVinciCmd daVinciGraphParms =
    daVinciGraphParms {
       graphConfigs = (\ daVinciGraph ->
-         doInContext daVinciCmd (context daVinciGraph)) 
+         doInContext daVinciCmd (context daVinciGraph))
          : (graphConfigs daVinciGraphParms)
          }
 
@@ -506,7 +506,7 @@ instance HasConfig Delayer DaVinciGraphParms where
 
 instance HasConfig (SimpleSource GraphTitle) DaVinciGraphParms where
    configUsed _ _  = True
-   ($$) graphTitleSource graphParms 
+   ($$) graphTitleSource graphParms
       = graphParms {graphTitleSource = Just graphTitleSource}
 
 instance HasConfig OptimiseLayout DaVinciGraphParms where
@@ -543,9 +543,9 @@ instance HasConfig FileMenuAct DaVinciGraphParms where
                in
                   Just graphActFn
       in
-         ($$) (option,graphActFnOpt) 
+         ($$) (option,graphActFnOpt)
 
-instance HasConfig (FileMenuOption,(Maybe (DaVinciGraph -> IO ()))) 
+instance HasConfig (FileMenuOption,(Maybe (DaVinciGraph -> IO ())))
       DaVinciGraphParms where
 
    configUsed _ _ = True
@@ -556,8 +556,8 @@ instance HasConfig (FileMenuOption,(Maybe (DaVinciGraph -> IO ())))
             Nothing -> delFromFM configFileMenuActions0 option
             Just actFn -> addToFM configFileMenuActions0 option actFn
       in
-         daVinciGraphParms {configFileMenuActions = configFileMenuActions1} 
-    
+         daVinciGraphParms {configFileMenuActions = configFileMenuActions1}
+
 
 instance HasConfig Orientation DaVinciGraphParms where
    configUsed _ _  = True
@@ -573,7 +573,7 @@ instance HasConfig AllowDragging DaVinciGraphParms where
    configUsed _ _  = True
 
    ($$) (AllowDragging allowDragging) =
-      addGraphConfigCmd (DragAndDrop 
+      addGraphConfigCmd (DragAndDrop
          (if allowDragging then DraggingOn else DraggingOff))
 
 instance HasConfig GlobalMenu DaVinciGraphParms where
@@ -600,9 +600,9 @@ instance HasConfig GraphGesture DaVinciGraphParms where
                setValue (otherActions daVinciGraph) CreateNode action
                ) : (graphConfigs graphParms)
          }
-                  
 
-instance GraphConfig graphConfig 
+
+instance GraphConfig graphConfig
    => HasConfig graphConfig DaVinciGraphParms where
 
    configUsed graphConfig graphParms = False
@@ -628,12 +628,12 @@ data DaVinciNodeType value = DaVinciNodeType {
    nodeMenuActions :: Registry MenuId (value -> IO ()),
    nodeDoubleClickAction :: value -> IO (),
    createNodeAndEdgeAction :: value -> IO (),
-   createEdgeAction :: Dyn -> value -> IO () 
+   createEdgeAction :: Dyn -> value -> IO ()
    } deriving (Typeable)
 
-data NodeData = forall value . Typeable value => 
+data NodeData = forall value . Typeable value =>
    NodeData (NodeDataData value)
-   
+
 -- Extra type is necessary because GHC forbids named typed fields with
 -- an existential type.
 data NodeDataData value = NodeDataData {
@@ -642,7 +642,7 @@ data NodeDataData value = NodeDataData {
    sink :: SinkID
    }
 
-data DaVinciNodeTypeParms value = 
+data DaVinciNodeTypeParms value =
    DaVinciNodeTypeParms {
       nodeAttributes :: Attributes value,
       configNodeText :: value -> IO (SimpleSource String),
@@ -657,7 +657,7 @@ instance Eq1 DaVinciNode where
    eq1 (DaVinciNode n1) (DaVinciNode n2) = (n1 == n2)
 
 instance Ord1 DaVinciNode where
-   compare1 (DaVinciNode n1) (DaVinciNode n2) = compare n1 n2 
+   compare1 (DaVinciNode n1) (DaVinciNode n2) = compare n1 n2
 
 instance Eq1 DaVinciNodeType where
    eq1 = mapEq nodeType
@@ -666,7 +666,7 @@ instance Eq1 DaVinciNodeType where
 newNodePrim1 :: Typeable value
    => DaVinciGraph -> DaVinciNodeType value -> value -> NodeId
    -> IO (DaVinciNode value)
-newNodePrim1 (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
+newNodePrim1 (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes})
       nodeType1
       (value :: value) nodeId =
    do
@@ -684,9 +684,9 @@ newNodePrim1 (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes})
 -- either after (a) a new node has been created, or (b) we have changed
 -- the type.
 setUpNodeType :: Typeable value
-   => DaVinciGraph -> DaVinciNodeType value -> value -> NodeId 
+   => DaVinciGraph -> DaVinciNodeType value -> value -> NodeId
    -> IO [Attribute]
-setUpNodeType (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
+setUpNodeType (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes})
       (nodeType @ DaVinciNodeType {
          nodeType = daVinciNodeType,nodeText = nodeText,
          fontStyle = fontStyle,border = border})
@@ -695,14 +695,14 @@ setUpNodeType (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes})
       thisNodeTextSource <- nodeText value
       fontStyleSourceOpt <- case fontStyle of
          Nothing -> return Nothing
-         Just getFontStyleSource -> 
+         Just getFontStyleSource ->
             do
                fontStyleSource <- getFontStyleSource value
                return (Just fontStyleSource)
 
       borderSourceOpt <- case border of
          Nothing -> return Nothing
-         Just getBorderSource -> 
+         Just getBorderSource ->
             do
                borderSource <- getBorderSource value
                return (Just borderSource)
@@ -724,14 +724,14 @@ setUpNodeType (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes})
             return (Just (NodeData newNodeData),())
          )
       let
-         addNodeAction 
-            :: SimpleSource a 
-            -> (DaVinciGraph -> DaVinciNode value -> a -> IO b) 
+         addNodeAction
+            :: SimpleSource a
+            -> (DaVinciGraph -> DaVinciNode value -> a -> IO b)
             -> IO a
          addNodeAction source actFun =
             do
                let
-                  updateFn a = 
+                  updateFn a =
                      do
                         actFun daVinciGraph daVinciNode a
                         done
@@ -749,9 +749,9 @@ setUpNodeType (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes})
                   Nothing -> return attributes1
                   Just fontStyleSource ->
                      do
-                         thisFontStyle 
+                         thisFontStyle
                             <- addNodeAction fontStyleSource setFontStyle
-                         return (fontStyleAttribute thisFontStyle 
+                         return (fontStyleAttribute thisFontStyle
                             : attributes1)
             attributes3 <-
                case borderSourceOpt of
@@ -759,7 +759,7 @@ setUpNodeType (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes})
                   Just borderSource ->
                      do
                          thisBorder <- addNodeAction borderSource setBorder
-                         return (borderAttribute thisBorder 
+                         return (borderAttribute thisBorder
                             : attributes2)
             return attributes3
          )
@@ -770,11 +770,11 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
          nodeId <- newNodeId (context graph)
          newNodePrim1 graph nodeType value nodeId
 
-   setNodeTypePrim graph (node@ (DaVinciNode nodeId) :: DaVinciNode value) 
+   setNodeTypePrim graph (node@ (DaVinciNode nodeId) :: DaVinciNode value)
          nodeType1 =
       do
          -- Check first to see if the type really needs changing.
-         goAhead <- 
+         goAhead <-
             do
                nodeDataOpt <- getValueOpt (nodes graph) nodeId
                return (case nodeDataOpt of
@@ -787,17 +787,17 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
                   )
          if goAhead
             then
-               do 
+               do
                   flushPendingChanges graph
                   value <- getNodeValuePrim graph node
                   attributes <- setUpNodeType graph nodeType1 value nodeId
                   synchronize (pendingChangesLock graph) (
                      do
-                        doInContext 
-                           (DaVinciTypes.Graph (ChangeType 
+                        doInContext
+                           (DaVinciTypes.Graph (ChangeType
                               [NodeType nodeId (nodeType nodeType1)]))
                            (context graph)
-                        doInContext 
+                        doInContext
                            (DaVinciTypes.Graph (ChangeAttr [
                               Node nodeId attributes]))
                            (context graph)
@@ -806,16 +806,16 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
                done
 
 instance DeleteNode DaVinciGraph DaVinciNode where
-   deleteNodePrim (daVinciGraph @ 
+   deleteNodePrim (daVinciGraph @
             DaVinciGraph {context = context,nodes = nodes})
-         (DaVinciNode nodeId) = 
+         (DaVinciNode nodeId) =
       transformValue nodes nodeId (\ nodeDataOpt ->
          case nodeDataOpt of
             Nothing -> return (nodeDataOpt,())
             Just (NodeData nodeDataData) ->
                do
                   invalidate (sink nodeDataData)
-                  addNodeUpdate daVinciGraph (DeleteNode nodeId) 
+                  addNodeUpdate daVinciGraph (DeleteNode nodeId)
                   return (Nothing,())
             )
 
@@ -825,21 +825,21 @@ instance DeleteNode DaVinciGraph DaVinciNode where
          (Just (NodeData nodeDataData)) <- getValueOpt nodes nodeId
          return (coDyn (valueData nodeDataData))
 
-   setNodeValuePrim 
-         (daVinciGraph @ DaVinciGraph {context = context,nodes = nodes}) 
-         (daVinciNode @ (DaVinciNode nodeId)) 
+   setNodeValuePrim
+         (daVinciGraph @ DaVinciGraph {context = context,nodes = nodes})
+         (daVinciNode @ (DaVinciNode nodeId))
          newValue =
       do
          typeOpt <- transformValue nodes nodeId
-            (\ nodeDataOpt -> 
+            (\ nodeDataOpt ->
                return (
                   case nodeDataOpt of
                      Nothing -> (nodeDataOpt,Nothing)
                      Just (NodeData nodeDataData0) ->
                        let
                           nodeDataData1 = nodeDataData0 {
-                             valueData = coDyn newValue}  
-                       in 
+                             valueData = coDyn newValue}
+                       in
                           (Just (NodeData nodeDataData1),
                               Just (coDyn (typeData nodeDataData1)))
                   )
@@ -866,13 +866,13 @@ instance DeleteNode DaVinciGraph DaVinciNode where
 
             closeAct =
                do
-                  errorMess 
+                  errorMess
                      "Unexpected close interrupting multiple node selection!"
                   signalDestruct daVinciGraph
 
             newHandler :: DaVinciAnswer -> IO ()
             newHandler answer = case answer of
-               NodeSelectionsLabels [nodeId] 
+               NodeSelectionsLabels [nodeId]
                   -> writeIORef lastSel (Just nodeId)
                NodeSelectionsLabels _ -> done -- not a double click
                NodeDoubleClick ->
@@ -882,7 +882,7 @@ instance DeleteNode DaVinciGraph DaVinciNode where
                         Nothing -> errorMess "Confusing node selection ignored"
                         Just nodeId ->
                            do
-                              nodeDataOpt 
+                              nodeDataOpt
                                  <- getValueOpt (nodes daVinciGraph) nodeId
                               case nodeDataOpt of
                                  Nothing -> errorMess
@@ -890,7 +890,7 @@ instance DeleteNode DaVinciGraph DaVinciNode where
                                  Just (NodeData nodeDataData) ->
                                     do
                                        let
-                                          wrappedNode = WrappedNode 
+                                          wrappedNode = WrappedNode
                                              (mapNode nodeId (
                                                 typeData nodeDataData))
                                        sync(noWait(send channel wrappedNode))
@@ -904,13 +904,13 @@ instance DeleteNode DaVinciGraph DaVinciNode where
 
 
             act = mkAct (receive channel)
-            
+
          withHandler newHandler (context daVinciGraph) act
 
 instance SetNodeFocus DaVinciGraph DaVinciNode where
-   setNodeFocusPrim (daVinciGraph @ 
+   setNodeFocusPrim (daVinciGraph @
             DaVinciGraph {context = context,nodes = nodes})
-         (DaVinciNode nodeId) = 
+         (DaVinciNode nodeId) =
       transformValue nodes nodeId (\ nodeDataOpt ->
          case nodeDataOpt of
             Nothing -> return (nodeDataOpt,())
@@ -926,7 +926,7 @@ instance NodeClass DaVinciNode
 instance NodeTypeClass DaVinciNodeType
 
 instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
-   newNodeTypePrim 
+   newNodeTypePrim
          (daVinciGraph@(DaVinciGraph {context = context}))
          (DaVinciNodeTypeParms {
             nodeAttributes = nodeAttributes,
@@ -934,7 +934,7 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
             configFontStyle = configFontStyle,
             configBorder = configBorder,
             configNodeDoubleClickAction = configNodeDoubleClickAction,
-            configCreateNodeAndEdgeAction 
+            configCreateNodeAndEdgeAction
                = configCreateNodeAndEdgeAction,
             configCreateEdgeAction = configCreateEdgeAction
             }) =
@@ -973,7 +973,7 @@ instance NodeTypeParms DaVinciNodeTypeParms where
       configCreateEdgeAction = const (const done)
       }
 
-   coMapNodeTypeParms coMapFn 
+   coMapNodeTypeParms coMapFn
       (DaVinciNodeTypeParms {
          nodeAttributes = nodeAttributes,
          configNodeText = configNodeText,
@@ -989,13 +989,13 @@ instance NodeTypeParms DaVinciNodeTypeParms where
          configFontStyle = (fmap (. coMapFn) configFontStyle),
          configBorder = (fmap (. coMapFn) configBorder),
          configNodeDoubleClickAction = configNodeDoubleClickAction . coMapFn,
-         configCreateNodeAndEdgeAction = 
+         configCreateNodeAndEdgeAction =
             configCreateNodeAndEdgeAction . coMapFn,
          configCreateEdgeAction = (\ dyn ->
             (configCreateEdgeAction dyn) . coMapFn)
          }
 
-instance NodeTypeConfig graphConfig 
+instance NodeTypeConfig graphConfig
    => HasConfigValue graphConfig DaVinciNodeTypeParms where
 
    configUsed' nodeTypeConfig nodeTypeParms = False
@@ -1007,7 +1007,7 @@ instance NodeTypeConfig graphConfig
 
 instance HasConfigValue ValueTitle DaVinciNodeTypeParms where
    configUsed' _ _ = True
-   ($$$) (ValueTitle nodeText') parms = 
+   ($$$) (ValueTitle nodeText') parms =
       let
          nodeText value =
             do
@@ -1018,17 +1018,17 @@ instance HasConfigValue ValueTitle DaVinciNodeTypeParms where
 
 instance HasConfigValue ValueTitleSource DaVinciNodeTypeParms where
    configUsed' _ _ = True
-   ($$$) (ValueTitleSource nodeText) parms = 
+   ($$$) (ValueTitleSource nodeText) parms =
       parms { configNodeText = nodeText }
 
 instance HasConfigValue FontStyleSource DaVinciNodeTypeParms where
    configUsed' _ _ = True
-   ($$$) (FontStyleSource fontStyleSource) parms = 
+   ($$$) (FontStyleSource fontStyleSource) parms =
       parms { configFontStyle = Just fontStyleSource }
 
 instance HasConfigValue BorderSource DaVinciNodeTypeParms where
    configUsed' _ _ = True
-   ($$$) (BorderSource borderSource) parms = 
+   ($$$) (BorderSource borderSource) parms =
       parms { configBorder = Just borderSource }
 
 instance HasConfigValue Shape DaVinciNodeTypeParms where
@@ -1047,13 +1047,13 @@ instance HasConfigValue Shape DaVinciNodeTypeParms where
                Icon filePath ->
                   Att "ICONFILE" filePath $$$
                   shaped "icon"
-      in 
+      in
          parms {nodeAttributes = nodeAttributes1}
 
 instance HasConfigValue Color DaVinciNodeTypeParms where
    configUsed' _ _ = True
    ($$$) (Color colorName) parms =
-      parms {nodeAttributes = (Att "COLOR" colorName) $$$ 
+      parms {nodeAttributes = (Att "COLOR" colorName) $$$
          (nodeAttributes parms)}
 
 instance HasConfigValue LocalMenu DaVinciNodeTypeParms where
@@ -1086,7 +1086,7 @@ instance HasModifyValue NodeArcsHidden DaVinciGraph DaVinciNode where
                   (context daVinciGraph)
 
 instance HasModifyValue Attribute DaVinciGraph DaVinciNode where
-   modify attribute daVinciGraph (DaVinciNode nodeId) = 
+   modify attribute daVinciGraph (DaVinciNode nodeId) =
       do
          flushPendingChanges daVinciGraph
          doInContext
@@ -1126,7 +1126,7 @@ data DaVinciArcType value = DaVinciArcType {
 --   arcTitleFunc :: value -> String
    } deriving (Typeable)
 
-data DaVinciArcTypeParms value = 
+data DaVinciArcTypeParms value =
       DaVinciArcTypeParms {
          arcAttributes :: Attributes value,
          configArcDoubleClickAction :: value -> IO (),
@@ -1135,7 +1135,7 @@ data DaVinciArcTypeParms value =
          }
    |  InvisibleArcTypeParms
 
-data ArcData = forall value . Typeable value 
+data ArcData = forall value . Typeable value
    => ArcData (DaVinciArcType value) value
 
 
@@ -1143,16 +1143,16 @@ instance Eq1 DaVinciArc where
    eq1 (DaVinciArc n1) (DaVinciArc n2) = (n1 == n2)
 
 instance Ord1 DaVinciArc where
-   compare1 (DaVinciArc n1) (DaVinciArc n2) = compare n1 n2 
+   compare1 (DaVinciArc n1) (DaVinciArc n2) = compare n1 n2
 
 addArcGeneral :: Typeable value
     => DaVinciGraph -> DaVinciArcType value
     -> DaVinciArc value -> value
     -> DaVinciNode nodeFromValue -> DaVinciNode nodeToValue
     -> IO ()
-addArcGeneral 
+addArcGeneral
       (daVinciGraph @ DaVinciGraph {edges = edges})
-      daVinciArcType (DaVinciArc edgeId) value 
+      daVinciArcType (DaVinciArc edgeId) value
       (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
    do
       if daVinciArcType `eq1` invisibleArcType
@@ -1164,25 +1164,25 @@ addArcGeneral
                arcText <- readContents(s)
                atts <- return ([titleAttribute arcText])
                setValue edges edgeId (ArcData daVinciArcType value)
-               addEdgeUpdate daVinciGraph 
+               addEdgeUpdate daVinciGraph
                   (NewEdge edgeId (arcType daVinciArcType) atts nodeFrom nodeTo)
- 
-instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc 
+
+instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc
          DaVinciArcType
       where
    newArcPrim daVinciGraph daVinciArcType value nodeFrom nodeTo =
       do
          edgeId <- newEdgeId (context daVinciGraph)
          let
-            newArc = DaVinciArc edgeId            
+            newArc = DaVinciArc edgeId
 
-         addArcGeneral daVinciGraph daVinciArcType newArc value 
+         addArcGeneral daVinciGraph daVinciArcType newArc value
             nodeFrom nodeTo
 
          return newArc
 
    newArcListDrawerPrim
-         (daVinciGraph @ DaVinciGraph {context = context,edges = edges}) 
+         (daVinciGraph @ DaVinciGraph {context = context,edges = edges})
          nodeFrom =
       -- We ignore positional data for now, since daVinci does too.
 
@@ -1230,7 +1230,7 @@ instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc
          listDrawer
 
 instance SetArcType DaVinciGraph DaVinciArc DaVinciArcType where
-   setArcTypePrim daVinciGraph (davinciArc@(DaVinciArc edgeId)) 
+   setArcTypePrim daVinciGraph (davinciArc@(DaVinciArc edgeId))
          daVinciArcType =
       error "Sorry, setArcType is not implemented for daVinci"
 
@@ -1283,9 +1283,9 @@ instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
             }) =
       do
          arcType <- newType context
-         (arcMenuActions,attributes) 
+         (arcMenuActions,attributes)
             <- encodeAttributes arcAttributes daVinciGraph
-         doInContext (Visual(AddRules [ER arcType attributes])) context 
+         doInContext (Visual(AddRules [ER arcType attributes])) context
          let
             arcDoubleClickAction = configArcDoubleClickAction
             arcArcText = configArcText
@@ -1322,19 +1322,19 @@ instance ArcTypeParms DaVinciArcTypeParms where
 instance HasConfigValue Color DaVinciArcTypeParms where
    configUsed' _ _ = True
    ($$$) (Color colorName) parms =
-      parms {arcAttributes = (Att "EDGECOLOR" colorName) $$$ 
+      parms {arcAttributes = (Att "EDGECOLOR" colorName) $$$
          (arcAttributes parms)}
 
 instance HasConfigValue EdgeDir DaVinciArcTypeParms where
    configUsed' _ _ = True
    ($$$) (Dir dirStr) parms =
-        parms {arcAttributes = (Att "_DIR" dirStr) $$$ 
+        parms {arcAttributes = (Att "_DIR" dirStr) $$$
            (arcAttributes parms)}
 
 instance HasConfigValue Head DaVinciArcTypeParms where
    configUsed' _ _ = True
    ($$$) (Head headStr) parms =
-        parms {arcAttributes = (Att "HEAD" headStr) $$$ 
+        parms {arcAttributes = (Att "HEAD" headStr) $$$
            (arcAttributes parms)}
 
 instance HasConfigValue EdgePattern DaVinciArcTypeParms where
@@ -1348,7 +1348,7 @@ instance HasConfigValue EdgePattern DaVinciArcTypeParms where
             Thick -> "thick"
             Double -> "double"
       in
-         parms {arcAttributes = (Att "EDGEPATTERN" pattern) $$$ 
+         parms {arcAttributes = (Att "EDGEPATTERN" pattern) $$$
             (arcAttributes parms)}
 
 instance HasConfigValue LocalMenu DaVinciArcTypeParms where
@@ -1356,7 +1356,7 @@ instance HasConfigValue LocalMenu DaVinciArcTypeParms where
    ($$$) localMenu parms =
       parms {arcAttributes = localMenu $$$ (arcAttributes parms)}
 
-instance ArcTypeConfig arcTypeConfig 
+instance ArcTypeConfig arcTypeConfig
    => HasConfigValue arcTypeConfig DaVinciArcTypeParms where
 
    configUsed' arcTypeConfig arcTypeParms = False
@@ -1377,7 +1377,7 @@ instance HasConfigValue TitleFunc DaVinciArcTypeParms where
 
 instance HasConfigValue ValueTitle DaVinciArcTypeParms where
    configUsed' _ _ = True
-   ($$$) (ValueTitle arcText') parms = 
+   ($$$) (ValueTitle arcText') parms =
       let
          arcText value =
             do
@@ -1404,7 +1404,7 @@ emptyAttributes = Attributes {
    menuOpt = Nothing
    }
 
-coMapAttributes :: (value2 -> value1) -> Attributes value1 
+coMapAttributes :: (value2 -> value1) -> Attributes value1
    -> Attributes value2
 coMapAttributes coMapFn (Attributes{options = options,menuOpt = menuOpt0}) =
    let
@@ -1416,7 +1416,7 @@ coMapAttributes coMapFn (Attributes{options = options,menuOpt = menuOpt0}) =
             menuOpt0
    in
       Attributes{options = options,menuOpt = menuOpt1}
-                                
+
 
 
 data Att value = Att String String
@@ -1449,21 +1449,21 @@ encodeAttributes attributes daVinciGraph =
             keysPart)
          Just localMenu ->
             do
-               (registry,menuEntries) <- 
-                  encodeLocalMenu localMenu daVinciGraph         
+               (registry,menuEntries) <-
+                  encodeLocalMenu localMenu daVinciGraph
                return (registry,M menuEntries : keysPart)
 
 ------------------------------------------------------------------------
 -- Menus
 ------------------------------------------------------------------------
 
-encodeLocalMenu :: Typeable value => LocalMenu value -> DaVinciGraph 
+encodeLocalMenu :: Typeable value => LocalMenu value -> DaVinciGraph
    -> IO (Registry MenuId (value -> IO ()),[MenuEntry])
 -- Construct a local menu associated with a particular type,
 -- returning (a) a registry mapping MenuId's to actions;
 -- (b) the [MenuEntry] to be passed to daVinci.
-encodeLocalMenu 
-      (LocalMenu (menuPrim0 :: MenuPrim (Maybe String) (value -> IO ()))) 
+encodeLocalMenu
+      (LocalMenu (menuPrim0 :: MenuPrim (Maybe String) (value -> IO ())))
       (DaVinciGraph {context = context}) =
    do
       registry <- newRegistry
@@ -1474,8 +1474,8 @@ encodeLocalMenu
                   menuId <- newMenuId context
                   setValue registry menuId valueToAct
                   return menuId
-               )    
-            menuPrim0   
+               )
+            menuPrim0
       (menuPrim2 :: MenuPrim (Maybe String,MenuId) MenuId) <-
          mapMMenuPrim'
             (\ stringOpt ->
@@ -1497,11 +1497,11 @@ getMenuIds (first:rest) = theseIds ++ getMenuIds rest
          SubmenuEntry menuId _ menuEntries -> menuId : getMenuIds menuEntries
          SubmenuEntryMne menuId _ menuEntries _ -> menuId : getMenuIds menuEntries
          BlankMenuEntry -> []
-         _ -> error "DaVinciGraph: (Sub)MenuEntryDisabled not yet handled." 
+         _ -> error "DaVinciGraph: (Sub)MenuEntryDisabled not yet handled."
 
 encodeGlobalMenu :: GlobalMenu -> DaVinciGraph -> IO [MenuEntry]
 -- This constructs a global menu.  The menuId actions are written
--- directly into the graphs globalMenuActions registry. 
+-- directly into the graphs globalMenuActions registry.
 encodeGlobalMenu (GlobalMenu (menuPrim0 :: MenuPrim (Maybe String) (IO ())))
       (DaVinciGraph {context = context,globalMenuActions = globalMenuActions})
        =
@@ -1531,7 +1531,7 @@ encodeDaVinciMenu :: MenuPrim (Maybe String,MenuId) MenuId -> [MenuEntry]
 -- daVinci can't send that as an event.
 encodeDaVinciMenu menuHead =
    case menuHead of
-      GraphConfigure.Menu (Nothing,_) menuPrims -> 
+      GraphConfigure.Menu (Nothing,_) menuPrims ->
          encodeMenuList menuPrims
       GraphConfigure.Menu (Just label,menuId) menuPrims ->
          [SubmenuEntry menuId (MenuLabel label) (encodeMenuList menuPrims)]
@@ -1544,16 +1544,16 @@ encodeDaVinciMenu menuHead =
       encodeMenuItem :: MenuPrim (Maybe String,MenuId) MenuId  -> MenuEntry
       encodeMenuItem (Button label menuId) = MenuEntry menuId (MenuLabel label)
       encodeMenuItem (GraphConfigure.Menu (labelOpt,menuId) menuItems) =
-         SubmenuEntry menuId (MenuLabel (fromMaybe "" labelOpt)) 
+         SubmenuEntry menuId (MenuLabel (fromMaybe "" labelOpt))
             (encodeMenuList menuItems)
-      encodeMenuItem Blank = BlankMenuEntry 
-      
+      encodeMenuItem Blank = BlankMenuEntry
+
 -- -----------------------------------------------------------------------
 -- Handling pending changes
 -- -----------------------------------------------------------------------
 
 addNodeUpdate :: DaVinciGraph -> NodeUpdate -> IO ()
-addNodeUpdate (DaVinciGraph {pendingChangesMVar = pendingChangesMVar}) 
+addNodeUpdate (DaVinciGraph {pendingChangesMVar = pendingChangesMVar})
       nodeUpdate =
    do
       pendingChanges <- takeMVar pendingChangesMVar
@@ -1574,7 +1574,7 @@ sortPendingChanges :: [MixedUpdate] -> DaVinciCmd
 sortPendingChanges pendingChanges =
    if isJust daVinciVersion
       then
-         -- daVinci has version at least 3.0, and so multi_update works. 
+         -- daVinci has version at least 3.0, and so multi_update works.
          DaVinciTypes.Graph(UpdateMixed (reverse pendingChanges))
       else
          sortPendingChanges1 pendingChanges
@@ -1584,7 +1584,7 @@ sortPendingChanges1 pendingChanges =
    let
       (nodeUpdates :: [NodeUpdate],edgeUpdates1 :: [EdgeUpdate]) =
          foldr -- so that the nodes are in the same order as in list.
-            (\ change (nodesSF,edgesSF) -> 
+            (\ change (nodesSF,edgesSF) ->
                case change of
                   NU(n @ (NewNode _ _ _)) -> (n:nodesSF,edgesSF)
                   NU(n @ (DeleteNode _)) -> (n:nodesSF,edgesSF)
@@ -1595,13 +1595,13 @@ sortPendingChanges1 pendingChanges =
             pendingChanges
 
       -- We need to eliminate NewEdge updates for edges
-      -- containing deleted nodes, and DeleteEdge updates for these 
+      -- containing deleted nodes, and DeleteEdge updates for these
       -- eliminated edges.
       finalState = toFinalState pendingChanges
 
       deletedNodes :: Set NodeId
       deletedNodes = mkSet (mapMaybe
-         (\ update -> case update of 
+         (\ update -> case update of
                NU (DeleteNode nodeId) -> Just nodeId
                _ -> Nothing
             )
@@ -1611,7 +1611,7 @@ sortPendingChanges1 pendingChanges =
       (edgeUpdates2 :: [EdgeUpdate],obsoleteEdges :: Set EdgeId) =
          foldl
             (\ (eSF,oSF) e -> case e of
-               (NewEdge edgeId _ _ nodeFrom nodeTo) -> 
+               (NewEdge edgeId _ _ nodeFrom nodeTo) ->
                   if (elementOf nodeFrom deletedNodes) ||
                      (elementOf nodeTo deletedNodes)
                      then (eSF,addToSet oSF edgeId)
@@ -1625,7 +1625,7 @@ sortPendingChanges1 pendingChanges =
          (\ e -> case e of
             DeleteEdge edgeId -> not (elementOf edgeId obsoleteEdges)
             _ -> True
-            ) 
+            )
          (reverse edgeUpdates2)
       in
          DaVinciTypes.Graph(Update nodeUpdates edgeUpdates3)
@@ -1640,13 +1640,13 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
          putMVar pendingChangesMVar []
          case pendingChanges of
             [] -> done
-            _ -> 
+            _ ->
                doInContext (sortPendingChanges pendingChanges) context
-         -- Delete registry entries for all now-irrelevant node and edge 
+         -- Delete registry entries for all now-irrelevant node and edge
          -- entries.
-         -- NB.  This will miss deleting entries for edges which are 
+         -- NB.  This will miss deleting entries for edges which are
          -- attached to nodes which get deleted without being
-         -- deleted themselves, but I can't be bothered now to do 
+         -- deleted themselves, but I can't be bothered now to do
          -- anything about this.
          sequence_ (fmap
             (\ pendingChange -> case pendingChange of
@@ -1669,7 +1669,7 @@ toFinalState = uniqOrdByKeyOrder toId
       toId (EU (DeleteEdge edgeId)) = Right edgeId
       toId (EU (NewEdge edgeId _ _ _ _)) = Right edgeId
       toId (EU (NewEdgeBehind _ edgeId _ _ _  _)) = Right edgeId
- 
+
 -- -----------------------------------------------------------------------
 -- Setting node titles and font styles.
 -- -----------------------------------------------------------------------
@@ -1696,7 +1696,7 @@ titleAttribute :: String -> Attribute
 titleAttribute title = A "OBJECT" title
 
 -- | This function similarly changes the font style.
-setFontStyle :: Typeable value => DaVinciGraph -> DaVinciNode value 
+setFontStyle :: Typeable value => DaVinciGraph -> DaVinciNode value
    -> FontStyle -> IO Bool
 setFontStyle daVinciGraph (daVinciNode@(DaVinciNode nodeId)) fontStyle =
    do
@@ -1721,7 +1721,7 @@ fontStyleAttribute fontStyle =
       A "FONTSTYLE" fontStyleStr
 
 -- | This function similarly changes the border.
-setBorder :: Typeable value => DaVinciGraph -> DaVinciNode value 
+setBorder :: Typeable value => DaVinciGraph -> DaVinciNode value
    -> Border -> IO Bool
 setBorder daVinciGraph (daVinciNode@(DaVinciNode nodeId)) border =
    do
@@ -1749,7 +1749,7 @@ borderAttribute border =
 -- -----------------------------------------------------------------------
 
 fromFileMenuOption :: FileMenuOption -> String
-fromFileMenuOption option = 
+fromFileMenuOption option =
    case lookup option menuOptionList of
       Just s -> s
 
@@ -1759,12 +1759,12 @@ toFileMenuOption s =
 
 menuOptionList :: [(FileMenuOption,String)]
 menuOptionList = [
-   (NewMenuOption,   "new"),   
-   (OpenMenuOption,  "open"),  
-   (SaveMenuOption,  "save"), 
-   (SaveAsMenuOption,"saveas"), 
+   (NewMenuOption,   "new"),
+   (OpenMenuOption,  "open"),
+   (SaveMenuOption,  "save"),
+   (SaveAsMenuOption,"saveas"),
    (PrintMenuOption, "print"),
-   (CloseMenuOption, "close"), 
+   (CloseMenuOption, "close"),
    (ExitMenuOption,  "exit")
    ]
 
@@ -1791,4 +1791,4 @@ getValueHere =
       else
          getValue
 
-      
+

@@ -31,7 +31,7 @@ main =
   do
     main <- initHTk [text "Pretty Blobs"]
     cnv <- newCanvas main [size (cm 15, cm 15),
-		           background "black"]
+                           background "black"]
     pack cnv []
 
     (press, _) <- bind cnv [WishEvent [] (ButtonPress (Just 1))]
@@ -39,20 +39,20 @@ main =
                            (x, y) <- press >>>= \i-> return (x i, y i)
                            always (do
                                      col <- randomColour
-			             c <- colourDot cnv x y col
-			             spawn (sparkle c (x,y) col 0 255))))
+                                     c <- colourDot cnv x y col
+                                     spawn (sparkle c (x,y) col 0 255))))
     finishHTk
 
    where colourDot cnv x y col = createOval cnv [filling col, size (2, 2),
                                                  position (x - 1, y - 1)]
-	 sparkle p (x,y) col cnt fade =
-	   if cnt >= 750 then do destroy p  -- doesn't remove image ?!? 
-	   else do
+         sparkle p (x,y) col cnt fade =
+           if cnt >= 750 then do destroy p  -- doesn't remove image ?!?
+           else do
                   p # filling (col)
-	          p # size (cnt `div` 5,  cnt `div` 5)
-		  p # position (x- cnt `div` 10, y- cnt `div` 10)
-		  col <- nextColour col >>= return . fadeColour fade
-		  threadDelay 20
-	          sparkle p (x, y) col (cnt+10) 
-	  	          (if cnt >= 500 then fade - 10 else fade)
-	 fadeColour f (r, g, b) = (min r f, min g f, min b f)
+                  p # size (cnt `div` 5,  cnt `div` 5)
+                  p # position (x- cnt `div` 10, y- cnt `div` 10)
+                  col <- nextColour col >>= return . fadeColour fade
+                  threadDelay 20
+                  sparkle p (x, y) col (cnt+10)
+                          (if cnt >= 500 then fade - 10 else fade)
+         fadeColour f (r, g, b) = (min r f, min g f, min b f)

@@ -1,4 +1,4 @@
--- | The InsertionPoint denotes where to insert or overwrite an object. 
+-- | The InsertionPoint denotes where to insert or overwrite an object.
 module MMiSSInsertionPoint(
    InsertionPoint,
    getInsertionPoint,
@@ -31,9 +31,9 @@ getInsertionPoint view fullName =
    do
       linkedObjectOpt <- lookupLinkedObjectByFullName view fullName
       case linkedObjectOpt of
-         Just linkedObject -> return (hasValue (Left linkedObject)) 
+         Just linkedObject -> return (hasValue (Left linkedObject))
          Nothing -> case entityDirBase fullName of
-            Nothing -> return (hasError 
+            Nothing -> return (hasError
                "Attempt to write to Root element, and no root element found")
             Just (dirName,baseName) ->
                do
@@ -42,9 +42,9 @@ getInsertionPoint view fullName =
                      Nothing -> return (hasError (
                         "Unable to find directory to write to "
                            ++ toString dirName))
-                     Just linkedObject -> 
+                     Just linkedObject ->
                         case splitLinkedObject linkedObject of
-                           FolderC folderLink 
+                           FolderC folderLink
                              -> return (hasValue (Right (folderLink,baseName)))
                            _ -> return (hasError ("Attempt to insert new "
                               ++ "object in node not a folder"

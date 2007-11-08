@@ -1,15 +1,15 @@
 -- | Code for implementing the MMiSSPreamble type.
 -- Possible changes: at the moment there is no support for alternative
--- preambles depending on variant attribute.  Should there be? 
+-- preambles depending on variant attribute.  Should there be?
 module MMiSSPreamble(
    MMiSSPreamble,
    MMiSSPreambleType,
 
-   createPreamble, 
-      -- :: View -> WrappedLink -> MMiSSLatexPreamble 
+   createPreamble,
+      -- :: View -> WrappedLink -> MMiSSLatexPreamble
       -- -> IO (Link MMiSSPreamble)
    readPreamble, -- :: View -> Link MMiSSPreamble -> IO MMiSSLaTeXPreamble
-   writePreamble, 
+   writePreamble,
       -- :: Link MMiSSPreamble -> View -> MMiSSLaTeXPreamble -> IO ()
 
    readOntology, -- :: View -> Link MMiSSPreamble -> IO MMiSSOntology
@@ -107,12 +107,12 @@ instance HasMerging MMiSSPreamble where
    attemptMerge linkReAssigner newView newLink vlos =
       do
          vlosPruned <- mergePrune vlos
-         let 
+         let
             (headView,headLink,_):_ = vlosPruned
 
          (preambles :: [MMiSSLatexPreamble]) <-
             mapM
-               (\ (_,_,preamble0) -> readContents (preamble preamble0)) 
+               (\ (_,_,preamble0) -> readContents (preamble preamble0))
                vlosPruned
 
          let
@@ -124,15 +124,15 @@ instance HasMerging MMiSSPreamble where
                do
                   if mergedPreamble == head preambles
                      then
-                        cloneLink headView headLink newView newLink 
+                        cloneLink headView headLink newView newLink
                      else
                         do
 -- TODO: Merging of Ontologies and importedByLists!!!! :
                            preamble1 <- createPreamble1 (mergedPreamble, emptyMMiSSOntologyFlat,[])
                            setLink newView preamble1 newLink
-                           done 
+                           done
                   return (return ())
-                           
+
 
 -- -------------------------------------------------------------------
 -- The instance of ObjectType.
@@ -154,7 +154,7 @@ instance ObjectType MMiSSPreambleType MMiSSPreamble where
          (theNodeType :: NodeType) = fromString ""
 
          editOptions = [
-            Button "Edit Preamble" (\ link 
+            Button "Edit Preamble" (\ link
                -> editPreamble view link)
             ]
 
@@ -173,7 +173,7 @@ instance ObjectType MMiSSPreambleType MMiSSPreamble where
             getNodeType = const theNodeType,
             getNodeLinks = const (return emptyArcEnds),
             specialNodeActions = const emptyNodeActions
-            }               
+            }
       in
          return (Just nodeDisplayData)
 
@@ -211,7 +211,7 @@ mkPreambleFS view link =
                         let
                            latexPreambleWE = fromStringWE latexPreambleStr
                         mapWithErrorIO
-                           (\ latexPreamble -> 
+                           (\ latexPreamble ->
                               do
                                  bracketForImportErrors view (
                                     broadcast preamble latexPreamble)
@@ -232,10 +232,10 @@ mkPreambleFS view link =
       createRef _ = return (hasError "You can't import into a preamble!")
    in
       EmacsFS {editFS = editFS,toMiniType = toMiniType,
-         toDescription = toDescription,createRef = createRef}       
+         toDescription = toDescription,createRef = createRef}
 
 printAction :: PrintAction MMiSSPreamble
-printAction = PrintAction 
+printAction = PrintAction
    (\ _ _ -> errorMess "Cannot print a preamble!")
 
 -- | We need to define an ordering on MMiSSPreamble\'s for EditFS, but since
@@ -252,14 +252,14 @@ instance Ord MMiSSPreamble where
 -- Creating and Reading Preambles
 -- -------------------------------------------------------------------
 
-writePreamble :: Link MMiSSPreamble -> View -> MMiSSLatexPreamble -> MMiSSOntologyFlat 
+writePreamble :: Link MMiSSPreamble -> View -> MMiSSLatexPreamble -> MMiSSOntologyFlat
                    -> IO ()
 writePreamble preambleLink view latexPreamble mmissOntology =
    do
       isNew <- isEmptyLink view preambleLink
-      if isNew 
+      if isNew
          then
-            do   
+            do
                mmissPreamble <- createPreamble1 (latexPreamble, mmissOntology, [])
                writeLink view preambleLink mmissPreamble
          else
@@ -282,10 +282,10 @@ writeOntology :: Link MMiSSPreamble -> View -> MMiSSOntologyFlat -> IO ()
 writeOntology preambleLink view onto =
    do
       isNew <- isEmptyLink view preambleLink
-      if isNew 
+      if isNew
          then return()
          else
-            do 
+            do
                oldPreamble <- readLink view preambleLink
                oldMMiSSOntology <- readContents (ontology oldPreamble)
                broadcast (ontology oldPreamble) onto
@@ -298,10 +298,10 @@ writeImportedByList :: Link MMiSSPreamble -> View -> [EntityFullName] -> IO ()
 writeImportedByList preambleLink view list =
    do
       isNew <- isEmptyLink view preambleLink
-      if isNew 
+      if isNew
          then return()
          else
-            do 
+            do
                oldPreamble <- readLink view preambleLink
                let oldLock = editLock oldPreamble
                    newPreamble = MMiSSPreamble {preamble = preamble oldPreamble,
@@ -312,7 +312,7 @@ writeImportedByList preambleLink view list =
 
 
 
-createPreamble :: View -> WrappedLink -> MMiSSLatexPreamble 
+createPreamble :: View -> WrappedLink -> MMiSSLatexPreamble
    -> IO (Link MMiSSPreamble)
 createPreamble view (WrappedLink parentLink) latexPreamble =
    do
@@ -352,25 +352,25 @@ readImportedByList view link =
 instance HasBundleNodeWrite MMiSSPreamble where
    bundleNodeWrite view bundleNode preambleLink =
       do
-         let 
+         let
             MMiSSBundle.Object [(_,preambleText)] = bundleNodeData bundleNode
 
          preamble <- coerceWithErrorOrBreakIO importExportError
                (fromBundleTextWE preambleText)
          writePreamble preambleLink view preamble emptyMMiSSOntologyFlat
-       
+
 
 -- -------------------------------------------------------------------
 -- Interface needed for MMiSSPackageFolder
 -- -------------------------------------------------------------------
 
 toImportCommands :: MMiSSPreamble -> SimpleSource ImportCommands
-toImportCommands mmissPreamble = 
-   fmap 
+toImportCommands mmissPreamble =
+   fmap
       (\ mmissLaTeXPreamble -> fromMaybe trivialImportCommands
          (importCommands mmissLaTeXPreamble))
       (toSimpleSource (preamble mmissPreamble))
-   
+
 
 -- -------------------------------------------------------------------
 -- The Global Registry.  This will in fact be empty.

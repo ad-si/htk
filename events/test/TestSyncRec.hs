@@ -18,7 +18,7 @@ main =
       ch <- newNullGuardedChannel
       test "NullGuard" (send ch 1) (toEvent (listen ch))
       ch <- newEqGuardedChannel
-      test "EqGuard" (send ch (1::Int,"foo")) 
+      test "EqGuard" (send ch (1::Int,"foo"))
          (toEvent (listen ch |> Eq (1::Int)))
       ch <- newRegexChannel
       test "Regex" (sendString ch "hello") (matchEvent "hello" ch)

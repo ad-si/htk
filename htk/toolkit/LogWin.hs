@@ -18,7 +18,7 @@ import ScrollBox
 import FileDialog
 import System
 
-                
+
 -- -----------------------------------------------------------------------
 -- Type
 -- -----------------------------------------------------------------------
@@ -32,7 +32,7 @@ data LogWin = LogWin Toplevel Editor (IO ())
 -- -----------------------------------------------------------------------
 
 -- | Creates a new log window and returns a handler.
-createLogWin :: [Config Toplevel] 
+createLogWin :: [Config Toplevel]
    -- ^ the list of configuration options for this log window.
    -> IO LogWin
    -- ^ A log window.
@@ -94,9 +94,9 @@ instance Destroyable LogWin where
 -- -----------------------------------------------------------------------
 
 -- | Writes into the log window.
-writeLogWin :: LogWin 
+writeLogWin :: LogWin
    -- ^ the concerned log window.
-   -> String 
+   -> String
    -- ^ the text to write to the log window.
    -> IO ()
    -- ^ None.

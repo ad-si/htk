@@ -1,17 +1,17 @@
 -- | FMQueue handles finite maps of delete queues, so that we
--- can implement EqGuard. 
+-- can implement EqGuard.
 module FMQueue(
    FMQueue,
-   emptyFMQueue, 
+   emptyFMQueue,
       -- :: FMQueue key contents
-   addFMQueue, 
-      -- :: Ord key => FMQueue key contents -> key -> contents -> 
+   addFMQueue,
+      -- :: Ord key => FMQueue key contents -> key -> contents ->
       --    IO (FMQueue key contents,IO ())
       -- adds an item, returning the new queue and an invalidate action.
-   removeFMQueue, 
-      -- :: Ord key => FMQueue key contents -> key -> 
+   removeFMQueue,
+      -- :: Ord key => FMQueue key contents -> key ->
       -- IO (Maybe (contents,FMQueue key contents),FMQueue key contents)
-   removeFMQueueAny 
+   removeFMQueueAny
       -- :: Ord key => FMQueue key contents ->
       -- IO (Maybe (key,contents,FMQueue key contents),FMQueue key contents)
    ) where
@@ -20,7 +20,7 @@ import DeprecatedFiniteMap
 
 import DeleteQueue
 
-data Ord key => FMQueue key contents = 
+data Ord key => FMQueue key contents =
    FMQueue {
       dqMap :: FiniteMap key (DeleteQueue contents),
       cleanList :: [key]
@@ -34,12 +34,12 @@ emptyFMQueue = FMQueue {
    cleanList = []
    }
 
-addFMQueue :: Ord key => FMQueue key contents -> key -> contents -> 
+addFMQueue :: Ord key => FMQueue key contents -> key -> contents ->
    IO (FMQueue key contents,IO ())
 addFMQueue fmQueue key contents =
   do
       let
-         fmMap = (dqMap fmQueue) 
+         fmMap = (dqMap fmQueue)
          deleteQueue = lookupWithDefaultFM fmMap emptyQueue key
       (deleteQueue2,invalidate) <-
          addQueue deleteQueue contents
@@ -49,7 +49,7 @@ addFMQueue fmQueue key contents =
       fmQueue3 <- doClean fmQueue2
       return (fmQueue3,invalidate)
 
-removeFMQueue :: Ord key => FMQueue key contents -> key -> 
+removeFMQueue :: Ord key => FMQueue key contents -> key ->
    IO (Maybe (contents,FMQueue key contents),FMQueue key contents)
    -- The last returned item is the queue WITHOUT an item removed.
 removeFMQueue fmQueue key=
@@ -61,11 +61,11 @@ removeFMQueue fmQueue key=
             do
                pop <- removeQueue deleteQueue
                case pop of
-                  Nothing -> 
+                  Nothing ->
                      return (Nothing,fmQueue {dqMap = delFromFM fmMap key})
                   Just (contents,deleteQueue2,deleteQueue0) ->
                      do
-                        let updateQueue queue = 
+                        let updateQueue queue =
                               fmQueue {dqMap = addToFM fmMap key queue}
                         return (Just (contents,updateQueue deleteQueue2),
                            updateQueue deleteQueue0)
@@ -74,7 +74,7 @@ removeFMQueueAny :: Ord key => FMQueue key contents ->
    IO (Maybe (key,contents,FMQueue key contents),FMQueue key contents)
    -- Like removeFMQueue, but matches any key, and returns it.
 removeFMQueueAny fmQueue =
-   let 
+   let
       keyContents = keysFM (dqMap fmQueue)
    in
       doRemove fmQueue keyContents
@@ -88,9 +88,9 @@ removeFMQueueAny fmQueue =
                (Just (contents,fmQueue2),fmQueue0) ->
                   return (Just(key,contents,fmQueue2),fmQueue0)
 
-doClean :: Ord key => FMQueue key contents -> IO (FMQueue key contents) 
+doClean :: Ord key => FMQueue key contents -> IO (FMQueue key contents)
 doClean fmQueue =
-   case cleanList fmQueue of 
+   case cleanList fmQueue of
       [] ->
          return (fmQueue {cleanList = keysFM (dqMap fmQueue)})
       toClean:nextCleanList ->

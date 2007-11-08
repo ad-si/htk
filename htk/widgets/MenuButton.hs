@@ -35,10 +35,10 @@ data MenuButton = MenuButton GUIOBJECT
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new menubutton widget and returns a handler.
-newMenuButton :: Container par => par 
+newMenuButton :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config MenuButton] 
+   -> [Config MenuButton]
    -- ^ the list of configuration options for this menubutton.
    -> IO MenuButton
    -- ^ A menubutton widget.
@@ -53,7 +53,7 @@ newMenuButton par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject MenuButton where 
+instance GUIObject MenuButton where
   toGUIObject (MenuButton w) = w
   cname _ = "MenuButton"
 
@@ -65,7 +65,7 @@ instance Destroyable MenuButton where
 -- | A menubutton widget has standard widget properties
 -- (concerning focus, cursor).
 instance Widget MenuButton
- 
+
 -- | A menubutton widget can be flashed (redisplayed several times in
 -- alternate colours) and invoked (the associated event).
 instance ButtonWidget MenuButton
@@ -78,7 +78,7 @@ instance HasBorder MenuButton
 
 -- | A menu button has a normal foreground and background colour and an
 -- active\/disabled foreground and background colour.
-instance HasColour MenuButton where 
+instance HasColour MenuButton where
   legalColourID = buttonColours
 
 -- | A menubutton widget is a stateful widget, it can be enabled or

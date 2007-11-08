@@ -27,7 +27,7 @@ import OntoParser
 
 
 printImports :: LinkedObject -> String -> (EntityFullName,String) -> View -> IO(Bool)
-printImports sourcePackageLinkedObject couplingDir (packageFullName,packageFSPath) view = 
+printImports sourcePackageLinkedObject couplingDir (packageFullName,packageFSPath) view =
   do
      -- Link to PackageFolder des importierenden Paketes:
      folderLink1Opt <- case splitLinkedObject sourcePackageLinkedObject of
@@ -49,7 +49,7 @@ printImports sourcePackageLinkedObject couplingDir (packageFullName,packageFSPat
             case importCmdsOpt of
               Nothing -> do resultWE <- copyStringToFileCheck " " ontFilename
                             return(False)
-              (Just (ImportCommands commandList)) -> 
+              (Just (ImportCommands commandList)) ->
                 do
                   let -- globalImportCommands :: [([Directive],EntitySearchName)]
                       globalImports = map snd (mapMaybe (matchImport True) commandList)
@@ -58,18 +58,18 @@ printImports sourcePackageLinkedObject couplingDir (packageFullName,packageFSPat
                                     putStrLn mess
                                     hFlush stdout
                                     return(False)
-                    Right aliases -> 
-                      do 
+                    Right aliases ->
+                      do
 --                        let
 --                           expandedImports = map (expandAliases aliases) globalImports
-                        -- Über alle importierten Packages hinweg die Ontologien zusammensammeln: 
+                        -- Über alle importierten Packages hinweg die Ontologien zusammensammeln:
                         resultList <- mapM (printImportedPackage view packageFolder
-                                                                 packageFullName aliases) globalImports 
+                                                                 packageFullName aliases) globalImports
                         let (latexStrings,commandStrings) = unzip resultList
                             cmdStr = concat commandStrings
                             ontStr = concat latexStrings
-                        let 
-                            externalStr = ontStr ++ "\n\\def\\Basis{\\jobname .pdf}\n\\def\\CheckImport#1{" ++ cmdStr 
+                        let
+                            externalStr = ontStr ++ "\n\\def\\Basis{\\jobname .pdf}\n\\def\\CheckImport#1{" ++ cmdStr
                                           ++ "                  }\n"
                         resultWE <- copyStringToFileCheck externalStr ontFilename
 --                        putStrLn externalStr
@@ -85,7 +85,7 @@ printImports sourcePackageLinkedObject couplingDir (packageFullName,packageFSPat
 
 printImportedPackage :: View -> MMiSSPackageFolder -> EntityFullName -> Aliases -> EntitySearchName -> IO(String,String)
 printImportedPackage view packageFolder packageFullName aliases name =
-  do 
+  do
      let
         expanded = expandAliases aliases name
 
@@ -96,19 +96,19 @@ printImportedPackage view packageFolder packageFullName aliases name =
                                Right a -> return(a)
 
      linkedObjectOpt <- lookupLinkedObjectByFullName view importedPackagePath
-     
+
      case linkedObjectOpt of
-	Nothing -> do putStrLn ("  printImportedPackage: Imported Package not found:\n     " 
+        Nothing -> do putStrLn ("  printImportedPackage: Imported Package not found:\n     "
                                  ++ (toString importedPackagePath))
                       hFlush stdout
                       return("","")
 
-	(Just linkedObject)  -> 
-	  do 
-	    folderLink <- case splitLinkedObject linkedObject of
-	                      MMiSSPackageFolderC folderLink -> return folderLink
-	                      _ -> do
-		                     putStrLn ("  printImportedPackage:" ++ (toString importedPackagePath) 
+        (Just linkedObject)  ->
+          do
+            folderLink <- case splitLinkedObject linkedObject of
+                              MMiSSPackageFolderC folderLink -> return folderLink
+                              _ -> do
+                                     putStrLn ("  printImportedPackage:" ++ (toString importedPackagePath)
                                                ++ "\n     is not a package!")
                                      hFlush stdout
                                      fail ""
@@ -147,21 +147,21 @@ generateExternalOntStr view folderLink relativePath =
          cmdStr = concat cmdStrings
      return(latexStr, cmdStr)
 
-  where 
+  where
      convertParentStrings :: String -> String
-     convertParentStrings source = 
+     convertParentStrings source =
         let newStrList = [replaceParent x | x <- breakName source]
         in unbreakName newStrList
 
      replaceParent :: String -> String
      replaceParent "Parent" = ".."
-     replaceParent s = s 
+     replaceParent s = s
 
 
 createLaTeX :: String -> OFrag -> (String,String)
-createLaTeX filename (ClassDeclFrag (classDecl)) = 
+createLaTeX filename (ClassDeclFrag (classDecl)) =
   let name = className classDecl
-      latexStr = "\\Class{" ++ name ++ "}{" ++ (classText classDecl) ++ "}{" 
+      latexStr = "\\Class{" ++ name ++ "}{" ++ (classText classDecl) ++ "}{"
                     ++ (fromMaybe "" (super classDecl)) ++ "}\n"
       commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}%\n"
                    ++ "                                 {\\def\\Basis{" ++ filename ++ "}}%\n"
@@ -171,7 +171,7 @@ createLaTeX filename (ClassDeclFrag (classDecl)) =
 
 createLaTeX filename (ObjectDeclFrag objectDecl) =
   let name = objName objectDecl
-      latexStr = "\\Object{" ++ name ++ "}{" ++ (objectText objectDecl) ++ "}{" 
+      latexStr = "\\Object{" ++ name ++ "}{" ++ (objectText objectDecl) ++ "}{"
                     ++ (instanceOf objectDecl) ++ "}\n"
       commandStr = "                  \\ifthenelse{\\equal{#1}{" ++ name ++ "}}%\n"
                    ++ "                                 {\\def\\Basis{" ++ filename ++ "}}%\n"
@@ -218,7 +218,7 @@ matchImport mustBeGlobal (Import directives searchName)
       isGlobal :: [Directive] -> Bool
       isGlobal directives =
          fromMaybe False
-            (findJust 
+            (findJust
                (\ directive -> case directive of
                   Global -> Just True
                   Local -> Just False
@@ -231,7 +231,7 @@ matchImport _ _ = Nothing
 
 
 
-toRelativeSearchName :: EntityFullName -> EntitySearchName ->  Maybe EntitySearchName  
+toRelativeSearchName :: EntityFullName -> EntitySearchName ->  Maybe EntitySearchName
 toRelativeSearchName _ s@(FromParent s1) = Just(s1)
 toRelativeSearchName (EntityFullName []) _ = Nothing
 toRelativeSearchName _ s@(FromHere _) = Just(s)
@@ -240,12 +240,12 @@ toRelativeSearchName _ s@(FromAbsolute _) = Just(s)
 toRelativeSearchName fullName (FromRoot searchFullName) = toRelativeSearchName1 fullName searchFullName
 
 
-toRelativeSearchName1 :: EntityFullName -> EntityFullName ->  Maybe EntitySearchName  
+toRelativeSearchName1 :: EntityFullName -> EntityFullName ->  Maybe EntitySearchName
 toRelativeSearchName1 (EntityFullName []) s@(EntityFullName (firstOfSearch:searchNames)) = Just((FromHere s))
 
 toRelativeSearchName1 f@(EntityFullName (firstOfBase:baseNames)) s@(EntityFullName (firstOfSearch:searchNames)) =
     if (firstOfBase == firstOfSearch)
-      then toRelativeSearchName1 (EntityFullName baseNames) (EntityFullName searchNames)     
+      then toRelativeSearchName1 (EntityFullName baseNames) (EntityFullName searchNames)
       else let str = createRelPath baseNames s
                fullNameOpt = fromStringWE str
            in case fromWithError fullNameOpt of
@@ -259,18 +259,18 @@ createRelPath :: [EntityName] -> EntityFullName -> String
 createRelPath baseNames searchName =
   let parentsStr = foldl toParent "" baseNames
       searchNameStr = case searchName of
-                         EntityFullName [] -> "" 
+                         EntityFullName [] -> ""
                          _ -> toString searchName
   in parentsStr ++ searchNameStr
 
-  where 
+  where
     toParent :: String -> EntityName -> String
     toParent str _ = str ++ "Parent/"
 
 
 -- toEntityFullName bekommt den FullName eines PackageFolders und einen relativen
 -- Pfad aus einem Import-Statement und liefert den FullName zum importieren Package zurück.
--- Beispiel: 
+-- Beispiel:
 --     ProposalsAndReports/ProposalPhase2/I4_SPIN_Proposal/P1_Package
 --     importiert Parent/P2_Package
 --     liefert dann:  ProposalsAndReports/ProposalPhase2/I4_SPIN_Proposal/P2_Package
@@ -278,7 +278,7 @@ createRelPath baseNames searchName =
 -- FromCurrent und FromHere dürfen eigentlich nicht als Präfix des Searchnames auftauchen,
 -- weil der folgende FullName nur noch Objekte innerhalb des impotierenden Packages bezeichnen
 -- können. Import-Statements dürfen aber nur Pfade auf ausserhalb liegende Packages enthalten,
--- müssen also mit FromParent oder FromRoot anfangen. FromAbsoulte ist auch nicht zu erwarten, 
+-- müssen also mit FromParent oder FromRoot anfangen. FromAbsoulte ist auch nicht zu erwarten,
 -- weil dieses nur intern eingesetzt wird.
 
 toEntityFullName :: EntityFullName -> EntitySearchName -> WithError(EntityFullName)
@@ -286,9 +286,9 @@ toEntityFullName :: EntityFullName -> EntitySearchName -> WithError(EntityFullNa
 toEntityFullName _ (FromRoot fullName) = hasValue(fullName)
 toEntityFullName _ (FromAbsolute fullName) = hasError("toEntityFullName: FromAbsolute is no valid path element for an imported Package.")
 toEntityFullName (EntityFullName []) (FromParent _) = hasError("toEntityFullName: Can't add EntitySearchName to an empty EntityFullName")
-toEntityFullName (EntityFullName fullName1) (FromHere (EntityFullName fullName2)) =  
+toEntityFullName (EntityFullName fullName1) (FromHere (EntityFullName fullName2)) =
   hasValue(EntityFullName (fullName1 ++ fullName2))
-toEntityFullName (EntityFullName fullName1) (FromCurrent (EntityFullName fullName2)) = 
+toEntityFullName (EntityFullName fullName1) (FromCurrent (EntityFullName fullName2)) =
   hasValue(EntityFullName (fullName1 ++ fullName2))
 toEntityFullName (EntityFullName fullName) (FromParent s) =
   toEntityFullName (EntityFullName (take ((genericLength fullName)-1) fullName)) s
@@ -296,7 +296,7 @@ toEntityFullName (EntityFullName fullName) (FromParent s) =
 
 
 {--
-data EntitySearchName = 
+data EntitySearchName =
       FromParent EntitySearchName -- go up one directory.
    |  FromHere EntityFullName
    |  FromCurrent EntityFullName

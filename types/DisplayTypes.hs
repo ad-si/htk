@@ -7,22 +7,22 @@ module DisplayTypes(
       -- Instance of HasCodedValue,Eq
 
    -- Functions for extracting graph parameters.
-   graphParms, -- :: HasGraphConfigs graphParms 
+   graphParms, -- :: HasGraphConfigs graphParms
       -- => View -> WrappedDisplayType -> IO graphParms
 
    -- NB.  Node and arc parameters are supplied by the particular
    -- object type instances.
 
-   registerDisplayType, 
+   registerDisplayType,
       -- :: DisplayType displayType => displayType -> IO ()
-      -- Function which registers a particular Haskell type 
+      -- Function which registers a particular Haskell type
       -- displayType, so you can save and restore it using HasCodedValue.
       -- NB - this must only be done once for the Haskell type.
       -- It should not be done each type a new _value_ of type displayType
       -- is created.
 
    ShortDisplayType(..),
-      -- This should be used to encode display types by tag.    
+      -- This should be used to encode display types by tag.
 
    importDisplayTypes, -- :: CodedValue -> View -> IO ()
       -- Decode the display types in this codedValue and store them.
@@ -54,7 +54,7 @@ class HasCodedValue displayType => DisplayType displayType where
    displayTypeTypeIdPrim :: displayType -> String
    -- This function should not look at its argument.
    -- To preserve uniqueness, the string should begin with the
-   -- module name where the instance is defined.  If there is further 
+   -- module name where the instance is defined.  If there is further
    -- information, the module name should be followed by a period.  So
    -- for a module named "A", "A" and "A.B" are legal values for this
    -- string, but not "AB" or "C".
@@ -65,12 +65,12 @@ class HasCodedValue displayType => DisplayType displayType where
    -- This returns the key for a displayType, used to access it in
    -- the global registry.
 
-   graphParmsPrim ::  
+   graphParmsPrim ::
       (GraphAllConfig graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-      => (Graph graph graphParms node nodeType nodeTypeParms 
+      => (Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-      -> View -> displayType 
+      -> View -> displayType
       -> IO graphParms
    -- The source will contain the current user title for this version.
 
@@ -82,20 +82,20 @@ class HasCodedValue displayType => DisplayType displayType where
       -- This is what the outside actually calls, but the implementation may
       -- instead choose to provide createObjectTypeMenuItemNoInsert.
 
-   createDisplayTypeMenuItemNoInsert 
+   createDisplayTypeMenuItemNoInsert
       :: Maybe (String,View -> IO (Maybe displayType))
       -- This is a menu item (label + creation function) which creates a new
       -- object type but does NOT insert it in the global registry.
-      --  
+      --
 
-   openDisplayMenuItemPrim :: 
-      GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+   openDisplayMenuItemPrim ::
+      GraphAllConfig graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms
       => (Graph graph graphParms node nodeType nodeTypeParms
-         arc arcType arcTypeParms) 
-      -> displayType 
-      -> Maybe (String,View 
-         -> IO (Maybe (DisplayView.DisplayedView graph graphParms node 
+         arc arcType arcTypeParms)
+      -> displayType
+      -> Maybe (String,View
+         -> IO (Maybe (DisplayView.DisplayedView graph graphParms node
             nodeType nodeTypeParms arc arcType arcTypeParms)))
 
    -- Default values
@@ -111,8 +111,8 @@ class HasCodedValue displayType => DisplayType displayType where
                         Nothing -> done
                         Just (displayType :: displayType) ->
                            do
-                              let 
-                                 registry 
+                              let
+                                 registry
                                     = displayTypeGlobalRegistry displayType
                                  key = displayTypeIdPrim displayType
                               addToGlobalRegistry registry view key displayType
@@ -140,9 +140,9 @@ displayTypeTypeId (WrappedDisplayType displayType) =
 graphParms ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   => (Graph graph graphParms node nodeType nodeTypeParms 
+   => (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   -> View -> WrappedDisplayType 
+   -> View -> WrappedDisplayType
    -> IO graphParms
 graphParms displaySort view (WrappedDisplayType displayType)
    = graphParmsPrim displaySort view displayType
@@ -174,7 +174,7 @@ registerDisplayType displayType =
             do
                case previous of
                   Nothing -> done
-                  Just _ -> putStrLn 
+                  Just _ -> putStrLn
                      ("Warning: for DisplayTypes.registerDisplayTypeType, "++
                         typeTypeId ++ " is multiply registered.")
                return (Just (WrappedDisplayType displayType),())
@@ -187,12 +187,12 @@ registerDisplayType displayType =
 newtype ShortDisplayType displayType = ShortDisplayType displayType
    deriving (Typeable)
 
-instance DisplayType displayType 
+instance DisplayType displayType
       => HasBinary (ShortDisplayType displayType) CodingMonad where
 
    writeBin = mapWriteViewIO (\ view (ShortDisplayType displayType) ->
       do
-         let 
+         let
             globalRegistry = displayTypeGlobalRegistry displayType
             key = displayTypeIdPrim displayType
 
@@ -201,8 +201,8 @@ instance DisplayType displayType
       )
    readBin = mapReadViewIO (\ view key ->
       do
-         let 
-            globalRegistry = displayTypeGlobalRegistry 
+         let
+            globalRegistry = displayTypeGlobalRegistry
                (error "Don't look at me" :: displayType)
          displayTypeOpt  <- lookupInGlobalRegistryOpt globalRegistry view key
          displayType <- case displayTypeOpt of
@@ -211,12 +211,12 @@ instance DisplayType displayType
                ++ describeGlobalKey key)
          return (ShortDisplayType displayType)
       )
-         
+
 -- -----------------------------------------------------------------
 -- Initialising and writing the Global Registries
 -- -----------------------------------------------------------------
 
--- | The String is the key into the displayTypeDataRegistry; 
+-- | The String is the key into the displayTypeDataRegistry;
 type DisplayTypeData = [(String,CodedValue)]
 
 -- | Decode all the display type data for this value and put it in the
@@ -224,7 +224,7 @@ type DisplayTypeData = [(String,CodedValue)]
 importDisplayTypes :: CodedValue -> View -> IO ()
 importDisplayTypes codedValue view =
    do
-      (displayTypeData :: DisplayTypeData) 
+      (displayTypeData :: DisplayTypeData)
          <- doDecodeIO codedValue view
       sequence_ (
          map
@@ -257,7 +257,7 @@ exportDisplayTypes view =
       allDisplayTypes <- listRegistryContents displayTypeDataRegistry
       let
          processDisplayTypes [] acc = return acc
-         processDisplayTypes 
+         processDisplayTypes
             ((key,WrappedDisplayType displayType):rest) acc =
             do
                codedValueOpt <- exportOneDisplayType displayType view
@@ -266,7 +266,7 @@ exportDisplayTypes view =
                   Nothing -> acc
                   Just codedValue -> (key,codedValue) : acc
                   )
-      (displayTypeData :: DisplayTypeData) 
+      (displayTypeData :: DisplayTypeData)
          <- processDisplayTypes allDisplayTypes []
       doEncodeIO displayTypeData view
 
@@ -280,27 +280,27 @@ exportOneDisplayType displayType view =
 
 -- -----------------------------------------------------------------
 -- We make WrappedDisplayType an instance of HasCodedValue.
--- The representation is as 
+-- The representation is as
 -- (displayTypeTypeIdPrim,ShortDisplayType displayType)
 -- -----------------------------------------------------------------
 
 instance HasBinary WrappedDisplayType CodingMonad where
-   writeBin = mapWrite 
+   writeBin = mapWrite
       (\ (WrappedDisplayType displayType) ->
          (displayTypeTypeIdPrim displayType,
             (WrapBinary (ShortDisplayType displayType)
                :: WrapBinary CodingMonad))
          )
-   readBin = 
+   readBin =
       mapReadPairViewIO
          (\ view (typeKey :: String) ->
             do
                Just (WrappedDisplayType displayType') <-
                   getValueOpt displayTypeDataRegistry typeKey
 
-               return (WrappedRead 
-                  (ShortDisplayType displayType') 
-                  (\ (ShortDisplayType displayType) -> 
+               return (WrappedRead
+                  (ShortDisplayType displayType')
+                  (\ (ShortDisplayType displayType) ->
                      (WrappedDisplayType displayType)
                      )
                   )

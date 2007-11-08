@@ -1,11 +1,11 @@
 -- | In this module we collect the various assumptions the Haskell code makes
--- about the MMiSS DTD, which are not explicitly read from it. 
--- 
+-- about the MMiSS DTD, which are not explicitly read from it.
+--
 -- MMiSSElementInfo.hs contains code specific to processing and changing
 --    labels, paths, and so on.
--- 
--- See also MMiSSBundleDissect.hs.  But hopefully that is less dependent on 
--- the DTD itself. 
+--
+-- See also MMiSSBundleDissect.hs.  But hopefully that is less dependent on
+-- the DTD itself.
 module MMiSSDTDAssumptions(
    mkIncludeElement, -- :: Element -> Maybe Element
 
@@ -15,7 +15,7 @@ module MMiSSDTDAssumptions(
 
 
 
-   unclassifyElement, 
+   unclassifyElement,
       -- :: Element -> Maybe (String,[Attribute],Element -> WithError ())
 
    getMiniType, -- :: String -> Char
@@ -25,7 +25,7 @@ module MMiSSDTDAssumptions(
    printAttributes, -- :: [Attribute] -> String
 
    isPackageTag, -- :: String -> Bool
-      -- Returns True if an element with this tag is to be treated as a 
+      -- Returns True if an element with this tag is to be treated as a
       -- package.
    ) where
 
@@ -83,8 +83,8 @@ mkIncludeElement (elem@(Elem name atts contents)) =
             fromWithError (getObjectClass elem)) of
          (Just label,Just includeChar,Right (Just objectClass)) ->
             Just (
-               Elem 
-                 ("include" ++ toIncludeStr includeChar) 
+               Elem
+                 ("include" ++ toIncludeStr includeChar)
                  [
                      ("included",AttValue [Left (toString label)]),
                      ("status",AttValue [Left "present"]),
@@ -92,7 +92,7 @@ mkIncludeElement (elem@(Elem name atts contents)) =
                      ]
                  []
                )
-         _ -> Nothing 
+         _ -> Nothing
 
 
 -- ----------------------------------------------------------------------
@@ -103,11 +103,11 @@ mkIncludeElement (elem@(Elem name atts contents)) =
 classifyLink :: Element -> Maybe (LinkType,String)
 classifyLink (Elem name attributes _)  =
    let
-      generalRef 
+      generalRef
          :: String -> LinkType -> Maybe (LinkType,String)
       generalRef refAttName linkType =
          case fromWithError (getAttribute attributes refAttName) of
-            Right (Just labelString)  -> 
+            Right (Just labelString)  ->
                case fromWithError (getAttribute attributes "status") of
                   Right (Just "present") -> Just (linkType,labelString)
                   _ -> Nothing
@@ -149,10 +149,10 @@ isPackageTag s = (s == "package")
 -- ----------------------------------------------------------------------
 
 -- | Given an Element which is an include, returns the contained label,
--- the specific attributes for the include, and a 
+-- the specific attributes for the include, and a
 -- function which verifies that the given Element matches.  For other elements,
 -- returns Nothing.
-unclassifyElement :: Element 
+unclassifyElement :: Element
    -> Maybe (String,IncludeInfo,Element -> WithError ())
 unclassifyElement (elem@(Elem name attributes contents)) =
    do
@@ -161,7 +161,7 @@ unclassifyElement (elem@(Elem name attributes contents)) =
          _ -> Nothing
 
       let
-         includedLabel = 
+         includedLabel =
             case fromWithError (getAttribute attributes "included") of
                Right (Just included) -> included
                _ -> error ("MMiSSDTDAssumptions: "++name
@@ -200,10 +200,10 @@ printAttributes :: [Attribute] -> String
 printAttributes attributes =
    concatMap
       (\ (name,attValue) -> case attValue of
-         AttValue [Left value] -> 
+         AttValue [Left value] ->
             " "++name++"="++"\""++value++"\""
             )
       attributes
 
 
-   
+

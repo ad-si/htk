@@ -1,4 +1,4 @@
--- | CallServer does the job of calling up a server.  
+-- | CallServer does the job of calling up a server.
 module CallServer(
    -- The context of all these functions is the same and is omitted from
    -- the following signature declarations.
@@ -6,7 +6,7 @@ module CallServer(
    --       HasBinary header IO)
 
 
-   connectReply, -- :: 
+   connectReply, -- ::
       --  (inType,outType,stateType) -> IO (inType -> IO outType,IO (),header)
       -- connectReply should be used for Reply-type services.  It
       -- attempts to connect to the server.
@@ -16,7 +16,7 @@ module CallServer(
       -- (b) an action which will break the connection.
       -- (c) the header string sent by sendOnConnect.
    connectBroadcast, -- ::
-      --  (inType,outType,stateType) ->    
+      --  (inType,outType,stateType) ->
       --     IO (inType -> IO (),IO outType,IO (),header)
       -- connectBroadcast should be used for Broadcast-type services.
       -- It attempts to connect to the server.
@@ -26,13 +26,13 @@ module CallServer(
       -- (c) an action for closing the connection.
       -- (d) the header string sent by sendOnConnect
    connectBroadcastOther, -- ::
-      -- Identical to connectBroadcast except it connects to a 
+      -- Identical to connectBroadcast except it connects to a
       -- BroadcastOther-type service.
    connectExternal, -- ::
       -- (inType,outType,stateType) -> IO (IO outType,IO (),header)
       -- Connect to an External service.
 
-   tryConnect, 
+   tryConnect,
       -- :: IO a -> IO (Either String a)
       -- Wrap round an operation that tries to connect to a server;
       -- this catches connection failures (specifically, when the user
@@ -60,10 +60,10 @@ import InfoBus
 import ServiceClass
 import HostsList
 
-connectReply :: 
+connectReply ::
    (?server :: HostPort,
       ServiceClass inType outType stateType,HasBinary header IO)
-   => (inType,outType,stateType)  
+   => (inType,outType,stateType)
    -> IO (inType -> IO outType,IO (),header)
 connectReply service =
    do
@@ -74,7 +74,7 @@ connectReply service =
 
       header <- hRead handle
 
-      bSem <- newBSem 
+      bSem <- newBSem
 
       let
          sendMessage inData =
@@ -86,11 +86,11 @@ connectReply service =
                )
          closeAct = destroy connection
       return (sendMessage,closeAct,header)
-   
-connectBroadcast :: 
+
+connectBroadcast ::
    (?server :: HostPort,
       ServiceClass inType outType stateType,HasBinary header IO)
-   => (inType,outType,stateType)     
+   => (inType,outType,stateType)
    -> IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcast service =
    do
@@ -100,10 +100,10 @@ connectBroadcast service =
            "connectBroadcast handed a non-Broadcast service"))
       connectBroadcastGeneral service
 
-connectBroadcastOther :: 
+connectBroadcastOther ::
    (?server :: HostPort,
       ServiceClass inType outType stateType,HasBinary header IO)
-   => (inType,outType,stateType) ->     
+   => (inType,outType,stateType) ->
       IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastOther service =
    do
@@ -113,10 +113,10 @@ connectBroadcastOther service =
            "connectBroadcast handed a non-Broadcast service"))
       connectBroadcastGeneral service
 
-connectExternal :: 
+connectExternal ::
    (?server :: HostPort,
       ServiceClass inType outType stateType,HasBinary header IO)
-   => (inType,outType,stateType) 
+   => (inType,outType,stateType)
    -> IO (IO outType,IO (),header)
 connectExternal service =
    do
@@ -127,10 +127,10 @@ connectExternal service =
       (_,getNext,closeDown,header) <- connectBroadcastGeneral service
       return (getNext,closeDown,header)
 
-connectBroadcastGeneral :: 
+connectBroadcastGeneral ::
    (?server :: HostPort,
       ServiceClass inType outType stateType,HasBinary header IO)
-   => (inType,outType,stateType)     
+   => (inType,outType,stateType)
    -> IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastGeneral service =
    do
@@ -139,7 +139,7 @@ connectBroadcastGeneral service =
       header <- hRead handle
 
       readBSem <- newBSem
-      writeBSem <- newBSem      
+      writeBSem <- newBSem
 
       let
          sendMessage inData =
@@ -168,7 +168,7 @@ newConnection :: Handle -> IO Connection
 newConnection handle =
    mdo
       oId <- newObject
-      connection <- 
+      connection <-
          do
             destroyAct <- doOnce (destroySimple connection)
             return (Connection {
@@ -189,14 +189,14 @@ destroySimple (connection@Connection {handle = handle}) =
       -- doesn't seem to terminate for some reason.
 
 instance Destroyable Connection where
-   destroy = destroyAct 
+   destroy = destroyAct
 
 ------------------------------------------------------------------------
 -- This function does the work of opening a connection, sending the userId
 -- and password, and so on.
 ------------------------------------------------------------------------
 
-connectBasic :: 
+connectBasic ::
    (?server :: HostPort,
       ServiceClass inType outType stateType)
    => (inType,outType,stateType) -> IO Connection
@@ -209,7 +209,7 @@ connectBasic service =
          -- The Bool is True the first time it is called.
          connectBasic :: Bool -> IO Connection
          connectBasic firstTime =
-            do    
+            do
                handle <- connect
 
                hSetBuffering handle (BlockBuffering (Just 4096))
@@ -217,26 +217,26 @@ connectBasic service =
                   -- we use a big buffer, and only flush when necessary.
 
                (user,password,tryAgain) <- case toLoginInfo ?server of
-                  Just loginInfo -> 
+                  Just loginInfo ->
                      return (user loginInfo,password loginInfo,False)
                   Nothing ->
                      do
-                        userPasswordOpt 
+                        userPasswordOpt
                            <- getUserPassword (not firstTime) (?server)
                         case userPasswordOpt of
-                           Nothing -> connectFailure 
+                           Nothing -> connectFailure
                               "Server connection cancelled"
                            Just (user,password) -> return (user,password,True)
 
                hWrite handle (serviceKey,user,password)
                hFlush handle
 
-               response <- hGetLine handle 
+               response <- hGetLine handle
                case response of
-                  "OK" -> 
+                  "OK" ->
                      do
                         connection <- newConnection handle
-                        registerToolDebug ("callServer:" ++ serviceKey) 
+                        registerToolDebug ("callServer:" ++ serviceKey)
                            connection
                         return connection
                   mess ->

@@ -7,7 +7,7 @@ import Char (isSpace)
 
 {-Type decls-}
 
-newtype FileTypes = FileTypes [FileTypes_] 		deriving (Eq,Show)
+newtype FileTypes = FileTypes [FileTypes_]              deriving (Eq,Show)
 data FileTypes_ = FileTypes_FileType FileType
                 | FileTypes_Menu Menu
                 deriving (Eq,Show)
@@ -46,7 +46,7 @@ data ViewAllPermissions = ViewAllPermissions
 data SubMenu = SubMenu
     { subMenuMenu :: String
     } deriving (Eq,Show)
-data Separator = Separator 		deriving (Eq,Show)
+data Separator = Separator              deriving (Eq,Show)
 data Command = Command
     { commandTitle :: String
     , commandConfirm :: (Maybe String)
@@ -96,7 +96,7 @@ instance XmlAttributes FileType where
           , fileTypeColour = possibleA fromAttrToStr "colour" as
           , fileTypeShape = possibleA fromAttrToStr "shape" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "tag" (fileTypeTag v)
         , maybeToAttr toAttrFrStr "menu" (fileTypeMenu v)
         , maybeToAttr toAttrFrStr "colour" (fileTypeColour v)
@@ -118,7 +118,7 @@ instance XmlAttributes Menu_Attrs where
           { menuId = definiteA fromAttrToStr "menu" "id" as
           , menuTitle = possibleA fromAttrToStr "title" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "id" (menuId v)
         , maybeToAttr toAttrFrStr "title" (menuTitle v)
         ]
@@ -169,7 +169,7 @@ instance XmlAttributes DisplayVariants where
         DisplayVariants
           { displayVariantsTitle = defaultA fromAttrToStr "Display Variants" "title" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ defaultToAttr toAttrFrStr "title" (displayVariantsTitle v)
         ]
 instance XmlContent SelectVariants where
@@ -185,7 +185,7 @@ instance XmlAttributes SelectVariants where
         SelectVariants
           { selectVariantsTitle = defaultA fromAttrToStr "Select Variants" "title" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ defaultToAttr toAttrFrStr "title" (selectVariantsTitle v)
         ]
 instance XmlContent EditPermissions where
@@ -201,7 +201,7 @@ instance XmlAttributes EditPermissions where
         EditPermissions
           { editPermissionsTitle = defaultA fromAttrToStr "Edit Permissions" "title" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ defaultToAttr toAttrFrStr "title" (editPermissionsTitle v)
         ]
 instance XmlContent ViewAllPermissions where
@@ -217,7 +217,7 @@ instance XmlAttributes ViewAllPermissions where
         ViewAllPermissions
           { viewAllPermissionsTitle = defaultA fromAttrToStr "View All Permissions" "title" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ defaultToAttr toAttrFrStr "title" (viewAllPermissionsTitle v)
         ]
 instance XmlContent SubMenu where
@@ -233,7 +233,7 @@ instance XmlAttributes SubMenu where
         SubMenu
           { subMenuMenu = definiteA fromAttrToStr "subMenu" "menu" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "menu" (subMenuMenu v)
         ]
 instance XmlContent Separator where
@@ -259,7 +259,7 @@ instance XmlAttributes Command where
           , commandConfirm = possibleA fromAttrToStr "confirm" as
           , commandCommand = definiteA fromAttrToStr "command" "command" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "title" (commandTitle v)
         , maybeToAttr toAttrFrStr "confirm" (commandConfirm v)
         , toAttrFrStr "command" (commandCommand v)

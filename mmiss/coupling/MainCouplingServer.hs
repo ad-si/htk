@@ -92,7 +92,7 @@ main =
       reposPort <- getPort
       let
          reposServer = fromMaybe "localhost" reposServerOpt
- 
+
       socket <- listenOn (PortNumber portNumber)
 
       let
@@ -104,7 +104,7 @@ main =
                mainHandle handle hostName couplingDir reposServer reposPort
 --               sClose socket
                serverAction
- 
+
       serverAction
 
 mainHandle :: Handle -> String -> String -> String -> Int -> IO ()
@@ -137,7 +137,7 @@ mainHandle handle hostName couplingDir server port =
                Just user -> return user
 
             passwordOK <- verifyPassword password (encryptedPassword user)
-            if passwordOK 
+            if passwordOK
                then
                   return (userStr,password)
                else
@@ -148,76 +148,76 @@ mainHandle handle hostName couplingDir server port =
       setMessFns (apiMessFns couplingMess)
 
       result <-
-	Control.Exception.try ( 
-	   -- general wrapper to catch IO errors
-	   case fromWithError userPasswordWE of
-	      Right (user,pwd) ->
-		 do
-		    top <- getTOP
+        Control.Exception.try (
+           -- general wrapper to catch IO errors
+           case fromWithError userPasswordWE of
+              Right (user,pwd) ->
+                 do
+                    top <- getTOP
 
-		    clockTime <- getClockTime
-		    calendarTime <- toCalendarTime clockTime
-		    putStrLn "======================================================================="
-		    putStrLn "======================================================================="
-		    putStrLn (user ++ "@" ++ hostName ++ ":"
-			       ++ calendarTimeToString calendarTime) 
-		    let 
-		      scriptDir = (trimDir top) `combineNames`
-				  ("mmiss" `combineNames` "scripts")
-		      dosvnup = (scriptDir `combineNames` "dosvnup ") ++ couplingDir
+                    clockTime <- getClockTime
+                    calendarTime <- toCalendarTime clockTime
+                    putStrLn "======================================================================="
+                    putStrLn "======================================================================="
+                    putStrLn (user ++ "@" ++ hostName ++ ":"
+                               ++ calendarTimeToString calendarTime)
+                    let
+                      scriptDir = (trimDir top) `combineNames`
+                                  ("mmiss" `combineNames` "scripts")
+                      dosvnup = (scriptDir `combineNames` "dosvnup ") ++ couplingDir
 
-		    exitcode <- system dosvnup
+                    exitcode <- system dosvnup
 
-		    if (exitcode /= ExitSuccess)
-		      then 
-			do 
-			  writeStringH handle ("ERROR: SVN update failed with exit code " ++ (show exitcode))
-			  hClose handle
-		      else
-			do
-			  hPutStrLn handle "OK"
-			  hFlush handle
+                    if (exitcode /= ExitSuccess)
+                      then
+                        do
+                          writeStringH handle ("ERROR: SVN update failed with exit code " ++ (show exitcode))
+                          hClose handle
+                      else
+                        do
+                          hPutStrLn handle "OK"
+                          hFlush handle
 
-			  calendarTime2 <- toCalendarTime clockTime
-			  putStrLn (calendarTimeToString calendarTime2) 
+                          calendarTime2 <- toCalendarTime clockTime
+                          putStrLn (calendarTimeToString calendarTime2)
 
-			  versionGraph <- connectToReposServer user pwd server port
+                          versionGraph <- connectToReposServer user pwd server port
 
                           lastVersionMaybe <- getLastVersion versionGraph
-			  lastVersion <- case lastVersionMaybe of
+                          lastVersion <- case lastVersionMaybe of
                                             Just(o) -> return(o)
                                             Nothing -> do
                                                          putStrLn "There is no version to check out! PANIC!\n"
                                                          fail "CouplingServer can't work without a checked out version.\n"
-			  let 
-			    userInfo = VersionInfo.user lastVersion
-			    objectVersion = VersionInfo.version userInfo
-			  view <- checkout versionGraph objectVersion
+                          let
+                            userInfo = VersionInfo.user lastVersion
+                            objectVersion = VersionInfo.version userInfo
+                          view <- checkout versionGraph objectVersion
 
-			  hPutStrLn stdout ("  Last Version is " ++ (show objectVersion))
-			  hFlush stdout
-			  hFlush handle         
+                          hPutStrLn stdout ("  Last Version is " ++ (show objectVersion))
+                          hFlush stdout
+                          hFlush handle
                        -- packages :: ([(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])])
-			  packages <- doUpdates handle versionGraph view couplingDir scriptDir couplingMess []
-			  let
-			      paths = map (\(p,_,_,_) -> (toString p))  packages
+                          packages <- doUpdates handle versionGraph view couplingDir scriptDir couplingMess []
+                          let
+                              paths = map (\(p,_,_,_) -> (toString p))  packages
                               packageFullNames = map (\(p,_,_,_) -> p) packages
-			  if (isEmptyPList packages)
-			     then do
-				    putStrLn "No Packages have been updated."
-       		                    putStrLn "======================================================================="
-				    hFlush stdout
-				    closeServer versionGraph
-				    hClose handle
-				    done
-			     else do
+                          if (isEmptyPList packages)
+                             then do
+                                    putStrLn "No Packages have been updated."
+                                    putStrLn "======================================================================="
+                                    hFlush stdout
+                                    closeServer versionGraph
+                                    hClose handle
+                                    done
+                             else do
                                     -- Änderungen der Importbeziehungen in den Präambeln nachziehen
                                     --
                                     mapM_ (updateImportInfo view couplingMess) packages
                                     -- Sortieren der geänderten Packages nach Abhängigkeit
                                     --
-                                    dependGraph <- foldM (importDependencies view couplingMess packageFullNames) 
-                                                         empty 
+                                    dependGraph <- foldM (importDependencies view couplingMess packageFullNames)
+                                                         empty
                                                          (zip packageFullNames packageFullNames)
                                     putStrLn ("\n  Dependency graph:\n" ++ (show dependGraph))
                                     sortedToUpdateList <- return(toSortedList dependGraph "vor" )
@@ -227,36 +227,36 @@ mainHandle handle hostName couplingDir server port =
                                     -- Update der Ontologien gemäß der Reihenfolge im Abhängigkeitsgraphen
 --                                    mapM_ updateOntology view couplingMess packages sortedToUpdateList
 
-				    mapM_ (exportPackage view couplingDir couplingMess) packages
-				    mapM_ (doAddPackage scriptDir) packages 
-				    newVersion <- commitView view
-				    printMessages couplingMess Nothing True
-				    putStrLn ("Update finished. New version is: " ++ (show newVersion))
-				    putStrLn "Successfully re/imported packages:"
-				    mapM_ (\ path -> putStrLn path) paths
+                                    mapM_ (exportPackage view couplingDir couplingMess) packages
+                                    mapM_ (doAddPackage scriptDir) packages
+                                    newVersion <- commitView view
+                                    printMessages couplingMess Nothing True
+                                    putStrLn ("Update finished. New version is: " ++ (show newVersion))
+                                    putStrLn "Successfully re/imported packages:"
+                                    mapM_ (\ path -> putStrLn path) paths
 
-				    calendarTime3 <- toCalendarTime clockTime
-				    putStrLn (calendarTimeToString calendarTime3) 
+                                    calendarTime3 <- toCalendarTime clockTime
+                                    putStrLn (calendarTimeToString calendarTime3)
 
-				    let
-				       commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
-				    exitcode <- system (scriptDir `combineNames` 
-							  ("dosvncommit " ++ couplingDir ++ " " ++ commitMess))
-       		                    putStrLn "======================================================================="
-				    hFlush stdout
-				    closeServer versionGraph
-				    hFlush stdout
-				    hClose handle
-				    done
+                                    let
+                                       commitMess = "Corresponding MMiSS version: " ++ (show newVersion)
+                                    exitcode <- system (scriptDir `combineNames`
+                                                          ("dosvncommit " ++ couplingDir ++ " " ++ commitMess))
+                                    putStrLn "======================================================================="
+                                    hFlush stdout
+                                    closeServer versionGraph
+                                    hFlush stdout
+                                    hClose handle
+                                    done
 
-	      Left mess ->
-		 do
-		    putStrLn (hostName ++ ": Connection failed")
-		    putStrLn mess
-		    hFlush stdout
-		    writeStringH handle ("ERROR: " ++ mess)
-		    hClose handle
-	   )
+              Left mess ->
+                 do
+                    putStrLn (hostName ++ ": Connection failed")
+                    putStrLn mess
+                    hFlush stdout
+                    writeStringH handle ("ERROR: " ++ mess)
+                    hClose handle
+           )
 
       case result of
         Left e -> do putStrLn (show e)
@@ -273,7 +273,7 @@ mainHandle handle hostName couplingDir server port =
      doAddPackage :: String -> (EntityFullName, String, Maybe MMiSSOntology, [EntityFullName]) -> IO()
      doAddPackage scriptDir (packagePath, packageFSPath, _, _) =
        do
-         let 
+         let
            filename1 = packageFSPath ++ ".tex"
            filename2 = packageFSPath ++ ".imp"
            dosvnadd1 = scriptDir `combineNames` ("dosvnadd " ++ couplingDir ++ " " ++ filename1)
@@ -284,7 +284,7 @@ mainHandle handle hostName couplingDir server port =
 
 
 exportPackage :: View -> String -> CouplingMessages -> (EntityFullName,String,Maybe MMiSSOntology, [EntityFullName]) -> IO()
-exportPackage view couplingDir messages (packagePath, packageFSPath, onto, _) = 
+exportPackage view couplingDir messages (packagePath, packageFSPath, onto, _) =
   do
     putStrLn "  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     putStrLn ("  Exporting Package " ++ (toString packagePath) ++ "\n    into file " ++ packageFSPath)
@@ -293,9 +293,9 @@ exportPackage view couplingDir messages (packagePath, packageFSPath, onto, _) =
     case linkedObjectOpt of
       Nothing -> return()
       Just(linkedObject) ->
-        do 
-          let 
-             filename = couplingDir `combineNames` (packageFSPath ++ ".tex") 
+        do
+          let
+             filename = couplingDir `combineNames` (packageFSPath ++ ".tex")
              errFilename = couplingDir `combineNames` (packageFSPath ++ ".err")
              packageNameOpt = entityBase packagePath
           case packageNameOpt of
@@ -306,20 +306,20 @@ exportPackage view couplingDir messages (packagePath, packageFSPath, onto, _) =
                  packageLinkOpt <- lookupObjectInFolder linkedObject packageName
                  case  packageLinkOpt of
                    Nothing -> importExportError "  doExport: Could not find package object inside package folder."
-                   Just packageLink -> 
+                   Just packageLink ->
                      do ok <- exportMMiSSObjectNoFiles  view packageLink filename (toString packageName)
                         result <- printMessages messages (Just errFilename) False
                         deleteMessages messages
                         return()
 {--
-                        if ok 
-                          then do ok <- displayImportExportErrors True 
+                        if ok
+                          then do ok <- displayImportExportErrors True
                                            (printImports linkedObject couplingDir (packagePath, packageFSPath) view)
                                   return()
                           else return()
 --}
 {--
-updateOntology :: View -> CouplingMessages ->  [(EntityFullName, String, Maybe MMiSSOntology)] 
+updateOntology :: View -> CouplingMessages ->  [(EntityFullName, String, Maybe MMiSSOntology)]
                    -> EntityFullName -> IO()
 
 updateOntology view messages updatedPackages p =
@@ -328,11 +328,11 @@ updateOntology view messages updatedPackages p =
      case folderLinkOpt of
        Nothing -> return()
        Just(folderLink) ->
-         do 
+         do
            importedPackages <- getImportedPackages view folderLink p
 --}
-  
- 
+
+
 
 {--
 
@@ -350,20 +350,20 @@ x:  x dient zur Speicherung des Vorgängers im Import-Graphen, zu dem eine Kante 
     geändertes Paket i, dann muss eine Kante zwischen i und p in den Graphen eingefügt werden, auch wenn
     zwischendrin andere Pakete auf dem Import-Pfad liegen. x dient zur Speicherung von p, wenn rekursiv
     in die Importbeziehungen abgestiegen wird.
-     
+
 --}
 
-importDependencies :: View -> CouplingMessages -> [EntityFullName] -> ImportDepGraph 
+importDependencies :: View -> CouplingMessages -> [EntityFullName] -> ImportDepGraph
                         -> (EntityFullName, EntityFullName) -> IO (ImportDepGraph)
 
 importDependencies view messages updatedPackages g (p,x) =
   case (findLNode g p) of
     Just(_) -> return(g)
-    Nothing ->  
+    Nothing ->
       do
          let g' = if (p `elem` updatedPackages)
                     then insNode ((head (newNodes 1 g)), p) g
-                    else g 
+                    else g
          folderLinkOpt <- findPackageByFullName view messages p
          case folderLinkOpt of
            Nothing -> return(g')
@@ -373,11 +373,11 @@ importDependencies view messages updatedPackages g (p,x) =
                   Nothing -> return(g')
                   Just(impPackages) -> foldM insertAndDecend g' impPackages
 
-  where                  
+  where
     insertAndDecend :: ImportDepGraph -> EntityFullName -> IO (ImportDepGraph)
     insertAndDecend graph p' =
-      if (p' `elem` updatedPackages) 
-        then do 
+      if (p' `elem` updatedPackages)
+        then do
                 graph' <- importDependencies view messages updatedPackages graph (p',p')
                 return(insertDepLink graph' p' x)
         else importDependencies view messages updatedPackages graph (p',x)
@@ -404,7 +404,7 @@ getImportedPackages view folderLink thisPackage =
      let importCmdsOpt = importCommands mmisslatexPreamble
      case importCmdsOpt of
        Nothing -> return(Nothing)
-       (Just (ImportCommands cmdList)) -> 
+       (Just (ImportCommands cmdList)) ->
          do
 --                       putStrLn ("\n  importDependencies: List of import commands for " ++ toString(p) ++ ":\n")
 --                       putStrLn ("    " ++ (show cmdList))
@@ -412,8 +412,8 @@ getImportedPackages view folderLink thisPackage =
             case fromWithError (mkAliases (ImportCommands cmdList)) of
               Left mess -> do errorMess ("  Error: getImportedPackages: mkAliases returned: " ++ mess)
                               return(Nothing)
-              Right aliases -> 
-                do 
+              Right aliases ->
+                do
                   importedPackages <- mapM (assemblePackagePath aliases thisPackage) allImports
                   return(Just(filter (/= trivialFullName) importedPackages))
 --                             putStrLn ("\n  importDependencies: List of filtered imported Packages for " ++ toString(p) ++ ":\n")
@@ -421,7 +421,7 @@ getImportedPackages view folderLink thisPackage =
   where
     assemblePackagePath :: Aliases -> EntityFullName -> EntitySearchName -> IO (EntityFullName)
     assemblePackagePath aliases packageFullName name =
-      do 
+      do
         let expandedName = expandAliases aliases name
         case (fromWithError (toEntityFullName packageFullName expandedName)) of
           Left mess -> do errorMess ("  Error: assemblePackagePath: " ++ mess)
@@ -432,31 +432,31 @@ getImportedPackages view folderLink thisPackage =
 {--
   updateImportInfo bekommt die Infos zu einem geänderten oder neu importieren Package,
   sucht aus der LaTeX-Präambel die Import-Kommandos heraus und trägt in den importierten
-  Packages die Beziehung zum improtierenden Package nach. 
+  Packages die Beziehung zum improtierenden Package nach.
   Wenn also 'A importiert B' gegeben ist, dann enthält hinterher die Präambel von B die Info
   'B wird importiert von A'.
 --}
 
 updateImportInfo :: View -> CouplingMessages -> (EntityFullName,String,Maybe MMiSSOntology, [EntityFullName]) -> IO()
 updateImportInfo view messages (packageFullName, packagePath, ontologyMB, oldImpPackages) =
-  do 
+  do
      folderLinkOpt <- findPackageByFullName view messages packageFullName
      case folderLinkOpt of
        Nothing -> return()
        Just(folderLink) ->
-         do 
+         do
             importedPackagesOpt <- getImportedPackages view folderLink packageFullName
             case importedPackagesOpt of
               Nothing -> if (null oldImpPackages)
                            then  return()
                            else  mapM_ (updateImportInfo1 view messages (filter (/= packageFullName))) oldImpPackages
               Just (importedPackages) ->
-                do 
+                do
                    deletedImports <- return(filter (`notElem` importedPackages) oldImpPackages)
                    mapM_ (updateImportInfo1 view messages (filter (/= packageFullName))) deletedImports
                    mapM_ (updateImportInfo1 view messages (++ [packageFullName])) importedPackages
 
-  where 
+  where
     updateImportInfo1 :: View -> CouplingMessages -> ([EntityFullName] -> [EntityFullName]) -> EntityFullName -> IO ()
     updateImportInfo1 view messages operation importedPackagePath =
       do
@@ -466,10 +466,10 @@ updateImportInfo view messages (packageFullName, packagePath, ontologyMB, oldImp
            Just(importedFolderLink) ->
              do
                 importedPackageFolder <- readLink view importedFolderLink
-                let 
+                let
                    preambleLink = toMMiSSPreambleLink importedPackageFolder
                 importedByList <- readImportedByList view preambleLink
-                let 
+                let
                    newImportedByList = nub (operation importedByList)
                 writeImportedByList preambleLink view newImportedByList
                 return()
@@ -497,8 +497,8 @@ Des weiteren wird angenommen, dass das Label eines Packages identisch mit dem Fi
 TODO: In die Files reingucken und den Packagenamen extrahieren.
 --}
 
-doUpdates :: Handle -> VersionGraph -> View -> String -> String -> CouplingMessages 
-              -> [(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])] 
+doUpdates :: Handle -> VersionGraph -> View -> String -> String -> CouplingMessages
+              -> [(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])]
               -> IO ([(EntityFullName, String, Maybe MMiSSOntology, [EntityFullName])])
 
 doUpdates handle versionGraph view couplingDir scriptDir messages packages =
@@ -509,8 +509,8 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
     hFlush stdout
     if (line == "commit")
       then return(packages)
-      else    
-        do 
+      else
+        do
           let
              completePath = unbreakName ((breakName couplingDir) ++ (breakName line))
              filePathWOExt = if (isSuffixOf "_ptx.tex" line)
@@ -524,58 +524,58 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
             case (fromWithError packagePathStripped) of
                Left mess ->  do putStrLn ("fromWithError packagePathStripped:  " ++ mess)
                                 hFlush stdout
-			        fail ""
+                                fail ""
                Right packagePathStr ->
-		 case fromWithError (fromStringWE packagePathStr) of
-		   Left mess -> do
-				  putStrLn ("fromStringWE:  " ++ mess)
+                 case fromWithError (fromStringWE packagePathStr) of
+                   Left mess -> do
+                                  putStrLn ("fromStringWE:  " ++ mess)
                                   hFlush stdout
-				  fail ""
-		   Right fullPackage -> return(fullPackage)
+                                  fail ""
+                   Right fullPackage -> return(fullPackage)
 
           putStrLn ("  fullPackageEntityName: " ++ (toString fullPackageEntityName))
-	  linkedObjectOpt <- lookupLinkedObjectByFullName view fullPackageEntityName
-	  (importedPackageOpt, oldOntology, oldImportedPackages) <-
-	    case linkedObjectOpt of
+          linkedObjectOpt <- lookupLinkedObjectByFullName view fullPackageEntityName
+          (importedPackageOpt, oldOntology, oldImportedPackages) <-
+            case linkedObjectOpt of
               --
               -- Package is new:
               --
-	      Nothing ->
-		do     
-		   (dirAndPackageOpt :: Maybe (EntityFullName, EntityName)) <- return(entityDirBase fullPackageEntityName)
-                   (dirPart, packagePart) <- 
+              Nothing ->
+                do
+                   (dirAndPackageOpt :: Maybe (EntityFullName, EntityName)) <- return(entityDirBase fullPackageEntityName)
+                   (dirPart, packagePart) <-
                       case dirAndPackageOpt of
-                        Nothing -> fail "  Internal error: Can't decompose path" 
+                        Nothing -> fail "  Internal error: Can't decompose path"
                         Just(n) -> return(n)
-                   putStrLn ("   Can't find linked object for " ++ (toString fullPackageEntityName) 
+                   putStrLn ("   Can't find linked object for " ++ (toString fullPackageEntityName)
                             ++ "\n   -> Importing it now.")
-		   parentFolderLinkWE <- findOrCreateFolder view dirPart
-		   case fromWithError parentFolderLinkWE of
-		     Left mess -> do
-				    putStrLn ("  " ++ mess)
-				    errorMess ("Error:\n" ++ mess)
-				    return((Nothing,Nothing,[]))
-		     Right parentFolderLink ->
+                   parentFolderLinkWE <- findOrCreateFolder view dirPart
+                   case fromWithError parentFolderLinkWE of
+                     Left mess -> do
+                                    putStrLn ("  " ++ mess)
+                                    errorMess ("Error:\n" ++ mess)
+                                    return((Nothing,Nothing,[]))
+                     Right parentFolderLink ->
                           -- Import the new Package
-		       do ok <- importMMiSSPackage1 view parentFolderLink (Just completePath)
-			  case ok of
-			    True -> 
-                               do  
+                       do ok <- importMMiSSPackage1 view parentFolderLink (Just completePath)
+                          case ok of
+                            True ->
+                               do
                                   newPackageLinkOpt <- lookupObjectInFolder parentFolderLink packagePart
                                   case newPackageLinkOpt of
                                     Nothing -> return((Nothing,Nothing,[]))
-                                    Just newPackageLink -> 
+                                    Just newPackageLink ->
                                       do
                                         newPackageFolder <- readLink view newPackageLink
                                         preambleLink <- return(toMMiSSPreambleLink newPackageFolder)
-                                        mmisslatexPreamble <- readPreamble view preambleLink 
+                                        mmisslatexPreamble <- readPreamble view preambleLink
                                         ontoWE <- parseMMiSSOntologyFile completePath
-                                        importedPackagesOpt <- (getImportedPackages view 
-                                                                                    newPackageLink 
+                                        importedPackagesOpt <- (getImportedPackages view
+                                                                                    newPackageLink
                                                                                     fullPackageEntityName)
                                         importedPackages <- return(fromMaybe [] importedPackagesOpt)
                                         case (fromWithError ontoWE) of
-                                           Left mess -> 
+                                           Left mess ->
                                              do putStr ("  Error while parsing ontology:")
                                                 putStrLn mess
                                                 errorMess ("Error:\n" ++ mess)
@@ -583,24 +583,24 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
                                            Right onto ->
                                                do writeOntology preambleLink view (toFlat onto)
                                                   return((Just(fullPackageEntityName), Nothing, importedPackages))
-			    False -> do
-				       putStrLn "  Error: Import has failed!"
-				       return((Nothing,Nothing,[]))
+                            False -> do
+                                       putStrLn "  Error: Import has failed!"
+                                       return((Nothing,Nothing,[]))
              --
              --   Package has been found:
              --
-	      (Just linkedObject)  -> 
-		   do 
-		     folderLink1 <- case splitLinkedObject linkedObject of
-			MMiSSPackageFolderC folderLink -> return folderLink
-			_ -> do
-				putStrLn ("  " ++ (toString fullPackageEntityName) ++ " is not a package!")
-				errorMess ("Error: " ++ (toString fullPackageEntityName)
-					     ++ " is not a package!")
-				fail ""
+              (Just linkedObject)  ->
+                   do
+                     folderLink1 <- case splitLinkedObject linkedObject of
+                        MMiSSPackageFolderC folderLink -> return folderLink
+                        _ -> do
+                                putStrLn ("  " ++ (toString fullPackageEntityName) ++ " is not a package!")
+                                errorMess ("Error: " ++ (toString fullPackageEntityName)
+                                             ++ " is not a package!")
+                                fail ""
                      packageFolder <- readLink view folderLink1
                      preambleLink <- return(toMMiSSPreambleLink packageFolder)
-                     mmisslatexPreamble <- readPreamble view preambleLink 
+                     mmisslatexPreamble <- readPreamble view preambleLink
                      importedPackagesOpt <- getImportedPackages view folderLink1 fullPackageEntityName
                      importedPackages <- return(fromMaybe [] importedPackagesOpt)
                      importedByList <- readImportedByList view preambleLink
@@ -609,10 +609,10 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
                      oldOnto <- readOntology view preambleLink
 --                     putStrLn "  Ontology found:"
 --                     putStrLn ("    " ++ (show (toFlat oldOnto)))
-		     reimportMMiSSPackage1 view folderLink1 (Just completePath)
+                     reimportMMiSSPackage1 view folderLink1 (Just completePath)
                      ontoWE <- parseMMiSSOntologyFile completePath
                      case (fromWithError ontoWE) of
-                       Left mess -> 
+                       Left mess ->
                          do putStr ("  Error while parsing ontology:")
                             putStrLn mess
                             errorMess ("Error:\n" ++ mess)
@@ -620,57 +620,57 @@ doUpdates handle versionGraph view couplingDir scriptDir messages packages =
                        Right onto ->
                          do writeOntology preambleLink view (toFlat onto)
                             putStrLn "  Written back new preamble successfully."
-		            return(Just(fullPackageEntityName),(Just oldOnto), importedPackages)
+                            return(Just(fullPackageEntityName),(Just oldOnto), importedPackages)
 
-	  (newPackageList, completeFilePathWOExt) <- 
-	     case importedPackageOpt of
-	       Nothing -> return((packages,""))
-	       Just(name) -> return((packages ++ [(name, filePathWOExt, oldOntology, oldImportedPackages)]), 
+          (newPackageList, completeFilePathWOExt) <-
+             case importedPackageOpt of
+               Nothing -> return((packages,""))
+               Just(name) -> return((packages ++ [(name, filePathWOExt, oldOntology, oldImportedPackages)]),
                                     (couplingDir `combineNames` filePathWOExt))
-	  hFlush handle
-	  hFlush stdout
-	  result <- try (printMessages messages (Just (completeFilePathWOExt ++ ".err")) False)
-	  exitcode <- 
-	    case importedPackageOpt of
-	       Nothing -> return(ExitSuccess)
-	       Just(_) -> system (scriptDir `combineNames` 
-				    ("dosvnadd " ++ couplingDir ++ " " ++ (completeFilePathWOExt ++ ".err")))
-	  case result of
-	     Left err -> do 
-			   putStrLn (show err)
-			   hFlush stdout
-			   deleteMessages messages
-			   doUpdates handle versionGraph view couplingDir scriptDir
-				     messages newPackageList
+          hFlush handle
+          hFlush stdout
+          result <- try (printMessages messages (Just (completeFilePathWOExt ++ ".err")) False)
+          exitcode <-
+            case importedPackageOpt of
+               Nothing -> return(ExitSuccess)
+               Just(_) -> system (scriptDir `combineNames`
+                                    ("dosvnadd " ++ couplingDir ++ " " ++ (completeFilePathWOExt ++ ".err")))
+          case result of
+             Left err -> do
+                           putStrLn (show err)
+                           hFlush stdout
+                           deleteMessages messages
+                           doUpdates handle versionGraph view couplingDir scriptDir
+                                     messages newPackageList
 
-	     Right _ -> do
-			  deleteMessages messages
-			  doUpdates handle versionGraph view couplingDir scriptDir
-				    messages newPackageList
+             Right _ -> do
+                          deleteMessages messages
+                          doUpdates handle versionGraph view couplingDir scriptDir
+                                    messages newPackageList
   where
     -- cpath = Complete file path
     -- reppath = File path within Repository
     -- returns: File path within Repository but with Package label as filename at the end.
     filenameToPackagename :: String -> String -> IO (WithError String)
-    filenameToPackagename cpath reppath = 
-      do 
+    filenameToPackagename cpath reppath =
+      do
         ok <- doesFileExist cpath
-	case ok of
-	  False -> return (hasError ("File " ++ cpath ++ " doesn't exist!"))
-	  True -> 
-	    do 
+        case ok of
+          False -> return (hasError ("File " ++ cpath ++ " doesn't exist!"))
+          True ->
+            do
                let cmdStr = (scriptDir `combineNames` ("dopackagelabel " ++ couplingDir ++ " " ++ reppath))
                (exitcode, output) <- runTool "PackageNameExtraction" cmdStr
-	       case exitcode of
-		 ExitSuccess ->
-		    do let 
-			 (repdir,_) = splitName reppath
-			 newpath1 = filter (/= '\n') (unbreakName ((breakName repdir) ++ (breakName output)))
-                         newpath = if (isPrefixOf "./" newpath1) 
+               case exitcode of
+                 ExitSuccess ->
+                    do let
+                         (repdir,_) = splitName reppath
+                         newpath1 = filter (/= '\n') (unbreakName ((breakName repdir) ++ (breakName output)))
+                         newpath = if (isPrefixOf "./" newpath1)
                                      then (drop 2 newpath1)
                                      else newpath1
-		       return(hasValue(newpath)) 
-		 otherwise -> return(hasError ("Package name extraction returned: " ++ (show exitcode)))            
+                       return(hasValue(newpath))
+                 otherwise -> return(hasError ("Package name extraction returned: " ++ (show exitcode)))
 
 
 
@@ -684,10 +684,10 @@ findPackageByFullName view messages packageFullName  =
        Just(linkedObject) ->
          case splitLinkedObject linkedObject of
             MMiSSPackageFolderC folderLink -> return (Just folderLink)
-	    _ -> do errorMess ("  Error: updateImportInfo: " ++ (toString packageFullName)
-	                       ++ " is not a package!")
-		    return(Nothing)
-           
+            _ -> do errorMess ("  Error: updateImportInfo: " ++ (toString packageFullName)
+                               ++ " is not a package!")
+                    return(Nothing)
+
 
 
 -- ----------------------------------------------------------------------
@@ -704,7 +704,7 @@ connectToReposServer user password server port =
       putStrLn ("Repository Password is: " ++ password)
       hFlush stdout
 
-      hostPortWE <- fromHostDescription1 (server ++ ":" ++ (show port)) 
+      hostPortWE <- fromHostDescription1 (server ++ ":" ++ (show port))
                        (HostsPorts.LoginInfo {
                         HostsPorts.user = user,
                         HostsPorts.password = password
@@ -744,16 +744,16 @@ getLastVersion :: VersionGraph -> IO (Maybe VersionInfo.VersionInfo)
 getLastVersion versionGraph =
    do
      let
-         graphClient :: VersionGraphClient 
+         graphClient :: VersionGraphClient
          graphClient = toVersionGraphClient versionGraph
 
-     (versionInfos1 :: [VersionGraphClient.VersionInfo1]) 
+     (versionInfos1 :: [VersionGraphClient.VersionInfo1])
          <- getVersionInfos graphClient
      let
          versionInfos2 :: [VersionInfo.VersionInfo]
          versionInfos2 = map toVersionInfo versionInfos1
- 
-     if (versionInfos2 == []) 
+
+     if (versionInfos2 == [])
        then return(Nothing)
        else return(Just(maximum versionInfos2))
 
@@ -798,8 +798,8 @@ findOrCreateFolder1 view (EntityFullName entityNames) =
          return (hasValue linkedObject)
        Nothing ->
          do
-            parentLinkedObjectOpt <- 
-              findOrCreateFolder view  
+            parentLinkedObjectOpt <-
+              findOrCreateFolder view
                                  (EntityFullName (take ((length entityNames)-1) entityNames))
             case fromWithError parentLinkedObjectOpt of
                 Left err -> return(hasError (err))
@@ -810,7 +810,7 @@ findOrCreateFolder1 view (EntityFullName entityNames) =
                      linkedObjectOpt <- createNewFolder view parentObject name (EntityFullName entityNames)
                      hFlush stderr
                      case linkedObjectOpt of
-                       Nothing -> return(hasError ("Folder '" ++  (toString (EntityFullName entityNames)) 
+                       Nothing -> return(hasError ("Folder '" ++  (toString (EntityFullName entityNames))
                                                     ++ "' could not be found or created"))
                        Just lo -> return(hasValue(lo))
 
@@ -831,7 +831,7 @@ exportMMiSSObjectNoFiles view link filePath packageName =
             (result1WE :: WithError (String,ExportFiles))
                <- extractMMiSSObject view link LaTeX
             let
-               (string,_) 
+               (string,_)
                   = coerceWithErrorOrBreak break result1WE
             -- Write to the file
             resultWE <- copyStringToFileCheck string filePath
@@ -911,7 +911,7 @@ initialCouplingMessages = CouplingMessagesValue {messages = []}
 
 
 newCouplingMessages :: IO CouplingMessages
-newCouplingMessages = 
+newCouplingMessages =
    do
       mVar <- newMVar initialCouplingMessages
       return (CouplingMessages mVar)
@@ -925,7 +925,7 @@ printMessages (CouplingMessages mVar) filenameOpt append =
          messageList = messages couplingMessagesValue
       case messageList of
         [] -> done
-        ((mtype, str):rest) -> 
+        ((mtype, str):rest) ->
           do
             mapM_ (\ (mtype, str) ->
                         putStrLn ("  " ++ (show mtype) ++ ": " ++ str)
@@ -936,7 +936,7 @@ printMessages (CouplingMessages mVar) filenameOpt append =
               Nothing -> done
               Just filename ->
                 do
-                  result <- if append 
+                  result <- if append
                               then try (openFile filename AppendMode)
                               else try (openFile filename WriteMode)
                   case result of
@@ -944,7 +944,7 @@ printMessages (CouplingMessages mVar) filenameOpt append =
                                   putStrLn ("Error opening output file: " ++ filename)
                                   hFlush stdout
                     Right handle ->
-                      do 
+                      do
                         mapM_ (\ (mtype, str) ->
                                       if ((mtype == InfoMessage) || (mtype == Confirm))
                                         then return()
@@ -953,12 +953,12 @@ printMessages (CouplingMessages mVar) filenameOpt append =
                               messageList
                         hFlush handle
                         hClose handle
-                  
+
 
 deleteMessages :: CouplingMessages -> IO ()
 
 deleteMessages (CouplingMessages mVar) =
-   modifyMVar_ mVar 
+   modifyMVar_ mVar
       (\ couplingValue ->
             return (couplingValue {messages = []})
          )
@@ -966,7 +966,7 @@ deleteMessages (CouplingMessages mVar) =
 
 -- toEntityFullName bekommt den FullName eines PackageFolders und einen relativen
 -- Pfad aus einem Import-Statement und liefert den FullName zum importieren Package zurück.
--- Beispiel: 
+-- Beispiel:
 --     ProposalsAndReports/ProposalPhase2/I4_SPIN_Proposal/P1_Package
 --     importiert Parent/P2_Package
 --     liefert dann:  ProposalsAndReports/ProposalPhase2/I4_SPIN_Proposal/P2_Package
@@ -974,7 +974,7 @@ deleteMessages (CouplingMessages mVar) =
 -- FromCurrent und FromHere dürfen eigentlich nicht als Präfix des Searchnames auftauchen,
 -- weil der folgende FullName nur noch Objekte innerhalb des impotierenden Packages bezeichnen
 -- können. Import-Statements dürfen aber nur Pfade auf ausserhalb liegende Packages enthalten,
--- müssen also mit FromParent oder FromRoot anfangen. FromAbsoulte ist auch nicht zu erwarten, 
+-- müssen also mit FromParent oder FromRoot anfangen. FromAbsoulte ist auch nicht zu erwarten,
 -- weil dieses nur intern eingesetzt wird.
 
 toEntityFullName :: EntityFullName -> EntitySearchName -> WithError(EntityFullName)
@@ -982,9 +982,9 @@ toEntityFullName :: EntityFullName -> EntitySearchName -> WithError(EntityFullNa
 toEntityFullName _ (FromRoot fullName) = hasValue(fullName)
 toEntityFullName _ (FromAbsolute fullName) = hasError("toEntityFullName: FromAbsolute is no valid path element for an imported Package.")
 toEntityFullName (EntityFullName []) (FromParent _) = hasError("toEntityFullName: Can't add EntitySearchName to an empty EntityFullName")
-toEntityFullName (EntityFullName fullName1) (FromHere (EntityFullName fullName2)) =  
+toEntityFullName (EntityFullName fullName1) (FromHere (EntityFullName fullName2)) =
   hasValue(EntityFullName (fullName1 ++ fullName2))
-toEntityFullName (EntityFullName fullName1) (FromCurrent (EntityFullName fullName2)) = 
+toEntityFullName (EntityFullName fullName1) (FromCurrent (EntityFullName fullName2)) =
   hasValue(EntityFullName (fullName1 ++ fullName2))
 toEntityFullName (EntityFullName fullName) (FromParent s) =
   toEntityFullName (EntityFullName (take ((genericLength fullName)-1) fullName)) s
@@ -999,7 +999,7 @@ findLNode :: Gr EntityFullName String -> EntityFullName -> Maybe Node
 
 findLNode gr label = case (gsel (\(p,v,l,s) -> l == label) gr) of
                       [] -> Nothing
-                      conList -> Just(node' (head conList))               
+                      conList -> Just(node' (head conList))
 
 
 

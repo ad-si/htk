@@ -1,6 +1,6 @@
 -- | This module contains code for turning a LinkedObject or a WrappedLink
 -- into one of the types known to us.
--- 
+--
 -- It also contains code for constructing an empty link corresponding
 -- to a base type in a bundle.  (This is how all links get started.)
 module MMiSSSplitLink(
@@ -54,11 +54,11 @@ splitWrappedLink w =
          unpackWrappedLinkToMMiSSObject w,
          unpackWrappedLink w) of
       (Just l,_,_,_,_,_) -> FileC l
-      (_,Just l,_,_,_,_) -> FolderC l 
+      (_,Just l,_,_,_,_) -> FolderC l
       (_,_,Just l,_,_,_) -> MMiSSPreambleC l
-      (_,_,_,Just l,_,_) -> MMiSSPackageFolderC l 
-      (_,_,_,_,Just l,_) -> MMiSSObjectC l 
-      (_,_,_,_,_,Just l) -> MMiSSFileC l 
+      (_,_,_,Just l,_,_) -> MMiSSPackageFolderC l
+      (_,_,_,_,Just l,_) -> MMiSSObjectC l
+      (_,_,_,_,_,Just l) -> MMiSSFileC l
       (_,_,_,_,_,_) -> UnknownLinkC
 
 splitLinkedObject :: LinkedObject -> SplitLink
@@ -86,23 +86,23 @@ newEmptySplitLink view parentLink enum =
          do
             link <- wrapNewEmptyLink view parentLink
             return (FolderC link)
-      FileEnum -> 
+      FileEnum ->
          do
             link <- wrapNewEmptyLink view parentLink
             return (FileC link)
-      MMiSSFolderEnum -> 
+      MMiSSFolderEnum ->
          do
             link <- newEmptyLinkMMiSSPackageFolder view parentLink
             return (MMiSSPackageFolderC link)
-      MMiSSObjectEnum -> 
+      MMiSSObjectEnum ->
          do
             link <- newEmptyLinkMMiSSObject view parentLink
             return (MMiSSObjectC link)
-      MMiSSFileEnum -> 
+      MMiSSFileEnum ->
          do
             link <- wrapNewEmptyLink view parentLink
             return (MMiSSFileC link)
-      MMiSSPreambleEnum -> 
+      MMiSSPreambleEnum ->
          do
             link <- wrapNewEmptyLink view parentLink
             return (MMiSSPreambleC link)

@@ -43,9 +43,9 @@ instance HasMenu MenuCascade
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new menu cascasde item and returns a handler.
-createMenuCascade :: Menu 
+createMenuCascade :: Menu
    -- ^ the parent menu.
-   -> [Config MenuCascade] 
+   -> [Config MenuCascade]
    -- ^ the list of configuration options for this menu
    -- cascade item.
    -> IO MenuCascade
@@ -66,7 +66,7 @@ instance Eq MenuCascade where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject MenuCascade where 
+instance GUIObject MenuCascade where
   toGUIObject (MenuCascade w) = w
   cname _ = "MenuCascade"
 
@@ -87,7 +87,7 @@ instance HasBorder MenuCascade
 
 -- | A menu cascade item has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
-instance HasColour MenuCascade where 
+instance HasColour MenuCascade where
   legalColourID = buttonColours
 
 -- | A menu cascade item is a stateful object, it can be enabled or
@@ -120,8 +120,8 @@ instance GUIValue v => HasText MenuCascade v where
 instance HasUnderline MenuCascade
 
 
--- | Utility function: create a pulldown menu 
--- 
+-- | Utility function: create a pulldown menu
+--
 createPulldownMenu :: Menu
    -- ^ the parent menu.
    -> [Config MenuCascade]

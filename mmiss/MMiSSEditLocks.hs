@@ -1,10 +1,10 @@
 -- | The functions in this module are used for monitoring the edit locks
--- on objects. 
--- 
+-- on objects.
+--
 -- Each acquireXXXX function attempts to acquire the locks for the
 -- given LockLocations.  If unsuccessful, nothing is done; if successful
 -- an action is returned to release all the locks; also is returned a LockSet.
--- 
+--
 -- The LockSet contains a set of currently acquired locks.  This can be
 -- given again to the acquireMultipleLocks function, which will then succeed
 -- even if the LockLocations it is given correspond to an edit lock already
@@ -15,7 +15,7 @@ module MMiSSEditLocks(
    acquireMultipleLocks,
       -- :: View -> LockSet -> [LockLocation] -> IO (WithError (IO (),LockSet))
 
-   LockLocation, 
+   LockLocation,
       -- alias for (MMiSSObject,MMiSSVariantSpec)
 
    LockSet,
@@ -52,12 +52,12 @@ acquireLock :: View -> LockLocation -> IO (WithError (IO (),LockSet))
 acquireLock view lockLocation =
    acquireMultipleLocks view emptyLockSet [lockLocation]
 
-acquireMultipleLocks 
+acquireMultipleLocks
    :: View -> LockSet -> [LockLocation] -> IO (WithError (IO (),LockSet))
 acquireMultipleLocks view (LockSet bSems0) lockLocations =
    do
       (lockLocations2Opt :: [Maybe LockLocation2])
-         <- mapM 
+         <- mapM
             (\ (object,variantSpec) ->
                 do
                    variableOpt <- lookupVariantObjectExact
@@ -66,14 +66,14 @@ acquireMultipleLocks view (LockSet bSems0) lockLocations =
                       (\ variable -> (editLock variable,object,variantSpec))
                       variableOpt
                       )
-                )  
+                )
             lockLocations
 
       let
          lockLocations2 :: [LockLocation2]
          lockLocations2 = catMaybes lockLocations2Opt
 
-         getBSem :: LockLocation2 -> IO BSem 
+         getBSem :: LockLocation2 -> IO BSem
          getBSem (bSem,_,_) = return bSem
 
          getMessIfError :: LockLocation2 -> IO (Maybe String)
@@ -88,12 +88,12 @@ acquireMultipleLocks view (LockSet bSems0) lockLocations =
                         ++ " (" ++ show variantSpec ++ ") "
                         ++ "is already being edited"))
 
-      
-      releaseActWE 
+
+      releaseActWE
          <- tryAcquireBSemsWithError1 getBSem getMessIfError lockLocations2
 
       let
-         lockSet1 
+         lockSet1
             = LockSet (bSems0 ++ (map (\ (bSem,_,_) -> bSem) lockLocations2))
 
       return (fmap (\ releaseAct -> (releaseAct,lockSet1)) releaseActWE)

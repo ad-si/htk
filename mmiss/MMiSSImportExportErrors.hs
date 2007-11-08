@@ -1,5 +1,5 @@
 -- | This module contains try-catch functions for error conditions that are
--- likely to arise during import and export. 
+-- likely to arise during import and export.
 module MMiSSImportExportErrors(
    importExportError, -- :: BreakFn
    catchImportExportErrors, -- :: IO a -> IO (Either String a)
@@ -33,15 +33,15 @@ importExportError = mkBreakFn (fst importExportErrorFallOut)
 makeOtherExcepsToOurs :: IO a -> IO a
 makeOtherExcepsToOurs act =
    do
-      let 
+      let
          tryGeneral excep = case isServerError excep of
             Just (errorType,mess) -> importExportError (
                show errorType ++ ": " ++ mess)
-            Nothing -> 
+            Nothing ->
                case isOurFallOut (fst importExportErrorFallOut) excep of
                   Just _ -> Nothing
                   Nothing -> importExportError (showException2 excep)
- 
+
       catchJust tryGeneral act (return . id)
 
 catchImportExportErrors :: IO a -> IO (Either String a)
@@ -62,7 +62,7 @@ catchAllErrorsWE act =
    do
       exceptionOrerrorOrUnit <- try (catchImportExportErrors act)
       case exceptionOrerrorOrUnit of
-         Left excep -> 
+         Left excep ->
             do
                return (hasError ("System error: " ++ show excep))
          Right (Left mess) ->

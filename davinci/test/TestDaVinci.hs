@@ -7,9 +7,9 @@ import InfoBus(shutdown)
 import WBFiles(parseArguments)
 
 main :: IO ()
-main = 
+main =
    do
       parseArguments
       setUpGraph daVinciSort
       shutdown
-   
+

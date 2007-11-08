@@ -1,9 +1,9 @@
 -- | This is a resurrection of the old UniForM Haskell-Expect module,
 -- but made rather easier since we have guarded events.
--- 
--- The format of regular expressions is described in 
+--
+-- The format of regular expressions is described in
 -- "RegularExpression".
--- 
+--
 -- There is one important difference between this Expect implementation
 -- and Einar's, namely that we don't allow priorities.  Instead, you
 -- must state higher-priority events first in choice operators such as
@@ -88,7 +88,7 @@ newExpect filePath options =
          -- (a) we'd need a special channel to do it;
          -- (b) it will die eventually anyway when it receives an
          --     EOF, or when we stop listening to it.
-      let    
+      let
          destroyAction =
             do
                action <- takeMVar destroyMVar
@@ -100,9 +100,9 @@ newExpect filePath options =
             eofChannel = eofChannel,
             destroyAction = destroyAction
             }
-  
+
       spawn (reader expect)
-      
+
       return expect
 
 -- --------------------------------------------------------------------------
@@ -117,14 +117,14 @@ reader (expect@Expect {child = child,childOutput = childOutput,
       -- An exception here (should) mean some non-EOF file error.
       case nextLineOpt of
          Nothing -> sendIO eofChannel ()
-         Just nextLine -> 
+         Just nextLine ->
             do
                sync(sendString childOutput nextLine)
                reader expect
 
 -- --------------------------------------------------------------------------
 -- Reading the output.
--- We inline functions for speed, in particular so that constant strings get 
+-- We inline functions for speed, in particular so that constant strings get
 -- converted to constant compiled regular expressions.
 -- --------------------------------------------------------------------------
 
@@ -143,4 +143,4 @@ matchEOF (Expect {eofChannel = eofChannel}) = receive eofChannel
 matchLine :: Expect -> Event String
 matchLine (Expect {childOutput = childOutput}) = matchAny childOutput
 {-# INLINE matchLine #-}
-     
+

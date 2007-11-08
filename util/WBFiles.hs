@@ -1,6 +1,6 @@
--- | 
+-- |
 -- Description : Option processing
--- 
+--
 -- The WBFiles module is in charge of decoding information from the command
 -- line and making it available to the rest of the UniForM workbench.
 --
@@ -11,14 +11,14 @@
 -- should be called before any of the functions in the UniForM workbench,
 -- as this will prevent the program arguments being read by UniForM.
 --
--- The 
+-- The
 -- @
 --    --uni
 -- @
 -- option prints a help message, as do other options beginning with
--- --uni which are not understood.  
+-- --uni which are not understood.
 --
--- The 
+-- The
 -- @
 --    --uni-parameters
 -- @
@@ -45,13 +45,13 @@
 -- where @<OPTION-NAME>@ is the capitalised name of the option.
 --
 -- The default set of options are as follows:
--- 
+--
 -- option-name   explanation
--- 
+--
 -- wish          The filename of the wish program
 -- daVinci       The filename of daVinci
 -- gnuclient     The filename of gnuclient
--- editor        A command to execute the text editor.  
+-- editor        A command to execute the text editor.
 --               This uses the CommandStringSub format, with defined
 --               substitutions %F => where the file is to be found and
 --               %N => what the user-visible name (for example, of the
@@ -88,8 +88,8 @@
 -- windowsTick   (Windows only) time in microseconds we wait between
 --               polling Wish.
 --
--- The options wish, daVinci, daVinciIcons, top 
--- should all be set automatically by the configure procedure.  
+-- The options wish, daVinci, daVinciIcons, top
+-- should all be set automatically by the configure procedure.
 -- The configure procedure constructs a variable DEFAULTOPTIONS
 -- and writes it into the file default_options.c.
 --
@@ -106,9 +106,9 @@ module WBFiles (
    -- Functions for reading the results of initialising WBFiles.
    -- Values for which we provide defaults either here or in the
    -- configuration file can be accessed without Maybe.
-   getWishPath, -- :: IO String 
+   getWishPath, -- :: IO String
       -- gets the path for wish
-   getDaVinciPath, 
+   getDaVinciPath,
       -- ditto daVinci
    getGnuClientPath,
       -- ditto gnuclient.
@@ -120,9 +120,9 @@ module WBFiles (
       -- Away from Windows, this function will not work.
    getTOP, --  :: IO String
       -- Get the location of the top directory.
-   getTOPPath, 
+   getTOPPath,
       -- :: [String] -> IO String
-      -- Get a path within the top directory.  
+      -- Get a path within the top directory.
    getEditorString, -- :: IO (Maybe String)
       -- returns editor string, if set.
    getMMiSSDTD, -- :: IO (Maybe String)
@@ -147,7 +147,7 @@ module WBFiles (
 
    -- getDebugFileName returns the name of the debug file.
    getDebugFileName, -- IO String
- 
+
    -- values for which we don't are:
    getDaVinciIcons, -- :: IO (Maybe String)
    getServer, -- ditto
@@ -166,7 +166,7 @@ module WBFiles (
    getArgString, -- :: String -> IO (Maybe String)
    getArgBool, -- :: String -> IO (Maybe Bool)
    getArgInt, -- :: String -> IO (Maybe Int)
-   
+
    -- Functions for initialising WBFiles.  If they detect an error
    -- in the parse, they immediately do System.exitWith (ExitFailure 4).
    -- If the --uni option is used, they do System.exitWith (ExitSuccess)
@@ -174,7 +174,7 @@ module WBFiles (
    -- If none of these functions are used, the arguments are parsed when
    -- we first try to access them, with the same effect as parseArguments
    -- except that we don't exit if there's a problem.
-   -- 
+   --
    parseArguments, -- :: IO ()
        -- equivalent to parseTheseArguments usualProgramArguments.
        -- parseArguments is done by default
@@ -185,12 +185,12 @@ module WBFiles (
    ArgValue(..), -- represents values arguments can have.
 
    ProgramArgument(..), -- data corresponding to a single sort of argument.
-   
-   usualProgramArguments, 
+
+   usualProgramArguments,
       -- :: [ProgramArgument]
       -- corresponds to the usual program arguments.
 
-   parseTheseArguments, -- :: [ProgramArgument] -> IO () 
+   parseTheseArguments, -- :: [ProgramArgument] -> IO ()
    -- parseTheseArguments args = parseTheseArgumentsRequiring args []
 
    parseTheseArgumentsRequiring, -- :: [ProgramArgument] -> [String] -> IO ()
@@ -198,11 +198,11 @@ module WBFiles (
    -- parses the arguments, using the supplied list of allowed arguments.
    -- It is an error if any of the options with names in the second argument
    -- are not defined.
-   
+
    setAlternateArgs, -- :: [String] -> IO ()
-   -- specify the given strings as arguments to be used by the parse 
+   -- specify the given strings as arguments to be used by the parse
    -- functions.
-   
+
    ) where
 
 import Char
@@ -230,17 +230,17 @@ valOf optionName action =
       valueOpt <- action
       case valueOpt of
          Just a -> return a
-         Nothing -> 
+         Nothing ->
             error ("option --uni-" ++ optionName ++ " is surprisingly unset")
 
-getWishPath :: IO String 
+getWishPath :: IO String
 getWishPath = valOf "wish" (getArgString "wish")
 
 getEditorString :: IO (Maybe String)
-getEditorString = getArgString "editor" 
+getEditorString = getArgString "editor"
 
 getMMiSSDTD :: IO (Maybe String)
-getMMiSSDTD = 
+getMMiSSDTD =
    do
       mmissDTDOpt <- getArgString "MMiSSDTD"
       case mmissDTDOpt of
@@ -266,7 +266,7 @@ getHosts =
          Just hosts -> return hosts
          Nothing ->
             getTOPPath ["server","Hosts.xml"]
-   
+
 
 getDaVinciPath :: IO String
 getDaVinciPath = valOf "daVinci" (getArgString "daVinci")
@@ -280,7 +280,7 @@ getToolTimeOut = valOf "toolTimeOut" (getArgInt "toolTimeOut")
 getTOP :: IO String
 getTOP = valOf "top" (getArgString "top")
 
--- | Get a path within the top directory.  
+-- | Get a path within the top directory.
 getTOPPath :: [String] -> IO String
 getTOPPath names =
    do
@@ -294,7 +294,7 @@ getXMLPort :: IO Int
 getXMLPort = valOf "xmlPort" (getArgInt "xmlPort")
 
 getWorkingDir :: IO String
-getWorkingDir = 
+getWorkingDir =
    do
       workingDir' <- valOf "workingDir" (getArgString "workingDir")
       return (trimDir workingDir')
@@ -540,7 +540,7 @@ showArgValue (BoolValue b) = if b then "+" else "-"
 -- Parsed Arguments
 ------------------------------------------------------------------------
 
-newtype ParsedArguments = 
+newtype ParsedArguments =
    ParsedArguments (MVar (Maybe (FiniteMap String ArgValue)))
 
 makeParsedArguments :: IO ParsedArguments
@@ -560,11 +560,11 @@ parsedArguments = unsafePerformIO makeParsedArguments
 getArgValue :: String -> IO (Maybe ArgValue)
 getArgValue optionName =
    do
-      map <- forceParseArguments 
+      map <- forceParseArguments
       return (lookupFM map optionName)
 
 mismatch :: String -> a
-mismatch optionName = 
+mismatch optionName =
    error ("WBFiles.mismatch - type mismatch for "++optionName)
    -- If this happens, it means a bug in this file or else
    -- a default value for a program argument does not have the right type,
@@ -589,7 +589,7 @@ getArgInt optionName =
          Just (IntValue i) -> return (Just i)
          Just _ -> mismatch optionName
          Nothing -> return Nothing
-         
+
 
 getArgBool :: String -> IO (Maybe Bool)
 getArgBool optionName =
@@ -599,7 +599,7 @@ getArgBool optionName =
          Just (BoolValue b) -> return (Just b)
          Just _ -> mismatch optionName
          Nothing -> return Nothing
-         
+
 
 -- forceParseArguments is used to force a parse of the arguments
 -- when no parse function has been called before.
@@ -610,8 +610,8 @@ forceParseArguments =
       mapOpt <- takeMVar mVar
       case mapOpt of
          Nothing ->
-            do  
-               (exitCode,newMap) <- 
+            do
+               (exitCode,newMap) <-
                   parseTheseArgumentsRequiring' usualProgramArguments []
                putMVar mVar (Just newMap)
                return newMap
@@ -619,7 +619,7 @@ forceParseArguments =
             do
                putMVar mVar (Just map)
                return map
-                             
+
 ------------------------------------------------------------------------
 -- setAlternateArgs
 ------------------------------------------------------------------------
@@ -633,7 +633,7 @@ newAlternateArgs = newEmptyMVar
 alternateArgs = unsafePerformIO newAlternateArgs
 
 setAlternateArgs :: [String] -> IO ()
-setAlternateArgs newArgs = 
+setAlternateArgs newArgs =
    do
       isEmpty <- isEmptyMVar alternateArgs
       if isEmpty
@@ -662,7 +662,7 @@ parseArguments :: IO ()
 parseArguments = parseTheseArguments usualProgramArguments
 
 parseArgumentsRequiring :: [String] -> IO ()
-parseArgumentsRequiring required = 
+parseArgumentsRequiring required =
    parseTheseArgumentsRequiring usualProgramArguments required
 
 parseTheseArguments :: [ProgramArgument] -> IO ()
@@ -682,7 +682,7 @@ parseTheseArgumentsRequiring arguments required =
                      "attempt to parse arguments too late")
          Nothing ->
             do
-               (result,newMap) <- 
+               (result,newMap) <-
                   parseTheseArgumentsRequiring' arguments required
                putMVar mVar (Just newMap)
                case result of
@@ -692,10 +692,10 @@ parseTheseArgumentsRequiring arguments required =
 
 type ParseState = (Maybe ExitCode,FiniteMap String ArgValue)
 
-parseTheseArgumentsRequiring' :: [ProgramArgument] -> [String] -> 
+parseTheseArgumentsRequiring' :: [ProgramArgument] -> [String] ->
   IO ParseState
 -- is the most general argument parsing function, in terms of which
--- all the others are defined. 
+-- all the others are defined.
 -- It returns a map representing the parsed arguments, plus an exit
 -- code if an exit is indicated.
 parseTheseArgumentsRequiring' arguments required =
@@ -714,7 +714,7 @@ parseTheseArgumentsRequiring' arguments required =
          (initial :: ParseState) = (Nothing,initialMap)
 
       defaultOptionsStr <- peekCString defaultOptions
-      afterDefault <- foldM (handleParameter False) initial 
+      afterDefault <- foldM (handleParameter False) initial
          (words defaultOptionsStr)
 
       parameters <- getArgs
@@ -722,7 +722,7 @@ parseTheseArgumentsRequiring' arguments required =
       afterParms <- foldM (handleParameter True) afterDefault parameters
 
       afterEnvs <- foldM handleEnv afterParms arguments
- 
+
       foldM checkReq afterEnvs required
    where
       handleParameter :: Bool -> ParseState -> String -> IO ParseState
@@ -738,11 +738,11 @@ parseTheseArgumentsRequiring' arguments required =
                   return (newExit (ExitFailure 4),prevMap)
          in
             case parameter of
-               "--uni" -> 
+               "--uni" ->
                   do
                      displayHelp
                      return (newExit ExitSuccess,prevMap)
-               "--uni-version" -> 
+               "--uni-version" ->
                      do
                         printToErr ("uni's version is "++uniVersion)
                         -- The MMiSS installer relies on the exact text of
@@ -751,16 +751,16 @@ parseTheseArgumentsRequiring' arguments required =
                "--uni-parameters" ->
                   do
                      displayState prevMap
-                     return (newExit ExitSuccess,prevMap) 
+                     return (newExit ExitSuccess,prevMap)
                '-':'-':'u':'n':'i':'-':setParm ->
                   case splitSetPart setParm of
                      Nothing -> cantParse
                      Just (option,value) ->
-                        case find (\ arg -> optionName arg == option) 
-                              arguments of 
-                           Nothing -> 
+                        case find (\ arg -> optionName arg == option)
+                              arguments of
+                           Nothing ->
                               do
-                                 if noticeErrors 
+                                 if noticeErrors
                                     then
                                        do
                                           displayHelp
@@ -769,12 +769,12 @@ parseTheseArgumentsRequiring' arguments required =
                                     else
                                        return ()
                                  return (newExit (ExitFailure 4),prevMap)
-                           Just arg -> 
+                           Just arg ->
                               tryToAddValue (argType arg) option value prev
                '-':'-':'u':'n':'i':_ -> cantParse
                _ -> return prev
 
-      tryToAddValue :: ArgType -> String -> String -> ParseState -> 
+      tryToAddValue :: ArgType -> String -> String -> ParseState ->
          IO ParseState
       tryToAddValue argType option value prev@(prevExit,prevMap) =
          case parseArgValue argType value of
@@ -782,13 +782,13 @@ parseTheseArgumentsRequiring' arguments required =
                do
                   printToErr("For --uni-"++ option ++ ", "++(show value)++
                      " isn't "++ (showArgType argType))
-                  return 
+                  return
                      (upgradeError True (ExitFailure 4) prevExit,prevMap)
                      -- we always take notice of this error, since it
                      -- shouldn't occur in the default list either.
             Just argValue ->
                return (prevExit,addToFM prevMap option argValue)
-                                 
+
       splitSetPart :: String -> Maybe (String,String)
       -- splitSetPart splits the string at its first : or = and returns
       -- the result
@@ -826,7 +826,7 @@ parseTheseArgumentsRequiring' arguments required =
          do
             let optionValues = fmToList fmap
             printToErr "Parameter settings:"
-            sequence_ 
+            sequence_
                (map
                   (\ (option,argValue) ->
                      printToErr ("--uni-"++option++"="++
@@ -841,12 +841,12 @@ parseTheseArgumentsRequiring' arguments required =
       handleEnv prev@(prevExit,prevMap) arg =
          do
             let
-               option = optionName arg 
+               option = optionName arg
                envVar = "UNI"++(map toUpper option)
             valueOpt <- try (System.getEnv envVar)
             case valueOpt of
                Left error -> return prev
-               Right newValue -> 
+               Right newValue ->
                   tryToAddValue (argType arg) option newValue prev
 
       checkReq :: ParseState -> String -> IO ParseState
@@ -854,7 +854,7 @@ parseTheseArgumentsRequiring' arguments required =
       checkReq prev@(prevExit,prevMap) option =
          case lookupFM prevMap option of
             Just _ -> return prev
-            Nothing -> 
+            Nothing ->
                do
                   printToErr ("Option "++option++" is not set.")
                   return (upgradeError True (ExitFailure 4) prevExit,prevMap)
@@ -868,7 +868,7 @@ parseTheseArgumentsRequiring' arguments required =
       upgradeError True (ExitFailure level1) (Just (ExitFailure level2)) =
          Just (ExitFailure (max level1 level2))
 
-foreign import ccall  "default_options.h & default_options" 
+foreign import ccall  "default_options.h & default_options"
    defaultOptions :: CString
 
 ------------------------------------------------------------------------

@@ -4,7 +4,7 @@ module Font (
 
   FontDesignator(..),
 
-  Font(..),       
+  Font(..),
   XFont(..),
 
   xfont,
@@ -138,7 +138,7 @@ instance Show Font where
 -- | Internal.
 instance Read Font where
    -- Internal.
-   readsPrec p str = [(Font str,[])] 
+   readsPrec p str = [(Font str,[])]
 
 
 -- -----------------------------------------------------------------------
@@ -155,10 +155,10 @@ instance Show XFont where
    -- Internal.
    showsPrec d c r = cshow c ++ r
      where
-        cshow (XFont fo fa we sl sw pi po xr yr sp cw cs) = 
-               hy ++ fo ++ hy ++ mshow fa ++ hy ++ mshow we ++ hy ++ 
-               mshow sl ++ hy ++ mshow sw ++ hy ++ mshow pi ++ hy ++ 
-               mshow po ++ hy ++ mshow xr ++ hy ++ mshow yr ++ hy ++ 
+        cshow (XFont fo fa we sl sw pi po xr yr sp cw cs) =
+               hy ++ fo ++ hy ++ mshow fa ++ hy ++ mshow we ++ hy ++
+               mshow sl ++ hy ++ mshow sw ++ hy ++ mshow pi ++ hy ++
+               mshow po ++ hy ++ mshow xr ++ hy ++ mshow yr ++ hy ++
                mshow sp ++ hy ++ mshow cw ++ hy ++ mshow cs ++ hy ++ "*"
                where hy = "-"
         cshow (XFontAlias str) = str
@@ -166,7 +166,7 @@ instance Show XFont where
 -- | Internal.
 instance Read XFont where
    -- Internal.
-   readsPrec p str = [(cread (dropWhile isSpace str),[])] 
+   readsPrec p str = [(cread (dropWhile isSpace str),[])]
      where
         cread s@('-':str) = toXFont (simpleSplit (== '-') str)
         cread str = XFontAlias str
@@ -205,9 +205,9 @@ instance Read FontWeight where
 -- | Internal.
 instance Show FontWeight where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
-        NormalWeight -> "Normal" 
+   showsPrec d p r =
+      (case p of
+        NormalWeight -> "Normal"
         Medium -> "Medium"
         Bold -> "Bold"
         ) ++ r
@@ -246,13 +246,13 @@ instance Read FontFamily where
 -- | Internal.
 instance Show FontFamily where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
-        Lucida -> "Lucida" 
+   showsPrec d p r =
+      (case p of
+        Lucida -> "Lucida"
         Times -> "Times"
         Helvetica -> "Helvetica"
         Courier -> "Courier"
-	Symbol -> "Symbol"
+        Symbol -> "Symbol"
         Other fstr -> fstr
         ) ++ r
 
@@ -282,9 +282,9 @@ instance Read FontSlant where
 -- | Internal.
 instance Show FontSlant where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
-        Roman -> "R" 
+   showsPrec d p r =
+      (case p of
+        Roman -> "R"
         Italic -> "I"
         Oblique -> "O"
         ) ++ r
@@ -315,9 +315,9 @@ instance Read FontWidth where
 -- | Internal.
 instance Show FontWidth where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
-        NormalWidth -> "Normal" 
+   showsPrec d p r =
+      (case p of
+        NormalWidth -> "Normal"
         Condensed -> "Condensed"
         Narrow -> "Narrow"
         ) ++ r
@@ -347,9 +347,9 @@ instance Read FontSpacing where
 -- | Internal.
 instance Show FontSpacing where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
-        MonoSpace -> "M" 
+   showsPrec d p r =
+      (case p of
+        MonoSpace -> "M"
         Proportional -> "P"
         ) ++ r
 

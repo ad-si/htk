@@ -1,9 +1,9 @@
 -- | Instances of the 'Binary.HasBinary' class.  This includes the
 -- standard types (except of course for things like function types and
--- IO) plus a few others. 
+-- IO) plus a few others.
 module BinaryInstances(
    -- Methods provided for encoding alternatives
-   Choice5(..), 
+   Choice5(..),
       -- 5-way alternatives.
 
    HasWrapper(..), -- class for unlimited (well, up to 256) alternatives.
@@ -12,7 +12,7 @@ module BinaryInstances(
    UnWrap(..),
    wrap0,wrap1,wrap2,wrap3,wrap4,
       -- used for instancing.
-   
+
    ReadShow(..),
       -- A wrapper for things which are to be represented by their
       -- Read/Show instances.
@@ -57,28 +57,28 @@ instance (Monad m,HasBinary v1 m,HasBinary v2 m) => HasBinary (v1,v2) m where
          v2 <- readBin wb
          return (v1,v2)
 
-instance (Monad m,HasBinary v1 m,HasBinary (v2,v3) m) 
+instance (Monad m,HasBinary v1 m,HasBinary (v2,v3) m)
    => HasBinary (v1,v2,v3) m where
    writeBin = mapWrite (\ (v1,v2,v3) -> (v1,(v2,v3)))
    readBin = mapRead (\ (v1,(v2,v3)) -> (v1,v2,v3))
 
-instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4) m) 
+instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4) m)
    => HasBinary (v1,v2,v3,v4) m where
    writeBin = mapWrite (\ (v1,v2,v3,v4) -> (v1,(v2,v3,v4)))
    readBin = mapRead (\ (v1,(v2,v3,v4)) -> (v1,v2,v3,v4))
 
-instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5) m) 
+instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5) m)
    => HasBinary (v1,v2,v3,v4,v5) m where
    writeBin = mapWrite (\ (v1,v2,v3,v4,v5) -> (v1,(v2,v3,v4,v5)))
    readBin = mapRead (\ (v1,(v2,v3,v4,v5)) -> (v1,v2,v3,v4,v5))
 
-instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5,v6) m) 
+instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5,v6) m)
    => HasBinary (v1,v2,v3,v4,v5,v6) m where
    writeBin = mapWrite (\ (v1,v2,v3,v4,v5,v6) -> (v1,(v2,v3,v4,v5,v6)))
    readBin = mapRead (\ (v1,(v2,v3,v4,v5,v6)) -> (v1,v2,v3,v4,v5,v6))
 
 
-instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5,v6,v7) m) 
+instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5,v6,v7) m)
    => HasBinary (v1,v2,v3,v4,v5,v6,v7) m where
    writeBin = mapWrite (\ (v1,v2,v3,v4,v5,v6,v7) -> (v1,(v2,v3,v4,v5,v6,v7)))
    readBin = mapRead (\ (v1,(v2,v3,v4,v5,v6,v7)) -> (v1,v2,v3,v4,v5,v6,v7))
@@ -119,7 +119,7 @@ instance (Monad m,HasBinary a m) => HasBinary (Maybe a) m where
       Right a -> Just a
      )
 
-instance (Monad m,HasBinary a m,HasBinary b m) 
+instance (Monad m,HasBinary a m,HasBinary b m)
    => HasBinary (Either a b) m where
 
    writeBin wb (Left a) =
@@ -178,11 +178,11 @@ instance (Monad m,HasBinary a m) => HasBinary [a] m where
          (len :: Word)<- readBin wb
          as <- mapM (\ _ -> readBin wb) [1..len]
          return as
-          
+
 
 -- -----------------------------------------------------------------------
 -- Encoding integers
--- Some features of our encoding.  
+-- Some features of our encoding.
 -- (1) integers have the same encoding and words have the same encoding,
 --     however the two encodings differ slightly, since words don't have
 --     to store the sign.  This is important since it means ASCII characters
@@ -217,13 +217,13 @@ instance Monad m => HasBinary CSize m where
    readBin = mapRead decodeWord
 
 encodeIntegral :: (Integral integral,Bits integral) => integral -> CodedList
-encodeIntegral (i :: integral) = 
+encodeIntegral (i :: integral) =
    if isLarge i
       then
          let
             lowestPart = i .&. mask
             highPart = i `shiftR` bitsPerByte
-            CodedList codedHigh = encodeIntegral highPart 
+            CodedList codedHigh = encodeIntegral highPart
          in
             CodedList ((fromIntegral lowestPart) : codedHigh)
       else
@@ -255,18 +255,18 @@ decodeIntegral (CodedList [wpped]) =
 decodeIntegral (CodedList (lPart : codedHigh)) =
    let
       lowestPart = fromIntegral lPart
-      highPart = decodeIntegral (CodedList codedHigh) 
+      highPart = decodeIntegral (CodedList codedHigh)
    in
       lowestPart + (highPart `shiftL` bitsPerByte)
 
 encodeWord :: (Integral integral,Bits integral) => integral -> CodedList
-encodeWord (i :: integral) = 
+encodeWord (i :: integral) =
    if isLarge i
       then
          let
             lowestPart = i .&. mask
             highPart = i `shiftR` bitsPerByte
-            CodedList codedHigh = encodeWord highPart 
+            CodedList codedHigh = encodeWord highPart
          in
             CodedList ((fromIntegral lowestPart) : codedHigh)
       else
@@ -288,12 +288,12 @@ decodeWord (CodedList [wpped]) =
 decodeWord (CodedList (lPart : codedHigh)) =
    let
       lowestPart = fromIntegral lPart
-      highPart = decodeWord (CodedList codedHigh) 
+      highPart = decodeWord (CodedList codedHigh)
    in
       lowestPart + (highPart `shiftL` bitsPerByte)
 
 -- -----------------------------------------------------------------------
--- We make the word encoding (which is slightly more efficient for 
+-- We make the word encoding (which is slightly more efficient for
 -- unsigned integers) available via the Unsigned type.
 -- -----------------------------------------------------------------------
 
@@ -304,7 +304,7 @@ decodeWord (CodedList (lPart : codedHigh)) =
 -- just one byte.
 newtype Unsigned integral = Unsigned integral
 
-instance (Monad m,Integral integral,Bits integral) 
+instance (Monad m,Integral integral,Bits integral)
    => HasBinary (Unsigned integral) m where
 
    writeBin = mapWrite (\ (Unsigned i) -> encodeWord i)
@@ -365,7 +365,7 @@ instance Monad m => HasBinary CodedList m where
 
 -- ----------------------------------------------------------------------
 -- 5-way choices.  This is probably a bit clumsier than the HasWrapper
--- method (see next section), on the other hand perhaps a bit more 
+-- method (see next section), on the other hand perhaps a bit more
 -- efficient for up to 5 alternatives, since decoding doesn't have to
 -- hunt through the wraps list.
 -- ----------------------------------------------------------------------
@@ -383,7 +383,7 @@ data Choice5 v1 v2 v3 v4 v5 =
 
 instance (Monad m,
    HasBinary v1 m,HasBinary v2 m,HasBinary v3 m,HasBinary v4 m,HasBinary v5 m)
-   => HasBinary (Choice5 v1 v2 v3 v4 v5) m 
+   => HasBinary (Choice5 v1 v2 v3 v4 v5) m
    where
 
    writeBin wb (Choice1 v) =
@@ -411,28 +411,28 @@ instance (Monad m,
       do
          switch <- readByte rb
          case switch of
-            1 -> 
+            1 ->
                 do
                    v <- readBin rb
-                   return (Choice1 v) 
-            2 -> 
+                   return (Choice1 v)
+            2 ->
                 do
                    v <- readBin rb
-                   return (Choice2 v) 
-            3 -> 
+                   return (Choice2 v)
+            3 ->
                 do
                    v <- readBin rb
-                   return (Choice3 v) 
-            4 -> 
+                   return (Choice3 v)
+            4 ->
                 do
                    v <- readBin rb
-                   return (Choice4 v) 
-            5 -> 
+                   return (Choice4 v)
+            5 ->
                 do
                    v <- readBin rb
                    return (Choice5 v)
             _ -> fail ("BinaryInstances.Choice5 - unexpected switch "
-               ++ show switch) 
+               ++ show switch)
 
 -- ----------------------------------------------------------------------
 -- convenient (if inefficient) way of encoding algebraic datatypes.
@@ -442,7 +442,7 @@ instance (Monad m,
 -- If this all seems to complicated, look at the source file and
 -- the example for the \"Tree\" data type.
 class HasWrapper wrapper m where
-   wraps :: [Wrap wrapper m] 
+   wraps :: [Wrap wrapper m]
       -- ^ For each alternative in the type, provide a recognition
       -- 'Byte', and a way of mapping that alternative to the (wrapper)
    unWrap :: wrapper -> UnWrap m
@@ -450,7 +450,7 @@ class HasWrapper wrapper m where
       -- and the type within the alternative.
 
 
--- | Newtype alias you need to wrap around something which instances 
+-- | Newtype alias you need to wrap around something which instances
 -- 'HasWrapper' to get an actual HasBinary instance.  You will then
 -- need something like this:
 --
@@ -458,12 +458,12 @@ class HasWrapper wrapper m where
 -- >   writeBin = mapWrite Wrapped
 -- >   readBin = mapRead wrapped
 --
-newtype Wrapped a = Wrapped {wrapped :: a} 
+newtype Wrapped a = Wrapped {wrapped :: a}
 
 -- | Value the 'HasWrapper' instance generates from 'unWrap' to
 -- indicate how we should write some value to binary.
 data UnWrap m = forall val . HasBinary val m
-   => UnWrap 
+   => UnWrap
       Byte --  label for this type on writing.
       val --  value inside this wrapped type.
 
@@ -477,7 +477,7 @@ data Wrap wrapper m = forall val . HasBinary val m
       (val -> wrapper)
            --  how to wrap this sort of value.
 
--- some abbreviations for construtor functions with varying numbers of 
+-- some abbreviations for construtor functions with varying numbers of
 -- arguments.
 
 -- | 'Wrap' value for constructor with no arguments.
@@ -491,13 +491,13 @@ wrap1 = Wrap
 
 
 -- | 'Wrap' value for constructor with 2 arguments.
-wrap2 :: (HasBinary (val1,val2) m) => Byte 
+wrap2 :: (HasBinary (val1,val2) m) => Byte
    -> (val1 -> val2 -> wrapper) -> Wrap wrapper m
 wrap2 char con = Wrap char (\ (val1,val2) -> con val1 val2)
 
 
 -- | 'Wrap' value for constructor with 3 arguments.
-wrap3 :: (HasBinary (val1,val2,val3) m) => Byte 
+wrap3 :: (HasBinary (val1,val2,val3) m) => Byte
    -> (val1 -> val2 -> val3 -> wrapper) -> Wrap wrapper m
 wrap3 char con = Wrap char (\ (val1,val2,val3) -> con val1 val2 val3)
 
@@ -526,7 +526,7 @@ instance (Monad m,HasWrapper wrapper m) => HasBinary (Wrapped wrapper) m where
                   return (Wrapped (wrapFn val))
 
          case findJust
-            (\ (Wrap label wrapFn :: Wrap wrapper m) -> 
+            (\ (Wrap label wrapFn :: Wrap wrapper m) ->
                if label == thisLabel then Just (innerWrap wrapFn) else Nothing
                )
             (wraps :: [Wrap wrapper m]) of
@@ -584,7 +584,7 @@ instance (Read a,Show a,Monad m) => HasBinary (ReadShow a) m where
 newtype ViaEnum a = ViaEnum {enum :: a}
 
 instance (Monad m,Enum a) => HasBinary (ViaEnum a) m where
-   writeBin = mapWrite (\ (ViaEnum a) 
+   writeBin = mapWrite (\ (ViaEnum a)
       -> (fromEnum a) :: Int
       )
-   readBin = mapRead (\ (aInt :: Int) -> ViaEnum (toEnum aInt)) 
+   readBin = mapRead (\ (aInt :: Int) -> ViaEnum (toEnum aInt))

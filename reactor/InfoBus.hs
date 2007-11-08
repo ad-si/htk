@@ -2,10 +2,10 @@
 -- things registered via 'registerTool' and not
 -- subsequently registered via 'deregisterTool'.  Tools are identified
 -- by 'ObjectId'.
-module InfoBus (        
+module InfoBus (
    registerTool,
    registerToolDebug,
-   deregisterTool,   
+   deregisterTool,
    shutdown,
    registerDestroyAct,
    encapsulateWaitTermAct,
@@ -46,24 +46,24 @@ toolmanager = unsafePerformIO (newMVar emptyFM)
 -- --------------------------------------------------------------------------
 
 registerTool :: (Object t, Destroyable t) => t -> IO ()
-registerTool t = 
-   do 
-      map <- takeMVar toolmanager 
+registerTool t =
+   do
+      map <- takeMVar toolmanager
       putMVar toolmanager (addToFM map (objectID t) (destroy t))
-      done          
+      done
 
 registerToolDebug :: (Object t, Destroyable t) => String -> t -> IO ()
-registerToolDebug title t = 
-   do 
-      map <- takeMVar toolmanager 
+registerToolDebug title t =
+   do
+      map <- takeMVar toolmanager
       putMVar toolmanager (addToFM map (objectID t) (destroy t))
       debug ("registerTool " ++ title,objectID t)
-      done          
+      done
 
 
 deregisterTool :: (Object t) => t -> IO ()
-deregisterTool t =  
-   do 
+deregisterTool t =
+   do
       let oid = objectID t
       try( -- ignore exceptions if they occur.  I don't see how they can
            -- actually.
@@ -75,13 +75,13 @@ deregisterTool t =
       done
 
 shutdown :: IO ()
-shutdown = 
+shutdown =
    do
       map <- takeMVar toolmanager
       let toShutDown = fmToList map
       putMVar toolmanager emptyFM
-      foreach toShutDown 
-         (\ (oid,cmd) -> 
+      foreach toShutDown
+         (\ (oid,cmd) ->
             do
                debug ("Shutting down ",oid)
                try cmd

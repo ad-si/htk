@@ -29,9 +29,9 @@ data MenuSeparator = MenuSeparator GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new menu separator and returns a handler.
-createMenuSeparator :: Menu 
+createMenuSeparator :: Menu
    -- ^ the parent menu.
-   -> [Config MenuSeparator] 
+   -> [Config MenuSeparator]
    -- ^ the list of configuration options for this menu
    -- separator.
    -> IO MenuSeparator
@@ -49,7 +49,7 @@ createMenuSeparator m cnf =
 instance MenuItem MenuSeparator
 
 -- | Internal.
-instance GUIObject MenuSeparator where 
+instance GUIObject MenuSeparator where
   toGUIObject (MenuSeparator w) = w
   cname w = "MenuSeparator"
 

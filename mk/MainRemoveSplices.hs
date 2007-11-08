@@ -3,7 +3,7 @@
    call.
 
    The strategy for determining whether something is a declaration or
-   expression splice is simple: every splice that comes immediately after 
+   expression splice is simple: every splice that comes immediately after
    "\n" is a declaration splice.  Not nice I know, but probably true.
    -}
 module Main where
@@ -17,8 +17,8 @@ main =
 
 removeSplices :: String -> String
 removeSplices ('\n':'$':'(':rest) = removeSplices (skipPars 0 rest)
-removeSplices ('$':'(':rest) = 
-   " (error \"Splice Removed for Haddock\") " 
+removeSplices ('$':'(':rest) =
+   " (error \"Splice Removed for Haddock\") "
       ++ removeSplices (skipPars 0 rest)
 removeSplices (c:rest) = c:removeSplices rest
 removeSplices [] = []

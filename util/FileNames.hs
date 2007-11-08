@@ -33,11 +33,11 @@ module FileNames(
    unsplitExtension,
             -- :: String -> String -> String
             -- reverse unsplitExtension.
-   
-   recordSep, 
+
+   recordSep,
             -- :: String
             -- separator for between records.
-            
+
    ) where
 
 import CompileFlags
@@ -67,13 +67,13 @@ thisDir = "."
 
 trimDir :: String -> String
 trimDir [] = []
-trimDir (name@[c]) 
+trimDir (name@[c])
    | c==fileSep = []
    | True = name
 trimDir (first:rest) = first:trimDir rest
 
 splitName :: String -> (String,String)
-splitName filePath0 = 
+splitName filePath0 =
    let
       filePath1 = trimDir filePath0
    in
@@ -96,7 +96,7 @@ combineNames dir file = dir ++ (fileSep:file)
 
 breakName :: String -> [String]
 breakName [] = [[]]
-breakName (first : rest) 
+breakName (first : rest)
    | (first == fileSep) = "":breakName rest
    | True =
       case breakName rest of

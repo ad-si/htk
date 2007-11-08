@@ -7,7 +7,7 @@ import Char (isSpace)
 
 {-Type decls-}
 
-newtype Checklist = Checklist (List1 (Check)) 		deriving (Eq,Show)
+newtype Checklist = Checklist (List1 (Check))           deriving (Eq,Show)
 data Check = Check Check_Attrs (Maybe Message) [(Mmissobject)]
            deriving (Eq,Show)
 data Check_Attrs = Check_Attrs
@@ -16,7 +16,7 @@ data Check_Attrs = Check_Attrs
     } deriving (Eq,Show)
 data Check_success = Check_success_Yes  |  Check_success_No
                    deriving (Eq,Show)
-newtype Message = Message String 		deriving (Eq,Show)
+newtype Message = Message String                deriving (Eq,Show)
 data Mmissobject = Mmissobject
     { mmissobjectId :: String
     } deriving (Eq,Show)
@@ -53,7 +53,7 @@ instance XmlAttributes Check_Attrs where
           { checkName = definiteA fromAttrToStr "check" "name" as
           , checkSuccess = definiteA fromAttrToTyp "check" "success" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "name" (checkName v)
         , toAttrFrTyp "success" (checkSuccess v)
         ]
@@ -89,7 +89,7 @@ instance XmlAttributes Mmissobject where
         Mmissobject
           { mmissobjectId = definiteA fromAttrToStr "mmissobject" "id" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "id" (mmissobjectId v)
         ]
 

@@ -31,7 +31,7 @@ module ExtendedPrelude (
    lastOpt, -- :: [a] -> Maybe a
       -- gets the last element of a list, safely.
 
-   isPrefix, 
+   isPrefix,
       -- :: Eq a => [a] -> [a] -> Just [a]
       -- returns remainder if the first list is a prefix of the second one.
 
@@ -75,7 +75,7 @@ module ExtendedPrelude (
 
    addGeneralFallOut,
    GeneralBreakFn(..),GeneralCatchFn(..),
-   catchOurExceps, -- :: IO a -> IO (Either String a) 
+   catchOurExceps, -- :: IO a -> IO (Either String a)
    catchAllExceps, -- :: IO a -> IO (Either String a)
    errorOurExceps, -- :: IO a -> IO a
    ourExcepToMess, -- :: Exception -> Maybe String
@@ -123,14 +123,14 @@ import Dynamics
 -- | Remove trailing spaces (We try to avoid reconstructing the string,
 -- on the assumption that there aren't often spaces)
 trimTrailing :: String -> String
-trimTrailing str = 
+trimTrailing str =
    case tt str of
       Nothing -> str
       Just str2 -> str2
    where
       tt [] = Nothing
       tt (str@[ch]) = if isSpace ch then Just [] else Nothing
-      tt (ch:rest) = 
+      tt (ch:rest) =
          case tt rest of
             Nothing -> Nothing
             (j@(Just "")) -> if isSpace ch then j else Just [ch]
@@ -170,7 +170,7 @@ readCheck str = case reads str of
 
 -- | The "." operator lifted to monads.   So like ., the arguments
 -- are given in the reverse order to that in which they should
--- be executed. 
+-- be executed.
 monadDot :: Monad m =>  (b -> m c) -> (a -> m b) -> (a -> m c)
 monadDot f g x =
    do
@@ -208,7 +208,7 @@ simpleSplit :: (a -> Bool) -> [a] -> [[a]]
 simpleSplit p s = case dropWhile p s of
                 [] -> []
                 s' -> w : simpleSplit p s''
-                      where (w,s'') = break p s' 
+                      where (w,s'') = break p s'
 
 findJust :: (a -> Maybe b) -> [a] -> Maybe b
 findJust f [] = Nothing
@@ -218,7 +218,7 @@ findJust f (x:xs) = case f x of
 
 deleteFirst :: (a -> Bool) -> [a] -> [a]
 deleteFirst fn [] = error "ExtendedPrelude.deleteFirst - not found"
-deleteFirst fn (a:as) = 
+deleteFirst fn (a:as) =
    if fn a then as else a:deleteFirst fn as
 
 deleteFirstOpt :: (a -> Bool) -> [a] -> [a]
@@ -227,11 +227,11 @@ deleteFirstOpt fn as = case deleteAndFindFirstOpt fn as of
    Just (_,as) -> as
 
 deleteAndFindFirst :: (a -> Bool) -> [a] -> (a,[a])
-deleteAndFindFirst fn [] 
+deleteAndFindFirst fn []
    = error "ExtendedPrelude.deleteAndFindFirst - not found"
 deleteAndFindFirst fn (a:as) =
-   if fn a then (a,as) else 
-      let 
+   if fn a then (a,as) else
+      let
          (a1,as1) = deleteAndFindFirst fn as
       in
          (a1,a:as1)
@@ -336,8 +336,8 @@ splitToChar :: Char -> String -> Maybe (String,String)
 splitToChar c = sTC
    where
       sTC [] = Nothing
-      sTC (x:xs) = 
-         if x == c then Just ([],xs) else 
+      sTC (x:xs) =
+         if x == c then Just ([],xs) else
             fmap
                (\ (xs1,xs2) -> (x:xs1,xs2))
                (sTC xs)
@@ -350,8 +350,8 @@ splitToElem :: (a -> Bool) -> [a] -> Maybe ([a],[a])
 splitToElem fn = sTC
    where
       sTC [] = Nothing
-      sTC (x:xs) = 
-         if fn x then Just ([],xs) else 
+      sTC (x:xs) =
+         if fn x then Just ([],xs) else
             fmap
                (\ (xs1,xs2) -> (x:xs1,xs2))
                (sTC xs)
@@ -364,8 +364,8 @@ splitToElemGeneral :: (a -> Bool) -> [a] -> Maybe ([a],a,[a])
 splitToElemGeneral fn = sTC
    where
       sTC [] = Nothing
-      sTC (x:xs) = 
-         if fn x then Just ([],x,xs) else 
+      sTC (x:xs) =
+         if fn x then Just ([],x,xs) else
             fmap
                (\ (xs1,x1,xs2) -> (x:xs1,x1,xs2))
                (sTC xs)
@@ -407,7 +407,7 @@ lastOpt (_:rest) = lastOpt rest
 -- | returns remainder if the first list is a prefix of the second one.
 isPrefix :: Eq a => [a] -> [a] -> Maybe [a]
 isPrefix [] s = Just s
-isPrefix (c1 : c1s) (c2 : c2s) | c1 == c2 
+isPrefix (c1 : c1s) (c2 : c2s) | c1 == c2
    = isPrefix c1s c2s
 isPrefix _ _ = Nothing
 
@@ -421,15 +421,15 @@ isPrefix _ _ = Nothing
 --   node to update the state.
 -- The ancestorInfo information comes from the ancestors of the node.  EG
 -- if we are visiting node N1 which came from N2 the ancestorInfo given to
--- visitNode for N1 will be that computed from visitNode for N2. 
+-- visitNode for N1 will be that computed from visitNode for N2.
 -- For the root node, it will be initialAncestor
-treeFold :: 
-   (ancestorInfo -> state -> node -> (ancestorInfo,state,[node])) 
-   -> ancestorInfo -> state -> node 
+treeFold ::
+   (ancestorInfo -> state -> node -> (ancestorInfo,state,[node]))
+   -> ancestorInfo -> state -> node
    -> state
 treeFold visitNode initialAncestor initialState node =
    let
-      (newAncestor,newState,children) 
+      (newAncestor,newState,children)
          = visitNode initialAncestor initialState node
    in
       foldl
@@ -439,12 +439,12 @@ treeFold visitNode initialAncestor initialState node =
 
 -- | Like treeFold, but using monads.
 treeFoldM :: Monad m =>
-   (ancestorInfo -> state -> node -> m (ancestorInfo,state,[node])) 
-   -> ancestorInfo -> state -> node 
+   (ancestorInfo -> state -> node -> m (ancestorInfo,state,[node]))
+   -> ancestorInfo -> state -> node
    -> m state
 treeFoldM visitNode initialAncestor initialState node =
    do
-      (newAncestor,newState,children) 
+      (newAncestor,newState,children)
          <- visitNode initialAncestor initialState node
       foldM
          (\ state node -> treeFoldM visitNode newAncestor state node)
@@ -474,7 +474,7 @@ type BreakFn = (forall other . String -> other)
 --    addFallOut (\ break ->
 --       do
 --          -- blah blah (normal IO a stuff) --
---          when (break condition)  
+--          when (break condition)
 --             (break "You can't do that there ere")
 --          -- more blah blah, not executed if there's an break --
 --          return (value of type a)
@@ -492,7 +492,7 @@ addFallOutWE toAct =
       result <- addFallOut toAct
       return (toWithError result)
 
-            
+
 simpleFallOut :: BreakFn
 simpleFallOut = mkBreakFn simpleFallOutId
 
@@ -525,19 +525,19 @@ newFallOut =
 isOurFallOut :: ObjectID -> Exception -> Maybe String
 isOurFallOut oId exception =
    case dynExceptions exception of
-      Nothing -> Nothing 
+      Nothing -> Nothing
          -- don't handle this as it's not even a dyn.
       Just dyn ->
          case fromDynamic dyn of
             Nothing -> Nothing -- not a fallout.
             Just fallOutExcep -> if fallOutId fallOutExcep /= oId
                then
-                  Nothing 
-                  -- don't handle this; it's from another 
+                  Nothing
+                  -- don't handle this; it's from another
                   -- addFallOut
                else
                   Just (mess fallOutExcep)
-   
+
 
 -- ------------------------------------------------------------------------
 -- More general try/catch function.
@@ -569,17 +569,17 @@ newGeneralFallOut =
          tryFn act =
             tryJust
                (\ exception -> case dynExceptions exception of
-                  Nothing -> Nothing 
+                  Nothing -> Nothing
                      -- don't handle this as it's not even a dyn.
                   Just dyn ->
                      case fromDynamic dyn of
-                        Nothing -> Nothing 
+                        Nothing -> Nothing
                            -- not a fallout, or not the right type of a.
-                        Just generalFallOutExcep -> 
+                        Just generalFallOutExcep ->
                               if generalFallOutId generalFallOutExcep /= id
                            then
-                              Nothing 
-                              -- don't handle this; it's from another 
+                              Nothing
+                              -- don't handle this; it's from another
                               -- addGeneralFallOut
                            else
                               Just (a generalFallOutExcep)
@@ -595,17 +595,17 @@ newGeneralFallOut =
 ourExcepToMess :: Exception -> Maybe String
 ourExcepToMess excep = case dynExceptions excep of
    Nothing -> Nothing
-   Just dyn -> 
+   Just dyn ->
       case fromDynamic dyn of
-         Just fallOut -> Just ("Fall-out exception " 
+         Just fallOut -> Just ("Fall-out exception "
             ++ show (fallOutId fallOut) ++ ": " ++ mess fallOut)
          Nothing -> Just ("Mysterious dynamic exception " ++ show dyn)
 
 showException2 :: Exception -> String
-showException2 exception = 
+showException2 exception =
    fromMaybe (show exception) (ourExcepToMess exception)
 
-catchOurExceps :: IO a -> IO (Either String a) 
+catchOurExceps :: IO a -> IO (Either String a)
 catchOurExceps act =
    tryJust ourExcepToMess act
 
@@ -629,7 +629,7 @@ errorOurExceps act =
 breakOtherExceps :: BreakFn -> IO a -> IO a
 breakOtherExceps break act =
    catchJust
-      (\ excep -> if isJust (ourExcepToMess excep) 
+      (\ excep -> if isJust (ourExcepToMess excep)
          then
             Nothing
          else
@@ -637,7 +637,7 @@ breakOtherExceps break act =
          )
       act
       id
-            
+
 
 
 
@@ -648,7 +648,7 @@ breakOtherExceps break act =
 -- | indicates that an Ord or Eq instance really does need to
 -- take everything into account.
 newtype Full a = Full a
-   
+
 -- ------------------------------------------------------------------------
 -- Where equality and comparing requires IO.
 -- ------------------------------------------------------------------------
@@ -689,7 +689,7 @@ uniqOrdByKeyOrder (getKey :: a -> b) =
    let
       u :: Set b -> [a] -> [a]
       u visited [] = []
-      u visited (a:as) = 
+      u visited (a:as) =
          if elementOf key visited
             then
                u visited as
@@ -729,7 +729,7 @@ findDuplicate toA bs = fd emptySet bs
                then
                   Just b
                else
-                  fd (addToSet aSet0 a) bs 
+                  fd (addToSet aSet0 a) bs
 
 -- | Return Just True if all the elements give True, Just False if all False,
 -- Nothing otherwise (or list is empty).
@@ -748,7 +748,7 @@ allSame fn (a : as) =
             then
                Nothing
             else
-               Just False  
+               Just False
 
 -- | If all the elements are equal, return True
 allEq :: Eq a => [a] -> Bool
@@ -760,7 +760,7 @@ allEq (a:as) = all (== a) as
 -- These will hopefully be in GHC6.1 onwards anyway.
 -- ------------------------------------------------------------------------
 
-fmToList_GE_1 :: Ord key 
+fmToList_GE_1 :: Ord key
    => DeprecatedFiniteMap.FiniteMap key elt -> key ->  [(key,elt)]
 maxFM_1 :: Ord key => DeprecatedFiniteMap.FiniteMap key elt -> Maybe key
 keysFM_GE_1 :: Ord key => DeprecatedFiniteMap.FiniteMap key elt -> key -> [key]
@@ -788,11 +788,11 @@ generalisedMerge :: (Monad m)
           -- we pair EQ elements together.
    -> m ([a],[c])
           -- ^ Output of merge function concatenated.
-generalisedMerge as bs (compareFn :: a -> b -> Ordering) 
+generalisedMerge as bs (compareFn :: a -> b -> Ordering)
       (mergeFn :: Maybe a -> Maybe b -> m (Maybe a,Maybe c)) =
    let
       mkAC :: [m (Maybe a,Maybe c)] -> m ([a],[c])
-      mkAC mList = 
+      mkAC mList =
         do
            (results :: [(Maybe a,Maybe c)]) <- sequence mList
            return (mapMaybe fst results,mapMaybe snd results)

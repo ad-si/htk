@@ -36,9 +36,9 @@ newtype MenuCheckButton = MenuCheckButton GUIOBJECT
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new menu checkbutton and returns a handler.
-createMenuCheckButton :: Menu 
+createMenuCheckButton :: Menu
    -- ^ the parent menu.
-   -> [Config MenuCheckButton] 
+   -> [Config MenuCheckButton]
    -- ^ the list of configuration options for this menu
    -- checkbutton.
    ->
@@ -61,7 +61,7 @@ instance Eq MenuCheckButton where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject MenuCheckButton where 
+instance GUIObject MenuCheckButton where
   toGUIObject (MenuCheckButton w) = w
   cname _ = "MenuCheckButton"
 
@@ -82,7 +82,7 @@ instance HasBorder MenuCheckButton
 
 -- | A menu checkbutton has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
-instance HasColour MenuCheckButton where 
+instance HasColour MenuCheckButton where
   legalColourID = buttonColours
 
 -- | A menu checkbutton is a stateful object, it can be enabled or

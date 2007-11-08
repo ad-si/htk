@@ -17,4 +17,4 @@ main =
                   c -> return (c:":Normal exit")
             )
          )
-      putStrLn (show result) 
+      putStrLn (show result)

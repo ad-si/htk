@@ -1,5 +1,5 @@
 -- | This module contains various functions Malcolm forgot to include
--- in HaXml, or which at least I haven't been able to find there. 
+-- in HaXml, or which at least I haven't been able to find there.
 module XmlExtras(
    fromDefaultable,
       -- :: Defaultable a -> a
@@ -8,7 +8,7 @@ module XmlExtras(
       -- the first argument is the default.
 
    elementFoldM,
-      -- :: Monad m 
+      -- :: Monad m
       -- => (ancestorInfo -> Element -> m ancestorInfo)
       -- -> ancestorInfo
       -- -> Element
@@ -32,13 +32,13 @@ fromDefaultable (Default a) = a
 fromDefaultable (NonDefault a) = a
 
 toDefaultable :: Eq a => a -> a -> Defaultable a
-toDefaultable def a 
+toDefaultable def a
    | def == a
    = Default def
 toDefaultable _ a = NonDefault a
 
 
-elementFoldM :: Monad m 
+elementFoldM :: Monad m
    => (ancestorInfo -> Element -> m ancestorInfo)
    -> ancestorInfo
    -> Element
@@ -47,7 +47,7 @@ elementFoldM visitElement ancestorInfo0 (element @ (Elem _ _ contents)) =
    do
       ancestorInfo1 <- visitElement ancestorInfo0 element
       let
-         subElements = 
+         subElements =
             mapMaybe
                (\ content -> case content of
                   CElem elem -> Just elem
@@ -71,7 +71,7 @@ getAllElements1 element = execState (elementFoldM foldFn () element) []
          do
             elements0 <- get
             put (element : elements0)
-            
+
 -- | Return all elements whose tags match a particular conditions
 getAllElementsByTag1 :: (String -> Bool) -> Element -> [Element]
 getAllElementsByTag1 tagFilter element =
@@ -86,7 +86,7 @@ mapElement :: (Element -> Maybe Element) -> Element -> Element
 mapElement changeElement elem0 =
    case changeElement elem0 of
       Just elem1 -> elem1
-      Nothing -> 
+      Nothing ->
          let
             Elem name atts contents0 = elem0
             contents1 = map

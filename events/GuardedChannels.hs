@@ -1,30 +1,30 @@
--- | GuardedEvents implements guarded events for channels. 
+-- | GuardedEvents implements guarded events for channels.
 module GuardedChannels(
    GuardedChannel,
       -- parameterised on the guard and the value,
-      --  
+      --
       -- instance of HasSend, HasListen (and hence automatically HasReceive)
 
    GQ,VQ, -- Type abbreviations, used in the next declaration.
-   newGuardedChannel, 
-      -- :: HasGuardedChannel guardQueue valueQueue guard value 
-      -- => GQ guardQueue value -> VQ valueQueue 
+   newGuardedChannel,
+      -- :: HasGuardedChannel guardQueue valueQueue guard value
+      -- => GQ guardQueue value -> VQ valueQueue
       --    IO GuardedChannel guard value
       -- the guardQueue and valueQueue are not read, and just provide
       -- the types to use.
 
-   sneak, 
-      -- :: ( .. context .. ) 
-      -- => GuardedChannel guard value 
+   sneak,
+      -- :: ( .. context .. )
+      -- => GuardedChannel guard value
       -- -> GuardedEvent guard (Maybe value)
-   replace, 
-      -- :: ( .. context .. ) 
-      -- => GuardedChannel guard value -> value 
+   replace,
+      -- :: ( .. context .. )
+      -- => GuardedChannel guard value -> value
       -- -> GuardedEvent guard (Maybe value)
 
    -- Classes the user should instance to construct different sorts of
-   -- queue.  Actually you only need to instance HasEmpty, HasRemove and 
-   -- HasAdd, since the others just  
+   -- queue.  Actually you only need to instance HasEmpty, HasRemove and
+   -- HasAdd, since the others just
    HasEmpty(..),
    HasRemove(..),
    HasAdd(..),
@@ -51,9 +51,9 @@ import GuardedEvents
 data GuardedChannel guard value =
    forall guardQueue valueQueue .
       HasGuardedChannel guardQueue valueQueue guard value
-   => GuardedChannel (MVar (Contents guardQueue valueQueue value)) 
+   => GuardedChannel (MVar (Contents guardQueue valueQueue value))
 
-data Contents guardQueue valueQueue value = 
+data Contents guardQueue valueQueue value =
    Contents !(guardQueue (GuardInfo value)) !(valueQueue ValueInfo)
 
 -- GuardInfo and ValueInfo give toggles + continuations
@@ -63,10 +63,10 @@ type ValueInfo = ToggledData (IO () -> IO ())
 type GQ guardQueue value = guardQueue (GuardInfo value)
 type VQ valueQueue = valueQueue ValueInfo
 
-newGuardedChannel :: HasGuardedChannel guardQueue valueQueue guard value 
+newGuardedChannel :: HasGuardedChannel guardQueue valueQueue guard value
    => GQ guardQueue value -> VQ valueQueue
    -> IO (GuardedChannel guard value)
-newGuardedChannel 
+newGuardedChannel
       (_ :: guardQueue (GuardInfo value)) (_ :: valueQueue ValueInfo) =
    do
       (emptyGuardQueue :: guardQueue (GuardInfo value)) <- newEmpty
@@ -85,7 +85,7 @@ instance HasListen GuardedChannel where
             \ toggle guardContinuation ->
                do
                   (Contents guardQueue valueQueue) <- takeMVar mVar
-                  (guardQueue2,valueQueue2,sendResult) <- sendX 
+                  (guardQueue2,valueQueue2,sendResult) <- sendX
                      guardQueue valueQueue toggle guard guardContinuation
                   putMVar mVar (Contents guardQueue2 valueQueue2)
                   -- Now perform the continuations if any and return.
@@ -125,7 +125,7 @@ instance HasSend (GuardedChannel guard) where
                            return Immediate
          )
 
-atomicUpdate :: Guard guard => (value -> value) -> GuardedChannel guard value 
+atomicUpdate :: Guard guard => (value -> value) -> GuardedChannel guard value
    -> GuardedEvent guard (Maybe value)
 -- atomicUpdate updateFn
 -- is like listen except (a) it doesn't wait, instead returning
@@ -142,11 +142,11 @@ atomicUpdate updateFn (GuardedChannel mVar :: GuardedChannel guard value) =
                (Contents guardQueue valueQueue) <- takeMVar mVar
                (guardQueue2,valueQueue2,
                      sendResult :: (SendResult value (IO () -> IO ())))
-                  <- sendX guardQueue valueQueue toggle guard 
-                     (\ valueAct -> guardContinuation 
+                  <- sendX guardQueue valueQueue toggle guard
+                     (\ valueAct -> guardContinuation
                         (valueAct >>= (return . Just)))
                case sendResult of
-                  Anticipated -> 
+                  Anticipated ->
                      do
                         putMVar mVar (Contents guardQueue2 valueQueue2)
                         return Immediate
@@ -169,7 +169,7 @@ atomicUpdate updateFn (GuardedChannel mVar :: GuardedChannel guard value) =
                         toggle' <- newToggle
                         (valueQueue3,guardQueue3,
                            sendResult :: SendResult guard (IO value -> IO()))
-                           <- sendX valueQueue2 guardQueue2 toggle' newValue 
+                           <- sendX valueQueue2 guardQueue2 toggle' newValue
                               (\ _ -> return ())
                         putMVar mVar (Contents guardQueue3 valueQueue3)
                         -- execute all the continuations we have, and return.
@@ -184,16 +184,16 @@ atomicUpdate updateFn (GuardedChannel mVar :: GuardedChannel guard value) =
                                  return Immediate
                            -- Anticipated should be impossible here.
             )
-         )         
+         )
       nullGuard
-   
 
 
-sneak :: Guard guard => GuardedChannel guard value 
+
+sneak :: Guard guard => GuardedChannel guard value
    -> GuardedEvent guard (Maybe value)
 sneak guardedChannel = atomicUpdate id guardedChannel
 
-replace :: Guard guard => GuardedChannel guard value -> value 
+replace :: Guard guard => GuardedChannel guard value -> value
    -> GuardedEvent guard (Maybe value)
 replace guardedChannel newValue = atomicUpdate (const newValue) guardedChannel
 
@@ -205,10 +205,10 @@ class HasEmpty xQueue where
    newEmpty :: IO (xQueue xData)
 
 class HasRemove yQueue x y where
-   remove :: yQueue yData -> x -> 
+   remove :: yQueue yData -> x ->
       IO (Maybe (y,yData,IO (yQueue yData)),yQueue yData)
    -- remove yQueue x attempts to match an x with a value in yQueue.
-   -- It returns a pair.  
+   -- It returns a pair.
    -- If there is no match, we get (Nothing,newQueue)
    -- If there is a match, we get (Just(y,yData,restoreQueue),newQueue)
    -- where newQueue is the queue with the match removed, and
@@ -226,12 +226,12 @@ instance (HasRemove yQueue x y,HasAdd xQueue x) =>
 
 class (Guard guard,HasEmpty guardQueue,HasEmpty valueQueue,
    CanSendX guardQueue valueQueue guard value,
-   CanSendX valueQueue guardQueue value guard) 
+   CanSendX valueQueue guardQueue value guard)
    => HasGuardedChannel guardQueue valueQueue guard value
 
 instance (Guard guard,HasEmpty guardQueue,HasEmpty valueQueue,
    CanSendX guardQueue valueQueue guard value,
-   CanSendX valueQueue guardQueue value guard) 
+   CanSendX valueQueue guardQueue value guard)
    => HasGuardedChannel guardQueue valueQueue guard value
 
 -- ---------------------------------------------------------------
@@ -241,7 +241,7 @@ instance (Guard guard,HasEmpty guardQueue,HasEmpty valueQueue,
 data ToggledData continuation = ToggledData !Toggle continuation
 
 data SendResult y yContinuation =
-      Matched y yContinuation 
+      Matched y yContinuation
       -- the event has been matched with this y + Continuation.
    |  Queued (IO ())
       -- the event has been queued; the supplied action may be used to
@@ -251,9 +251,9 @@ data SendResult y yContinuation =
       -- The toggle for the synchronisation has already been toggled by
       -- someone else.
 
-sendX :: (CanSendX xQueue yQueue x y) 
+sendX :: (CanSendX xQueue yQueue x y)
    => xQueue (ToggledData xContinuation) -> yQueue (ToggledData yContinuation)
-   -> Toggle -> x -> xContinuation 
+   -> Toggle -> x -> xContinuation
    -> IO (xQueue (ToggledData xContinuation),
          yQueue (ToggledData yContinuation),(SendResult y yContinuation))
 sendX xQueue yQueue xToggle x xContinuation =
@@ -263,9 +263,9 @@ sendX xQueue yQueue xToggle x xContinuation =
          Nothing ->
          -- no matching event.  Add x to xQueue.
             do
-               (xQueue2,invalidate) <- 
+               (xQueue2,invalidate) <-
                   add xQueue x (ToggledData xToggle xContinuation)
-               
+
                return (xQueue2,yQueue2,Queued invalidate)
          Just (y,ToggledData yToggle yContinuation,getYQueue0) ->
          -- matching event found.  Attempt to handle it
@@ -274,7 +274,7 @@ sendX xQueue yQueue xToggle x xContinuation =
                case toggled of
                   Nothing -> -- toggle successful
                      return (xQueue,yQueue2,Matched y yContinuation)
-                  Just (True,False) -> 
+                  Just (True,False) ->
                      -- toggle failed because the matching event has been
                      -- done.  Repeat with remaining queue.
                      sendX xQueue yQueue2 xToggle x xContinuation
@@ -288,11 +288,11 @@ sendX xQueue yQueue xToggle x xContinuation =
                   Just (False,False) ->
                      -- both of the above . . .
                      return (xQueue,yQueue2,Anticipated)
-                  Just (True,True) -> 
+                  Just (True,True) ->
                      -- toggle failed because we are synchronising
                      -- a send and listen operation on the same channel.
-                     do                   
-                        (matchRest @ (xQueue3,yQueue3,success)) <- 
+                     do
+                        (matchRest @ (xQueue3,yQueue3,success)) <-
                            sendX xQueue yQueue2 xToggle x xContinuation
                         case success of
                            Queued _ ->
@@ -302,10 +302,10 @@ sendX xQueue yQueue xToggle x xContinuation =
                               do
                                  yQueue0 <- getYQueue0
                                  return (xQueue3,yQueue0,success)
-                           _ -> 
-                              -- Otherwise the containing synchronisation has 
+                           _ ->
+                              -- Otherwise the containing synchronisation has
                               -- been satisfied, and thus the original matched
-                              -- event, which is also part of that 
+                              -- event, which is also part of that
                               -- synchronisation, can be thrown away.  This is
                               -- good, because otherwise I don't know what
                               -- we'd do with it.

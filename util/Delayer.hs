@@ -1,10 +1,10 @@
--- | Delayers handle delaying of actions; the main purpose is to delay 
--- graph redrawing actions during complex updates. 
+-- | Delayers handle delaying of actions; the main purpose is to delay
+-- graph redrawing actions during complex updates.
 module Delayer(
    -- Client side
    Delayer,
    newDelayer, -- :: IO Delayer
-   HasDelayer(..), 
+   HasDelayer(..),
       -- :: Class of things which have a delayer.
       -- Delayer itself is an instance.
    delay, -- :: HasDelayer object => object -> IO a -> IO a
@@ -107,7 +107,7 @@ delay object action =
       finally action (endDelay delayer)
 
 beginDelay :: Delayer -> IO ()
-beginDelay (Delayer mVar) =     
+beginDelay (Delayer mVar) =
    modifyMVar_ mVar (\ delayerState0 ->
       do
          let
@@ -140,7 +140,7 @@ endDelay (Delayer mVar) =
                )
          )
       afterAct
- 
+
 
 emptyDelayerState :: DelayerState
 emptyDelayerState = DelayerState {
@@ -197,7 +197,7 @@ cancelDelayedAct :: Delayer -> DelayedAction -> IO ()
 cancelDelayedAct (Delayer mVar) delayedAction =
    modifyMVar_ mVar (\ delayerState0 ->
       let
-         delayedActions1 
+         delayedActions1
             = delFromSet (delayedActions delayerState0) delayedAction
 
          delayerState1 = delayerState0 {delayedActions = delayedActions1}

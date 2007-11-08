@@ -1,6 +1,6 @@
 -- |
 -- Description: Writing Bundles
--- 
+--
 -- This module puts together all the bundle-filling-in, validation and
 -- writing functions, to present the general function for writing a bundle.
 module MMiSSBundleWrite(
@@ -30,36 +30,36 @@ import MMiSSEditLocks
 import MMiSSBundleNodeEditLocks
 
 -- | Errors are provoked by importExportError, and can be caught that way.
-writeBundle :: 
-   Bundle 
+writeBundle ::
+   Bundle
       -- ^ the bundle
-   -> Maybe PackageId 
+   -> Maybe PackageId
       -- ^ which node in the bundle to write.  If unset we take the first one.
    -> Maybe FilePath
-      -- ^ where to look for additional files.  If unspecified, we don't. 
-   -> View  
+      -- ^ where to look for additional files.  If unspecified, we don't.
+   -> View
       -- ^ which view to write the node to
-   -> InsertionPoint 
+   -> InsertionPoint
    -> IO ()
 writeBundle bundle packageIdOpt filePathOpt view insertionPoint =
-   writeBundle1 bundle packageIdOpt filePathOpt view emptyLockSet 
+   writeBundle1 bundle packageIdOpt filePathOpt view emptyLockSet
       insertionPoint
 
 -- | Errors are provoked by importExportError, and can be caught that way.
-writeBundle1 :: 
-   Bundle 
+writeBundle1 ::
+   Bundle
       -- ^ the bundle
-   -> Maybe PackageId 
+   -> Maybe PackageId
       -- ^ which node in the bundle to write.  If unset we take the first one.
    -> Maybe FilePath
-      -- ^ where to look for additional files.  If unspecified, we don't. 
-   -> View  
+      -- ^ where to look for additional files.  If unspecified, we don't.
+   -> View
       -- ^ which view to write the node to
    -> LockSet
       -- ^ Locks we have already acquired for variants we can write again.
-   -> InsertionPoint 
+   -> InsertionPoint
    -> IO ()
-writeBundle1 (Bundle []) _ _ _ _ _ = 
+writeBundle1 (Bundle []) _ _ _ _ _ =
    importExportError "Attempt to write empty bundle"
 writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
       packageIdOpt filePathOpt view lockSet insertionPoint =
@@ -84,14 +84,14 @@ writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
 
          bundleNode <- case List.lookup packageId packageBundleNodes of
             Just bundleNode -> return bundleNode
-            Nothing -> 
+            Nothing ->
                importExportError ("PackageId " ++ packageIdStr packageId
                   ++ " not found")
 
          checkTypesWE <- checkBundleNodeTypes view insertionPoint bundleNode
          coerceImportExportIO checkTypesWE
 
-         releaseActWE <- acquireBundleNodeEditLocks view lockSet 
+         releaseActWE <- acquireBundleNodeEditLocks view lockSet
             insertionPoint bundleNode
          releaseAct <- coerceImportExportIO releaseActWE
 
@@ -99,4 +99,4 @@ writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
             (writeBundleNode view insertionPoint bundleNode)
             releaseAct
        )
-            
+

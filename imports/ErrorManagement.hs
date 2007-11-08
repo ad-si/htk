@@ -1,10 +1,10 @@
 -- |
 -- Description: Manage errors for "Imports".
--- 
+--
 -- The code in this module manages errors.  The main task is to reduce the
 -- huge flood of errors that occur during large updates to those that
 -- actually occur.
--- 
+--
 -- The strategy is that
 --    (1) we bracket large updates with a delayer, and postpone updates until
 --        the delayer is finished.
@@ -16,8 +16,8 @@
 --        Instead we record where errors have occurred.  Then when we
 --        come to report messages, we look at those places and look to
 --        see if there is still a problem.  Only then do we report it.
--- 
--- ErrorManagement itself uses an MSem.  This prevents conflicting 
+--
+-- ErrorManagement itself uses an MSem.  This prevents conflicting
 -- updates in different threads, but more importantly allows us to
 -- use bracketForImportErrors1 generously without worrying about
 -- it being at some point used multiple times.
@@ -25,8 +25,8 @@ module ErrorManagement(
    ErrorLocation(..),
    ErrorManagementState,
 
-   newErrorManagementState, 
-      -- :: Ord node => Delayer -> (ErrorLocation node -> IO (Maybe String)) 
+   newErrorManagementState,
+      -- :: Ord node => Delayer -> (ErrorLocation node -> IO (Maybe String))
       -- -> IO (ErrorManagementState node)
    recordError,
       -- :: ErrorManagementState node -> ErrorLocation node -> IO ()
@@ -60,8 +60,8 @@ data ErrorManagementState node = ErrorManagementState {
    managementLock :: MSem
    }
 
-data ErrorLocation node = 
-      GlobalError node 
+data ErrorLocation node =
+      GlobalError node
    |  LocalError node
    |  SearchError node EntitySearchName
    deriving (Eq,Ord)
@@ -70,15 +70,15 @@ data ErrorLocation node =
 -- the same error); given either a GlobalNode or LocalNode error, we needn't
 -- bother looking for Search error.
 --
--- NB.  We rely on the fact that GlobalError < LocalError < SearchError in 
+-- NB.  We rely on the fact that GlobalError < LocalError < SearchError in
 -- implementing this.
 
 -- -----------------------------------------------------------------------
 -- Creating a new ErrorManagementState
 -- -----------------------------------------------------------------------
 
-newErrorManagementState 
-   :: Ord node => Delayer -> (ErrorLocation node -> IO (Maybe String)) 
+newErrorManagementState
+   :: Ord node => Delayer -> (ErrorLocation node -> IO (Maybe String))
    -> IO (ErrorManagementState node)
 newErrorManagementState delayer1 confirmError1 =
    do
@@ -97,7 +97,7 @@ newErrorManagementState delayer1 confirmError1 =
 -- Recording that an error has occurred
 -- -----------------------------------------------------------------------
 
-recordError 
+recordError
    :: Ord node => ErrorManagementState node -> ErrorLocation node -> IO ()
 recordError errorManagementState errorLocation =
    setValue (currentErrors errorManagementState) errorLocation ()
@@ -111,7 +111,7 @@ bracketForImportErrors1
 bracketForImportErrors1 errorManagementState act =
    synchronizeWithChoice (managementLock errorManagementState)
       (\ isAlreadyBracketted ->
-         if isAlreadyBracketted 
+         if isAlreadyBracketted
             then
                act -- don't bother bracketting again
             else
@@ -137,7 +137,7 @@ bracketForImportErrors1inner
 
       synchronizeGlobal parallelExecVSem (reportErrors errorManagementState)
       propagate result
-  
+
 -- -----------------------------------------------------------------------
 -- Reporting the errors
 -- -----------------------------------------------------------------------
@@ -158,22 +158,22 @@ reportErrors (errorManagementState :: ErrorManagementState node) =
          (\ errorLoc ->
             do
                -- check if any has a confirmed error message which would
-               -- make this one redundant.   
+               -- make this one redundant.
                let
                   seniorLocs = senior errorLoc
-               (seniorStatus :: [Maybe ()]) 
+               (seniorStatus :: [Maybe ()])
                   <- mapM (getValueOpt currentErrors1) seniorLocs
                let
                   seniorError = any isJust seniorStatus
-               if seniorError 
+               if seniorError
                   then
                      return Nothing
                   else
                      do
-                        confirmedErrorOpt 
+                        confirmedErrorOpt
                            <- confirmError errorManagementState errorLoc
                         case confirmedErrorOpt of
-                           Nothing -> deleteFromRegistry currentErrors1 
+                           Nothing -> deleteFromRegistry currentErrors1
                               errorLoc
                            _ -> done
                         return confirmedErrorOpt
@@ -201,6 +201,6 @@ reportErrors (errorManagementState :: ErrorManagementState node) =
          [] -> done
          _ -> errorMess ("Error(s) detected processing imports\n"
                  ++ unlines errorMessages5)
-   
 
- 
+
+

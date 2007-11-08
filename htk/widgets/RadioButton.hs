@@ -38,10 +38,10 @@ newtype RadioButton a = RadioButton GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new radiobutton widget and returns a handler.
-newRadioButton :: Container par => par 
+newRadioButton :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config (RadioButton a)] 
+   -> [Config (RadioButton a)]
    -- ^ the list of configuration options for this
    -- radiobutton.
    ->
@@ -58,7 +58,7 @@ newRadioButton par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject (RadioButton a) where 
+instance GUIObject (RadioButton a) where
   toGUIObject (RadioButton w) = w
   cname _ = "RadioButton"
 
@@ -70,7 +70,7 @@ instance Destroyable (RadioButton a) where
 -- | A radiobutton widget has standard widget properties
 -- (concerning focus, cursor).
 instance Widget (RadioButton a)
- 
+
 -- | A radiobutton widget can be flashed (redisplayed several times in
 -- alternate colours) and invoked (the associated event) as any button
 -- widget.
@@ -84,7 +84,7 @@ instance HasBorder (RadioButton a)
 
 -- | A radiobutton widget has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
-instance HasColour (RadioButton a) where 
+instance HasColour (RadioButton a) where
   legalColourID = buttonColours
 
 -- | A radiobutton widget is a stateful widget, it can be enabled or

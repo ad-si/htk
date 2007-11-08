@@ -1,10 +1,10 @@
 -- | This module contains the code for reading the password file and
 -- checking users against it.
--- 
+--
 -- The password file is re-read for each authentication request.
--- 
+--
 -- The password file has the following format:
--- 
+--
 -- > user:encrypted password:...
 --
 -- This module also contains the code for permitting users to claim
@@ -71,7 +71,7 @@ getUserEntry uId =
    do
       users <- getUserEntrys
       case (findJust
-            (\ user -> if userId user == uId then Just user else Nothing) 
+            (\ user -> if userId user == uId then Just user else Nothing)
             users
             ) of
          Just user0 ->
@@ -91,7 +91,7 @@ getUserEntrys =
          userActWEs = map parseLine userLines
       userOpts <- mapM
          (\ userWE -> case fromWithError userWE of
-            Right userAct -> 
+            Right userAct ->
                do
                   user <- userAct
                   return (Just user)

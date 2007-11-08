@@ -3,7 +3,7 @@
 module Main (main) where
 
 import HTk
-      
+
 main:: IO ()
 main =
   do

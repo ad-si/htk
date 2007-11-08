@@ -4,12 +4,12 @@ module Geometry (
 
   Distance(..),
 
-  Size, 
-  Coord, 
+  Size,
+  Coord,
   Position,
-  Geometry, 
+  Geometry,
 
-  cm, pp, mm, ic, tocm, toinch    
+  cm, pp, mm, ic, tocm, toinch
 
 ) where
 
@@ -22,14 +22,14 @@ import Char
 -- -----------------------------------------------------------------------
 
 -- | The @Position@ - a pair of two @Distance@ values.
-type Position = (Distance, Distance) 
+type Position = (Distance, Distance)
 
 -- | The @Size@ datatype - a pair of two @Distance@
 -- values.
-type Size = (Distance, Distance) 
+type Size = (Distance, Distance)
 
 -- | The @Point@ datatype.
-data Point = Point (Distance, Distance) 
+data Point = Point (Distance, Distance)
 
 -- | Internal.
 instance GUIValue (Distance,Distance) where
@@ -38,7 +38,7 @@ instance GUIValue (Distance,Distance) where
   -- Internal.
   toGUIValue v  = GUIVALUE HaskellTk (show (Point v))
   -- Internal.
-  maybeGUIValue (GUIVALUE _ s)     = 
+  maybeGUIValue (GUIVALUE _ s)     =
     case [x | (Point x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
       _  -> Nothing
@@ -46,7 +46,7 @@ instance GUIValue (Distance,Distance) where
 -- | Internal.
 instance Read Point where
    -- Internal.
-   readsPrec p b = 
+   readsPrec p b =
         case (readsPrec p b) of
                 [(x,xs)] -> (case (readsPrec p xs) of
                                 [(y,ys)] -> [(Point (x,y),ys)]
@@ -81,17 +81,17 @@ instance GUIValue (Distance, Distance, Distance, Distance) where
 -- | Internal.
 instance Show Geometry' where
    -- Internal.
-   showsPrec d (Geometry' (w, h, x, y)) r =             
+   showsPrec d (Geometry' (w, h, x, y)) r =
         show w ++ "x" ++ show h ++ "+" ++ show x ++ "+" ++ show y ++ r
 
 -- | Internal.
 instance Read Geometry' where
    -- Internal.
-   readsPrec p str = 
+   readsPrec p str =
          case readsPrec p str of
                 [(w,s')] -> readsPrecX1 p s' w
                 _        -> []
-    where 
+    where
         readsPrecX1 p s w =
                 case (dropWhile isSpace s) of
                    ('x':s') -> readsPrecH p s' w
@@ -116,7 +116,7 @@ instance Read Geometry' where
                 case  readsPrec p s of
                    [(y,s')] -> [(Geometry' (w,h,x,y),s')]
                    _        -> []
-        
+
 
 -- -----------------------------------------------------------------------
 -- Coordinates
@@ -141,14 +141,14 @@ instance GUIValue [(Distance,Distance)] where
 -- | Internal.
 instance Show Coord' where
    -- Internal.
-   showsPrec d (Coord' []) r = 
+   showsPrec d (Coord' []) r =
         r
-   showsPrec d (Coord' (x:l)) r = 
+   showsPrec d (Coord' (x:l)) r =
         show (toGUIValue x) ++ " " ++ showsPrec d (Coord' l) r
 
 -- | Internal.
 instance Read Coord' where
-  readsPrec p s = 
+  readsPrec p s =
         case (dropWhile isSpace s) of
                 [] -> [(Coord' [],[])]
                 s' -> readsPrecElem p s'
@@ -157,7 +157,7 @@ instance Read Coord' where
                 case (readsPrec p s) of
                         [(Point pos,s')] -> readsPrecTail p s' pos
                         _          -> []
-        readsPrecTail p s pos = 
+        readsPrecTail p s pos =
                 case (readsPrec p s) of
                         [(Coord' l,s')] -> [(Coord' (pos:l),s')]
                         _        -> []
@@ -189,7 +189,7 @@ instance GUIValue Distance where
   cdefault = Distance (-100)
 
 -- | Internal.
-instance Enum Distance where 
+instance Enum Distance where
   fromEnum (Distance d)= d
   toEnum d = Distance d
 
@@ -222,7 +222,7 @@ instance Integral Distance where
 -- -----------------------------------------------------------------------
 
 data Distances = Distances [Distance]
- 
+
 -- | Internal.
 instance GUIValue [Distance] where
   -- Internal.
@@ -236,13 +236,13 @@ instance GUIValue [Distance] where
       _ -> Nothing
 
 instance Show Distances where
-   showsPrec d (Distances []) r = 
+   showsPrec d (Distances []) r =
         r
-   showsPrec d (Distances (x:l)) r = 
+   showsPrec d (Distances (x:l)) r =
         show x ++ " " ++ showsPrec d (Distances l) r
 
 instance Read Distances where
-   readsPrec p s = 
+   readsPrec p s =
         case (dropWhile isSpace s) of
                 [] -> [(Distances [],[])]
                 s' -> readsPrecElem p s'
@@ -251,7 +251,7 @@ instance Read Distances where
                 case (readsPrec p s) of
                         [(d,s')] -> readsPrecTail p s' d
                         _          -> []
-        readsPrecTail p s d = 
+        readsPrecTail p s d =
                 case (readsPrec p s) of
                         [(Distances l,s')] -> [(Distances (d:l),s')]
                         _        -> []
@@ -279,7 +279,7 @@ ic i = (Distance . round) (i * 90.0)
 
 -- | Conversion from @Distance@ to cm.
 tocm :: Distance -> Double
-tocm (Distance p) = (fromIntegral p) / 35.4  
+tocm (Distance p) = (fromIntegral p) / 35.4
 
 -- | Conversion from @Distance@ to inch.
 toinch :: Distance -> Double

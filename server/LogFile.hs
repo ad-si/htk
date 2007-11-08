@@ -1,5 +1,5 @@
 -- | This module deals with reading and writing a log file containing
--- entries which are instances of HasBinary. 
+-- entries which are instances of HasBinary.
 module LogFile(
    LogFile,
    openLog,
@@ -56,8 +56,8 @@ readLogItems handle as =
             do
                pos2 <- hGetPosn handle
                unless (pos1 == pos2)
-                  (do 
-                     putStrLn 
+                  (do
+                     putStrLn
                         "Restarting server: incomplete commit discarded"
                      hSetPosn pos1
                   )

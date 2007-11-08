@@ -1,13 +1,13 @@
 -- | This module implements a simple list box to which strings can be
--- added at the end and deleted. 
+-- added at the end and deleted.
 module SimpleListBox(
    SimpleListBox,
-   newSimpleListBox, 
-      -- :: String -> (value -> String) -> (Distance,Distance) 
+   newSimpleListBox,
+      -- :: String -> (value -> String) -> (Distance,Distance)
       -- -> IO (SimpleListBox value)
       -- Create a ListBox.  The String gives the title for the box; the
       -- function argument gives the String's which
-      -- are displayed; the integers give the width (characters) and height 
+      -- are displayed; the integers give the width (characters) and height
       -- (rows) of the displayed section of the box.
 
       -- This implements Destroyable.
@@ -22,7 +22,7 @@ module SimpleListBox(
       -- :: SimpleListBox value -> IO [value]
 
    bindSelection,
-      -- :: SimpleListBox value 
+      -- :: SimpleListBox value
       --   -> IO (Event [SimpleListBoxItem value]),IO ())
       -- Returns an event for selections in this list box.  ([] can happen,
       -- for example, if the user selects or clicks an area into which no
@@ -117,7 +117,7 @@ newSimpleListBox parent mkString configs =
 
       contentsMVar <- newMVar []
 
-      let 
+      let
          simpleListBox = SimpleListBox {
             frame = frame,
             listBox = listBox,
@@ -177,21 +177,21 @@ deleteItem simpleListBox simpleListBoxItem =
       done
 
 getItems :: SimpleListBox value -> IO [value]
-getItems simpleListBox = 
+getItems simpleListBox =
    do
       contents <- readMVar (contentsMVar simpleListBox)
       return (map val contents)
- 
-bindSelection :: SimpleListBox val 
+
+bindSelection :: SimpleListBox val
    -> IO (Event [SimpleListBoxItem val],IO ())
 bindSelection simpleListBox =
-   do   
-      (press,terminator) 
+   do
+      (press,terminator)
          <- bindSimple (listBox simpleListBox) (ButtonPress (Just 1))
       let
-         event = 
-               press 
-            >>> 
+         event =
+               press
+            >>>
                do
                   indexOpt <- getSelection (listBox simpleListBox)
                   contents0 <- readMVar (contentsMVar simpleListBox)
@@ -200,10 +200,10 @@ bindSelection simpleListBox =
                      Just items ->
                         let
                            max = length contents0
-                        in 
+                        in
                            mapMaybe
-                              (\ index -> if index >= max 
-                                 then 
+                              (\ index -> if index >= max
+                                 then
                                     Nothing
                                     -- can happen if events and a deletion
                                     -- get processed in the wrong order.

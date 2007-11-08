@@ -1,4 +1,4 @@
--- | Encapsulation of Event parameters used in TkCommands. 
+-- | Encapsulation of Event parameters used in TkCommands.
 module EventInfo(
    EventParameter(..), -- Type of wish event information
    -- epToChar/epFromChar convert to and from Wish's 1-character
@@ -6,7 +6,7 @@ module EventInfo(
    epToChar, -- :: EventParameter -> Char
    epFromChar, -- :: Char -> EventParameter
 
- 
+
    EventInfoSet, -- Describes what event information we are interested in.
    emptyEventInfoSet, -- :: EventInfoSet
    mkEventInfoSet, -- :: [EventParameter] -> EventInfoSet
@@ -19,7 +19,7 @@ module EventInfo(
    -- getEventPar, -- :: EventInfo -> EventParameter -> String
 
    -- restrict, -- :: EventInfo -> EventInfoSet -> Maybe EventInfo
-   -- Checks that all the information in the specified set 
+   -- Checks that all the information in the specified set
    -- is present and restricts the EventInfo to that.
 
    defaultEventInfoSet
@@ -37,12 +37,12 @@ import Geometry(Distance)
 newtype EventInfoSet = EventInfoSet (Set EventParameter)
 
 data EventInfo = EventInfo { x :: Distance,
-			     y :: Distance,
-			     xRoot :: Distance,
-			     yRoot :: Distance,
-			     button :: Int
-			     -- more to come!
-			   }
+                             y :: Distance,
+                             xRoot :: Distance,
+                             yRoot :: Distance,
+                             button :: Int
+                             -- more to come!
+                           }
 
 defaultEventInfoSet :: EventInfoSet
 defaultEventInfoSet = mkEventInfoSet [Px, Py, PX, PY, Pb]
@@ -57,7 +57,7 @@ defaultEventInfoSet = mkEventInfoSet [Px, Py, PX, PY, Pb]
 -- The names of these constructors all begin with P followed by
 -- the %keyword required, except for # which is done by HASH
 -- EventParameter needs to instance Ord for WishBasics.
-data EventParameter = 
+data EventParameter =
    HASH | Pa | Pb | Pc | Pd | Pf | Ph | Pk | Pm | Po | Pp |
    Ps | Pt | Pv | Pw | Px | Py | PA | PB | PE | PK | PN |
    PR | PS | PT | PW | PX | PY deriving (Eq,Ord,Show,Read)
@@ -74,7 +74,7 @@ epFromChar ch =
    -- avert your eyes again please!
    case ch of
       '#' -> HASH
-      other -> read ['P',other]   
+      other -> read ['P',other]
 
 
 -- --------------------------------------------------------------
@@ -99,9 +99,9 @@ delEventInfoSet (EventInfoSet set) eventPars =
    EventInfoSet(minusSet set (mkSet eventPars))
 
 mkEventInfo :: [(EventParameter,String)] -> EventInfo
-mkEventInfo settings = 
-  foldl getEvPar (EventInfo {}) settings 
-  where getEvPar i (Px, val) = i {x= read val} 
+mkEventInfo settings =
+  foldl getEvPar (EventInfo {}) settings
+  where getEvPar i (Px, val) = i {x= read val}
         getEvPar i (Py, val) = i {y= read val}
         getEvPar i (Pb, val) = i {button= read val}
         getEvPar i (PX, val) = i {xRoot = read val}

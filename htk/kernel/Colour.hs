@@ -2,7 +2,7 @@
 module Colour (
 
   ColourDesignator(..),
-  Colour(..)      
+  Colour(..)
 
 ) where
 
@@ -21,7 +21,7 @@ class ColourDesignator c where
 
 
 -- -----------------------------------------------------------------------
--- instances 
+-- instances
 -- -----------------------------------------------------------------------
 
 -- | A colour itself describes a colour.
@@ -52,13 +52,13 @@ instance ColourDesignator (Double,Double,Double) where
 -- -----------------------------------------------------------------------
 
 -- | The @Colour@ datatype.
-newtype Colour = Colour String 
+newtype Colour = Colour String
 
 -- | Internal.
 instance GUIValue Colour where
   -- Internal.
   cdefault = Colour "grey"
-        
+
 -- | Internal.
 instance Read Colour where
    -- Internal.

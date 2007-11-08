@@ -1,24 +1,24 @@
 -- | Implementation of the Myers algorithm, from "An O(ND) Difference Algorithm
--- and Its Variations", by Eugene Myers page 6 (figure 2). 
--- 
--- Specification: if   
--- 
+-- and Its Variations", by Eugene Myers page 6 (figure 2).
+--
+-- Specification: if
+--
 --    f1 (InBoth v) = Just v
 --    f1 (InFirst v) = Just v
 --    f1 (InSecond v) = Nothing
--- 
+--
 -- and
--- 
+--
 --    f2 (InBoth v) = Just v
 --    f2 (InFirst v) = Nothing
 --    f2 (InSecond v) = Just v
--- 
+--
 -- then
--- 
+--
 --    mapPartial f1 (diff l1 l2) == l1
--- 
+--
 -- and
--- 
+--
 --    mapPartial f2 (diff l1 l2) == l2
 module Myers(
    diff,
@@ -135,7 +135,7 @@ diffST2 a b =
          match :: Int -> Int -> Bool
          match x y = (aArr ! x) == (bArr ! y)
 
-         -- Given (x,y) return the highest (x+k,y+k) such that (x+1,y+1), 
+         -- Given (x,y) return the highest (x+k,y+k) such that (x+1,y+1),
          -- (x+2,y+2)...(x+k,y+k) match.
          scan :: Int -> Int -> (Int,Int)
          scan x y =
@@ -156,7 +156,7 @@ diffST2 a b =
       (v :: STUArray s Int Int) <- newArray (-max-1,max+1) (-1)
       writeArray v 1 0
 
-      -- The w array contains a list of integers (x,y) such that the snakes 
+      -- The w array contains a list of integers (x,y) such that the snakes
       -- starting from the elements (x+1,y+1) together make up all the snakes
       -- needed in the optimal solution.
       --
@@ -181,7 +181,7 @@ diffST2 a b =
             do
                vkplus <- readArray v (k+1)
                vkminus <- readArray v (k-1)
-               (x,l0) <- if vkminus < vkplus 
+               (x,l0) <- if vkminus < vkplus
                   then
                      do
                         l0 <- readArray w (k+1)
@@ -195,7 +195,7 @@ diffST2 a b =
 
                   (x',_) = scan x y
 
-                  l1 = 
+                  l1 =
                      if x' == x
                         then
                            l0
@@ -219,34 +219,34 @@ diffST2 a b =
          -- the snakes are given in reverse order, we may as well produce the
          -- elements in that order and work backwards.
 
-         addSnake :: (Int,Int) -> (Int,Int) 
+         addSnake :: (Int,Int) -> (Int,Int)
             -> [DiffElement v] -> [DiffElement v]
          addSnake (lastX,lastY) (x,y) l0 =
             -- We assume that elements a[lastX+1...] and b[lastY+1...] have
-            -- been dealt with, and we now add on a segment starting with a 
+            -- been dealt with, and we now add on a segment starting with a
             -- snake which begins at (x+1,y+1).
             let
                -- Compute the end of the snake
                (x',y') = scan x y
 
                -- Add on elements b[y'+1..lastY]
-               l1 = (InSecond (map (\ index -> bArr ! index) 
+               l1 = (InSecond (map (\ index -> bArr ! index)
                        [y'+1..lastY])) : l0
                -- Add on elements a[x'+1..lastX]
-               l2 = (InFirst (map (\ index -> aArr ! index) 
+               l2 = (InFirst (map (\ index -> aArr ! index)
                        [x'+1..lastX])) : l1
                -- Add on snake
-               l3 = (InBoth (map (\ index -> aArr ! index) 
+               l3 = (InBoth (map (\ index -> aArr ! index)
                        [x+1..x'])) : l2
             in
                l3
 
-         doSnakes :: (Int,Int) -> [(Int,Int)] -> [DiffElement v] 
+         doSnakes :: (Int,Int) -> [(Int,Int)] -> [DiffElement v]
             -> [DiffElement v]
          doSnakes last [] l0 =
             -- we pretend there's a zero-length snake starting at (1,1).
             if last /= (0,0) then addSnake last (0,0) l0 else l0
-         doSnakes last (s:ss) l0 = 
+         doSnakes last (s:ss) l0 =
             let
                l1 = addSnake last s l0
             in

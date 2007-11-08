@@ -1,10 +1,10 @@
 -- | This module attempts to read the files referenced in a bundle off the
 -- file-system.  (So it is not used when bundles are read from the API.)
--- 
+--
 -- It assumes the bundle has already been dissected (by MMiSSBundleDissect).
 module MMiSSBundleReadFiles(
    readFiles, -- :: FilePath -> Bundle -> IO Bundle
-   listUnfoundFiles, 
+   listUnfoundFiles,
       -- :: Bundle -> [(MMiSSPackageId,EntityFullName,MMiSSVariantSpec)]
       -- return all the files referenced in a bundle but not found.
       -- NB.  The name does not include possible extensions, which should
@@ -53,8 +53,8 @@ listUnfoundFiles bundle =
                      Object variants -> map snd variants
                      _ -> []
                else
-                  [] 
-         (element :: Element) <- 
+                  []
+         (element :: Element) <-
             case fromWithError (fromBundleTextWE bundleText) of
                Left mess -> []
                Right element -> [element]
@@ -66,7 +66,7 @@ listUnfoundFiles bundle =
          case lookupNode bundle (packageId locInfo) fileFullName of
             Just _ -> []
                -- file already found in bundle.
-            Nothing -> 
+            Nothing ->
                return (packageId locInfo,fileFullName,variants0 locInfo)
       )
 
@@ -79,15 +79,15 @@ readFiles filePath bundle =
    do
       let
          unfoundFiles = listUnfoundFiles bundle
-            
-      (existingFiles0 
-            :: [[(PackageId,EntityFullName,String,MMiSSVariantSpec)]]) 
+
+      (existingFiles0
+            :: [[(PackageId,EntityFullName,String,MMiSSVariantSpec)]])
          <- mapM
             (\ (packageId,fullName0,variantSpec) ->
                do
                   found <- findMMiSSFilesInDirectory filePath fullName0
                   return (map
-                     (\ (fullName1,ext) 
+                     (\ (fullName1,ext)
                         -> (packageId,fullName1,ext,variantSpec))
                      found
                      )
@@ -125,21 +125,21 @@ readFiles filePath bundle =
                               charType = Byte
                               }
 
-                           bundleNodeData 
+                           bundleNodeData
                               = Object [(Just variantSpec,bundleText)]
-                           
+
                            bundleNodeWE = wrapContainingMMiSSPackage Nothing
-                              fullName (mmissFileType ext) bundleNodeData 
+                              fullName (mmissFileType ext) bundleNodeData
 
                            bundleNode = coerceWithErrorOrBreak
                               (error "MMiSSBundleReadFiles bug 1")
                               bundleNodeWE
                         in
                            return (Just (Bundle [(packageId,bundleNode)]))
-               )    
+               )
             existingFiles1
 
-      let      
+      let
          bundleWE = mergeBundles (bundle : catMaybes bundles1)
 
       coerceImportExportIO (bundleWE)

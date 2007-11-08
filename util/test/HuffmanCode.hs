@@ -6,7 +6,7 @@ import List(sort)
 
 import Huffman
 
-data HuffmanTree a = Leaf Int a | Branch Int (HuffmanTree a) (HuffmanTree a) 
+data HuffmanTree a = Leaf Int a | Branch Int (HuffmanTree a) (HuffmanTree a)
   deriving Show
 -- All integers should be non-negative.  The integer in a branch should be
 -- the sum of the integers in the top Leaf or Branch of the two subbranches.
@@ -30,4 +30,4 @@ mkHuffmanTree values =
       leaves = map (\ (i,a) -> Leaf i a) values
       sorted = sort leaves
    in
-      huffmanFold branch sorted 
+      huffmanFold branch sorted

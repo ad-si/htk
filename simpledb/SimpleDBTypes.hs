@@ -36,7 +36,7 @@ import {-# SOURCE #-} VersionState
 -- The query types.
 -- -------------------------------------------------------------------
 
-newtype Location = Location Integer 
+newtype Location = Location Integer
    deriving (Eq,Ord,Show,Typeable,Integral,Real,Enum,Num,DeepSeq)
 
 data SimpleDBCommand =
@@ -53,7 +53,7 @@ data SimpleDBCommand =
          -- ^ Return the ObjectVersion (IsObjectVersion) in which this
          -- object (Location inside ObjectVersion) was last changed,
          -- or IsResponse with an error message.
-   |  Commit 
+   |  Commit
          VersionInformation
              -- extra data about this version.
              -- This includes a version number, which must be uniquely
@@ -61,20 +61,20 @@ data SimpleDBCommand =
              -- must already exist.  The first parent version we call the
              -- head parent version.
          [(Location,Maybe ObjectVersion)]
-             -- Redirects.  This list can be non-null when versions are copied 
-             -- between different repositories, so that Locations are 
+             -- Redirects.  This list can be non-null when versions are copied
+             -- between different repositories, so that Locations are
              -- preserved, while still being unambiguous for this version.
-             -- The meaning of the (Either ObjectVersion (Maybe Location)) 
-             -- is as follows. 
+             -- The meaning of the (Either ObjectVersion (Maybe Location))
+             -- is as follows.
              --
              -- If (Just objectVersion), that means this location should have
-             -- exactly the same meaning as in (objectVersion).  
+             -- exactly the same meaning as in (objectVersion).
              --
              -- If (Nothing), that means this location is new.
          [(Location,ChangeData)]
              -- Returns IsOK, or if the operation could not
              -- be carried out because a version with the corresponding
-             -- ServerInfo has already been checked in, returns 
+             -- ServerInfo has already been checked in, returns
              -- IsObjectVersion with the objectVersion of the old version.
          [(Location,Location)]
              -- Returns a list of parent links for this commit (used for
@@ -91,10 +91,10 @@ data SimpleDBCommand =
          -- should have been allocated by NewVersion.
          --    This will not change the head parent version on any account.
          --
-         -- Additional restriction: If VersionInfo1 is used but the supplied 
+         -- Additional restriction: If VersionInfo1 is used but the supplied
          -- ServerInfo is already present in the database with a different
          -- versionNumber, we do nothing and return IsObjectVersion with
-         -- the old version number. 
+         -- the old version number.
          -- Returns IsOK.
    |  GetDiffs ObjectVersion [ObjectVersion]
          -- ^ Produce a list of changes between the given object version
@@ -106,16 +106,16 @@ data SimpleDBCommand =
    |  SetPermissions (Maybe (ObjectVersion,Location)) Permissions
          -- ^ Set the permissions.
    |  GetParentLocation (ObjectVersion,Location)
-         -- ^ Returns IsLocation containing the parent location of the 
+         -- ^ Returns IsLocation containing the parent location of the
          -- location in the given version.
-         -- 
+         --
          -- If there is no parent location (presumably because this is the
          -- top object) we return IsOK.
    |  ClaimAdmin Bool
          -- ^ This command is used with a True argument to claim admin status.
          -- If this is granted the user will have read/write/permissions
          -- access to everything.
-         -- 
+         --
          -- ClaimAdmin False turns off admin status.
    |  MultiCommand [SimpleDBCommand]
          -- ^ A group of commands to be executed one after another.
@@ -139,7 +139,7 @@ data SimpleDBResponse =
 
 -- | Information about a Version sent on commit or ModifyUserInfo
 data VersionInformation =
-      UserInfo1 UserInfo 
+      UserInfo1 UserInfo
          -- ^ information accessible to the user, such as the text description,
          -- plus the Version number.
    |  VersionInfo1 VersionInfo
@@ -153,8 +153,8 @@ data VersionInformation =
          -- (in that order)
    deriving (Show)
 
-data Diff = 
-   -- returned from GetDiffs command.  
+data Diff =
+   -- returned from GetDiffs command.
    -- The "parent versions" are the versions in the second argument of
    --    GetDiffs.
    -- The "parent version" is the first element of this list (if any).
@@ -165,7 +165,7 @@ data Diff =
          existsIn :: ObjectVersion,
          changed :: ChangeData
          }
-         -- Location exists in one of the parent versions, namely existsIn, 
+         -- Location exists in one of the parent versions, namely existsIn,
          -- but has been changed.
    |  IsNew {
          changed :: ChangeData
@@ -175,7 +175,7 @@ data Diff =
    -- "objectVersion" is a parentVersion, and the contents in the subject
    -- version are identical with those in (location,objectVersion);
    -- indeed the contents are not just byte-for-byte identical, but
-   -- can be deduced to be identical from the rules that 
+   -- can be deduced to be identical from the rules that
    -- (a) locations in views created by "Commit" are unchanged unless
    --     otherwise specified;
    -- (b) locations whose contents are specified as (location,version1)
@@ -183,7 +183,7 @@ data Diff =
    deriving (Show)
 
 type ChangeData = Either ICStringLen (ObjectVersion,Location)
-   -- This indicates the contents of a changed item.  
+   -- This indicates the contents of a changed item.
    -- If (Left ...) this is raw data.
    -- If (Right ...) this means this item is in fact exactly the
    --    same as the one in (ObjectVersion,Location), a situation which
@@ -195,7 +195,7 @@ type ChangeData = Either ICStringLen (ObjectVersion,Location)
 
 -- | All data is stored immediately in BDB databases.  This is good because
 -- it means we can rely on BDB's backup facilities.
--- 
+--
 -- To avoid too much disk-throughput, we don't actually force the BDB database
 -- to be synchronised except after a commit.
 data SimpleDB = SimpleDB {
@@ -222,7 +222,7 @@ data SimpleDB = SimpleDB {
       -- ^ This map contains current version numbers allocated by
       -- NewVersion (by user) which have not yet had UserInfo
       -- assigned to them by Commit or ModifyUserInfo.
-      -- 
+      --
       -- This allows us to block attempts to hijack a version number
       -- allocated to someone else, or to commit to a version already
       -- committed to.
@@ -230,7 +230,7 @@ data SimpleDB = SimpleDB {
       -- ^ This map contains current location numbers allocated by
       -- NewLocation (by user) or created in a redirect, which have
       -- not yet appeared in a commit.
-      -- 
+      --
       -- This allows the user to specify a parent location for this location,
       -- without having permissions access to it.
    versionState :: VersionState,
@@ -244,23 +244,23 @@ data SimpleDB = SimpleDB {
    }
 
 data FrozenVersion =
-   FrozenVersion { 
+   FrozenVersion {
       parent' :: Maybe ObjectVersion,
       thisVersion' :: ObjectVersion,
       objectChanges :: [(Location,Either BDBKey (ObjectVersion,Location))],
          -- a BDBKey means completely new data.
           -- (ObjectVersion,Location) means it so happens this is exactly the
-          --    contents of this object are the same as those in 
+          --    contents of this object are the same as those in
           --    (ObjectVersion,Location)
       redirects' :: [(Location,Either ObjectVersion PrimitiveLocation)],
-          -- this gives redirects.  Note that this list does not have to 
-          -- contain locations which are the same as the corresponding 
+          -- this gives redirects.  Note that this list does not have to
+          -- contain locations which are the same as the corresponding
           -- primitive location, or where a redirect for this location already
-          -- exists in the parent version.  
+          -- exists in the parent version.
           --    The interpretation is as follows.  For (Left objectVersion)
           --    that means we copy whatever redirect exists, if any, for
           --    the same location in objectVersion.
-          --    
+          --
           --    For (Right primitiveLocation) that means this location is
           --    new, and associated with this primitive location.
       parentChanges :: [(Location,Location)]
@@ -277,7 +277,7 @@ data VersionData = VersionData {
       -- for the parent and adding the changes in this version.  Thus,
       -- because of persistence, the actual extra memory occupied on the
       -- server should be small, if there are only a few changes from the
-      -- parent.      
+      -- parent.
    redirects :: FiniteMap Location PrimitiveLocation,
       -- ^ This maps Location to the corresponding PrimitiveLocation,
       -- when the integers inside are different.
@@ -293,7 +293,7 @@ data VersionData = VersionData {
 -- The purpose of this system is that the "Location" will remain constant,
 -- even when versions are exported from one repository to another.  However
 -- the repository is free to reassign PrimitiveLocation's behind the
--- scenes. 
+-- scenes.
 newtype PrimitiveLocation = PrimitiveLocation Integer deriving (Eq,Ord)
 
 -- -----------------------------------------------------------------------
@@ -340,7 +340,7 @@ instance MonadIO m => HasWrapper SimpleDBCommand m where
       GetParentLocation l -> UnWrap 13 l
       )
 
-instance (MonadIO m,HasWrapper SimpleDBCommand m) 
+instance (MonadIO m,HasWrapper SimpleDBCommand m)
       => HasBinary SimpleDBCommand m where
    writeBin = mapWrite Wrapped
    readBin = mapRead wrapped
@@ -360,7 +360,7 @@ instance MonadIO m => HasWrapper VersionInformation m where
       Version1Plus v p -> UnWrap 3 (v,p)
       )
 
-instance (MonadIO m,HasWrapper VersionInformation m) 
+instance (MonadIO m,HasWrapper VersionInformation m)
       => HasBinary VersionInformation m where
    writeBin = mapWrite Wrapped
    readBin = mapRead wrapped
@@ -392,7 +392,7 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       IsPermissions p -> UnWrap 11 p
       )
 
-instance (MonadIO m,HasWrapper SimpleDBResponse m) 
+instance (MonadIO m,HasWrapper SimpleDBResponse m)
       => HasBinary SimpleDBResponse m where
    writeBin = mapWrite Wrapped
    readBin = mapRead wrapped
@@ -411,7 +411,7 @@ instance MonadIO m => HasWrapper Diff m where
       IsNew c -> UnWrap 3 c
       )
 
-instance (MonadIO m,HasWrapper Diff m) 
+instance (MonadIO m,HasWrapper Diff m)
       => HasBinary Diff m where
    writeBin = mapWrite Wrapped
    readBin = mapRead wrapped

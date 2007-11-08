@@ -46,5 +46,5 @@ main =
          unparsedWE = makeMMiSSLatex (el,False)
          unparsed = coerceWithError unparsedWE
 
-      putStrLn (mkLaTeXString unparsed)         
+      putStrLn (mkLaTeXString unparsed)
       -}

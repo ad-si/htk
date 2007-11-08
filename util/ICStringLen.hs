@@ -4,18 +4,18 @@
 module ICStringLen(
    ICStringLen, -- instance of AtomString and Eq.
 
-   UTF8(..), 
+   UTF8(..),
       -- newtype alias.  UTF8 ICStringLen is also an instance of AtomString,
       -- but we assume the characters are UTF8-encoded.
    toUTF8,
       -- :: String -> String
-   fromUTF8WE, 
+   fromUTF8WE,
       -- :: String -> WithError String
       -- This can be used for an error-checking UTF8 conversion.
 
    -- general creation and reading.
    mkICStringLen, -- :: Int -> (Ptr CChar -> IO()) -> IO ICStringLen
-   mkICStringLenExtra, 
+   mkICStringLenExtra,
       -- :: Int -> (CString -> IO extra) -> IO (ICStringLen,extra)
    withICStringLen, -- :: ICStringLen -> (Int -> Ptr CChar -> IO a) -> IO a
 
@@ -87,7 +87,7 @@ $(
    if ghcShortVersion <= 601
       then
          [d|
-            newForeignPtr0 finalizerLen ptr 
+            newForeignPtr0 finalizerLen ptr
                = $(dynName "newForeignPtr") ptr finalizerLen
          |]
       else
@@ -109,7 +109,7 @@ instance StringClass ICStringLen where
                let
                   len = length str
                mkICStringLen len
-                  (\ ptr -> pokeArray ptr 
+                  (\ ptr -> pokeArray ptr
                      (map castCharToCChar str)
                      )
 
@@ -118,7 +118,7 @@ instance StringClass ICStringLen where
          innerToString :: ICStringLen -> IO String
          innerToString icsl =
             withICStringLen icsl
-               (\ len ptr -> 
+               (\ len ptr ->
                   do
                      cchars <- peekArray len ptr
                      return (map castCCharToChar cchars)
@@ -155,7 +155,7 @@ withICStringLen :: ICStringLen -> (Int -> CString -> IO a) -> IO a
 withICStringLen (ICStringLen foreignPtr len) readFn =
    withForeignPtr foreignPtr (\ ptr -> readFn len ptr)
 
-createICStringLen :: CString -> Int -> IO ICStringLen 
+createICStringLen :: CString -> Int -> IO ICStringLen
 createICStringLen ptr len =
    do
       foreignPtr <- newForeignPtr0 finalizerFree ptr
@@ -170,7 +170,7 @@ bytesToICStringLen :: (Bytes,Int) -> IO ICStringLen
 bytesToICStringLen (bytes,i) = createICStringLen (unMkBytes bytes) i
 
 bytesFromICStringLen :: ICStringLen -> (Bytes,Int)
-bytesFromICStringLen (ICStringLen foreignPtr len) 
+bytesFromICStringLen (ICStringLen foreignPtr len)
    = (mkBytes (unsafeForeignPtrToPtr foreignPtr),len)
 
 touchICStringLen :: ICStringLen -> IO ()
@@ -185,7 +185,7 @@ instance OrdIO ICStringLen where
       case compare len1 len2 of
          LT -> return LT
          GT -> return GT
-         EQ -> compareBytes (mkBytes (unsafeForeignPtrToPtr fptr1)) 
+         EQ -> compareBytes (mkBytes (unsafeForeignPtrToPtr fptr1))
             (mkBytes (unsafeForeignPtrToPtr fptr2)) len1
 
 instance EqIO ICStringLen where
@@ -231,7 +231,7 @@ readICStringLen icsl =
       a <- readFromBytes bl
       touchICStringLen icsl
       return a
- 
+
 writeToICStringLen :: HasBinary a StateBinArea => a -> IO ICStringLen
 writeToICStringLen a =
    do

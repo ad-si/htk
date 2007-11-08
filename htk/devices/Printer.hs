@@ -49,7 +49,7 @@ class GUIObject w => HasPostscript w where
         (execMethod target (\nm -> [tkPostScript nm confstr]))
       done
     where tkPostScript :: ObjectName -> String -> TclCmd
-          tkPostScript name confstr = 
+          tkPostScript name confstr =
             show name ++ " postscript " ++ confstr
 
 
@@ -84,8 +84,8 @@ instance Read ColourMode where
 
 -- | Internal.
 instance Show ColourMode where
-   showsPrec d p r = 
-      (case p of 
+   showsPrec d p r =
+      (case p of
          FullColourMode -> "color"
          GrayScaleMode -> "gray"
          MonoChromeMode -> "mono"

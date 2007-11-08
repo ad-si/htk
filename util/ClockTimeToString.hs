@@ -1,5 +1,5 @@
 -- | This module implements displaying ClockTime as a String which does NOT
--- depend on the time-zone. 
+-- depend on the time-zone.
 module ClockTimeToString(
    clockTimeToString, -- :: ClockTime -> String
    stringToClockTime, -- :: String -> ClockTime
@@ -21,5 +21,5 @@ clockTimeToString (TOD n1 n2) = show n1 ++ "+" ++ show n2
 -- | Convert a validly formatted String to a ClockTime.
 stringToClockTime :: String -> ClockTime
 stringToClockTime s = case splitByChar '+' s of
-   [n1s,n2s] -> TOD (read n1s) (read n2s) 
+   [n1s,n2s] -> TOD (read n1s) (read n2s)
    _ -> error "Badly formatted clock time"

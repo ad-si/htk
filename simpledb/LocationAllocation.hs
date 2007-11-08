@@ -1,4 +1,4 @@
--- | This module handles the allocation of 'Location' or 'PrimitiveLocation's. 
+-- | This module handles the allocation of 'Location' or 'PrimitiveLocation's.
 module LocationAllocation(
    initLocations,
    getNextLocation,
@@ -28,13 +28,13 @@ import SecurityManagement
 import PrimitiveLocation
 
 -- | Two locations, 'specialLocation1 and 'specialLocation2, are preallocated
--- and will never be returned by 'getNextLocation'.  
+-- and will never be returned by 'getNextLocation'.
 -- (The types package uses 'specialLocation1' for general 'ViewType.View'
 -- information, and 'specialLocation2' for the top folder.)
 specialLocation1,specialLocation2 :: Location
 specialLocation1 = Location 1
 specialLocation2 = Location 2
-  
+
 -- | Read the BDB (the miscDB) to come up with the nextLocation ref.
 initLocations :: BDB -> IO (IORef Location)
 initLocations bdb =
@@ -44,7 +44,7 @@ initLocations bdb =
 
 -- | Allocate a Location.
 getNextLocation :: SimpleDB -> User -> IO Location
-getNextLocation simpleDB user = 
+getNextLocation simpleDB user =
    do
       location <- atomicModifyIORef (nextLocation simpleDB)
          (\ location -> (succ location,location))
@@ -103,10 +103,10 @@ forgetUsersLocations simpleDB user0 =
             let
                old :: [(PrimitiveLocation,User)]
                old = fmToList fm0
-              
+
                toDelete :: [PrimitiveLocation]
                toDelete = mapMaybe
-                  (\ (ov,user1) -> 
+                  (\ (ov,user1) ->
                      if user1 == user0
                         then
                            Just ov
@@ -122,7 +122,7 @@ forgetUsersLocations simpleDB user0 =
             in
                (fm1,sizeFM fm1)
             )
-      
+
       seq l done
 
 

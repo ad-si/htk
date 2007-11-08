@@ -1,5 +1,5 @@
 -- | This file contains the doMMiSSRegistrations function, which should
--- execute all the registrations required in the mmiss directory. 
+-- execute all the registrations required in the mmiss directory.
 module MMiSSRegistrations(doMMiSSRegistrations) where
 
 import ObjectTypes
@@ -27,9 +27,9 @@ registerMMiSSObjects :: IO ()
 registerMMiSSObjects =
    do
       registerObjectType (error "Unknown MMiSSObjectType" :: MMiSSObjectType)
-      registerObjectType (error "Unknown MMiSSPreambleType" 
+      registerObjectType (error "Unknown MMiSSPreambleType"
          :: MMiSSPreambleType)
-      registerObjectType (error "Unknown MMiSSPackageFolderType" 
+      registerObjectType (error "Unknown MMiSSPackageFolderType"
          :: MMiSSPackageFolderType)
       registerObjectType (error "Unknown MMiSSFileType" :: MMiSSFileType)
-      
+

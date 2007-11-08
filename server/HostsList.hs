@@ -1,10 +1,10 @@
--- | This module maintains the list of hosts we know about. 
+-- | This module maintains the list of hosts we know about.
 module HostsList (
-   getHostPorts, 
+   getHostPorts,
       -- :: IO [HostPort]
       -- get a list of all host-ports we currently know about.
 
-   getUserPassword, 
+   getUserPassword,
       -- :: Bool -> HostPort -> IO (Maybe (String,String))
       -- getUserPassword returns a user and password for the given hostPort,
       -- querying the user if necessary.
@@ -86,7 +86,7 @@ userForm defUser =
       userForm2 = fmap trimSpaces userForm1
 
       userForm3 :: Form String
-      userForm3 = guardForm (/= "") 
+      userForm3 = guardForm (/= "")
          "User Id must be non-empty" userForm2
    in
       userForm3
@@ -116,7 +116,7 @@ getUserPassword mustQuery hostPort =
                Nothing ->
                   do
                      userPassword <- newIORef (Nothing,Nothing)
-                     let 
+                     let
                         hostData = HostData {thisHostPort = hostPort,
                            userPassword = userPassword}
                      return (Just hostData,userPassword)
@@ -133,7 +133,7 @@ getUserPassword mustQuery hostPort =
                      Nothing -> defaultUser
                      Just user -> user
 
-                  passwordDefault = fromMaybe "" passwordOpt 
+                  passwordDefault = fromMaybe "" passwordOpt
                seq userDefault done
                   -- force default-user window to appear, if necessary.
                let
@@ -141,7 +141,7 @@ getUserPassword mustQuery hostPort =
                   form1 = userForm userDefault
 
                   form2a :: Form (Password (Maybe String))
-                  form2a = newFormEntry "Password" 
+                  form2a = newFormEntry "Password"
                      (Password (Just passwordDefault))
 
                   form2 :: Form String
@@ -153,16 +153,16 @@ getUserPassword mustQuery hostPort =
                      form2a
 
                htk <- htkPresent
-               userPasswordOpt <- 
+               userPasswordOpt <-
                   if htk
                      then
-                        doForm "Connecting to Server" (form1 // form2) 
+                        doForm "Connecting to Server" (form1 // form2)
                      else
                         do
                            user1 <- textQuery ("Enter user id, or just hit"
                               ++ " RETURN for " ++ userDefault)
                            let
-                              user = 
+                              user =
                                  if user1 == "" then userDefault else user1
                            password1 <- textQuery ("Enter password, or hit"
                               ++ " RETURN to cancel operation")
@@ -176,7 +176,7 @@ getUserPassword mustQuery hostPort =
                   Nothing -> done
                   Just (user,password) ->
                      do
-                        when ((user /= userDefault) 
+                        when ((user /= userDefault)
                               || (password /= passwordDefault))
                            (writeIORef userPassword (Just user,Just password))
 
@@ -211,10 +211,10 @@ getHostsRegistry =
                   portStr = case hostPort host of
                      Default portStr -> portStr
                      NonDefault portStr -> portStr
-                  
+
                   (port1 :: Int) = case readCheck portStr of
                      Just portNum -> portNum
-                     Nothing -> err (show portStr 
+                     Nothing -> err (show portStr
                         ++ " is not a valid port number")
 
                hostPort1 <- mkHostPort host1 port1 (hostDescription host)

@@ -38,9 +38,9 @@ data Arc = Arc GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new arc item.
-createArc :: Canvas 
+createArc :: Canvas
    -- ^ the parent canvas.
-   -> [Config Arc] 
+   -> [Config Arc]
    -- ^ the list of configuration options for this arc.
    -> IO Arc
    -- ^ An arc item.
@@ -53,7 +53,7 @@ createArc cnv cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Arc where 
+instance GUIObject Arc where
   toGUIObject (Arc w) = w
   cname _ = "Arc"
 

@@ -28,46 +28,46 @@ ourlex                    :: ReadS String
 ourlex ""                  = [("","")]
 ourlex (c:s) | isSpace c   = ourlex (dropWhile isSpace s)
 ourlex ('\'':s)            = [('\'':ch++"'", t) | (ch,'\'':t)  <- lexLitChar s,
-					       ch /= "'"                ]
+                                               ch /= "'"                ]
 ourlex ('"':s)             = [('"':str, t)      | (str,t) <- ourlexString s]
-			  where
-			  ourlexString ('"':s) = [("\"",s)]
-			  ourlexString s = [(ch++str, u)
-						| (ch,t)  <- ourlexStrItem s,
-						  (str,u) <- ourlexString t  ]
+                          where
+                          ourlexString ('"':s) = [("\"",s)]
+                          ourlexString s = [(ch++str, u)
+                                                | (ch,t)  <- ourlexStrItem s,
+                                                  (str,u) <- ourlexString t  ]
 
-			  ourlexStrItem ('\\':'&':s) = [("\\&",s)]
-			  ourlexStrItem ('\\':c:s) | isSpace c
-			      = [("",t) | '\\':t <- [dropWhile isSpace s]]
-			  ourlexStrItem s            = lexLitChar s
+                          ourlexStrItem ('\\':'&':s) = [("\\&",s)]
+                          ourlexStrItem ('\\':c:s) | isSpace c
+                              = [("",t) | '\\':t <- [dropWhile isSpace s]]
+                          ourlexStrItem s            = lexLitChar s
 
 ourlex (c:s) | isSingle c  = [([c],s)]
              | isSymAlphaNum c  = [(c:tok,t) | (tok,t) <- [span isSymAlphaNum s]]
-   	     | otherwise   = []    -- bad character
-		where
+             | otherwise   = []    -- bad character
+                where
                 isSingle c = c  `elem` "()"
-		isSymAlphaNum c  =  
+                isSymAlphaNum c  =
                     c `elem` ",;[]{}_`!@#$%&*+./<=>?\\^|:-~_'"
-                 || isAlphaNum c 
+                 || isAlphaNum c
 
 lexmatch                   :: (Eq a) => [a] -> [a] -> ([a],[a])
 lexmatch (x:xs) (y:ys) | x == y  =  lexmatch xs ys
 lexmatch xs     ys               =  (xs,ys)
 
 asciiTab = zip ['\NUL'..' ']
-	   ["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
-	    "BS",  "HT",  "LF",  "VT",  "FF",  "CR",  "SO",  "SI",
-	    "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
-	    "CAN", "EM",  "SUB", "ESC", "FS",  "GS",  "RS",  "US",
-	    "SP"]
+           ["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+            "BS",  "HT",  "LF",  "VT",  "FF",  "CR",  "SO",  "SI",
+            "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
+            "CAN", "EM",  "SUB", "ESC", "FS",  "GS",  "RS",  "US",
+            "SP"]
 
 
-lexer s = case ourlex s of 
+lexer s = case ourlex s of
    [("","")] -> []
    [(s,rest)] -> s:lexer rest
    otherwise -> []
 
-delQuotes ('\"':rest) = 
+delQuotes ('\"':rest) =
   case reverse rest of
     '\"':rest' -> reverse rest'
     otherwise -> '\"':rest
@@ -82,8 +82,8 @@ parse (")":rest) = (AP "",rest)
 parse ("(":rest) = (LP (reverse pl),rest')
   where
     (pl,rest') =  parseList1 [] rest
-parse (x:rest) = 
-  if map toLower x == "nil" 
+parse (x:rest) =
+  if map toLower x == "nil"
   then (LP [],rest)
   else (AP (delQuotes x),rest)
 
@@ -93,7 +93,7 @@ parseList1 l [] = (l,[])
 parseList1 l (")":rest) = (l,rest)
 parseList1 l s = parseList1 (res1:l) rest
   where
-  (res1,rest) = parse s 
+  (res1,rest) = parse s
 
 
 -- try to read
@@ -156,7 +156,7 @@ get_edge_shape "thick" = Thick
 get_edge_shape "double" = Double
 get_edge_shape _ = Solid
 
-make_edgeType gid (LP [AP "EDGETYPE",AP name,AP shape,AP color,menu]) = 
+make_edgeType gid (LP [AP "EDGETYPE",AP name,AP shape,AP color,menu]) =
    (name,
     get_edge_shape (map toLower shape) $$$
     Color color $$$
@@ -164,7 +164,7 @@ make_edgeType gid (LP [AP "EDGETYPE",AP name,AP shape,AP color,menu]) =
     emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
 --make_edgeType graph _ _ _ = error
 
-make_edgeComp x = 
+make_edgeComp x =
   case (sequence (map make_edgeComp1 x)) of
     Just l -> l
     Nothing -> []
@@ -181,9 +181,9 @@ makegraph1 cid [AP title,LP menus,LP nodetypes,LP edgetypes,LP comptable] gv = d
                      (make_edgeComp comptable)
                      gv
   case err of
-    Nothing -> cmd_succeeds cid (show gid) 
+    Nothing -> cmd_succeeds cid (show gid)
     Just e -> cmd_fails cid e
-    
+
 makegraph1 cid _ graphs = do
   cmd_fails cid "makegraph: illegal argument format"
 
@@ -195,7 +195,7 @@ delgraph gid _ graphs =
     AbstractGraphView.delgraph gid graphs
 
 
-addnode gid [AP nodetype, AP name] graphs = 
+addnode gid [AP nodetype, AP name] graphs =
   AbstractGraphView.addnode gid nodetype name graphs
 addnode _ _ graphs = do
   return_fail graphs "addnode: illegal argument format"
@@ -203,16 +203,16 @@ addnode _ _ graphs = do
 
 delnode gid [AP node] graphs =
   case try_to_read node :: Maybe Int of
-    Just n' -> AbstractGraphView.delnode gid n' graphs 
+    Just n' -> AbstractGraphView.delnode gid n' graphs
     Nothing ->  return_fail graphs ("delnode: illegal node: "++node)
 delnode _ _ graphs = do
   return_fail graphs "delnode: illegal argument format"
 
 
-addlink gid [AP edgetype, AP name, AP src, AP tar] graphs = 
+addlink gid [AP edgetype, AP name, AP src, AP tar] graphs =
   case (try_to_read src,
         try_to_read tar) of
-    (Just src_node, Just tar_node) -> 
+    (Just src_node, Just tar_node) ->
        AbstractGraphView.addlink gid edgetype name src_node tar_node graphs
     (Nothing,_) -> return_fail graphs ("addlink: illegal source node id: "++src)
     (_,Nothing) -> return_fail graphs ("addlink: illegal target node id: "++tar)
@@ -229,27 +229,27 @@ dellink _ _ graphs = do
   return_fail graphs "dellink: illegal argument format"
 
 
-redisplay gid _ graphs = 
+redisplay gid _ graphs =
   AbstractGraphView.redisplay gid graphs
 
 unAPInt (AP x) = try_to_read x :: Maybe Int
 unAPInt _ = Nothing
 
-hidenodes gid [LP nodes] graphs =  
+hidenodes gid [LP nodes] graphs =
   case sequence (map unAPInt nodes) of
     Just nodes' -> AbstractGraphView.hidenodes gid nodes' graphs
     Nothing -> return_fail graphs "hidenodes: illegal argument format"
 hidenodes _ _ graphs = do
   return_fail graphs "hidenodes: illegal argument format"
 
-abstractnodes gid [LP nodes] graphs =  
+abstractnodes gid [LP nodes] graphs =
   case sequence (map unAPInt nodes) of
     Just nodes' -> AbstractGraphView.abstractnodes gid nodes' graphs
     Nothing -> return_fail graphs "abstractnodes: illegal argument format"
 abstractnodes _ _ graphs = do
   return_fail graphs "abstractnodes: illegal argument format"
 
-hideedges gid [LP edges] graphs =  
+hideedges gid [LP edges] graphs =
   case sequence (map unAPInt edges) of
     Just edges' -> AbstractGraphView.hideedges gid edges' graphs
     Nothing -> return_fail graphs "hideedges: illegal argument format"
@@ -266,9 +266,9 @@ hidenodetype gid [AP nodetype] graphs =
 hidenodetype _ _ graphs =
   return_fail graphs "hidenodetype: illegal argument format"
 
-showIt gid [AP ev_id] graphs = 
+showIt gid [AP ev_id] graphs =
   case try_to_read ev_id :: Maybe Int of
-    Just ev_id' -> AbstractGraphView.showIt gid ev_id' graphs 
+    Just ev_id' -> AbstractGraphView.showIt gid ev_id' graphs
     Nothing ->  return_fail graphs ("showIt: illegal event id: "++ev_id)
 showIt _ _ graphs = do
   return_fail graphs "showIt: illegal argument format"
@@ -281,26 +281,26 @@ command "quit" cid _ gv = do
   cmd_succeeds cid ""
 
 
-command c cid [] gv = 
+command c cid [] gv =
    cmd_fails cid (c++" needs a graph id")
 command c cid (gid:args) gv = do
   case (try_to_read gid,
         lookup c
         [("delgraph",Main.delgraph),
-         ("addnode",Main.addnode), 
-         ("delnode",Main.delnode), 
-         ("addlink",Main.addlink), 
-         ("dellink",Main.dellink), 
+         ("addnode",Main.addnode),
+         ("delnode",Main.delnode),
+         ("addlink",Main.addlink),
+         ("dellink",Main.dellink),
          ("redisplay",Main.redisplay),
          ("hidenodes",Main.hidenodes),
          ("hidenodetype",Main.hidenodetype),
          ("abstractnodes",Main.abstractnodes),
          ("show",Main.showIt),
          ("hideedges",Main.hideedges),
-	 ("hideedgetype",Main.hideedgetype)]) of
+         ("hideedgetype",Main.hideedgetype)]) of
     (_,Nothing) -> cmd_fails cid ("unknown command: "++c)
     (Nothing,_) -> cmd_fails cid ("illegal graph id: "++gid)
-    (Just gid', Just cmd) -> do 
+    (Just gid', Just cmd) -> do
        Result descr err <- cmd gid' (parseList args) gv
        case err of
          Nothing -> cmd_succeeds cid (show descr)
@@ -312,12 +312,12 @@ command_loop gv =
      let lexres = lexer s
      case lexres of
         "(":c:cid:args -> command (map toLower c) cid args gv
-	otherwise -> return ()
+        otherwise -> return ()
      case lexres of
         "(":"quit":_ -> return ()
         otherwise -> command_loop gv
-                           
- 
+
+
 main = do
   hSetBuffering stdout LineBuffering
   putStrLn "(ANSWER T \"This is the abstraction viewer for daVinci\")"
@@ -330,7 +330,7 @@ main = do
     do let lexres = lexer s
        case lexres of
           "(":c:cid:args -> command (map toLower c) cid args gv
-  	  otherwise -> return ()
+          otherwise -> return ()
 
 
 -- LispActions send to DaVinci:

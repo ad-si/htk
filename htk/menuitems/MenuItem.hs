@@ -77,7 +77,7 @@ class GUIObject w => HasAccelerator w where
 -- -----------------------------------------------------------------------
 
 -- | The state of a @ToggleButton@ can be toggled.
-class SelectButton w => ToggleButton w where 
+class SelectButton w => ToggleButton w where
   -- Toggles the state of a toggle button.
   toggleButton   :: w -> IO ()
   toggleButton w =
@@ -161,7 +161,7 @@ tkGetMenuItemConfig (MenuItemName name i) "text" =
   [(show name) ++ " entrycget " ++ (show i) ++ " -label"]
 tkGetMenuItemConfig (MenuItemName name i) cid
   | (isIllegalMenuItemConfig cid ) = []
-tkGetMenuItemConfig (MenuItemName name i) cid = 
+tkGetMenuItemConfig (MenuItemName name i) cid =
   [show name ++ " entrycget " ++ show i ++ " -" ++ cid]
 tkGetMenuItemConfig _ _ = []
 

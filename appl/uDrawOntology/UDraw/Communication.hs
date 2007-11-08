@@ -236,7 +236,7 @@ updateEdgesAttributes :: [(String, Int, Int)] -> OntoConf.Config -> String
 updateEdgesAttributes [] _ = ""
 updateEdgesAttributes ((eType, startId, targetId):rest) config =
   let OntoConf.Config _ rels _ = config
-  in "edge(\"" ++ (show startId) ++ eType ++ (show targetId) ++"\",[" ++ 
+  in "edge(\"" ++ (show startId) ++ eType ++ (show targetId) ++"\",[" ++
   (createEdgeAttrib eType (getEdge eType rels))  ++ "])," ++ updateEdgesAttributes rest config
   where
     getEdge :: String -> OntoConf.Relations -> OntoConf.Relation

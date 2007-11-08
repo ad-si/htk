@@ -1,10 +1,10 @@
--- | QuickReadShow is designed for the rapid manufacture of read/show 
+-- | QuickReadShow is designed for the rapid manufacture of read/show
 -- instances.  To create such an instance you need to (a) instance
 -- quickRead; (b) instance Read/Show using a particular template.
 -- (Before April 2004 (b) was not part of the code; it now has to
 -- be added to deal with tougher GHC restrictions on overlapping instances.)
 module QuickReadShow(
-   WrapRead(WrapRead), 
+   WrapRead(WrapRead),
    QuickRead(quickRead),
    qRead,
 
@@ -12,13 +12,13 @@ module QuickReadShow(
    QuickShow(quickShow),
    qShow
    ) where
-   
+
 data WrapRead toRead = forall read . Read read => WrapRead (read -> toRead)
 
 class QuickRead toRead where
    quickRead :: WrapRead toRead
 
-mkReadsPrec :: WrapRead toRead -> Int -> ReadS toRead 
+mkReadsPrec :: WrapRead toRead -> Int -> ReadS toRead
 mkReadsPrec (WrapRead convFn) prec str =
    let
       parses = readsPrec prec str
@@ -43,7 +43,7 @@ class QuickShow toShow where
 
 mkShowsPrec :: WrapShow toShow -> Int -> toShow -> ShowS
 mkShowsPrec (WrapShow convFn) prec value acc =
-   showsPrec prec (convFn value) acc 
+   showsPrec prec (convFn value) acc
 
 qShow :: QuickShow toShow => Int -> toShow -> String -> String
 qShow = mkShowsPrec quickShow

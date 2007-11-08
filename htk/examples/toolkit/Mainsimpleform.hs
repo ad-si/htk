@@ -29,12 +29,12 @@ main =
          nonEmpty = any (not . isSpace)
          hasAt = elem '@'
          name =
-            guardForm nonEmpty "Name must be non-empty" 
+            guardForm nonEmpty "Name must be non-empty"
                (newFormEntry "Name" "")
          email =
             guardForm hasAt "E-mail must contain an @"
-               (newFormEntry "E-mail" "") 
-         colour = 
+               (newFormEntry "E-mail" "")
+         colour =
             mapForm
                (\ radColour ->
                   case radColour of
@@ -67,7 +67,7 @@ main =
             colour //
             short1 \\ short2 //
             newFormEntry "British Subject" False //
-            newFormMenu EmptyLabel language 
+            newFormMenu EmptyLabel language
 
       valueOpt <- doForm "Simple Form Test 1" form
       putStrLn (show valueOpt)

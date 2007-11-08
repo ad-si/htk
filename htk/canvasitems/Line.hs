@@ -54,9 +54,9 @@ type ArrowShape = (Distance, Distance, Distance)
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new line item.
-createLine :: Canvas 
+createLine :: Canvas
    -- ^ the parent canvas.
-   -> [Config Line] 
+   -> [Config Line]
    -- ^ the list of configuration options for this line item.
    -> IO Line
    -- ^ A line item.
@@ -68,7 +68,7 @@ createLine cnv cnf = createCanvasItem cnv LINE Line cnf [(-1,-1),(-1,-1)]
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Line where 
+instance GUIObject Line where
   toGUIObject (Line w) = w
   cname _ = "Line"
 
@@ -126,7 +126,7 @@ arrowshape (x,y,z) w = cset w "arrowshape" [x, y, z]
 
 -- | Gets the shape of the arrows at the end of a line.
 getArrowshape :: Line -> IO ArrowShape
-getArrowshape w = cget w "arrowshape" >>= next 
+getArrowshape w = cget w "arrowshape" >>= next
   where next (x:y:z:_) = return (x, y, z)
         next _ = return (0, 0, 0)
 
@@ -171,7 +171,7 @@ instance Read ArrowHead where
 
 -- | Internal.
 instance Show ArrowHead where
-  showsPrec d p r = (case p of 
+  showsPrec d p r = (case p of
                        BothEnds -> "both"
                        LastEnd -> "last"
                        FirstEnd -> "first"
@@ -200,12 +200,12 @@ instance Read CapStyle where
 
 -- | Internal.
 instance Show CapStyle where
-  showsPrec d p r = (case p of 
+  showsPrec d p r = (case p of
                        CapRound -> "round"
                        CapProjecting -> "projecting"
                        CapButt -> "butt") ++ r
 
-        
+
 -- -----------------------------------------------------------------------
 --  JoinStyle
 -- -----------------------------------------------------------------------
@@ -227,7 +227,7 @@ instance Read JoinStyle where
 
 -- | Internal.
 instance Show JoinStyle where
-   showsPrec d p r = (case p of 
+   showsPrec d p r = (case p of
                         JoinRound -> "round"
                         JoinMiter -> "miter"
                         JoinBevel -> "bevel") ++ r

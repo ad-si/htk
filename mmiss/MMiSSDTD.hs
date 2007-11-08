@@ -1,11 +1,11 @@
--- | This module accesses the MMiSS DTD, which is always done on start-up. 
--- 
+-- | This module accesses the MMiSS DTD, which is always done on start-up.
+--
 -- The format include "Processing Instructions", with target "MMiSSDisplay".
 -- The attached strings should in turn have format
 --    element-name : graphic-instructions.
 -- (ignoring spaces).
--- 
--- The graphic instructions are interpreted, for now, by 
+--
+-- The graphic instructions are interpreted, for now, by
 -- DisplayParms.readDisplay.
 module MMiSSDTD(
    allElements,
@@ -88,17 +88,17 @@ readDTD filePath =
                   show excep)
             Right handle -> handle
       dtdString <- hGetContents handle
-      let 
+      let
          (dtd,markups) = case dtdParse ("MMiSSDTD"++filePath) dtdString of
-            Just (dtd @ (DTD _ _ markups)) -> (dtd,markups) 
+            Just (dtd @ (DTD _ _ markups)) -> (dtd,markups)
             _ -> error ("Error reading MMiSS DTD from "++filePath++
              ": couldn't parse it")
 
          simpleDTD = partialValidate dtd
 
          elements = [element | Element (ElementDecl element _) <- markups]
-    
-         processingInstructions = 
+
+         processingInstructions =
             [parseProcessingInstruction instruction |
                MarkupMisc (PI ("MMiSSDisplay",instruction)) <- markups]
 
@@ -106,7 +106,7 @@ readDTD filePath =
             simpleDTD = simpleDTD,
             elements = elements,
             displayInstructions = listToFM processingInstructions
-            }                            
+            }
       return mmissDTD
 
 parseProcessingInstruction :: String -> (String,String)
@@ -125,7 +125,7 @@ allElements = elements theDTD
 -- | allElements, filtering just those elements which feature in a
 -- Display instruction.
 allDisplayedElements :: [String]
-allDisplayedElements = 
+allDisplayedElements =
    List.filter
       (\ tagName -> elemFM tagName (displayInstructions theDTD))
       allElements
@@ -138,7 +138,7 @@ getDisplayInstruction str =
 
 validateElement :: String -> Element -> [String]
 validateElement elementName (element @ (Elem name _ _)) =
-   if name /= elementName 
+   if name /= elementName
       then
          ["Expected a "++elementName++" but found a "++name]
       else
@@ -168,13 +168,13 @@ xmlParseCheck fName contents =
          Right el -> hasValue (xmlUnEscape stdXmlEscaper el)
          )
 
--- | Another version of xmlParse which checks for errors.  
+-- | Another version of xmlParse which checks for errors.
 xmlParseWE :: String -> String -> WithError Element
 xmlParseWE fName contents = unsafePerformIO (xmlParseCheck fName contents)
 
 instance DeepSeq Element where
    deepSeq (Elem name attributes contents) =
-      deepSeq (name,attributes,contents) 
+      deepSeq (name,attributes,contents)
 
 instance DeepSeq AttValue where
    deepSeq (AttValue l) = deepSeq l
@@ -182,7 +182,7 @@ instance DeepSeq AttValue where
 instance DeepSeq Reference where
    deepSeq (RefEntity e) = deepSeq e
    deepSeq (RefChar c) = deepSeq c
-   
+
 instance DeepSeq Content where
    deepSeq (CElem e) = deepSeq e
    deepSeq (CString b c) = deepSeq (b,c)
@@ -209,10 +209,10 @@ toUglyExportableXml elem =
        (renderStyle style) . element . (xmlEscape stdXmlEscaper) $ elem
 
 toExportableXml :: Element -> String
-toExportableXml elem = 
+toExportableXml elem =
     render . element . (xmlEscape stdXmlEscaper) $ elem
 
 
 
-      
-    
+
+

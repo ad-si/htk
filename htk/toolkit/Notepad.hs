@@ -93,7 +93,7 @@ enteredItem notepad item =
                       (_, (sizex, _)) <- getScrollRegion (canvas notepad)
                       let dx = if x1 < 0 then -x1 + 6
                                else if x2 > sizex then (sizex - x2)
-                                       else 0 
+                                       else 0
                       moveItem (it_txt item) dx 0
                       b <- isNotepadItemSelected notepad item
                       rect <- createRectangle (canvas notepad)
@@ -137,15 +137,15 @@ leftItem notepad item =
 -- constructor
 
 -- | Creates a new notepad item and returns a handler.
-createNotepadItem :: CItem c => c 
+createNotepadItem :: CItem c => c
    -- ^ the notepad item\'s value.
-   -> Notepad c 
+   -> Notepad c
    -- ^ the concerned notepad.
-   -> Bool 
+   -> Bool
    -- ^ @True@ if the notepad\'s
    -- scrollregion should be updated.
    ->
-   [Config (NotepadItem c)] 
+   [Config (NotepadItem c)]
    -- ^ the list of configuration options for this notepad
    -- item.
    ->
@@ -210,7 +210,7 @@ createNotepadItem val notepad updscrollregion cnf =
     return item
 
 -- | Returns a free item position on the notepad.
-getFreeItemPosition :: CItem c => Notepad c 
+getFreeItemPosition :: CItem c => Notepad c
    -- ^ the concerned notepad.
    -> IO Position
    -- ^ the free position on the notepad.
@@ -304,7 +304,7 @@ setName item nm =
 
 -- | Binds a listener for notepad events to the notepad and returns
 -- a corresponding event and an unbind action.
-bindNotepadEv :: Notepad a 
+bindNotepadEv :: Notepad a
    -- ^ the concerned notepad.
    -> IO (Event (NotepadEvent a), IO ())
    -- ^ A pair of (event, unbind action).
@@ -371,7 +371,7 @@ data Notepad a =
 
             -- clean up when destroyed
             clean_up :: [IO ()],
-             
+
             -- notepad state
             npstate :: Ref IntState }
 
@@ -438,9 +438,9 @@ deHighlight item =
       _ -> done
 
 -- | Selects a specific notepad item.
-selectItem :: Notepad a 
+selectItem :: Notepad a
    -- ^ the concerned notepad.
-   -> NotepadItem a 
+   -> NotepadItem a
    -- ^ the concerned notepad item.
    -> IO ()
    -- ^ None.
@@ -453,9 +453,9 @@ selectItem np item =
     sendEv np (Selected item)
 
 -- | Adds an item to the notepad\'s selection.
-selectAnotherItem :: Notepad a 
+selectAnotherItem :: Notepad a
    -- ^ the concerned notepad.
-   -> NotepadItem a 
+   -> NotepadItem a
    -- ^ the concerned notepad item.
    -> IO ()
    -- ^ None.
@@ -467,9 +467,9 @@ selectAnotherItem np item =
     sendEv np (Selected item)
 
 -- | Deselects a notepad item.
-deselectItem :: Notepad a 
+deselectItem :: Notepad a
    -- ^ the concerned notepad.
-   -> NotepadItem a 
+   -> NotepadItem a
    -- ^ the concerned notepad item.
    -> IO ()
    -- ^ None.
@@ -481,7 +481,7 @@ deselectItem np item =
     sendEv np (Deselected item)
 
 -- | Selects all items inside the notepad.
-selectAll :: Notepad a 
+selectAll :: Notepad a
    -- ^ the concerned notepad.
    -> IO ()
    -- ^ None.
@@ -496,7 +496,7 @@ selectAll np =
     setRef (selected_items np) notepaditems
 
 -- | Deselects all items inside the notepad.
-deselectAll :: Notepad a 
+deselectAll :: Notepad a
    -- ^ the concerned notepad.
    -> IO ()
    -- ^ None.
@@ -512,9 +512,9 @@ deselectAll np =
     setRef (selected_items np) []
 
 -- | Deletes an item from a notepad.
-deleteItem :: CItem c => Notepad c 
+deleteItem :: CItem c => Notepad c
    -- ^ the concerned notepad.
-   -> NotepadItem c 
+   -> NotepadItem c
    -- ^ the concerned notepad item.
    -> IO ()
    -- ^ None.
@@ -532,7 +532,7 @@ deleteItem np item =
        destroy item)
 
 -- | Deletes all items from a notepad.
-clearNotepad :: Notepad a 
+clearNotepad :: Notepad a
    -- ^ the concerned notepad.
    -> IO ()
    -- ^ None.
@@ -555,9 +555,9 @@ undoLastMotion np =
                       _ -> done)
 
 -- | @True@ if the given notepad item is selected.
-isNotepadItemSelected :: Notepad a 
+isNotepadItemSelected :: Notepad a
    -- ^ the concerned notepad.
-   -> NotepadItem a 
+   -> NotepadItem a
    -- ^ the concerned notepad item.
    -> IO Bool
    -- ^ @True@ if the given notepad item is
@@ -568,11 +568,11 @@ isNotepadItemSelected np item =
     return (any ((==) item) selecteditems)
 
 -- | Selects all items within the specified region.
-selectItemsWithin :: Position 
+selectItemsWithin :: Position
    -- ^ the upper left coordinate of the region.
-   -> Position 
+   -> Position
    -- ^ the lower right coordinate of the region.
-   -> Notepad a 
+   -> Notepad a
    -- ^ the concerned notepad.
    -> IO ()
    -- ^ None.
@@ -594,14 +594,14 @@ selectItemsWithin p1@(x0, y0) p2@(x1, y1) np =
     done
 
 -- | Gets the items from a notepad.
-getItems :: Notepad a 
+getItems :: Notepad a
    -- ^ the concerned notepad.
    -> IO [NotepadItem a]
    -- ^ A list of the contained notepad items.
 getItems np = getRef (items np)
 
 -- | Gets the selected items from a notepad.
-getSelectedItems :: Notepad a 
+getSelectedItems :: Notepad a
    -- ^ the concerned notepad.
    -> IO [NotepadItem a]
    -- ^ A list of the selected notepad items.
@@ -627,18 +627,18 @@ getView np =
 
 -- | Constructs a new notepad and returns a handler.
 newNotepad :: (CItem c, Container par) =>
-   par 
+   par
    -- ^ the parent widget (which has to be a container
    -- widget).
-   -> ScrollType 
+   -> ScrollType
    -- ^ the scrolltype for this notepad.
-   -> Size 
+   -> Size
    -- ^ the size of the notepad items images for this
    -- notepad.
-   -> Maybe (NotepadState c) 
+   -> Maybe (NotepadState c)
    -- ^ an optional previous notepad state to recover.
    ->
-   [Config (Notepad c)] 
+   [Config (Notepad c)]
    -- ^ the list of configuration options for this notepad.
    -> IO (Notepad c)
    -- ^ A notepad.
@@ -967,7 +967,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                                                 (Dropped (item,
                                                           selecteditems))
                                 setRef dropref Nothing
-                                destroy rect1 
+                                destroy rect1
                                 destroy rect2
                             _ -> do
                                    selecteditems <-
@@ -1202,7 +1202,7 @@ data CItem c => NotepadExportItem c =
 type NotepadState c = [NotepadExportItem c]
 
 -- | Exports a notepad\'s state.
-exportNotepadState :: CItem c => Notepad c 
+exportNotepadState :: CItem c => Notepad c
    -- ^ the concerned notepad.
    -> IO (NotepadState c)
    -- ^ The notepad\'s state.
@@ -1224,9 +1224,9 @@ exportNotepadState np =
         exportNotepadState' _ _ = return []
 
 -- | Imports a notepad\'s state.
-importNotepadState :: CItem c => Notepad c 
+importNotepadState :: CItem c => Notepad c
    -- ^ the concerned notepad.
-   -> NotepadState c 
+   -> NotepadState c
    -> IO ()
    -- ^ None.
 importNotepadState np st =

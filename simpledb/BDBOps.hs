@@ -1,7 +1,7 @@
 -- |
 -- Description: Interface to Berkeley Database
--- 
--- Functions we need for calling the Berkeley Database 
+--
+-- Functions we need for calling the Berkeley Database
 module BDBOps(
    BDB, -- A connection to a Berkeley Database
    openBDB, -- :: String -> IO BDB
@@ -25,7 +25,7 @@ module BDBOps(
    mkCursor, -- :: BDB -> IO Cursor
    readBDBAtCursor, -- :: Cursor -> IO (Maybe (BDBKey,ICStringLen))
    closeCursor, -- :: Cursor -> IO ()
-   
+
    ) where
 
 import System.IO.Unsafe
@@ -49,10 +49,10 @@ import BSem
 -- --------------------------------------------------------------
 
 openBDB :: String -> IO BDB
-openBDB dbName = 
+openBDB dbName =
    do
       serverDir <- getServerDir
-      withCString serverDir (\ serverDirCString 
+      withCString serverDir (\ serverDirCString
          -> withCString dbName (\ dbNameCString
             -> dbConnect serverDirCString dbNameCString
             )
@@ -69,7 +69,7 @@ writeBDB bdb txn icsl =
          alloca (\ (recNoPtr :: Ptr CSize) ->
             do
                dbStore bdb txn dataPtr (fromIntegral len) recNoPtr
-               
+
                key <- peek recNoPtr
                return (BDBKey key)
             )
@@ -96,7 +96,7 @@ readBDB bdb (BDBKey key) =
                   )
             temporaryData <- peek cStringPtr
 
-            if temporaryData == nullPtr 
+            if temporaryData == nullPtr
                then
                   return Nothing
                else
@@ -108,7 +108,7 @@ readBDB bdb (BDBKey key) =
                         (\ permanentData ->
                            copyArray permanentData temporaryData lenInt
                            )
-                     return (Just cStringLen) 
+                     return (Just cStringLen)
          )
       )
 
@@ -145,11 +145,11 @@ readBDBAtCursor cursor =
 
                             cStringLen <- mkICStringLen lenInt
                               (\ permanentDataPtr ->
-                                 copyArray permanentDataPtr temporaryDataPtr 
+                                 copyArray permanentDataPtr temporaryDataPtr
                                     lenInt
                                  )
                             return (Just (BDBKey recNo,cStringLen))
-               ) 
+               )
             )
          )
       )
@@ -157,7 +157,7 @@ readBDBAtCursor cursor =
 -- --------------------------------------------------------------
 -- The read lock
 -- --------------------------------------------------------------
-    
+
 -- | We lock all reads.  This is because of the way BDB allocates
 -- memory for the the results of get operations, namely to
 -- provide a pointer, but only seems to guarantee that it points
@@ -182,7 +182,7 @@ newtype BDBKey = BDBKey CSize deriving (Eq,Ord,Show,Integral,Real,Enum,Num)
 
 instance Monad m => HasBinary BDBKey m where
    writeBin = mapWrite (\ (BDBKey w) -> w)
-   readBin = mapRead BDBKey 
+   readBin = mapRead BDBKey
 
 foreign import ccall unsafe "bdbclient.h db_connect" dbConnect
    :: CString -> CString -> IO BDB

@@ -34,9 +34,9 @@ newtype BitMapItem = BitMapItem GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new bitmap item.
-createBitMapItem :: Canvas 
+createBitMapItem :: Canvas
    -- ^ the parent canvas.
-   -> [Config BitMapItem] 
+   -> [Config BitMapItem]
    -- ^ the list of configuration options for this bitmap
    -- item.
    -> IO BitMapItem
@@ -50,7 +50,7 @@ createBitMapItem cnv cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject BitMapItem where 
+instance GUIObject BitMapItem where
   toGUIObject (BitMapItem w) = w
   cname _ = "BitMapItem"
 

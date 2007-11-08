@@ -12,7 +12,7 @@ import HTk hiding (State)
 import DialogWin (createAlertWin,createMessageWin)
 
 -- The state of a single field.
-data State = Cleared Int 
+data State = Cleared Int
            | Unexplored { flagged :: Bool,
                           mine    :: Bool }
 
@@ -31,7 +31,7 @@ flags :: State-> Int
 flags (Unexplored{flagged= True}) = 1
 flags _                           = 0
 
--- Our playing field: an array of states, and the button handlers for 
+-- Our playing field: an array of states, and the button handlers for
 -- them. (We keep them separate, since the state will change,
 -- and the button handlers don't.)
 type Mines   = Array (Int, Int) State
@@ -49,7 +49,7 @@ hugeSize   = (25, 25)
 
 -- get list of all adjacents to a given position
 adjacents :: Mines-> (Int, Int)-> [(Int, Int)]
-adjacents p (x, y) = 
+adjacents p (x, y) =
   filter (inRange (bounds p))
          [(x-1, y-1), (x, y-1), (x+1, y-1),
           (x-1, y),             (x+1, y),
@@ -57,17 +57,17 @@ adjacents p (x, y) =
 
 -- Get a non-repeating infite list of valid positions.
 rndPos :: Mines-> IO [(Int, Int)]
-rndPos p = 
+rndPos p =
    do s1<- newStdGen
       s2<- newStdGen
-      return (nub (zip (randomRs (lox, hix) s1) 
+      return (nub (zip (randomRs (lox, hix) s1)
                        (randomRs (loy, hiy) s2))) where
         ((lox, loy), (hix, hiy))= bounds p
- 
+
 -- Create all mines
-createMines :: (Int, Int) -> Int 
+createMines :: (Int, Int) -> Int
                           -> IO Mines
-createMines (w, h) d = 
+createMines (w, h) d =
   do -- We first get the positions for all the mines, and then put
      -- them on an empty pitch.
      minePos <- rndPos mt
@@ -76,9 +76,9 @@ createMines (w, h) d =
          numMines = (w*h) `div` d
          mine   = Unexplored{mine= True, flagged= False}
          nomine = Unexplored{mine= False, flagged= False}
-  
+
 getImg :: Int -> Image
-getImg x 
+getImg x
   | x == 1 = oneImg
   | x == 2 = twoImg
   | x == 3 = threeImg
@@ -178,12 +178,12 @@ smWinImg = unsafePerformIO (newImage [imgData GIF "R0lGODdhIAAgAPcAALLA3NjXz+Hao
 {-# NOINLINE smWinImg #-}
 
 
-main = 
+main =
  do htk<- initHTk [withdrawMainWin]
-    run htk normalSize 
+    run htk normalSize
 
 run :: HTk-> (Int, Int)-> IO ()
-run htk currentSize = 
+run htk currentSize =
  do main <- createToplevel [text "hsMines"]
 
     menubar <- createMenu main False []
@@ -195,43 +195,43 @@ run htk currentSize =
     quitb <- createMenuCommand fm [text "Quit"]
 
     pm <- createPulldownMenu menubar [text "Preferences"]
-   
+
     pmc1 <- createMenuCascade pm [text "Size"]
     pmc1m <- createMenu main False []
     pmc1 # menu pmc1m
-        
+
     pmc2 <- createMenuCascade pm [text "Difficulty"]
     pmc2m <- createMenu main False []
     pmc2 # menu pmc2m
 
     varSize <- createTkVariable currentSize
-    sr1 <- createMenuRadioButton pmc1m 
-            [text "tiny (6x6)", value tinySize, 
+    sr1 <- createMenuRadioButton pmc1m
+            [text "tiny (6x6)", value tinySize,
              variable varSize]
-    sr2 <- createMenuRadioButton pmc1m 
+    sr2 <- createMenuRadioButton pmc1m
             [text "small (10x10)", value weeSize,
              variable varSize]
-    sr3 <- createMenuRadioButton pmc1m 
+    sr3 <- createMenuRadioButton pmc1m
             [text "normal (15x15)", value normalSize,
              variable varSize]
-    sr4 <- createMenuRadioButton pmc1m 
+    sr4 <- createMenuRadioButton pmc1m
             [text "large (20x20)", value bigSize,
              variable varSize]
-    sr5 <- createMenuRadioButton pmc1m 
+    sr5 <- createMenuRadioButton pmc1m
             [text "huge (25x25)", value hugeSize,
              variable varSize]
 
     varDiff <- createTkVariable (6:: Int)
-    dr1 <- createMenuRadioButton pmc2m 
+    dr1 <- createMenuRadioButton pmc2m
             [text "easy", value (8::Int),
              variable varDiff]
-    dr2 <- createMenuRadioButton pmc2m 
+    dr2 <- createMenuRadioButton pmc2m
             [text "normal", value (6::Int),
              variable varDiff]
-    dr3 <- createMenuRadioButton pmc2m 
+    dr3 <- createMenuRadioButton pmc2m
             [text "hard", value (4::Int),
              variable varDiff]
-    dr4 <- createMenuRadioButton pmc2m 
+    dr4 <- createMenuRadioButton pmc2m
             [text "nuts", value (3::Int),
              variable varDiff]
 
@@ -246,34 +246,34 @@ run htk currentSize =
 
     sm <- newButton main [photo smSmileImg]
     startClick <- clicked sm
-    
+
     pack sm [Side AtTop, PadY 20, PadX 20]
 
     restartCh <- newChannel
 
     bfr <- newFrame main [width (cm 10)]
 
-    pack bfr [Side AtTop, PadX 15] 
+    pack bfr [Side AtTop, PadX 15]
 
     size <- readTkVariable varSize
     allbuttons <- buttons bfr sm (receive restartCh) size
-    delayWish $ mapM_ (\(xy, b)-> grid b 
+    delayWish $ mapM_ (\(xy, b)-> grid b
           [GridPos xy, GridPadX 1, GridPadY 1]) allbuttons
 
-    let start :: IO () 
+    let start :: IO ()
         start = do diff <- readTkVariable varDiff
                    sendIO restartCh diff
-                   
+
     -- start the menu handler
     stopmh<- spawnEvent (forever
           (startClick >>> start
         +> quitClick >>> destroy htk
-        +> choose [csr1, csr2, csr3, csr4, csr5] >>> 
-             createMessageWin ("Changes come into effect\n" 
+        +> choose [csr1, csr2, csr3, csr4, csr5] >>>
+             createMessageWin ("Changes come into effect\n"
                ++ "after \"Restart\".") []))
 
     -- the restart handler (note no forever!)
-    spawnEvent (restartClick >>> 
+    spawnEvent (restartClick >>>
                   do stopmh
                      destroy main
                      nuSize <- readTkVariable varSize
@@ -290,70 +290,70 @@ buttons :: Container par=> par-> Button-> Event Int
                            -> IO [((Int, Int), Button)]
 
 buttons par sb startEv (size@(xmax, ymax)) =
-  do buttons <- mapM (\xy-> 
+  do buttons <- mapM (\xy->
        do b<- newButton par [photo starImg, relief Raised]
           return (xy, b)) [(x, y) | x <- [1.. xmax],
                                     y <- [1.. ymax]]
 
      let bArr = array ((1,1), size) buttons
-         getButtonRelease b n xy = 
-            do (click, _) <- bindSimple b 
+         getButtonRelease b n xy =
+            do (click, _) <- bindSimple b
                               (ButtonRelease (Just n))
                return (click >> return xy)
-     leCl <- mapM (\(xy, b)-> getButtonRelease b 1 xy) 
+     leCl <- mapM (\(xy, b)-> getButtonRelease b 1 xy)
                                  buttons
-     riCl <- mapM (\(xy, b)-> getButtonRelease b 3 xy) 
+     riCl <- mapM (\(xy, b)-> getButtonRelease b 3 xy)
                                  buttons
-     press <- mapM (\(_, b)-> 
+     press <- mapM (\(_, b)->
        do (cl, _)<- bindSimple b (ButtonPress Nothing)
           return cl) buttons
 
 
      let start :: Event ()
-         start = 
-           startEv >>>= \d-> 
+         start =
+           startEv >>>= \d->
              do m <- createMines (snd (bounds bArr)) d
                 sb # photo smSmileImg
-                mapM_ (\b-> b # photo zeroImg >>= 
+                mapM_ (\b-> b # photo zeroImg >>=
                                 relief Raised) (elems bArr)
                 sync (play m)
 
          play :: Mines-> Event ()
-         play m 
+         play m
            = do r <- choose leCl >>>= open bArr m
-                case r of Nothing -> always gameLost 
+                case r of Nothing -> always gameLost
                             >> gameOver
                           Just nu -> playOn nu
              +>
              do r<- choose riCl >>>= flag bArr m
                 playOn r
              +>
-             do choose press 
-                always (sb # photo smWorriedImg >> done) 
+             do choose press
+                always (sb # photo smWorriedImg >> done)
                 play m
              +>
-             start 
+             start
 
          playOn :: Mines-> Event ()
          playOn m = do always (sb # photo smCoolImg)
-                       if all (not.untouched) (elems m) then 
-                                        do always gameWon 
+                       if all (not.untouched) (elems m) then
+                                        do always gameWon
                                            gameOver
                           else play m
 
          gameLost :: IO ()
-         gameLost = 
+         gameLost =
            do sb # photo smSadImg
               createAlertWin "*** BOOM!***\nYou lost." []
          gameWon :: IO ()
-         gameWon = 
+         gameWon =
            do sb # photo smWinImg
               createMessageWin "You have won!" []
 
 
          gameOver :: Event ()
-         gameOver = start 
-                    +> (choose (leCl++ riCl) >> gameOver) 
+         gameOver = start
+                    +> (choose (leCl++ riCl) >> gameOver)
                     +> (choose press >> gameOver)
 
      spawnEvent start
@@ -362,30 +362,30 @@ buttons par sb startEv (size@(xmax, ymax)) =
 -- drop or retrieve a flag (mouse right-click)
 
 flag :: Buttons-> Mines-> (Int, Int)-> IO Mines
-flag b m xy = 
+flag b m xy =
   case m!xy of
     Cleared _ -> return m
-    s@(Unexplored{flagged= f})-> 
-        if f || (sum (map flags (elems m)) < 
+    s@(Unexplored{flagged= f})->
+        if f || (sum (map flags (elems m)) <
                     sum (map mines (elems m)))
-        then do b!xy # (if not f then photo flagImg 
+        then do b!xy # (if not f then photo flagImg
                         else photo zeroImg)
                 return (m // [(xy, s{flagged= not f})])
-        else return m 
+        else return m
 
 -- open up a field (mouse left-click)
--- returns Nothing, if we click on a hidden mine, the input if we 
+-- returns Nothing, if we click on a hidden mine, the input if we
 -- click on a flagged field (without a mine), and peeks at the field
 -- otherwise
 
--- Crimson: I switched the order of Flag and Mine because it sucks to 
--- accidently click a Flag and get killed... 
--- I also put the Cleared _ expression on top because I think this saves 
--- computation time. 
+-- Crimson: I switched the order of Flag and Mine because it sucks to
+-- accidently click a Flag and get killed...
+-- I also put the Cleared _ expression on top because I think this saves
+-- computation time.
 
 open :: Buttons-> Mines-> (Int, Int)-> IO (Maybe Mines)
-open b m xy = 
-  case m!xy of 
+open b m xy =
+  case m!xy of
     Cleared _                  -> return (Just m)
     Unexplored {flagged= True} -> return (Just m)
     Unexplored {mine= True}    -> return Nothing
@@ -405,8 +405,8 @@ peek b m (xy:rest) =
        adjMines = sum (map (mines. (m !)) (adjacents m xy))
        nu       = m // [(xy, Cleared adjMines)]
    in do (b!xy)# photo (getImg adjMines) >>= relief Flat
-         if adjMines == 0 then 
-            peek b nu (rest `union` 
+         if adjMines == 0 then
+            peek b nu (rest `union`
                       (filter (untouched. (m !))
                               (adjacents m xy)))
             else peek b nu rest

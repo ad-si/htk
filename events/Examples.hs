@@ -1,5 +1,5 @@
 -- | Examples is meant to contain examples of using events which
--- are too small to go into their own module. 
+-- are too small to go into their own module.
 module Examples(
    EventSet, -- These encode a set of events
    emptyEventSet, -- :: EventSet a
@@ -99,7 +99,7 @@ spawnRepeatedEvent event =
       let
 
          die = receive dieChannel
-      
+
          handleEvent =
                die
             +> (do
@@ -110,4 +110,4 @@ spawnRepeatedEvent event =
       return (sync(noWait(send dieChannel ())))
 
 
- 
+

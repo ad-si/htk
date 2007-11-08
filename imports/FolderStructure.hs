@@ -1,6 +1,6 @@
--- | This module defines the basic abstract folder structure which will be 
+-- | This module defines the basic abstract folder structure which will be
 -- defined in the types stuff and passed back to the functions in this
--- module for when they process import commands. 
+-- module for when they process import commands.
 
 module FolderStructure(
    FolderStructure(..),
@@ -19,7 +19,7 @@ import EntityNames
 -- The datatype
 -- -----------------------------------------------------------------------
 
--- The node will also need to instance Ord,Eq, though that's not required 
+-- The node will also need to instance Ord,Eq, though that's not required
 -- here.
 data FolderStructure node = FolderStructure {
    root :: node, -- the top node
@@ -29,7 +29,7 @@ data FolderStructure node = FolderStructure {
    getParent :: node -> IO (SimpleSource (Maybe (node,EntityName)))
       -- returns Nothing for the parent, but also if for some reason the
       -- node has been detached.
-   } 
+   }
 
 
 
@@ -42,7 +42,7 @@ lookupSearchName :: FolderStructure node -> node -> EntitySearchName
 lookupSearchName folderStructure (node :: node) entitySearchName =
       lookupSearchName1 node entitySearchName
    where
-      lookupSearchName1 :: node -> EntitySearchName 
+      lookupSearchName1 :: node -> EntitySearchName
          -> IO (SimpleSource (Maybe node))
       lookupSearchName1 node (FromHere fullName) =
          lookupFullName folderStructure node fullName
@@ -83,7 +83,7 @@ lookupFullName  folderStructure (node :: node) (EntityFullName names) =
 getName :: Ord node => FolderStructure node -> node -> IO EntityFullName
 -- For detached nodes we generate
 -- an (illegal) name of the form #DETACHED.[blah]
--- Current uses (22/9/2004) are (1) error messages; (2) package ids; 
+-- Current uses (22/9/2004) are (1) error messages; (2) package ids;
 -- (3) displaying permissions.
 getName (FolderStructure {getParent = getParent1,root = root1}) (node :: node) =
    do
@@ -96,7 +96,7 @@ getName (FolderStructure {getParent = getParent1,root = root1}) (node :: node) =
             parentSource <- getParent1 node0
             parentOpt <- readContents parentSource
             case parentOpt of
-               Nothing -> 
+               Nothing ->
                   return (
                      if node0 == root1
                         then

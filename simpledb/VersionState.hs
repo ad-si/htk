@@ -5,13 +5,13 @@ module VersionState(
 
    mkVersionState, -- :: Bool -> IO VersionState
       -- The Bool should be True for an internal server, False otherwise.
-   addVersionInfo, 
+   addVersionInfo,
       -- :: VersionState -> VersionInfo -> IO (WithError ())
-      -- Modify the VersionInfos. 
+      -- Modify the VersionInfos.
    lookupVersionInfo,
       -- :: VersionState -> ObjectVersion -> IO (Maybe VersionInfo)
    lookupServerInfo,
-      -- :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion) 
+      -- :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion)
    versionIsAncestor,
       -- :: VersionState -> ObjectVersion -> ObjectVersion -> IO Bool
 
@@ -50,7 +50,7 @@ import ServerErrors
 data VersionState = VersionState {
    versionDB :: BDB, -- ^ Data base of all known versions.
    serverMapRef :: IORef (FiniteMap ServerInfo ObjectVersion),
-      -- ^ Secondary index 
+      -- ^ Secondary index
    versionInfoActRef :: IORef ( IO (Bool,VersionInfo) -> IO ()),
       -- ^ Action to be performed when a VersionInfo is added (Bool is False)
       -- or modified (True), to communicate this to clients.
@@ -82,8 +82,8 @@ mkVersionState isInternal =
       versionInfos <- getBDBVersionInfos versionDB
 
       let
-         addVersionInfo 
-            :: FiniteMap ServerInfo ObjectVersion 
+         addVersionInfo
+            :: FiniteMap ServerInfo ObjectVersion
             -> VersionInfo
             -> FiniteMap ServerInfo ObjectVersion
          addVersionInfo map0 info =
@@ -98,7 +98,7 @@ mkVersionState isInternal =
 
       thisServerId <- mkServerId isInternal
 
-      versionInfoActRef <- newIORef (\ act 
+      versionInfoActRef <- newIORef (\ act
          -> do
                act
                done
@@ -118,9 +118,9 @@ mkVersionState isInternal =
 
 -- | Add a VersionInfo to a version state, or modify it if it already
 -- exists.
---  
+--
 -- This function takes a transaction.  However note that if this function
--- completes, it is assumed that 
+-- completes, it is assumed that
 addVersionInfo :: VersionState -> VersionInfo -> TXN -> IO ()
 addVersionInfo versionState versionInfo1 txn =
    do
@@ -128,7 +128,7 @@ addVersionInfo versionState versionInfo1 txn =
       -- version numbers are well-ordered for versionIsAncestor.
       if not (versionInfoIsWellOrdered versionInfo1)
          then
-            throwError MiscError 
+            throwError MiscError
                "Attempt to add VersionInfo whose parents do not precede it"
          else
             done
@@ -148,9 +148,9 @@ addVersionInfo versionState versionInfo1 txn =
          Nothing -> return False
          Just versionInfo0 ->
             do
-               if server versionInfo0 /= server versionInfo1 
+               if server versionInfo0 /= server versionInfo1
                   then
-                     throwError MiscError 
+                     throwError MiscError
                         "Attempt to change server info for a version"
                   else
                      done
@@ -195,8 +195,8 @@ putVersionInfo versionState versionInfo txn =
 
          key :: BDBKey
          key = fromIntegral lNo
-      setObjectHere1 (versionDB versionState) key txn versionInfo    
-      
+      setObjectHere1 (versionDB versionState) key txn versionInfo
+
 
 -- | Get all VersionInfo's in the BDB in ObjectVersion order.
 -- (only to be used in this module)
@@ -223,10 +223,10 @@ setParents parentTable versionInfo =
       let
          objectVersion :: ObjectVersion
          objectVersion = toObjectVersion versionInfo
-         
+
          parentObjectVersions :: [ObjectVersion]
          parentObjectVersions = parents . user $ versionInfo
-     
+
          toInt :: ObjectVersion -> Integer
          toInt (ObjectVersion lNo) = lNo
 
@@ -238,17 +238,17 @@ setParents parentTable versionInfo =
 -- ----------------------------------------------------------------------
 
 -- | Retrieve an object version given the server information.
-lookupServerInfo :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion) 
+lookupServerInfo :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion)
 lookupServerInfo versionState serverInfo =
    do
       serverMap <- readIORef (serverMapRef versionState)
-      return (lookupFM serverMap serverInfo) 
+      return (lookupFM serverMap serverInfo)
 
 -- | Retrieve all object versions in ObjectVersion order.
 getVersionInfos :: VersionState -> IO [VersionInfo]
 getVersionInfos versionState = getBDBVersionInfos (versionDB versionState)
 
--- | Register an action 
+-- | Register an action
 registerAct :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> IO ()
 registerAct versionState actFn =
    writeIORef (versionInfoActRef versionState) actFn
@@ -261,7 +261,7 @@ versionIsAncestor versionState (ObjectVersion lNo1) (ObjectVersion lNo2) =
       let
          parentTable0 = parentTable versionState
 
-         getParents lNo = 
+         getParents lNo =
             if lNo <= lNo1
                then
                   return [] -- no point going this way
@@ -304,7 +304,7 @@ mkServerId isInternal =
 -- ----------------------------------------------------------------------
 
 
-toObjectVersion :: VersionInfo -> ObjectVersion 
+toObjectVersion :: VersionInfo -> ObjectVersion
 toObjectVersion = version . user
 
 

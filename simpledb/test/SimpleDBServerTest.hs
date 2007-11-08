@@ -6,7 +6,7 @@ import SimpleDBServer
 getActs =
    do
       s <- initialiseSimpleDB
-      
+
       let
          q = querySimpleDB s
          n =
@@ -27,6 +27,6 @@ getActs =
                return vs
       return (backupSimpleDB s,n,c,r,lv)
 
-     
-               
+
+
 

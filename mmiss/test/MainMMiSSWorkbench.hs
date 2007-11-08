@@ -51,9 +51,9 @@ main1 =
       coerceWithErrorIO emacsWorkingWE
 
       withdrawWish
-      seq loadHTkImages done 
+      seq loadHTkImages done
 
-      alwaysAllowAdmin 
+      alwaysAllowAdmin
          -- allow admin status to be claimed by the internal server
       doRegistrations
       doMMiSSRegistrations
@@ -73,7 +73,7 @@ mainWindow =
       hostPorts <- getHostPorts
       let
          remoteServers :: [(Form HostPort,String)]
-         remoteServers = 
+         remoteServers =
             map
                (\ hostPort ->
                   let
@@ -96,16 +96,16 @@ mainWindow =
 
          internalForm :: (Form (),String)
          internalForm = (nullForm "Local Working Area","Connect")
-  
+
          quitForm :: (Form (),String)
          quitForm = (nullForm "","Quit")
 
          mainFormList =
-            (map (map' Connect) serverForms) 
+            (map (map' Connect) serverForms)
                ++ [map' (const ConnectInternal) internalForm,
                   map' (const Quit) quitForm]
 
-      (event,closeWindow) <- doFormList "MMiSS Repository Client Control Center" mainFormList 
+      (event,closeWindow) <- doFormList "MMiSS Repository Client Control Center" mainFormList
       let
          mainLoop :: IO ()
          mainLoop =
@@ -116,7 +116,7 @@ mainWindow =
                      do
                         errorMess mess
                         mainLoop
-                  Right action -> doAction action               
+                  Right action -> doAction action
 
          doAction :: UserAction -> IO ()
          doAction (Connect hostPort) =
@@ -136,7 +136,7 @@ mainWindow =
                      do
                         closeWindow
                         versionGraphList <- getCurrentVersionGraphs
-                        mapM 
+                        mapM
                            (\ (_,versionGraph) -> destroy versionGraph)
                            versionGraphList
                         cleanupWish
@@ -145,4 +145,4 @@ mainWindow =
                   else
                      mainLoop
 
-      mainLoop 
+      mainLoop

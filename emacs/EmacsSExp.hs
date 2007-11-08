@@ -1,4 +1,4 @@
--- | Module for parsing XEmacs sexps. 
+-- | Module for parsing XEmacs sexps.
 module EmacsSExp (
    SExp(..),
    doParse,
@@ -52,7 +52,7 @@ doParseInt input =
    in
       case sexp of
          Integer i -> fromIntegral i
-         _ -> error ("EmacsSExp: expecting Integer but found "++input) 
+         _ -> error ("EmacsSExp: expecting Integer but found "++input)
 
 -- | Because the ParsecToken module seems to have a problem with
 -- control characters (with charcode \< 32) in strings, we replace them
@@ -67,7 +67,7 @@ doControlChars str =
             ""
             str
       else
-         str   
+         str
 
 parseSExp :: Parser SExp
 parseSExp =
@@ -78,28 +78,28 @@ parseSExp =
 parseSExp0 :: Parser SExp
 parseSExp0 = parseString <|> parseInteger <|> parseId <|> parseList
 
-parseString :: Parser SExp 
+parseString :: Parser SExp
 parseString =
    do
       str <- P.stringLiteral lexer
       return (String str)
 
 
-parseInteger :: Parser SExp 
+parseInteger :: Parser SExp
 parseInteger =
    do
       int <- P.integer lexer
       return (Integer int)
 
 -- | We special-case nil.
-parseId :: Parser SExp 
+parseId :: Parser SExp
 parseId =
    do
       id <- P.identifier lexer
       return (if id == "nil" then List [] else Id id)
 
 
-parseList :: Parser SExp 
+parseList :: Parser SExp
 parseList =
    P.parens lexer
       (do

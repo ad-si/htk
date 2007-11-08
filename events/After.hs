@@ -11,10 +11,10 @@ import Events
 -- after waits (approximately) the given number of microseconds.
 after :: Int -> IO a -> Event a
 after delay aAction =
-   if delay <=0 
+   if delay <=0
       then
          always aAction
-      else 
+      else
          Event (
             \ toggle aActSink ->
                do
@@ -23,7 +23,7 @@ after delay aAction =
                         threadDelay delay
                         let Event registerFn = always aAction
                         Immediate <- registerFn toggle aActSink
-                        done 
+                        done
                      )
                   return (Awaiting done)
             )

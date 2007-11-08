@@ -1,7 +1,7 @@
 -- | This module implements a VersionDag, a graph which is used for
 -- displaying versions within the Workbench.
 --
--- The main differences between this and normal 'SimpleGraph.SimpleGraph''s 
+-- The main differences between this and normal 'SimpleGraph.SimpleGraph''s
 -- are that
 --   (1) the parents of a node are fixed when it is created, as are
 --       all arc labels and arc type labels.
@@ -34,7 +34,7 @@ import Sources
 import Broadcaster
 
 import Graph
-import PureGraph 
+import PureGraph
 import FindCommonParents
 import PureGraphPrune
 import PureGraphToGraph
@@ -58,13 +58,13 @@ data VersionDagState nodeKey nodeInfo arcInfo = VersionDagState {
    }
 
 -- --------------------------------------------------------------------------
--- Create 
+-- Create
 -- --------------------------------------------------------------------------
 
 newVersionDag :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
-   => (nodeInfo -> Bool) 
-   -> (nodeInfo -> nodeKey) 
-   -> (nodeInfo -> [(arcInfo,nodeKey)]) 
+   => (nodeInfo -> Bool)
+   -> (nodeInfo -> nodeKey)
+   -> (nodeInfo -> [(arcInfo,nodeKey)])
    -> IO (VersionDag nodeKey nodeInfo arcInfo)
 newVersionDag isHidden0 toNodeKey0 toParents0 =
    do
@@ -94,21 +94,21 @@ addVersion versionDag nodeInfo = addVersions versionDag [nodeInfo]
 addVersions :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
    => VersionDag nodeKey nodeInfo arcInfo -> [nodeInfo] -> IO ()
 addVersions versionDag nodeInfos =
-   applySimpleUpdate (stateBroadcaster versionDag) 
+   applySimpleUpdate (stateBroadcaster versionDag)
       (\ state0 ->
          let
             inPureGraph0 = inPureGraph state0
             inPureGraph1 = foldl
-               (\ pg0 nodeInfo -> 
-                  addNode pg0 (toNodeKey versionDag nodeInfo) 
+               (\ pg0 nodeInfo ->
+                  addNode pg0 (toNodeKey versionDag nodeInfo)
                      (toParents versionDag nodeInfo)
                   )
-               inPureGraph0 
+               inPureGraph0
                nodeInfos
-          
+
             nodeInfoDict0 = nodeInfoDict state0
 
-            nodeInfoDict1 = 
+            nodeInfoDict1 =
                addListToFM
                   nodeInfoDict0
                   (map
@@ -126,7 +126,7 @@ addVersions versionDag nodeInfos =
 deleteVersion :: Ord nodeKey
    => VersionDag nodeKey nodeInfo arcInfo -> nodeKey -> IO ()
 deleteVersion versionDag nodeKey =
-   applySimpleUpdate (stateBroadcaster versionDag) 
+   applySimpleUpdate (stateBroadcaster versionDag)
       (\ state0 ->
          let
             inPureGraph0 = inPureGraph state0
@@ -145,14 +145,14 @@ deleteVersion versionDag nodeKey =
 
 
 -- | Change the nodeInfo of something already added.
-setNodeInfo :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo) 
+setNodeInfo :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
    => VersionDag nodeKey nodeInfo arcInfo -> nodeInfo -> IO ()
 setNodeInfo = addVersion
 
 
 -- | Change the hidden function
 changeIsHidden :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
-   => VersionDag nodeKey nodeInfo arcInfo 
+   => VersionDag nodeKey nodeInfo arcInfo
    -> (nodeInfo -> Bool) -> IO ()
 changeIsHidden versionDag isHidden1 =
    applySimpleUpdate (stateBroadcaster versionDag)
@@ -162,14 +162,14 @@ changeIsHidden versionDag isHidden1 =
 -- Queries
 -- --------------------------------------------------------------------------
 
-nodeKeyExists :: Ord nodeKey 
+nodeKeyExists :: Ord nodeKey
    => VersionDag nodeKey nodeInfo arcInfo -> nodeKey -> IO Bool
 nodeKeyExists versionDag nodeKey =
    do
       nodeInfoOpt <- lookupNodeKey versionDag nodeKey
       return (isJust nodeInfoOpt)
 
-lookupNodeKey :: Ord nodeKey 
+lookupNodeKey :: Ord nodeKey
    => VersionDag nodeKey nodeInfo arcInfo -> nodeKey -> IO (Maybe nodeInfo)
 lookupNodeKey versionDag nodeKey =
    do
@@ -183,22 +183,22 @@ getNodeInfos versionDag =
       state <- readContents (stateBroadcaster versionDag)
       return (eltsFM (nodeInfoDict state))
 
- 
+
 -- --------------------------------------------------------------------------
 -- Getting the pruned graph out
 -- --------------------------------------------------------------------------
 
 toDisplayedGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
-   => VersionDag nodeKey nodeInfo arcInfo 
+   => VersionDag nodeKey nodeInfo arcInfo
    -> GraphConnection (nodeInfo,Bool) () (Maybe arcInfo) ()
 toDisplayedGraph (versionDag :: VersionDag nodeKey nodeInfo arcInfo) =
    let
-      transform :: VersionDagState nodeKey nodeInfo arcInfo 
+      transform :: VersionDagState nodeKey nodeInfo arcInfo
          -> (PureGraph nodeKey (Maybe arcInfo),nodeKey -> (nodeInfo,Bool))
       transform state =
          let
             toNodeInfo :: nodeKey -> nodeInfo
-            toNodeInfo nodeKey = 
+            toNodeInfo nodeKey =
                lookupWithDefaultFM
                   (nodeInfoDict state)
                   (error "VersionDag: nodeKey encountered with no nodeInfo")
@@ -234,16 +234,16 @@ toDisplayedGraph (versionDag :: VersionDag nodeKey nodeInfo arcInfo) =
 
 
 -- | Get the input graph in the form of FindCommonParents.GraphBack.
--- NB. 
+-- NB.
 -- (1) the confusion in the type variable "nodeKey" as used in
 --     FindCommonParents is not the same as our "nodeKey".
 -- (2) we get a snapshot of the state of the input graph at a particular
 --     time
-getInputGraphBack :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo) 
+getInputGraphBack :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
    => VersionDag nodeKey nodeInfo arcInfo
    -> (nodeKey -> nodeInfo -> graphBackNodeKey)
    -> IO (GraphBack nodeKey graphBackNodeKey)
-getInputGraphBack 
+getInputGraphBack
       (versionDag :: VersionDag nodeKey nodeInfo arcInfo)
       (toGraphBackNodeKey :: nodeKey -> nodeInfo -> graphBackNodeKey) =
    do
@@ -259,7 +259,7 @@ getInputGraphBack
          getAllNodes = toAllNodes inPureGraph0
 
          getKey :: nodeKey -> Maybe graphBackNodeKey
-         getKey nodeKey = 
+         getKey nodeKey =
             do
                nodeInfo <- lookupFM nodeInfoDict0 nodeKey
                return (toGraphBackNodeKey nodeKey nodeInfo)
@@ -272,19 +272,19 @@ getInputGraphBack
          getKey = getKey,
          getParents = getParents
          })
-      
+
 
 toInputGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
-   => VersionDag nodeKey nodeInfo arcInfo 
+   => VersionDag nodeKey nodeInfo arcInfo
    -> GraphConnection nodeInfo () arcInfo ()
 toInputGraph (versionDag :: VersionDag nodeKey nodeInfo arcInfo) =
    let
-      transform :: VersionDagState nodeKey nodeInfo arcInfo 
+      transform :: VersionDagState nodeKey nodeInfo arcInfo
          -> (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)
       transform state =
          let
             toNodeInfo :: nodeKey -> nodeInfo
-            toNodeInfo nodeKey = 
+            toNodeInfo nodeKey =
                lookupWithDefaultFM
                   (nodeInfoDict state)
                   (error "VersionDag: nodeKey encountered with no nodeInfo")

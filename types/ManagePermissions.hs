@@ -56,7 +56,7 @@ permissionsMenu view = [
 
 editObjectPermissions
    :: (ObjectType objectType object,HasLinkedObject object)
-   => View 
+   => View
    -> Link object
    -> IO ()
 editObjectPermissions view thisLink =
@@ -73,16 +73,16 @@ editObjectPermissions view thisLink =
          Nothing -> done
          Just permissions1 -> setPermissions (repository view) thisOVOpt
             permissions1
-         
+
 
 -- -----------------------------------------------------------------------
 -- Getting the parent LinkedObject (with respect to permissions).
 -- -----------------------------------------------------------------------
 
 -- | Get all permissions affecting an object.
-showAllPermissions 
+showAllPermissions
    :: (ObjectType objectType object,HasLinkedObject object)
-   => View 
+   => View
    -> Link object
    -> IO ()
 showAllPermissions view link =
@@ -116,11 +116,11 @@ showAllPermissions view link =
       messageMess output
 
 
-         
+
 
 -- | Get all permissions for this object and the parent objects.
-getAllPermissions :: View -> LinkedObject 
-   -> IO [(LinkedObject,Permissions)] 
+getAllPermissions :: View -> LinkedObject
+   -> IO [(LinkedObject,Permissions)]
       -- ^ list of linked objects and permissions, from the given object
       -- upwards.
 getAllPermissions view thisLinkedObject =
@@ -129,14 +129,14 @@ getAllPermissions view thisLinkedObject =
       let
          thisLocation = toLocation thisLinkedObject
 
-      thisPermissions <- getPermissions (repository view) 
+      thisPermissions <- getPermissions (repository view)
          (Just (parentVersion,thisLocation))
-      remainingList <- 
+      remainingList <-
          do
             parentLinkedObjectOpt <- getPermissionsParentLinkedObject
                view thisLinkedObject
             case parentLinkedObjectOpt of
-               Just parentLinkedObject -> 
+               Just parentLinkedObject ->
                   getAllPermissions view parentLinkedObject
                Nothing -> return []
       return ((thisLinkedObject,thisPermissions) : remainingList)
@@ -146,8 +146,8 @@ getAllPermissions view thisLinkedObject =
 -- NB.  For now at least this function is not capable of deducing the
 -- parent linked object if that it not the parent linked object in the view,
 -- since the repository can only tell us its location, not its type.
--- This *should* however be sufficient. 
-getPermissionsParentLinkedObject 
+-- This *should* however be sufficient.
+getPermissionsParentLinkedObject
    :: View -> LinkedObject -> IO (Maybe LinkedObject)
 getPermissionsParentLinkedObject view thisLinkedObject =
    do
@@ -155,7 +155,7 @@ getPermissionsParentLinkedObject view thisLinkedObject =
          thisLocation :: Location
          thisLocation = toLocation thisLinkedObject
 
-      parentLocationOpt <- 
+      parentLocationOpt <-
          do
             parentLocationOpt <- getValueOpt (parentChanges view) thisLocation
             case parentLocationOpt of
@@ -170,12 +170,12 @@ getPermissionsParentLinkedObject view thisLinkedObject =
          Just parentLocation ->
             do
                let
-                  failure = 
+                  failure =
                      do
                         alertMess "Unable to determine further ancestors"
                         return Nothing
-               thisInsertionOpt 
-                  <- getCurrentInsertion thisLinkedObject         
+               thisInsertionOpt
+                  <- getCurrentInsertion thisLinkedObject
                case thisInsertionOpt of
                   Nothing -> failure
                   Just insertion ->
@@ -185,7 +185,7 @@ getPermissionsParentLinkedObject view thisLinkedObject =
                         if toLocation parentLinkedObject == parentLocation
                            then
                               return (Just parentLinkedObject)
-                           else 
+                           else
                               failure
 
 -- -----------------------------------------------------------------------
@@ -201,7 +201,7 @@ getViewVersion view =
          Nothing ->
             error ("Attempt to get permissions for a view with no parent "
                ++ " version")
-                        
+
 toLocation :: LinkedObject -> Location
 toLocation = toKey . toWrappedLink
 

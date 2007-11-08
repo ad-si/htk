@@ -93,27 +93,27 @@ main =
             [background "white"]
     pack tl [Fill Both, Expand On]
 
-    (tlev, _) <- bindTreeListEv tl 
-    
+    (tlev, _) <- bindTreeListEv tl
+
     quit <- newButton main [text "Quit", width 15]
     pack quit [Side AtBottom, PadX 10, PadY 5]
 
     clickedquit <- clicked quit
     spawnEvent (forever (clickedquit >>> destroy main
                       +> tlev >>>= (\ev-> putStrLn ("TreeListEvent: "++
-					  	     prtEv ev))))
+                                                     prtEv ev))))
     finishHTk
 
 prtEv ::TreeListEvent FileObject-> String
 prtEv (Selected Nothing)   = "nothing selected"
-prtEv (Selected (Just tlo)) = 
+prtEv (Selected (Just tlo)) =
       let FileObject p nm _ = getTreeListObjectValue tlo in nm ++ " selected"
 prtEv (Focused (Nothing, _))    = "nothing focussed"
-prtEv (Focused (Just tlo, _)) = 
+prtEv (Focused (Just tlo, _)) =
       let FileObject p nm _ = getTreeListObjectValue tlo in nm ++ " focussed"
 
 delEv :: TreeList FileObject-> TreeListEvent FileObject-> IO ()
-delEv tl (Selected (Just tlo)) = 
+delEv tl (Selected (Just tlo)) =
   removeTreeListObject tl (getTreeListObjectValue tlo)
 delEv tl _ = done
 

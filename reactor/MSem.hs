@@ -1,10 +1,10 @@
 -- |
 -- Description: Reentrant Lock
--- 
--- This is a much simpler reimplementation of Einar's old Mutex semaphores.  
+--
+-- This is a much simpler reimplementation of Einar's old Mutex semaphores.
 -- This is a lock which can be required by a thread which is already holding
 -- it.
--- 
+--
 -- See also "TSem".
 module MSem(
    MSem,
@@ -24,8 +24,8 @@ import BSem
 
 data MSem = MSem {
    lock :: BSem,
-   holdingThreadRef :: IORef (Maybe ThreadId) 
-      -- only written when BSem is held by this thread. 
+   holdingThreadRef :: IORef (Maybe ThreadId)
+      -- only written when BSem is held by this thread.
    }
 
 newMSem :: IO MSem
@@ -58,4 +58,4 @@ synchronizeWithChoice mSem toAct =
 
 instance Synchronized MSem where
    synchronize mSem act = synchronizeWithChoice mSem (const act)
-                  
+

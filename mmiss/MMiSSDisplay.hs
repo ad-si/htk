@@ -1,4 +1,4 @@
--- | This module describes the display type that is used for MMiSS graphs. 
+-- | This module describes the display type that is used for MMiSS graphs.
 module MMiSSDisplay(
    MMiSSDisplayType,
    registerMMiSSDisplay, -- :: IO ()
@@ -53,7 +53,7 @@ instance DisplayType MMiSSDisplayType where
                      ": "++name displayType++" listing")
                      )
                   (getViewTitleSource view)
- 
+
          globalMenu <- newDefaultMenu displaySort view
          return (
             globalMenu $$
@@ -67,10 +67,10 @@ instance DisplayType MMiSSDisplayType where
 
    openDisplayMenuItemPrim displaySort displayType =
       Just (name displayType,openGeneralDisplay displaySort displayType)
-      
-      
+
+
 -- -----------------------------------------------------------------
--- Creating an MMiSSDisplay      
+-- Creating an MMiSSDisplay
 -- -----------------------------------------------------------------
 
 newMMiSSDisplay :: View -> IO (Maybe MMiSSDisplayType)

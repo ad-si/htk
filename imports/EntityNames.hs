@@ -1,13 +1,13 @@
 -- | This module defines the types EntityNames (and so on), as used by
 -- the LinkManager.
 module EntityNames(
-   EntityName(..), 
+   EntityName(..),
       -- a name identifying a single item in a folder
-   EntityFullName(..), 
+   EntityFullName(..),
       -- identifies a sequence of names, the first one being
       -- the most significant.
    EntitySearchName(..),
-      -- An EntityFullName but possibly 
+      -- An EntityFullName but possibly
 
    entityDir, -- :: EntityFullName -> Maybe EntityFullName
       -- Find the parent of the object, if there is one.
@@ -21,10 +21,10 @@ module EntityNames(
    trivialFullName, -- :: EntityFullName
       -- Name with no components.
 
-   searchNameDirBase, 
+   searchNameDirBase,
       -- :: EntitySearchName -> Maybe (EntitySearchName,Maybe EntityName)
       -- Split a search-name by its last component.
- 
+
    toFullName, -- :: EntitySearchName -> Maybe EntityFullName
       -- return the corresponding EntityFullName, if there is one.
 
@@ -45,12 +45,12 @@ module EntityNames(
    -- (Actually ".", now we have rationalised the syntax.)
    specialChar, -- :: Char
 
-   splitFullName, 
+   splitFullName,
       -- :: EntityFullName -> Maybe (EntityFullName,String)
       -- If the last component of the EntityFullName contains the specialChar
-      -- but not at the begining, split it off and return the EntityFullName 
+      -- but not at the begining, split it off and return the EntityFullName
       -- before the dot and what follows the dot.  Otherwise return Nothing.
-  
+
    unsplitFullName,
       -- :: EntityFullName -> String -> WithError EntityFullName
       -- Add the given separator to the fullName, which should not have one.
@@ -59,7 +59,7 @@ module EntityNames(
 import Char
 import List
 
-import Text.ParserCombinators.Parsec 
+import Text.ParserCombinators.Parsec
 
 import Maybes
 import AtomString
@@ -75,46 +75,46 @@ import SimpleForm
 -- The types.
 -- ----------------------------------------------------------------------
 
--- | Represented as a letter followed by a sequence of characters which may be 
+-- | Represented as a letter followed by a sequence of characters which may be
 -- letters, digits, \'_\', \'-\', \':\' or \'.\'.  Letters and digits do not have to be
 -- ASCII; any Unicode letters or digits are permitted.
--- 
+--
 -- \"Root\", \"Parent\" or \"Current\" are forbidden in the written representation.
 -- However they can arise internally though prefixing by a module which has
 -- such components in its name.
--- 
+--
 -- Example EntityName\'s: \"a\", \"bc\", \"z9_\", \"þ1\", \"cxl.gif\".
 newtype EntityName = EntityName String deriving (Eq,Ord,Typeable,Show)
 
 -- | An EntityFullName represents a path from an object to
 -- some object within it.
--- 
--- If the path is non-empty, it is represented as a sequence of EntityName\'s 
+--
+-- If the path is non-empty, it is represented as a sequence of EntityName\'s
 -- separated by \'\/\' (but spaces are not allowed).
--- 
+--
 -- Example EntityFullName\'s: \"a\", \"a\/bc\", \"z9_\/q\".
--- 
+--
 -- If the path is empty it is represented by \"Current\" or \"Root\".
--- 
+--
 newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 
 -- An EntitySearchName represents a path from an object to some other object,
 -- which may or may not be within it.
 --
 -- It may be an EntityFullName, or may be preceded by one of the following
--- (in each case separated by '/'), "Current", "Root" or some non-empty 
--- sequence of "Parent".  
+-- (in each case separated by '/'), "Current", "Root" or some non-empty
+-- sequence of "Parent".
 
 -- Example EntitySearchName's: "a", "Current/a", "Root/a", "Parent/Parent/a".
 --
 -- FromHere is actually identical to FromCurrent, *except* when the
--- search-name is the expansion of an alias.  
+-- search-name is the expansion of an alias.
 --
 -- FromAbsolute is an absolute name, that always works within an object and
 -- ignores any environment.  It is (currently) only used internally and
--- so has no readable parse syntax.  If displayed it is displayed as 
+-- so has no readable parse syntax.  If displayed it is displayed as
 -- \#ABSOLUTE\/[fullName] or #ABSOLUTE.
-data EntitySearchName = 
+data EntitySearchName =
       FromParent EntitySearchName -- go up one directory.
    |  FromHere EntityFullName
    |  FromCurrent EntityFullName
@@ -127,11 +127,11 @@ data EntitySearchName =
 -- -------------------------------------------------------------------------
 
 -- A PackageName for a path alias is defined as follows:
--- 
+--
 -- PackageName ::= Identifier | Alias | PackageName/Identifier
 --
 -- where an Alias is an Identifier which was defined through a path alias statement.
--- Furthermore, an Identifier can be one these special values: "Root", "Current", "Parent" 
+-- Furthermore, an Identifier can be one these special values: "Root", "Current", "Parent"
 --
 -- So, we translate this into EntityNames:
 --
@@ -139,7 +139,7 @@ data EntitySearchName =
 -- specialName ::= "Current" | "Parent" | "Root"
 -- identifier ::= <specialName> | <alias> | <name>     (identifier and alias are disjoint)
 -- <fullname> ::= <identifier>  ("/" <fullname>)*
--- 
+--
 -- where: <name> is meant as defined by George above, but cannot be a specialName
 --
 -- So, we code identifier with the datatype 'EntityName' and the fullnames with
@@ -149,11 +149,11 @@ data EntitySearchName =
 
 newtype ImportCommands = ImportCommands [ImportCommand] deriving (Eq)
 
-data ImportCommand = 
+data ImportCommand =
       Import [Directive] EntitySearchName
    |  PathAlias EntityName EntitySearchName deriving (Eq,Ord)
 
-data Directive = 
+data Directive =
       Qualified
    |  Unqualified
    |  Global
@@ -193,7 +193,7 @@ instance Monad m => HasWrapper Directive m where
       Rename n o -> UnWrap 6 (n,o)
       )
 
-instance (Monad m,HasWrapper Directive m) 
+instance (Monad m,HasWrapper Directive m)
       => HasBinary Directive m where
    writeBin = mapWrite Wrapped
    readBin = mapRead wrapped
@@ -212,7 +212,7 @@ instance Monad m => HasBinary ImportCommand m where
 instance Monad m => HasBinary ImportCommands m where
    writeBin = mapWrite (\ (ImportCommands ics) -> ics)
    readBin = mapRead (\ ics -> ImportCommands ics)
-   
+
 
 
 -- ----------------------------------------------------------------------
@@ -230,7 +230,7 @@ instance StringClass EntityFullName where
    toString (EntityFullName entityNames) =
       unsplitByChar '/' (map toString entityNames)
 
-   fromStringWE = mkFromStringWE entityFullNameParser "Entity FullName" 
+   fromStringWE = mkFromStringWE entityFullNameParser "Entity FullName"
 
 instance StringClass EntitySearchName where
    toString (FromRoot (EntityFullName [])) = "Root"
@@ -243,15 +243,15 @@ instance StringClass EntitySearchName where
    toString (FromAbsolute (EntityFullName [])) = "#ABSOLUTE"
    toString (FromAbsolute fullName) = "#ABSOLUTE/" ++ toString fullName
 
-   fromStringWE (str @ ('#':'A':'B':'S':'O':'L':'U':'T':'E':rest)) 
-      | rest == [] 
+   fromStringWE (str @ ('#':'A':'B':'S':'O':'L':'U':'T':'E':rest))
+      | rest == []
          = hasValue (FromAbsolute (EntityFullName []))
       | '/' : fullNameStr <- rest,
          Right fullName <- fromWithError (fromStringWE fullNameStr)
          = hasValue (FromAbsolute fullName)
    fromStringWE str
       = mkFromStringWE entitySearchNameParser "Entity Search Name" str
-          
+
 -- ----------------------------------------------------------------------
 -- To pick up errors we use DeepSeq to do the necessary seq'ing.
 -- ----------------------------------------------------------------------
@@ -311,17 +311,17 @@ entityDirBase (EntityFullName []) = Nothing
 entityDirBase (EntityFullName (name0 : names0)) =
    case entityDirBase (EntityFullName names0) of
       Nothing -> Just (EntityFullName [],name0)
-      Just (EntityFullName names1,name1) 
+      Just (EntityFullName names1,name1)
          -> Just (EntityFullName (name0 : names1),name1)
 
 entityDir :: EntityFullName -> Maybe EntityFullName
 entityDir fullName = fmap fst (entityDirBase fullName)
- 
+
 entityBase :: EntityFullName -> Maybe EntityName
 entityBase fullName = fmap snd (entityDirBase fullName)
 
 combineDirBase :: EntityFullName -> EntityName -> EntityFullName
-combineDirBase (EntityFullName names0) name 
+combineDirBase (EntityFullName names0) name
    = EntityFullName (names0 ++ [name])
 
 trivialFullName :: EntityFullName
@@ -332,7 +332,7 @@ toFullName (FromHere fullName) = Just fullName
 toFullName (FromCurrent fullName) = Just fullName
 toFullName _ = Nothing
 
-searchNameDirBase 
+searchNameDirBase
    :: EntitySearchName -> Maybe (EntitySearchName,Maybe EntityName)
 searchNameDirBase (FromRoot fname0) = case entityDirBase fname0 of
    Just (fname1,name) -> Just (FromRoot fname1,Just name)
@@ -358,7 +358,7 @@ splitFullName fullName0 =
       namePre <- case namePreStr of
          "" -> Nothing
          _ -> return (EntityName namePreStr)
- 
+
       return (subDir fullName1 namePre,ext)
 
 unsplitFullName :: EntityFullName -> String -> WithError EntityFullName
@@ -390,7 +390,7 @@ simpleNameCharParser :: GenParser Char st Char
 -- Characters allowed after the first character of a simpleName.
 simpleNameCharParser =
    satisfy
-      (\ ch -> isAlphaNum ch || (ch == '_') || (ch == '-') || (ch == ':') 
+      (\ ch -> isAlphaNum ch || (ch == '_') || (ch == '-') || (ch == ':')
          || (ch == specialChar))
 
 specialChar :: Char
@@ -409,7 +409,7 @@ entityNameParser =
       str <- simpleNameParser
       case mkEntityName str of
          Nothing -> fail (show str ++ " is not a valid entity name")
-         Just name -> return name 
+         Just name -> return name
 
 entityFullNameParser :: GenParser Char st EntityFullName
 entityFullNameParser =
@@ -417,9 +417,9 @@ entityFullNameParser =
       spaces
       strs <- simpleNamesParser
       case mkEntityFullName strs of
-         Nothing -> fail (show (unsplitByChar0 '/' strs)  
+         Nothing -> fail (show (unsplitByChar0 '/' strs)
             ++ " is not a valid entity full name")
-         Just name -> return name 
+         Just name -> return name
 
 entitySearchNameParser :: GenParser Char st EntitySearchName
 entitySearchNameParser =
@@ -427,9 +427,9 @@ entitySearchNameParser =
       spaces
       strs <- simpleNamesParser
       case mkEntitySearchName strs of
-         Nothing -> fail (show (unsplitByChar0 '/' strs)  
+         Nothing -> fail (show (unsplitByChar0 '/' strs)
             ++ " is not a valid entity search name")
-         Just name -> return name 
+         Just name -> return name
 
 
 
@@ -457,9 +457,9 @@ mkEntityFullName ["Current"] = Just (EntityFullName [])
 mkEntityFullName ["Root"] = Just (EntityFullName [])
 mkEntityFullName strs =
    let
-      entityNameOpts :: [Maybe EntityName]   
+      entityNameOpts :: [Maybe EntityName]
       entityNameOpts =
-         map 
+         map
             (\ str -> mkEntityName str)
             strs
 
@@ -480,7 +480,7 @@ mkEntitySearchName strs0 =
          [] -> Just (EntityFullName [])
          _ -> mkEntityFullName strs1
    in
-      fmap prefixFn fullNameOpt 
+      fmap prefixFn fullNameOpt
 
 searchNamePrefix :: [String] -> (EntityFullName -> EntitySearchName,[String])
 searchNamePrefix ("Current" : strs) = (FromCurrent,strs)

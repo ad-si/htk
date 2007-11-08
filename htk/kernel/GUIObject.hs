@@ -134,13 +134,13 @@ newGUIObject par@(GUIOBJECT parId parostref) kind meths =
                       return (GUIOBJECT oid ost)
       LABELFRAME -> do
                       let nm = show parnm ++
-                               (if show parnm == "." then "" else ".") ++ 
+                               (if show parnm == "." then "" else ".") ++
                                show oid
                       ost <- newRef (OST kind (LabelFrameName
                                                  (ObjectName nm) oid)
                                          parId meths)
                       return (GUIOBJECT oid ost)
-      SUBWIDGET subKind megaName -> 
+      SUBWIDGET subKind megaName ->
          do let objName = "["++show kind++"]"
             ost <- newRef (OST subKind (ObjectName objName) parId meths)
             return (GUIOBJECT oid ost)
@@ -155,7 +155,7 @@ newGUIObject ROOT kind meths =
     ost <- newRef (OST kind (ObjectName ("." ++ show oid)) oid meths)
     return (GUIOBJECT oid ost)
 
-  
+
 -- -----------------------------------------------------------------------
 --  GUI object identity
 -- -----------------------------------------------------------------------
@@ -190,7 +190,7 @@ setObjectKind (GUIOBJECT _ ostref) kind =
 
 
 -- -----------------------------------------------------------------------
---  Object Name Related Functions 
+--  Object Name Related Functions
 -- -----------------------------------------------------------------------
 
 getObjectName :: GUIOBJECT -> IO ObjectName

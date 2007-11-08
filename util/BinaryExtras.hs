@@ -22,9 +22,9 @@ import IOExtras
 import BinaryInstances()
 
 -- | Read something, but throw an exception if there is an attempt to
--- read too many characters. 
-hReadLtd :: HasBinary a IO => 
-   Int -- ^ the maximum number of characters 
+-- read too many characters.
+hReadLtd :: HasBinary a IO =>
+   Int -- ^ the maximum number of characters
    -> Handle -> IO (WithError a)
 hReadLtd limit handle =
    addFallOutWE (\ break ->
@@ -35,7 +35,7 @@ hReadLtd limit handle =
             ensure i =
                do
                   len1 <- simpleModifyIORef lenIORef
-                     (\ len0 -> 
+                     (\ len0 ->
                         let
                            len1 = len0 + i
                         in
@@ -48,7 +48,7 @@ hReadLtd limit handle =
                         done
 
 
-            (ReadBinary {readByte = readByte1,readBytes = readBytes1}) 
+            (ReadBinary {readByte = readByte1,readBytes = readBytes1})
                = toReadBinaryHandle handle
 
             readByte2 =
@@ -64,7 +64,7 @@ hReadLtd limit handle =
 
          readBin rb2
       )
-   
+
 -- ----------------------------------------------------------------------
 -- Instance for ClockTime
 -- ----------------------------------------------------------------------

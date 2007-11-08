@@ -1,13 +1,13 @@
 -- | This module runs some command in a similar way to "SafeSystem",
 -- but displays output in an HTk log window.
--- 
+--
 -- Really this ought to be in the posixutil or htk.  But it can't go in
 -- posixutil because it needs htk, and it can't go in htk because (thanks to
 -- Windows) htk isn't allowed to assume posixutil.
 module MMiSSRunCommand(
    runTool,
    runCommand,
-   copyFileBool, 
+   copyFileBool,
    errorWin
    ) where
 
@@ -26,7 +26,7 @@ import HTk
 import DialogWin
 
 -- | Run a tool, return ExitCode and tool output.
--- 
+--
 -- The first String is the title of the tool.
 -- The second String is the command to run.
 runTool :: String-> String-> IO (ExitCode, String)
@@ -40,7 +40,7 @@ runTool title command =
       return (exitCode, unlines (reverse output ))
 
 -- | Run a command; all output is considered error reporting,
--- 
+--
 -- We return True if the command succeeds; IE returns with exit code
 -- ExitSuccess.
 runCommand :: String -> String -> IO Bool
@@ -53,7 +53,7 @@ runCommand title command =
                return False
 
 
-errorWin :: String -> Int -> String -> IO () 
+errorWin :: String -> Int -> String -> IO ()
 errorWin title code output =
    do
       showOutput <- createDialogWin
@@ -71,7 +71,7 @@ copyFileBool source destination =
       unitWE <- copyFileWE source destination
       case (fromWithError unitWE) of
          Right () -> return True
-         Left mess -> 
+         Left mess ->
             do
                errorMess mess
                return False

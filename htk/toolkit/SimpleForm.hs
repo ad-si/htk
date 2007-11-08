@@ -3,16 +3,16 @@
 --
 -- This module defines 'SimpleForm's, a simple interface
 -- to filling in forms using HTk.  (Indeed, it is simple enough that it might
--- be ported to some other GUI sometime.) 
+-- be ported to some other GUI sometime.)
 module SimpleForm(
    Form, -- This represents a series of input fields.
       -- A (Form x) represents a form yielding a value of type x
       -- Form is an instance of functor, so fmap works for it.
       -- But mapForm is more general.
 
-   newFormEntry, -- :: (FormLabel label,FormValue value) 
+   newFormEntry, -- :: (FormLabel label,FormValue value)
       -- => label -> value -> Form value
-      -- This creates a new form with a single labelled entry. 
+      -- This creates a new form with a single labelled entry.
       -- The FormValue class includes text fields and radio buttons.
 
    emptyForm, -- :: Form ()
@@ -22,7 +22,7 @@ module SimpleForm(
       -- also pretty boring; just displays the label but doesn't provide
       -- any interaction.
 
-   newFormMenu, -- :: (FormLabel label) => label -> HTkMenu value 
+   newFormMenu, -- :: (FormLabel label) => label -> HTkMenu value
       -- -> Form (Maybe value)
       -- This creates a new form with a single labelled entry, selected
       -- by a menu.  A value of Nothing indicates that the user did not
@@ -30,7 +30,7 @@ module SimpleForm(
       -- The String is used to label the menu button containing the menu.
 
    newFormOptionMenu, -- :: (GUIValue a) => [a] -> Form a
-      -- This creates an "option menu" button.  The 
+      -- This creates an "option menu" button.  The
       -- advantage this has over a normal menu is that the value is shown.
       -- The first value in the list functions as a default value.
 
@@ -56,13 +56,13 @@ module SimpleForm(
    doFormMust, -- :: String -> Form value -> IO value
       -- Like doForm, but the user is not provided with a cancel button.
 
-   doFormList, 
+   doFormList,
       -- :: String -> [(Form x,String)] -> IO (Event (WithError x),IO ())
       -- Display a sequence of forms, horizontally, one after another.
       -- To the right of each form is a button, with text given by the
       -- accompanying String.
       -- Clicking this button causes an event to be generated, carrying
-      --    the accompanying form's value, or if invalid the error 
+      --    the accompanying form's value, or if invalid the error
       --    message.
       -- The first argument is the title of the window.  The
       -- IO () action returned closes the window.
@@ -70,8 +70,8 @@ module SimpleForm(
    mapForm, -- :: (x -> WithError y) -> Form x -> Form y
       -- mapForm changes the type of a form.  When we press OK with doForm,
       -- the supplied function is called.  If it returns a y, we return y
-      -- and close the window; if it returns an error message, 
-      -- the error message is 
+      -- and close the window; if it returns an error message,
+      -- the error message is
       -- displayed, and we continue.
    mapFormIO, -- :: (x -> IO (WithError y)) -> Form x -> Form y
       -- IO'based version of mapForm.
@@ -85,16 +85,16 @@ module SimpleForm(
       -- Checks that Nothing is not returned, with the attached error
       -- message.
 
-   FormValue(..), -- This is a class of values which can be read in from a 
+   FormValue(..), -- This is a class of values which can be read in from a
       -- simple form.  Instances include Int, String and Bool and ().
       -- (() just does nothing and is useful if you want a label without
       -- anything on it.)
       -- A user friendly way of constructing new instances is to instance
       -- one of the following two classes.
 
-   mapMakeFormEntry, 
-   -- :: FormValue value2 
-   -- => (value1 -> value2) -> (value2 -> value1) 
+   mapMakeFormEntry,
+   -- :: FormValue value2
+   -- => (value1 -> value2) -> (value2 -> value1)
    -- -> (Frame -> value1 -> IO (EnteredForm value1))
     -- Function for creating one instance of FormValue from another.
 
@@ -159,9 +159,9 @@ import HTkMenu
 -- destroyAction
 data EnteredForm value = EnteredForm {
    packAction :: IO (), -- packs the form entry into the widget.
-   getFormValue :: IO (WithError value), 
+   getFormValue :: IO (WithError value),
       -- extracts value or produces an error message
-   destroyAction :: IO () -- does any necessary clean-up. 
+   destroyAction :: IO () -- does any necessary clean-up.
    }
 
 mapEnteredForm :: (a -> b) -> EnteredForm a -> EnteredForm b
@@ -175,7 +175,7 @@ mapEnteredForm f
       }
 
 mapEnteredForm' :: (a -> WithError b) -> EnteredForm a -> EnteredForm b
-mapEnteredForm' f 
+mapEnteredForm' f
    (EnteredForm{packAction = packAction,getFormValue = getFormValue,
       destroyAction = destroyAction}) =
    EnteredForm {packAction = packAction,destroyAction = destroyAction,
@@ -184,9 +184,9 @@ mapEnteredForm' f
          return (mapWithError' f we1)
       }
 
-mapEnteredFormIO' :: (a -> IO (WithError b)) -> EnteredForm a 
+mapEnteredFormIO' :: (a -> IO (WithError b)) -> EnteredForm a
    -> EnteredForm b
-mapEnteredFormIO' f 
+mapEnteredFormIO' f
    (EnteredForm{packAction = packAction,getFormValue = getFormValue,
       destroyAction = destroyAction}) =
    EnteredForm {packAction = packAction,destroyAction = destroyAction,
@@ -199,7 +199,7 @@ mapEnteredFormIO' f
 -- The Form type and (//)
 -- -------------------------------------------------------------------------
 
-newtype Form value = Form (forall container . Container container 
+newtype Form value = Form (forall container . Container container
    => container -> IO (EnteredForm value))
 
 instance Functor Form where
@@ -272,7 +272,7 @@ guardForm test mess =
 
 guardFormIO :: (x -> IO Bool) -> String -> Form x -> Form x
 guardFormIO test mess =
-  mapFormIO (\ x -> 
+  mapFormIO (\ x ->
      do
         res <- test x
         return (if res then hasValue x else hasError mess)
@@ -280,7 +280,7 @@ guardFormIO test mess =
 
 guardNothing :: String -> Form (Maybe x) -> Form x
 guardNothing mess =
-   mapForm (\ xOpt -> 
+   mapForm (\ xOpt ->
       case xOpt of
       Nothing -> hasError mess
       Just x -> hasValue x
@@ -303,7 +303,7 @@ guardNothing mess =
             enteredForm1 <- enterForm1 frame1
             frame2 <- newFrame frame []
             enteredForm2 <- enterForm2 frame2
-            let 
+            let
                enteredForm = EnteredForm {
                   packAction = (
                      do
@@ -331,7 +331,7 @@ guardNothing mess =
       Form enterForm
 
 infixr 9 \\ -- so it binds more tightly than //
-      
+
 
 -- -------------------------------------------------------------------------
 -- emptyForm, nullForm, column and row
@@ -367,7 +367,7 @@ row forms =
       forms
 
 -- -------------------------------------------------------------------------
--- The doForm action 
+-- The doForm action
 -- -------------------------------------------------------------------------
 
 doFormMust :: String -> Form value -> IO value
@@ -395,7 +395,7 @@ doForm1 canCancel title (Form enterForm) =
             pack okButton [Side AtLeft]
 
             cancelEvent <-
-               if canCancel 
+               if canCancel
                   then
                      do
                         cancelButton <- newButton frame [text "Cancel"]
@@ -409,7 +409,7 @@ doForm1 canCancel title (Form enterForm) =
             let
                enteredForm =
                   enteredForm0 {
-                     destroyAction = 
+                     destroyAction =
                         do
                            destroyAction enteredForm0
                            cancelBind
@@ -451,7 +451,7 @@ doFormList :: String -> [(Form x,String)] -> IO (Event (WithError x),IO ())
 doFormList title (formList :: [(Form x,String)]) =
    do
       let
-         doOneForm :: Toplevel -> (Form x,String) 
+         doOneForm :: Toplevel -> (Form x,String)
             -> IO (Event (WithError x),IO ())
          doOneForm toplevel (Form enterForm,buttonName) =
             do
@@ -477,7 +477,7 @@ doFormList title (formList :: [(Form x,String)]) =
             return (toplevel,enterResults)
          )
       (destroyEvent,unbind) <- bindSimple toplevel Destroy
- 
+
       let
          event0 = choose (map fst enterResults)
 
@@ -488,19 +488,19 @@ doFormList title (formList :: [(Form x,String)]) =
                )
 
          destroyWindow :: IO ()
-         destroyWindow = 
+         destroyWindow =
             do
                mapM_ snd enterResults
                unbind
                destroy toplevel
       return (event1,destroyWindow)
 
- 
+
 -- -------------------------------------------------------------------------
 -- newFormEntry
 -- -------------------------------------------------------------------------
 
-newFormEntry :: (FormLabel label,FormValue value) => label -> value 
+newFormEntry :: (FormLabel label,FormValue value) => label -> value
    -> Form value
 newFormEntry label value =
    let
@@ -573,7 +573,7 @@ makeFormMenuEntry frame htkMenu =
 
       return (EnteredForm{
          packAction = pack menuButton [],
-         getFormValue = ( 
+         getFormValue = (
             do
                valueOpt <- readIORef resultRef
                return (hasValue valueOpt)
@@ -599,9 +599,9 @@ newFormOptionMenu options =
                      return (hasValue val)
                   ),
                destroyAction = done
-               }) 
+               })
    in
-      Form enterForm            
+      Form enterForm
 
 
 newFormOptionMenu2 :: (Eq a,GUIValue a) => [(a,b)] -> Form b
@@ -610,15 +610,15 @@ newFormOptionMenu2 options =
       form1 = newFormOptionMenu (map fst options)
    in
       fmap
-         (\ a0 -> case findJust 
-               (\ (a1,b1) -> if a1 == a0 then Just b1 else Nothing) 
+         (\ a0 -> case findJust
+               (\ (a1,b1) -> if a1 == a0 then Just b1 else Nothing)
                options
             of
                Nothing -> error (
                   "SimpleForm.newFormOptionMenu2: HTk returned strange value")
                Just b -> b
             )
-         form1      
+         form1
 
 -- -------------------------------------------------------------------------
 -- The FormLabel class
@@ -628,7 +628,7 @@ newFormOptionMenu2 options =
 
 class FormLabel label where
    formLabel :: Frame -> label -> IO (IO ())
-   -- formLabel frame label creates a new label 
+   -- formLabel frame label creates a new label
    -- (normally at the left of) the frame "frame" with detail label.  The action
    -- returned is the packing action.
 
@@ -646,7 +646,7 @@ instance FormLabel Image where
 
 
 -- We provide a heterogenous version of this too.
-data WrappedFormLabel = forall label . FormLabel label 
+data WrappedFormLabel = forall label . FormLabel label
    => WrappedFormLabel label
 
 instance FormLabel WrappedFormLabel where
@@ -660,15 +660,15 @@ instance FormLabel EmptyLabel where
 
 
 -- -------------------------------------------------------------------------
--- The FormValue class 
+-- The FormValue class
 -- -------------------------------------------------------------------------
 
 class FormValue value where
    makeFormEntry :: Frame -> value -> IO (EnteredForm value)
    -- Create a new form entry, given a default value.
 
-mapMakeFormEntry :: FormValue value2 
-   => (value1 -> value2) -> (value2 -> value1) 
+mapMakeFormEntry :: FormValue value2
+   => (value1 -> value2) -> (value2 -> value1)
    -> (Frame -> value1 -> IO (EnteredForm value1))
 mapMakeFormEntry toValue2 fromValue2 frame value1 =
    do
@@ -707,7 +707,7 @@ instance FormTextField value => FormTextFieldIO value where
    readFormStringIO value = return (readFormString value)
 
 -- -------------------------------------------------------------------------
--- Instance #1A - FormTextFieldIO's, where IO actions are allowed 
+-- Instance #1A - FormTextFieldIO's, where IO actions are allowed
 -- -------------------------------------------------------------------------
 
 class FormTextFieldIO value where
@@ -720,7 +720,7 @@ instance FormTextFieldIO value => FormValue value where
          defaultString <- makeFormStringIO defaultVal
          contentsVariable <- createTkVariable defaultString
          (entry :: Entry String) <- newEntry frame [variable contentsVariable]
-         let 
+         let
             getFormValue =
                do
                   (contents :: String) <- readTkVariable contentsVariable
@@ -745,9 +745,9 @@ instance FormTextFieldIO value => FormValue (Password value) where
       do
          defaultString <- makeFormStringIO defaultVal
          contentsVariable <- createTkVariable defaultString
-         (entry :: Entry String) 
+         (entry :: Entry String)
             <- newEntry frame [showText '.',variable contentsVariable]
-         let 
+         let
             getFormValue =
                do
                   (contents :: String) <- readTkVariable contentsVariable
@@ -774,17 +774,17 @@ instance FormTextFieldIO value => FormTextFieldIO (Maybe value) where
    makeFormStringIO Nothing = return ""
    makeFormStringIO (Just value) = makeFormStringIO value
 
-   readFormStringIO "" = 
+   readFormStringIO "" =
       do
          null <- readFormStringIO ""
          return (case fromWithError null of
             Left _ -> hasValue Nothing
             Right x -> hasValue (Just x)
             )
-   readFormStringIO str = 
+   readFormStringIO str =
       do
          xWE <- readFormStringIO str
-         return (mapWithError Just xWE) 
+         return (mapWithError Just xWE)
 
 -- -------------------------------------------------------------------------
 -- Instance #2C - Radio Buttons
@@ -805,7 +805,7 @@ class HasConfigRadioButton value where
 -- instance Show value => HasConfigRadioButton value where
 --    configRadioButton value = text (show value)
 
-instance (HasConfigRadioButton value,Bounded value,Enum value) 
+instance (HasConfigRadioButton value,Bounded value,Enum value)
    => FormValue (Radio value) where
    makeFormEntry frame rvalue =
       do
@@ -826,11 +826,11 @@ instance (HasConfigRadioButton value,Bounded value,Enum value)
 
             toRValue :: Int -> Radio value
             toRValue (-1) = NoRadio
-            toRValue i = 
+            toRValue i =
                if i>= 0 && i<= maxBoundInt - minBoundInt
                then
-                  Radio (toEnum (i+minBoundInt)) 
-               else error 
+                  Radio (toEnum (i+minBoundInt))
+               else error
                   ("SimpleForm.toRValue - radio button with odd number:"++
                      show i)
 
@@ -850,7 +850,7 @@ instance (HasConfigRadioButton value,Bounded value,Enum value)
          let
             enteredForm = EnteredForm {
                packAction = sequence_ packActions,
-               getFormValue = 
+               getFormValue =
                   do
                      valInt <- readTkVariable radioVar
                      return (hasValue (toRValue valInt)),
@@ -910,7 +910,7 @@ instance FormValue () where
 -- -------------------------------------------------------------------------
 
 -- | An editable text window as a form entry
--- Useful config options: 
+-- Useful config options:
 --   (value String) to set initial contents
 --   (height i), (width i) to set the height and width in characters.
 --   (background s) to set the background colour to s.
@@ -926,9 +926,9 @@ editableTextForm configs =
 
          editor # scrollbar Vertical scrollBar1
          editor # scrollbar Horizontal scrollBar2
-         
+
          return (EnteredForm {
-            packAction = 
+            packAction =
                (do
                   pack editor [Side AtRight]
                   pack scrollBar1 [Side AtRight,Fill Y,Expand On]
@@ -953,9 +953,9 @@ editableTextForm0 configs =
          editorFrame <- newFrame container []
 
          editor <- newEditor editorFrame (configs ++ [wrap NoWrap])
-         
+
          return (EnteredForm {
-            packAction = 
+            packAction =
                (do
                   pack editor [Side AtRight]
                   pack editorFrame []

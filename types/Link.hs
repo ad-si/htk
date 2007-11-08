@@ -1,8 +1,8 @@
 -- |
 -- Description: Pointers to Repository Objects
--- 
+--
 -- This module defines links, which are pointers to objects in the repository.
--- Thus they can be part of other objects. 
+-- Thus they can be part of other objects.
 --
 -- NB errors.  Errors are indicated by exceptions, in the format of the
 -- ServerErrors module.
@@ -16,7 +16,7 @@ module Link(
 
    topLink, -- :: Link x
       -- This link points to the "top object".  This needs to be
-      -- created 
+      -- created
 
    setOrGetTopLink, -- :: HasCodedValue x => View -> IO x -> IO (Versioned x)
       -- setOrGetTopLink initialises the
@@ -25,24 +25,24 @@ module Link(
 
    -- Versioned values
    -- A Versioned x is a box containing an actual x which can be
-   -- stored in the repository.  The x needs to be an instance of 
+   -- stored in the repository.  The x needs to be an instance of
    -- HasCodedValue.
    Versioned,
 
-   createObject, 
-      -- :: HasCodedValue x => View -> Link y -> x 
-      -- -> IO (Versioned x) 
+   createObject,
+      -- :: HasCodedValue x => View -> Link y -> x
+      -- -> IO (Versioned x)
    -- This is used for creating a completely new object, given the parent link.
 
    deleteLink, -- :: HasCodedValue x => View -> Link x -> IO ()
    -- This deletes an object from the View.
    -- NB.  It is very important to make sure that the object is not later
    -- dereferenced by fetchLink or readLink, or you will simply get a crash.
-   -- 
+   --
    -- The LinkManager.deleteLinkedObject takes care of this for any links
    -- it stores.
 
-   cloneLink, 
+   cloneLink,
       -- :: HasCodedValue x => View -> Link x -> View -> Link x -> IO ()
       -- cloneLink view1 link1 view2 link2
       -- requires that (a) link1 is not changed in view1; (b) link2 does
@@ -79,7 +79,7 @@ module Link(
    -- Does fetchLink and readObject in one go.
    writeLink, -- :: HasCodedValue x => View -> Link x -> x -> IO ()
    -- Does fetchLink and updateObject in one go.
-   writeLinkIfNe, 
+   writeLinkIfNe,
       -- :: (HasCodedValue x,Eq x) => View -> Link x -> x -> IO Bool
       -- does fetchLink and updateObjectIfNe in one go.
    pokeLink, -- :: HasCodedValue x => View -> x -> Link y -> x -> IO (Link x)
@@ -112,12 +112,12 @@ module Link(
       -- Provide an efficient way of testing two links for equality, and
       -- ordering them.
    coerceLink, -- :: (HasCodedValue x,HasCodedValue y) => Link x -> Link y
-      -- to be used with care (only for NoAccessObject hackery I hope) 
+      -- to be used with care (only for NoAccessObject hackery I hope)
    mkHackedLink, -- :: HasCodedValue x => Location -> Link x
       -- used as a hack in MergeComputeParents.
 
 
-   getLastChange, 
+   getLastChange,
       -- :: View -> Link object -> IO (Maybe ObjectVersion)
       -- Return the last-change indicator for a link in the view.
 
@@ -132,7 +132,7 @@ module Link(
       -- This function collects a lot of links in parallel.
 
 
-   getIsDirtySimpleSource, 
+   getIsDirtySimpleSource,
       -- :: Versioned x -> SimpleSource Bool
       -- Return a source which is True whenever the versioned value is
       -- dirty (meaning that it has uncommitted data).
@@ -172,7 +172,7 @@ instance HasKey (Link x) Location where
    toKey (Link location) = location
 
 -- | This link points to the \"top object\".  This needs to be
--- created 
+-- created
 topLink :: Link x
 topLink = Link specialLocation2
 
@@ -193,55 +193,55 @@ isEmptyLink view link =
 -- | This function collects a lot of links in parallel.
 preFetchLinks :: HasCodedValue x => View -> [Link x] -> IO ()
 preFetchLinks view links =
-   mapMConcurrent_ 
+   mapMConcurrent_
       (\ link ->
          do
             fetchLink view link
             done
          )
       links
-   
--- | fetchOrSetLink is a function for both fetching a link, and for 
+
+-- | fetchOrSetLink is a function for both fetching a link, and for
 -- creating a link if one is not already there.  The first action contains
 -- the action which can return a status value which is used to construct a
 -- new value.
-fetchOrSetLink :: HasCodedValue x 
+fetchOrSetLink :: HasCodedValue x
    => IO (Maybe (Status x)) -> View -> Link x -> IO (Versioned x)
 fetchOrSetLink
-      getNewStatusOpt 
-      (view@View{repository = repository,objects = objects}) 
+      getNewStatusOpt
+      (view@View{repository = repository,objects = objects})
       ((Link location) :: Link x) =
    do
-      transformValue objects location 
+      transformValue objects location
          (\ objectDataOpt ->
           do
             let
                xName :: String
                xName = show (typeOf (undefined :: x))
 
-               err (errorType,mess) = 
-                  throwError errorType 
+               err (errorType,mess) =
+                  throwError errorType
                      ("fetchLink " ++ xName ++ ": " ++ mess)
-                  -- The LockedRegistry code should ensure the old value 
+                  -- The LockedRegistry code should ensure the old value
                   -- of objectDataOpt gets written back.
 
                -- readObject Nothing has to be used for the initial
                -- EMPTY version.
-               -- 
+               --
                -- The first two arguments should not be True and Nothing
-               readObject :: ReadObjectArg -> Location 
+               readObject :: ReadObjectArg -> Location
                   -> IO (Maybe ObjectData,Versioned x)
                readObject readObjectArg oldLocation =
                   do
                      (statusOS :: Either (ErrorType,String) (Status x)) <-
                         catchError (
                            do
-                              osourceOpt <- case toObjectVersionOpt 
+                              osourceOpt <- case toObjectVersionOpt
                                     readObjectArg of
                                  Nothing -> return Nothing
                                  Just oldVersion ->
                                     catchNotFound (
-                                       retrieveObjectSource repository 
+                                       retrieveObjectSource repository
                                        oldVersion oldLocation
                                        )
                               case osourceOpt of
@@ -254,7 +254,7 @@ fetchOrSetLink
                                     do
                                        statusOpt <- getNewStatusOpt
                                        case statusOpt of
-                                          Nothing -> 
+                                          Nothing ->
                                              return (Left  (ClientError,
                                                 "Link " ++ show location
                                                 ++ " not found"))
@@ -278,7 +278,7 @@ fetchOrSetLink
                               return (Just(
                                  PresentObject {
                                     thisVersioned = toDyn versioned,
-                                    mkObjectSource 
+                                    mkObjectSource
                                        = mkObjectSourceFn view versioned
                                           (fmap
                                              (\ oldVersion ->
@@ -289,7 +289,7 @@ fetchOrSetLink
                                     }),
                                  versioned
                                  )
-                     
+
             case objectDataOpt of
                Nothing ->
                   do
@@ -303,7 +303,7 @@ fetchOrSetLink
                         let
                            yName = show versionedDyn
                         in
-                           throwError ClientError 
+                           throwError ClientError
                              ("fetchLink - type error in link: "
                               ++ "found a " ++ yName
                               ++ "looking for a " ++ xName
@@ -330,7 +330,7 @@ readLink :: HasCodedValue x => View -> Link x -> IO x
 readLink view link =
    do
       versioned <- fetchLink view link
-      readObject view versioned 
+      readObject view versioned
 
 -- | Does 'fetchLink' and 'updateObject' in one go.
 writeLink :: HasCodedValue x => View -> Link x -> x -> IO ()
@@ -340,7 +340,7 @@ writeLink view link x =
       updateObject view x versioned
 
 
--- | to be used with care (only for NoAccessObject hackery I hope) 
+-- | to be used with care (only for NoAccessObject hackery I hope)
 coerceLink :: (HasCodedValue x,HasCodedValue y) => Link x -> Link y
 coerceLink (Link location) = Link location
 
@@ -355,7 +355,7 @@ pokeLink :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
 pokeLink view (Link location) x =
    do
       let
-         status = UpToDate x 
+         status = UpToDate x
 
       statusMVar <- newMVar status
       statusBroadcaster <- newSimpleBroadcaster status
@@ -427,7 +427,7 @@ eqLink :: Link x -> Link y -> Bool
 eqLink (Link loc1) (Link loc2) = loc1 == loc2
 
 -- | Provide an efficient way of comparing two links.
--- 
+--
 -- NB NB.  MergeComputeParents uses a hack which assumes that the
 -- ordering only depends on the link location.
 compareLink :: Link x -> Link y -> Ordering
@@ -444,8 +444,8 @@ cloneLink view1 (Link location1) view2 (Link location2) =
          Nothing -> error "Link.cloneLink - used on virgin link."
          Just oldVersion -> return oldVersion
 
-      isAlreadyDone <- 
-         if location1 == location2 
+      isAlreadyDone <-
+         if location1 == location2
             then
                do
                   thisVersionOpt <- getParentVersion view2
@@ -466,14 +466,14 @@ cloneLink view1 (Link location1) view2 (Link location2) =
                   )
             )
          )
-               
-      
+
+
 -- ----------------------------------------------------------------------
 -- Versioned
 -- ----------------------------------------------------------------------
 
 -- | A Versioned x is a box containing an actual x which can be
--- stored in the repository.  The x needs to be an instance of 
+-- stored in the repository.  The x needs to be an instance of
 -- 'HasCodedValue'.
 data Versioned x = Versioned {
    location :: Location, -- Location in the view.
@@ -497,15 +497,15 @@ data Versioned x = Versioned {
 -- The Maybe (Location,ObjectVersion) indicates, if set, that this is
 -- a cloned object, and so this should be used if the object is marked
 -- as UpToDate.
-mkObjectSourceFn :: HasCodedValue x => View 
-   -> Versioned x -> Maybe (ObjectVersion,Location) -> ObjectVersion 
+mkObjectSourceFn :: HasCodedValue x => View
+   -> Versioned x -> Maybe (ObjectVersion,Location) -> ObjectVersion
    -> IO (Maybe CommitChange)
 mkObjectSourceFn (view@View{repository = repository})
-      (versioned@(Versioned {location = location,statusMVar = statusMVar})) 
+      (versioned@(Versioned {location = location,statusMVar = statusMVar}))
       clonedOpt viewVersion =
    do
       status <- takeMVar statusMVar
-      let 
+      let
          commitX x  =
             do
                xCodedValue <- doEncodeIO x view
@@ -516,18 +516,18 @@ mkObjectSourceFn (view@View{repository = repository})
          Empty -> error "Attempt to commit Empty object!!!"
          UpToDate x -> return (x,case clonedOpt of
             Nothing -> Nothing
-            Just (oldVersion,oldLocation) 
+            Just (oldVersion,oldLocation)
                -> Just (Right (oldVersion,oldLocation))
             )
-         Cloned x oldVersion oldLocation 
+         Cloned x oldVersion oldLocation
             -> return (x,Just (Right (oldVersion,oldLocation)))
-         Dirty x -> commitX x 
+         Dirty x -> commitX x
          Virgin x -> commitX x
 
       putNewStatus versioned (UpToDate x)
       return objectSourceOpt
 
-data Status x = 
+data Status x =
       Empty -- created by newEmptyObject
    |  UpToDate x -- This object committed and up-to-date
    |  Cloned x ObjectVersion Location
@@ -539,9 +539,9 @@ data Status x =
 -- NB.  This function is only intended for use for merging.  The
 -- link should not have anything in it before.
 setLink :: HasCodedValue x => View -> x -> Link x -> IO (Versioned x)
-setLink view x (Link location) = 
+setLink view x (Link location) =
    do
-      (versioned,objectCreated) 
+      (versioned,objectCreated)
          <- createObjectGeneral1 view (Virgin x) location
       if objectCreated
          then
@@ -550,7 +550,7 @@ setLink view x (Link location) =
             updateObject view x versioned
 
       return versioned
-               
+
 -- | setOrGetTopLink is somewhat safer than 'setTopLink' and initialises the
 -- top object, if that hasn\'t already been done, via the supplied action.
 -- Otherwise it (harmlessly) returns the existing object.
@@ -589,7 +589,7 @@ moveLocation view newParent object =
 -- before readObject is done on this Versioned value.  This must also be
 -- done before any commitView, unless the object is deleted via deleteLink.
 newEmptyObject :: HasCodedValue x => View -> Link y -> IO (Versioned x)
-newEmptyObject view (Link parentLocation) = 
+newEmptyObject view (Link parentLocation) =
    do
       location <- newLocation (repository view)
       versioned <- createObjectGeneral view Empty location
@@ -607,7 +607,7 @@ isEmptyObject versioned =
 
 -- createObjectGeneral creates a completely new object for an already-
 -- allocated location, given a Status (Virgin or Empty) to put in it.
-createObjectGeneral :: HasCodedValue x => View -> Status x -> Location 
+createObjectGeneral :: HasCodedValue x => View -> Status x -> Location
    -> IO (Versioned x)
 createObjectGeneral view status location =
    do
@@ -616,27 +616,27 @@ createObjectGeneral view status location =
          then
             return versioned
          else
-            error ("Attempt to create " ++ show location ++ 
+            error ("Attempt to create " ++ show location ++
                " which already exists")
 
 -- | Creates a new object with the given status and location, returning
 -- the corresponding Versioned and True.  If we can't because the
 -- object already exists, return the corresponding Versioned and False.
-createObjectGeneral1 :: HasCodedValue x => View -> Status x -> Location 
+createObjectGeneral1 :: HasCodedValue x => View -> Status x -> Location
    -> IO (Versioned x,Bool)
 createObjectGeneral1 view status location =
    do
       -- We use fetchOrSetLinKWE to do the actual work
       objectCreatedRef <- newIORef False
-      
+
       let
-         statAct = 
+         statAct =
             do
                writeIORef objectCreatedRef True
                return (Just status)
 
       versioned <- fetchOrSetLink statAct view (Link location)
-      
+
       objectCreated <- readIORef objectCreatedRef
       return (versioned,objectCreated)
 
@@ -644,13 +644,13 @@ createObjectGeneral1 view status location =
 -- NB.  It is very important to make sure that the object has first
 -- been deleted from anything which references it by link (EG folders)
 -- or you will get the program crashing when someone tries to follow the
--- link.  
--- 
+-- link.
+--
 -- Links provided by the LinkManager (and I don\'t know of any others) can
 -- be deleted using LinkManager.deleteLinkedObject (which also calls
 -- deleteLink).
 deleteLink :: HasCodedValue x => View -> Link x -> IO ()
-deleteLink view (Link location) = 
+deleteLink view (Link location) =
    do
       debug ("Deleting " ++ show location)
       deleteFromRegistry (objects view) location
@@ -665,7 +665,7 @@ updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =
 
 -- | Like 'updateObject', except that it does nothing if x is no change
 -- from the previous value.
-updateObjectIfNe :: (HasCodedValue x,Eq x) => View -> x -> Versioned x 
+updateObjectIfNe :: (HasCodedValue x,Eq x) => View -> x -> Versioned x
    -> IO Bool
 updateObjectIfNe view x (versioned@Versioned{statusMVar = statusMVar}) =
    do
@@ -760,13 +760,13 @@ getIsDirtySimpleSource (versioned :: Versioned x) =
 -- ----------------------------------------------------------------------
 
 -- | Return the last-change indicator for a link in the view.
-getLastChange 
+getLastChange
    :: HasCodedValue object => View -> Link object -> IO (Maybe ObjectVersion)
 getLastChange view (Link location :: Link object) =
    do
       objectData <- getValueOpt (objects view) location
       let
-         repositoryLastChange = 
+         repositoryLastChange =
             do
                (Just parentVersion) <- getParentVersion view
                lc <- lastChange (repository view) parentVersion location

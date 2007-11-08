@@ -1,4 +1,4 @@
--- | This module contains various utilities for manipulating MMiSSBundles. 
+-- | This module contains various utilities for manipulating MMiSSBundles.
 module MMiSSBundleUtils(
    bundleToICSL, -- :: BundleText -> Maybe (ICStringLen,CharType)
 
@@ -38,7 +38,7 @@ import MMiSSImportExportErrors
 bundleToICSL :: BundleText -> Maybe (ICStringLen,CharType)
 bundleToICSL (BundleString {contents = contents,charType = charType}) =
    Just (contents,charType)
-bundleToICSL (BundleDyn {}) 
+bundleToICSL (BundleDyn {})
    = importExportError "API bug: Untranslated BundleDyn in exported bundle"
 bundleToICSL NoText = Nothing
 
@@ -94,24 +94,24 @@ getFileLocAndParent view linkedObject =
 
          (name1,ext1,parentOpt) = case nameAndParentOpt of
             Nothing -> (Nothing,Nothing,Nothing)
-            Just (name0,parent) 
+            Just (name0,parent)
                | Just (name1,ext0) <- splitExtension name0
                -> (Just name1,Just ext0,Just parent)
                | True -> (Just name0,Nothing,Just parent)
- 
+
          (base1,getExt) = case splitLinkedObject linkedObject of
             FileC _ -> (FileEnum,getExtraY)
             FolderC _ -> (FolderEnum,getExtraY)
             UnknownLinkC -> (UnknownType,getExtraY)
             MMiSSPreambleC _ -> (MMiSSPreambleEnum,getExtraN)
             MMiSSPackageFolderC _ -> (MMiSSFolderEnum,getExtraN)
-            MMiSSObjectC _ -> (MMiSSObjectEnum,getExtraN) 
+            MMiSSObjectC _ -> (MMiSSObjectEnum,getExtraN)
             MMiSSFileC _ -> (MMiSSFileEnum,getExtraN)
 
       extra1 <- getExt
 
       let
-         bundleType = BundleType {base = base1,ext = ext1,extra = extra1} 
+         bundleType = BundleType {base = base1,ext = ext1,extra = extra1}
 
          fileLoc = FileLoc {
             name = name1,
@@ -126,12 +126,12 @@ preambleFileLoc =
       name = Nothing,
       objectType = mmissPreambleType
       }
-               
- 
+
+
 getExtra :: View -> LinkedObject -> IO String
 getExtra view linkedObject =
    do
-      let 
+      let
          wrappedLink = toWrappedLink linkedObject
       wrappedObject <- wrapReadLink view wrappedLink
       let

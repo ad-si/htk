@@ -2,7 +2,7 @@
 -- Fortunately we don't need to define these as a new instance of ObjectTypes;
 -- instead we can use the bog-standard Folders.
 module MMiSSSubFolder(
-   mmissSubFolderType, 
+   mmissSubFolderType,
       -- :: FolderType
       -- feed this to Folders.newEmptyFolder
 
@@ -16,7 +16,7 @@ import DisplayParms
 
 registerMMiSSSubFolder :: IO ()
 registerMMiSSSubFolder = registerExtraFolderType mmissSubFolderType
-   
+
 
 mmissSubFolderType :: FolderType
 mmissSubFolderType =
@@ -25,5 +25,5 @@ mmissSubFolderType =
       displayParms =  readDisplay "white rhombus"
    in
       mkFolderType0 key displayParms
-   
+
 

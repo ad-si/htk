@@ -36,9 +36,9 @@ newtype MenuRadioButton = MenuRadioButton GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new menu radiobutton and returns a handler.
-createMenuRadioButton :: Menu 
+createMenuRadioButton :: Menu
    -- ^ the parent menu.
-   -> [Config MenuRadioButton] 
+   -> [Config MenuRadioButton]
    -- ^ the list of configuration options for this menu
    -- radiobutton.
    ->
@@ -57,7 +57,7 @@ createMenuRadioButton m cnf =
 instance MenuItem MenuRadioButton
 
 -- | Internal.
-instance GUIObject MenuRadioButton where 
+instance GUIObject MenuRadioButton where
   toGUIObject (MenuRadioButton w) = w
   cname _ = "MenuRadioButton"
 
@@ -78,7 +78,7 @@ instance HasBorder MenuRadioButton
 
 -- | A menu radiobutton has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
-instance HasColour MenuRadioButton where 
+instance HasColour MenuRadioButton where
   legalColourID = buttonColours
 
 -- | A menu radiobutton is a stateful object, it can be enabled or

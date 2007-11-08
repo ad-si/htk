@@ -1,5 +1,5 @@
 -- | This provides a ServiceClass instance allowing our
--- GraphEditor to be run across a network.  
+-- GraphEditor to be run across a network.
 module GraphEditorService(
    graphEditorService, -- :: pass to connectBroadcastOther to call server
    graphEditorServiceWrapped, -- pass to server
@@ -33,10 +33,10 @@ graphEditorServiceWrapped = Service graphEditorService
 
 graphEditorService :: (ReadShow DisplayableUpdate,ReadShow DisplayableUpdate,
       Displayable SimpleGraph)
-graphEditorService = serviceArg 
+graphEditorService = serviceArg
 
-instance ServiceClass 
-   (ReadShow DisplayableUpdate) (ReadShow DisplayableUpdate) 
+instance ServiceClass
+   (ReadShow DisplayableUpdate) (ReadShow DisplayableUpdate)
    (Displayable SimpleGraph) where
 
    serviceId _ = "GraphEditor"
@@ -68,7 +68,7 @@ instance ServiceClass
             graphState' = graphState',
             nameSourceBranch' = nameSourceBranch'
             }))
-   
+
    initialStateFromString _ Nothing = newEmptyGraph
    initialStateFromString _ (Just frozenGraphString) =
       do
@@ -113,4 +113,4 @@ instance ServiceClass
             nameSource2 = frozenNameSource
             }))
 
-         
+

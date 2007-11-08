@@ -30,26 +30,26 @@ data Connect_Attrs = Connect_Attrs
     , connectUser :: (Maybe String)
     , connectPassword :: (Maybe String)
     } deriving (Eq,Show)
-newtype ConnectResponse = ConnectResponse ServerRef 		deriving (Eq,Show)
-newtype CloseServer = CloseServer ServerRef 		deriving (Eq,Show)
-data CloseServerResponse = CloseServerResponse 		deriving (Eq,Show)
-newtype ListVersions = ListVersions ServerRef 		deriving (Eq,Show)
-newtype ListVersionsResponse = ListVersionsResponse [VersionInfo] 		deriving (Eq,Show)
+newtype ConnectResponse = ConnectResponse ServerRef             deriving (Eq,Show)
+newtype CloseServer = CloseServer ServerRef             deriving (Eq,Show)
+data CloseServerResponse = CloseServerResponse          deriving (Eq,Show)
+newtype ListVersions = ListVersions ServerRef           deriving (Eq,Show)
+newtype ListVersionsResponse = ListVersionsResponse [VersionInfo]               deriving (Eq,Show)
 data CheckOut = CheckOut CheckOut_Attrs ServerRef
                          (Maybe VersionRef)
               deriving (Eq,Show)
 data CheckOut_Attrs = CheckOut_Attrs
     { checkOutVersion :: String
     } deriving (Eq,Show)
-newtype CheckOutResponse = CheckOutResponse VersionRef 		deriving (Eq,Show)
+newtype CheckOutResponse = CheckOutResponse VersionRef          deriving (Eq,Show)
 data ChangeUserInfo = ChangeUserInfo VersionRef UserInfo
                     deriving (Eq,Show)
-data ChangeUserInfoResponse = ChangeUserInfoResponse 		deriving (Eq,Show)
+data ChangeUserInfoResponse = ChangeUserInfoResponse            deriving (Eq,Show)
 data CommitVersion = CommitVersion VersionRef (Maybe UserInfo)
                    deriving (Eq,Show)
-data CommitVersionResponse = CommitVersionResponse 		deriving (Eq,Show)
-newtype CloseVersion = CloseVersion VersionRef 		deriving (Eq,Show)
-data CloseVersionResponse = CloseVersionResponse 		deriving (Eq,Show)
+data CommitVersionResponse = CommitVersionResponse              deriving (Eq,Show)
+newtype CloseVersion = CloseVersion VersionRef          deriving (Eq,Show)
+data CloseVersionResponse = CloseVersionResponse                deriving (Eq,Show)
 data GetObject = GetObject GetObject_Attrs VersionRef
                            ObjectFullName (Maybe Variants)
                deriving (Eq,Show)
@@ -58,41 +58,41 @@ data GetObject_Attrs = GetObject_Attrs
     , getObjectFormat :: (Defaultable GetObject_format)
     , getObjectRecurse :: (Defaultable GetObject_recurse)
     } deriving (Eq,Show)
-data GetObject_what = GetObject_what_locations  | 
+data GetObject_what = GetObject_what_locations  |
                       GetObject_what_everything
                     deriving (Eq,Show)
-data GetObject_format = GetObject_format_LaTeX  | 
+data GetObject_format = GetObject_format_LaTeX  |
                         GetObject_format_XML
                       deriving (Eq,Show)
-data GetObject_recurse = GetObject_recurse_justThis  | 
+data GetObject_recurse = GetObject_recurse_justThis  |
                          GetObject_recurse_allIncluded
                        deriving (Eq,Show)
-newtype GetObjectResponse = GetObjectResponse Bundle 		deriving (Eq,Show)
+newtype GetObjectResponse = GetObjectResponse Bundle            deriving (Eq,Show)
 data PutObject = PutObject VersionRef ObjectFullName
                            (Maybe PackageId) Bundle
                deriving (Eq,Show)
-data PutObjectResponse = PutObjectResponse 		deriving (Eq,Show)
-newtype GetPermissions = GetPermissions WhichPermissions 		deriving (Eq,Show)
-newtype GetPermissionsResponse = GetPermissionsResponse Permissions 		deriving (Eq,Show)
+data PutObjectResponse = PutObjectResponse              deriving (Eq,Show)
+newtype GetPermissions = GetPermissions WhichPermissions                deriving (Eq,Show)
+newtype GetPermissionsResponse = GetPermissionsResponse Permissions             deriving (Eq,Show)
 data SetPermissions = SetPermissions WhichPermissions Permissions
                     deriving (Eq,Show)
-data SetPermissionsResponse = SetPermissionsResponse 		deriving (Eq,Show)
+data SetPermissionsResponse = SetPermissionsResponse            deriving (Eq,Show)
 data SetAdminStatus = SetAdminStatus SetAdminStatus_Attrs ServerRef
                     deriving (Eq,Show)
 data SetAdminStatus_Attrs = SetAdminStatus_Attrs
     { setAdminStatusAction :: SetAdminStatus_action
     } deriving (Eq,Show)
-data SetAdminStatus_action = SetAdminStatus_action_claim  | 
+data SetAdminStatus_action = SetAdminStatus_action_claim  |
                              SetAdminStatus_action_revoke
                            deriving (Eq,Show)
-data SetAdminStatusResponse = SetAdminStatusResponse 		deriving (Eq,Show)
+data SetAdminStatusResponse = SetAdminStatusResponse            deriving (Eq,Show)
 data ServerRef = ServerRef
     { serverRefRef :: String
     } deriving (Eq,Show)
 data VersionRef = VersionRef
     { versionRefRef :: String
     } deriving (Eq,Show)
-newtype Bundle = Bundle [Bundle_] 		deriving (Eq,Show)
+newtype Bundle = Bundle [Bundle_]               deriving (Eq,Show)
 data Bundle_ = Bundle_ PackageId File
              deriving (Eq,Show)
 data PackageId = PackageId
@@ -102,8 +102,8 @@ data File = File FileLocation (Maybe (OneOf2 FileVariants Files))
           deriving (Eq,Show)
 data FileLocation = FileLocation (Maybe ObjectName) ObjectType
                   deriving (Eq,Show)
-newtype Files = Files [File] 		deriving (Eq,Show)
-newtype FileVariants = FileVariants [FileVariant] 		deriving (Eq,Show)
+newtype Files = Files [File]            deriving (Eq,Show)
+newtype FileVariants = FileVariants [FileVariant]               deriving (Eq,Show)
 data FileVariant = FileVariant (Maybe Variants)
                                (Maybe FileContents)
                  deriving (Eq,Show)
@@ -111,7 +111,7 @@ data FileContents = FileContents
     { fileContentsDataBlock :: String
     , fileContentsCharType :: (Defaultable FileContents_charType)
     } deriving (Eq,Show)
-data FileContents_charType = FileContents_charType_byte  | 
+data FileContents_charType = FileContents_charType_byte  |
                              FileContents_charType_unicode
                            deriving (Eq,Show)
 data VersionInfo = VersionInfo VersionInfo_Attrs UserInfo
@@ -120,7 +120,7 @@ data VersionInfo = VersionInfo VersionInfo_Attrs UserInfo
 data VersionInfo_Attrs = VersionInfo_Attrs
     { versionInfoIsPresent :: (Defaultable VersionInfo_isPresent)
     } deriving (Eq,Show)
-data VersionInfo_isPresent = VersionInfo_isPresent_present  | 
+data VersionInfo_isPresent = VersionInfo_isPresent_present  |
                              VersionInfo_isPresent_absent
                            deriving (Eq,Show)
 data UserInfo = UserInfo UserInfo_Attrs (Maybe Attributes)
@@ -137,33 +137,33 @@ data ServerInfo = ServerInfo
     , serverInfoTimeStamp :: String
     , serverInfoUserId :: String
     } deriving (Eq,Show)
-newtype ObjectName = ObjectName String 		deriving (Eq,Show)
+newtype ObjectName = ObjectName String          deriving (Eq,Show)
 data ObjectType = ObjectType
     { objectTypeBaseType :: ObjectType_baseType
     , objectTypeExtType :: (Maybe String)
     , objectTypeExtraType :: (Maybe String)
     } deriving (Eq,Show)
-data ObjectType_baseType = ObjectType_baseType_folder  | 
+data ObjectType_baseType = ObjectType_baseType_folder  |
                            ObjectType_baseType_plainFile  |  ObjectType_baseType_mmissFolder
-                            |  ObjectType_baseType_mmissObject  | 
+                            |  ObjectType_baseType_mmissObject  |
                            ObjectType_baseType_mmissFile  |  ObjectType_baseType_mmissPreamble
                             |  ObjectType_baseType_unknownType
                          deriving (Eq,Show)
-newtype ObjectFullName = ObjectFullName String 		deriving (Eq,Show)
+newtype ObjectFullName = ObjectFullName String          deriving (Eq,Show)
 data WhichPermissions = WhichPermissionsServerRef ServerRef
                       | WhichPermissionsVersionRef_ObjectFullName (VersionRef,ObjectFullName)
                       deriving (Eq,Show)
-newtype Permissions = Permissions String 		deriving (Eq,Show)
+newtype Permissions = Permissions String                deriving (Eq,Show)
 data Variant = Variant
     { variantKey :: String
     , variantValue :: (Maybe String)
     } deriving (Eq,Show)
-newtype Variants = Variants [Variant] 		deriving (Eq,Show)
+newtype Variants = Variants [Variant]           deriving (Eq,Show)
 data Attribute = Attribute
     { attributeKey :: String
     , attributeValue :: String
     } deriving (Eq,Show)
-newtype Attributes = Attributes [Attribute] 		deriving (Eq,Show)
+newtype Attributes = Attributes [Attribute]             deriving (Eq,Show)
 data Messages = Messages Messages_Attrs [Messages_]
               deriving (Eq,Show)
 data Messages_Attrs = Messages_Attrs
@@ -174,13 +174,13 @@ data Messages_ = Messages_Alert Alert
                | Messages_Warning Warning
                | Messages_Message Message
                deriving (Eq,Show)
-data Messages_status = Messages_status_success  | 
+data Messages_status = Messages_status_success  |
                        Messages_status_fail  |  Messages_status_panic
                      deriving (Eq,Show)
-newtype Alert = Alert String 		deriving (Eq,Show)
-newtype Error = Error String 		deriving (Eq,Show)
-newtype Warning = Warning String 		deriving (Eq,Show)
-newtype Message = Message String 		deriving (Eq,Show)
+newtype Alert = Alert String            deriving (Eq,Show)
+newtype Error = Error String            deriving (Eq,Show)
+newtype Warning = Warning String                deriving (Eq,Show)
+newtype Message = Message String                deriving (Eq,Show)
 
 
 {-Instance decls-}
@@ -268,7 +268,7 @@ instance XmlAttributes Connect_Attrs where
           , connectUser = possibleA fromAttrToStr "user" as
           , connectPassword = possibleA fromAttrToStr "password" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ maybeToAttr toAttrFrStr "server" (connectServer v)
         , maybeToAttr toAttrFrStr "user" (connectUser v)
         , maybeToAttr toAttrFrStr "password" (connectPassword v)
@@ -339,7 +339,7 @@ instance XmlAttributes CheckOut_Attrs where
         CheckOut_Attrs
           { checkOutVersion = definiteA fromAttrToStr "checkOut" "version" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "version" (checkOutVersion v)
         ]
 instance XmlContent CheckOutResponse where
@@ -432,7 +432,7 @@ instance XmlAttributes GetObject_Attrs where
           , getObjectFormat = defaultA fromAttrToTyp GetObject_format_LaTeX "format" as
           , getObjectRecurse = defaultA fromAttrToTyp GetObject_recurse_justThis "recurse" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ defaultToAttr toAttrFrTyp "what" (getObjectWhat v)
         , defaultToAttr toAttrFrTyp "format" (getObjectFormat v)
         , defaultToAttr toAttrFrTyp "recurse" (getObjectRecurse v)
@@ -554,7 +554,7 @@ instance XmlAttributes SetAdminStatus_Attrs where
         SetAdminStatus_Attrs
           { setAdminStatusAction = definiteA fromAttrToTyp "setAdminStatus" "action" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrTyp "action" (setAdminStatusAction v)
         ]
 instance XmlAttrType SetAdminStatus_action where
@@ -587,7 +587,7 @@ instance XmlAttributes ServerRef where
         ServerRef
           { serverRefRef = definiteA fromAttrToStr "serverRef" "ref" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "ref" (serverRefRef v)
         ]
 instance XmlContent VersionRef where
@@ -603,7 +603,7 @@ instance XmlAttributes VersionRef where
         VersionRef
           { versionRefRef = definiteA fromAttrToStr "versionRef" "ref" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "ref" (versionRefRef v)
         ]
 instance XmlContent Bundle where
@@ -641,7 +641,7 @@ instance XmlAttributes PackageId where
         PackageId
           { packageIdId = definiteA fromAttrToStr "packageId" "id" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "id" (packageIdId v)
         ]
 instance XmlContent File where
@@ -715,7 +715,7 @@ instance XmlAttributes FileContents where
           { fileContentsDataBlock = definiteA fromAttrToStr "fileContents" "dataBlock" as
           , fileContentsCharType = defaultA fromAttrToTyp FileContents_charType_unicode "charType" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "dataBlock" (fileContentsDataBlock v)
         , defaultToAttr toAttrFrTyp "charType" (fileContentsCharType v)
         ]
@@ -745,7 +745,7 @@ instance XmlAttributes VersionInfo_Attrs where
         VersionInfo_Attrs
           { versionInfoIsPresent = defaultA fromAttrToTyp VersionInfo_isPresent_present "isPresent" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ defaultToAttr toAttrFrTyp "isPresent" (versionInfoIsPresent v)
         ]
 instance XmlAttrType VersionInfo_isPresent where
@@ -775,7 +775,7 @@ instance XmlAttributes UserInfo_Attrs where
           , userInfoVersion = possibleA fromAttrToStr "version" as
           , userInfoParents = possibleA fromAttrToStr "parents" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ maybeToAttr toAttrFrStr "label" (userInfoLabel v)
         , maybeToAttr toAttrFrStr "contents" (userInfoContents v)
         , maybeToAttr toAttrFrStr "version" (userInfoVersion v)
@@ -797,7 +797,7 @@ instance XmlAttributes ServerInfo where
           , serverInfoTimeStamp = definiteA fromAttrToStr "serverInfo" "timeStamp" as
           , serverInfoUserId = definiteA fromAttrToStr "serverInfo" "userId" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "serverId" (serverInfoServerId v)
         , toAttrFrStr "serialNo" (serverInfoSerialNo v)
         , toAttrFrStr "timeStamp" (serverInfoTimeStamp v)
@@ -828,7 +828,7 @@ instance XmlAttributes ObjectType where
           , objectTypeExtType = possibleA fromAttrToStr "extType" as
           , objectTypeExtraType = possibleA fromAttrToStr "extraType" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrTyp "baseType" (objectTypeBaseType v)
         , maybeToAttr toAttrFrStr "extType" (objectTypeExtType v)
         , maybeToAttr toAttrFrStr "extraType" (objectTypeExtraType v)
@@ -900,7 +900,7 @@ instance XmlAttributes Variant where
           { variantKey = definiteA fromAttrToStr "variant" "key" as
           , variantValue = possibleA fromAttrToStr "value" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "key" (variantKey v)
         , maybeToAttr toAttrFrStr "value" (variantValue v)
         ]
@@ -928,7 +928,7 @@ instance XmlAttributes Attribute where
           { attributeKey = definiteA fromAttrToStr "attribute" "key" as
           , attributeValue = definiteA fromAttrToStr "attribute" "value" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "key" (attributeKey v)
         , toAttrFrStr "value" (attributeValue v)
         ]
@@ -957,7 +957,7 @@ instance XmlAttributes Messages_Attrs where
         Messages_Attrs
           { messagesStatus = defaultA fromAttrToTyp Messages_status_success "status" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ defaultToAttr toAttrFrTyp "status" (messagesStatus v)
         ]
 instance XmlContent Messages_ where

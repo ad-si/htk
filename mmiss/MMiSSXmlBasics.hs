@@ -19,12 +19,12 @@ import ExtendedPrelude
 -- all values are simple strings.
 -- ------------------------------------------------------------------------
 
--- | Get an object's attribute. 
+-- | Get an object's attribute.
 getAttribute :: [Attribute] -> String -> WithError (Maybe String)
 getAttribute attributes name = case lookup name attributes of
    Just (AttValue [Left value]) -> return (Just value)
    Just _ -> fail ("Value of " ++ name ++ " attribute is not a simple string")
-   Nothing -> return Nothing 
+   Nothing -> return Nothing
 
 -- | Delete an attribute with a given key, if one is present
 delAttribute :: [Attribute] -> String -> [Attribute]
@@ -46,7 +46,7 @@ setAttribute attributes0 key value =
 setAttribute0 :: [Attribute] -> String -> String -> [Attribute]
 setAttribute0 attributes0 key value =
    (key,AttValue [Left value]) : attributes0
-   
+
 
 
 -- | Get an Element's attribute
@@ -60,7 +60,7 @@ delAtt key (Elem name atts0 content) =
       atts1 = delAttribute atts0 key
    in
       Elem name atts1 content
-      
+
 -- | Set an Element's attribute
 setAtt :: String -> Element -> String -> Element
 setAtt key (Elem name atts0 content) value =

@@ -1,7 +1,7 @@
 -- | The removeAncestors function in this module (actually an IO action) takes
 -- a graph G and a list of nodes N and computes N' = { n in N |
 --    there does not exist an m in N and a non-trivial path n -> m }.
--- This is required for graph merging. 
+-- This is required for graph merging.
 module RemoveAncestors(
    removeAncestors,
    removeAncestorsBy,
@@ -19,7 +19,7 @@ import Graph
 
 -- | Takes a graph G and a list of nodes N and computes N' = { n in N |
 -- there does not exist an m in N and a non-trivial path n -> m }.
-removeAncestors :: Graph graph => 
+removeAncestors :: Graph graph =>
    graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> [Node]
    -> IO [Node]
@@ -38,7 +38,7 @@ removeAncestors graph nodes =
 
 -- | General removeAncestors function, which takes as argument the action
 -- computing a Node\'s successors.
-removeAncestorsBy :: (Ord node,Monad m) 
+removeAncestorsBy :: (Ord node,Monad m)
    => (node -> m [node]) -> [node] -> m [node]
 removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
    do
@@ -73,7 +73,7 @@ removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
                      let
                         state3 = addToFM state2 node
                            (if isAncestor then Yes else No)
-                     return (isAncestor,state3)  
+                     return (isAncestor,state3)
 
          -- Returns True if there is a, possibly trivial, path from any
          -- of the given nodes to one of the target nodes.
@@ -83,7 +83,7 @@ removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
          anyNodeIsAncestor (node : nodes) state0 =
             do
                (thisIsAncestor,state1) <-  nodeIsAncestor node state0
-               if thisIsAncestor 
+               if thisIsAncestor
                   then
                      return (True,state1)
                   else
@@ -102,12 +102,12 @@ removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
          (\ (listSoFar,state0) node ->
             do
                (isAncestor,state1) <- nodeIsNonTrivialAncestor node state0
-               return (if isAncestor then (listSoFar,state1) 
+               return (if isAncestor then (listSoFar,state1)
                   else (node:listSoFar,state1))
             )
          ([],state0)
          uniqueNodes
-  
+
       return list
 
 -- | Pure version of 'removeAncestorsBy'.
@@ -121,11 +121,11 @@ removeAncestorsByPure (toParents0 :: node -> [node]) nodes =
 
 -- | This describes the information kept about a node during the course of
 -- removeAncestorsBy
-data NodeState = 
+data NodeState =
       Yes -- ^ there is a, possibly trivial, path from here to an element
           -- of the target set.
    |  No  -- ^ the opposite of Yes.
    |  Cycle -- ^ we are already searching from this element.
 
-{- SPECIALIZE removeAncestorsBy 
+{- SPECIALIZE removeAncestorsBy
    ::  (Node -> IO [Node]) -> [Node] -> IO [Node] -}

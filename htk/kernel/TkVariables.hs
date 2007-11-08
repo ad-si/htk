@@ -4,7 +4,7 @@
 -- -
 -- - author: ludi
 -- -
--- - -------------------------------------------------------------------- 
+-- - --------------------------------------------------------------------
 
 module TkVariables (
 
@@ -14,7 +14,7 @@ module TkVariables (
   createTkVariable,
   readTkVariable,
   setTkVariable
-  
+
 ) where
 
 import Core

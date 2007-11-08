@@ -1,4 +1,4 @@
--- | This implements a SinkSource with keyed changes. 
+-- | This implements a SinkSource with keyed changes.
 module KeyedChanges(
    KeyedChanges,
 
@@ -27,7 +27,7 @@ import DeprecatedFiniteMap
 import Sources
 import Broadcaster
 
-newtype KeyedChanges key delta 
+newtype KeyedChanges key delta
    = KeyedChanges (Broadcaster (FiniteMap key delta) delta)
 
 -- ------------------------------------------------------------------------

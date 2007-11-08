@@ -1,5 +1,5 @@
--- | CreateObjectMenu.createObjectMenu puts up a menu which selects an object 
--- type and creates it. 
+-- | CreateObjectMenu.createObjectMenu puts up a menu which selects an object
+-- type and creates it.
 module CreateObjectMenu(
    createObjectMenu,
    ) where
@@ -23,22 +23,22 @@ createObjectMenu view (parentLink :: Link parent) =
    do
       allObjectTypes <- getAllObjectTypes view
       let
-         (allObjectTypeMenuItems :: 
+         (allObjectTypeMenuItems ::
             [(String,View -> LinkedObject -> IO Bool)]) =
             mapMaybe
                createObjectMenuItem
                allObjectTypes
 
-         (form :: Form (View -> LinkedObject -> IO Bool)) = 
-            case allObjectTypes of 
-               [] -> error "No available object types" 
+         (form :: Form (View -> LinkedObject -> IO Bool)) =
+            case allObjectTypes of
+               [] -> error "No available object types"
                   -- unlikely, Folder should be available at least.
                _ -> newFormOptionMenu2 allObjectTypeMenuItems
       createFnOpt <- doForm "Object Type selection" form
       case createFnOpt of
          Nothing -> return False
-         Just createFn -> 
+         Just createFn ->
             do
                parent <- readLink view parentLink
                bracketForImportErrors view (
-                  createFn view (toLinkedObject parent)) 
+                  createFn view (toLinkedObject parent))

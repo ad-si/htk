@@ -1,5 +1,5 @@
--- | This module implements the 'SimpleDBType.GetPermissions', 
--- 'SimpleDBType.SetPermissions' and 'SimpleDBType.GetParentLocation' 
+-- | This module implements the 'SimpleDBType.GetPermissions',
+-- 'SimpleDBType.SetPermissions' and 'SimpleDBType.GetParentLocation'
 -- operations
 module SetGetSecurityData(
    getPermissions,
@@ -21,7 +21,7 @@ import SimpleDBTypes
 import VersionData
 
 
-getPermissions :: SimpleDB -> User -> Maybe (ObjectVersion,Location) 
+getPermissions :: SimpleDB -> User -> Maybe (ObjectVersion,Location)
    -> IO Permissions
 getPermissions simpleDB user ovLocOpt = case ovLocOpt of
    Nothing ->
@@ -37,7 +37,7 @@ getPermissions simpleDB user ovLocOpt = case ovLocOpt of
             primitiveLocation = retrievePrimitiveLocation versionData location
          getPermissions1 simpleDB primitiveLocation
 
-setPermissions :: SimpleDB -> User -> Maybe (ObjectVersion,Location) 
+setPermissions :: SimpleDB -> User -> Maybe (ObjectVersion,Location)
    -> Permissions -> IO ()
 setPermissions simpleDB user ovLocOpt permissions =
    case ovLocOpt of
@@ -50,25 +50,25 @@ setPermissions simpleDB user ovLocOpt permissions =
       Just (version,location) ->
          do
             permissionsValidCheck permissions
-            verifyAccess simpleDB user version (Just location) 
+            verifyAccess simpleDB user version (Just location)
                PermissionsActivity
             versionData <- getVersionData simpleDB version
             let
-               primitiveLocation 
+               primitiveLocation
                   = retrievePrimitiveLocation versionData location
             setPermissions1 simpleDB primitiveLocation permissions
 
 
 -- *** NB.  Do not allow the user to SET a parent location without checking
 -- that this does not introduce cycles.
--- 
+--
 -- We only permit this if the user has get-permissions access (that is,
 -- either read or permissions access) to either this object's parent, or
 -- (if no parent exists) the object itself.  NB it is allowed it
 -- the object is unreadable but the parent is; this is useful for the
--- uni-types package since it uses this function to get at the parent when 
+-- uni-types package since it uses this function to get at the parent when
 -- creating a replacement NoAccessObject.
-getParentLocation :: SimpleDB -> User -> (ObjectVersion,Location) 
+getParentLocation :: SimpleDB -> User -> (ObjectVersion,Location)
    -> IO (Maybe Location)
 getParentLocation simpleDB user (version,location) =
    do
@@ -81,5 +81,5 @@ getParentLocation simpleDB user (version,location) =
       verifyGetPermissionsAccess simpleDB user version (Just locationToTest)
 
       return parentLocationOpt
-      
- 
+
+

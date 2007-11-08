@@ -10,7 +10,7 @@ module Menu (
 
   post,
   unpost,
-        
+
 ) where
 
 import Core
@@ -58,11 +58,11 @@ instance Window w => HasMenu w
 -- Menu Creation Command
 -- -----------------------------------------------------------------------
 
-createMenu :: GUIObject par => par 
-   -- ^ tearoff.  If True, means menu will be displayed in a 
+createMenu :: GUIObject par => par
+   -- ^ tearoff.  If True, means menu will be displayed in a
    -- separate top-level window.
-   -> Bool 
-   -> [Config Menu] 
+   -> Bool
+   -> [Config Menu]
    -> IO Menu
 createMenu par to ol =
   do
@@ -76,11 +76,11 @@ createMenu par to ol =
 -- -----------------------------------------------------------------------
 
 -- | Posts a menu (e.g. in respose of a keystroke or mousebutton press).
-popup :: GUIObject i => Menu 
+popup :: GUIObject i => Menu
    -- ^ The menu to post.
-   -> Position 
+   -> Position
    -- ^ The position to pop-up.
-   -> Maybe i 
+   -> Maybe i
    -- ^ An optional entry to activate when the menu pops-up.
    -> IO ()
    -- ^ None.
@@ -94,8 +94,8 @@ popup m pos@(x,y) ent@(Just entry) =
       MenuItemName _ i -> execMethod m (\nm -> tkPopup nm x y (show i))
       _ -> done
 
-tkPopup :: ObjectName -> Distance -> Distance -> String -> TclScript 
-tkPopup wn x y ent = ["tk_popup " ++ show wn ++ " " ++ 
+tkPopup :: ObjectName -> Distance -> Distance -> String -> TclScript
+tkPopup wn x y ent = ["tk_popup " ++ show wn ++ " " ++
         show x ++ " " ++ show y ++ " " ++ ent]
 {-# INLINE tkPopup #-}
 
@@ -105,11 +105,11 @@ tkPopup wn x y ent = ["tk_popup " ++ show wn ++ " " ++
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance Eq Menu where 
+instance Eq Menu where
   w1 == w2 = toGUIObject w1 == toGUIObject w2
 
 -- | Internal.
-instance GUIObject Menu where 
+instance GUIObject Menu where
   toGUIObject (Menu w _) = w
   cname _ = "Menu"
 
@@ -148,7 +148,7 @@ instance HasFont Menu
 -- -----------------------------------------------------------------------
 
 -- | A tear-off entry can be displayed with a menu.
-tearOff :: Toggle 
+tearOff :: Toggle
    -- ^ @On@ if you wish to display a tear-off
    -- entry, otherwise @Off@.
    -> Config Menu
@@ -161,16 +161,16 @@ tearOff tg mn = cset mn "tearoff" tg
 -- -----------------------------------------------------------------------
 
 -- | Displays a menu at the specified position.
-post :: Menu 
+post :: Menu
    -- ^ the menu to post.
-   -> Position 
+   -> Position
    -- ^ the position to post the menu at.
    -> IO ()
    -- ^ None.
 post mn pos@(x, y) = execMethod mn (\name -> tkPost name x y)
 
 -- | Unmaps the menu.
-unpost :: Menu 
+unpost :: Menu
    -- ^ the menu to unmap.
    -> IO ()
    -- ^ None.

@@ -1,18 +1,18 @@
--- | This is an implementation of queues inspired by the paper in 
+-- | This is an implementation of queues inspired by the paper in
 -- Software Practice & Experience, ...
 -- The queue is divided into two sequences. The first sequence
 -- holds the elements in a LIFO order, the second in a FIFO order.
 -- The LIFO sequence is the one where elements are added, the FIFO
 -- the one from which elements are removed. When the remove operation
--- is called and the FIFO sequence is empty, the LIFO sequence is 
+-- is called and the FIFO sequence is empty, the LIFO sequence is
 -- turned into a FIFO sequence by reversing the order of its elements.
--- 
+--
 -- Note from GER - as far as I know, we only need the values
 --    emptyQ :: Queue a -- new empty queue
 --    singletonQ :: a -> Queue a -- new singleton queue
 --    insertQ :: Queue a -> a -> Queue a -- add to queue
 --    removeQ :: Queue a -> Maybe (a,Queue a) -- pop from queue.
---    insertAtEndQ :: Queue a -> a -> Queue a 
+--    insertAtEndQ :: Queue a -> a -> Queue a
 --    -- undo the effect of the previous removeQ.
 --    isEmptyQ :: Queue a -> Bool
 --    queueToList :: Queue a -> [a]
@@ -42,7 +42,7 @@ data Queue a = Queue [a] [a]
 -- --------------------------------------------------------------------------
 
 instance Eq a => Eq (Queue a) where
-        (Queue f1 r1) == (Queue f2 r2) = 
+        (Queue f1 r1) == (Queue f2 r2) =
                 (f1 ++ reverse r1) == (f2 ++ reverse r2)
 
 instance Functor Queue where
@@ -93,15 +93,15 @@ frontQ (Queue _ rl) = Just (head rl)
 -}
 
 removeQ :: Queue a -> Maybe (a, Queue a)
-removeQ (Queue [] [] ) = Nothing 
--- This function used to return 
+removeQ (Queue [] [] ) = Nothing
+-- This function used to return
 -- error "removeQ: Queue is empty" where above we have "Nothing".
 -- Heaven knows why.  Anyway it's only used in Selective.hs and a
 -- test case, so I think I can safely change it.  (GER, 10/2/2000)
 removeQ (Queue fl [] ) = Just (x, Queue [] tl) where (x : tl) = reverse fl
 removeQ (Queue fl rl ) = Just (head rl, Queue fl (tail rl))
 
-insertAtEndQ :: Queue a -> a -> Queue a 
+insertAtEndQ :: Queue a -> a -> Queue a
 insertAtEndQ (Queue fl rl) next = Queue fl (next:rl)
 
 -- --------------------------------------------------------------------------
@@ -112,7 +112,7 @@ insertAtEndQ (Queue fl rl) next = Queue fl (next:rl)
 -- | Converts a list to a queue with the first element of the list the
 -- first element of the queue.
 listToQueue :: [a] -> Queue a
-listToQueue xs = foldl insertQ emptyQ xs 
+listToQueue xs = foldl insertQ emptyQ xs
 
 -- | Inverts listToQueue
 queueToList :: Queue a -> [a]

@@ -12,10 +12,10 @@ import WBFiles
 output :: Handle -> IO ()
 output handle =
    do
-      line' <- try(hGetLine handle) 
+      line' <- try(hGetLine handle)
       case line' of
          Right ('\"':'C':'h':'i':'l':'d':'P':'r':'o':'c':'e':'s':
-            's':'>':rest) -> 
+            's':'>':rest) ->
             do
                putStr   (read ('\"':rest))
                output handle

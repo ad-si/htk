@@ -21,7 +21,7 @@ main =
    do
       lineIn <- getLine
       let num = read lineIn
-      
+
       (mVar :: (MVar (IORef ()))) <- newEmptyMVar
       runTest num mVar
 
@@ -74,7 +74,7 @@ instance GetPut (EqGuardedChannel Int ()) where
    name _ = "EqGuard"
    new = newEqGuardedChannel
    put chan = sync(noWait(send chan (1,())))
-   get chan = 
+   get chan =
       do
          sync(toEvent(listen chan |> Eq (1::Int)))
          done
@@ -83,7 +83,7 @@ instance GetPut RegexChannel where
    name _ = "Regex"
    new = newRegexChannel
    put chan = sync(noWait(sendString chan "foo"))
-   get chan = 
+   get chan =
       do
          sync (matchAny chan)
          done
@@ -96,7 +96,7 @@ runTest nTimes mVar =
       start <- getCPUTime
       sequence_ [ (put chan) >> (get chan) | i <- [1..nTimes] ]
       end <- getCPUTime
-      let 
+      let
          (average :: Double) = (fromIntegral (end - start))/
             (1.0e6*fromIntegral nTimes)
       putStrLn ((name chan)++":nTimes="++(show nTimes)++" av="++

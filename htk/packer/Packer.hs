@@ -38,9 +38,9 @@ class GUIObject a => Container a
 -- -----------------------------------------------------------------------
 
 -- | Packs a widget via the grid geometry manager.
-grid :: Widget w => w 
+grid :: Widget w => w
    -- ^ the widget to pack.
-   -> [GridPackOption] 
+   -> [GridPackOption]
    -- ^ the grid pack options.
    -> IO ()
    -- ^ None.
@@ -57,9 +57,9 @@ grid wid opts =
 -- -----------------------------------------------------------------------
 
 -- | Packs a widget via the pack geometry manager.
-pack :: Widget w => w 
+pack :: Widget w => w
    -- ^ the widget to pack.
-   -> [PackOption] 
+   -> [PackOption]
    -- ^ the pack options.
    -> IO ()
    -- ^ None.

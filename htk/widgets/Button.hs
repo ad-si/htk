@@ -34,10 +34,10 @@ newtype Button = Button GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new button widget and returns a handler.
-newButton :: Container par => par 
+newButton :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Button] 
+   -> [Config Button]
    -- ^ the list of configuration options for this button.
    -> IO Button
    -- ^ A button widget.
@@ -52,7 +52,7 @@ newButton par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Button where 
+instance GUIObject Button where
   toGUIObject (Button w) = w
   cname _ = "Button"
 

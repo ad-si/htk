@@ -1,5 +1,5 @@
 -- | This module encapsulates the Unix crypt function to provide a means of
--- verifying passwords. 
+-- verifying passwords.
 module Crypt(
    verifyPassword,
    ) where
@@ -31,7 +31,7 @@ crypt1 key salt =
 
 -- This locks access to crypt.  It's necessary because the return value of
 -- crypt0 is statically allocated.
-theBSem :: BSem 
+theBSem :: BSem
 theBSem = unsafePerformIO newBSem
 {-# NOINLINE theBSem #-}
 
@@ -45,4 +45,4 @@ verifyPassword password encrypted =
             encrypted2 <- crypt1 password [salt1,salt2]
             return (encrypted == encrypted2)
       _ -> return False
-      
+

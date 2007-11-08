@@ -1,14 +1,14 @@
--- | This module implements the StringSkip monad, which is a monad for 
+-- | This module implements the StringSkip monad, which is a monad for
 -- going through a String from the start to the end doing various
--- insertions\/deletions along the way. 
+-- insertions\/deletions along the way.
 module StringSkip (
    StringSkip, -- the monad
 
-   runStringSkip, 
+   runStringSkip,
       -- :: StringSkip a -> String -> (a,String)
       -- transform a String with the given StringSkip.
 
-   atEnd, 
+   atEnd,
       -- :: StringSkip Bool
       -- point is at end of String
 
@@ -23,7 +23,7 @@ module StringSkip (
 
    skip,
       -- :: StringSkip Char
-      -- skip the next character (so don't copy it and point after) and 
+      -- skip the next character (so don't copy it and point after) and
       -- return it.
 
    skipIf,
@@ -62,7 +62,7 @@ data State = State {
    bp :: String, -- ^ stuff before the point, in reverse order
    ap :: String -- ^ stuff after the point
    }
- 
+
 
 newtype StringSkip a = StringSkip (State -> (a,State))
 
@@ -79,7 +79,7 @@ instance Monad StringSkip where
             (a,state1) = f1 state0
             (StringSkip f2) = get2 a
          in
-            f2 state1 
+            f2 state1
          )
 
 -- --------------------------------------------------------------------------
@@ -129,7 +129,7 @@ skip = StringSkip (\ (State {bp = bp0,ap = ap0}) ->
 skipIf :: (Char -> Bool) -> StringSkip (Maybe Char)
 skipIf f = StringSkip (\ (state @ (State {bp = bp0,ap = ap0})) ->
    case ap0 of
-      c : ap1 
+      c : ap1
          | f c
          -> (Just c,State {bp = bp0,ap = ap1})
       _ -> (Nothing,state)
@@ -173,7 +173,7 @@ copyAfter str =
 -- --------------------------------------------------------------------------
 -- Elementary functions I can't find in the standard libraries
 -- --------------------------------------------------------------------------
-   
+
 revAppend :: [a] -> [a] -> [a]
 revAppend [] as = as
 revAppend (a : as1) as2 = revAppend as1 (a : as2)

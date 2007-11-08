@@ -3,7 +3,7 @@
 module Image (
 
   HasPhoto(..),
-  Image,  
+  Image,
   newImage,
 
   intToImage,
@@ -35,7 +35,7 @@ class GUIObject w => HasPhoto w where
   -- Gets the image associated with the given image container.
   getPhoto        :: w -> IO (Maybe Image)
   photo img w     = imageToInt img >>= cset w "image"
-  getPhoto w      = cget w "image" >>= intToImage 
+  getPhoto w      = cget w "image" >>= intToImage
 
 
 -- -----------------------------------------------------------------------
@@ -53,7 +53,7 @@ newtype Image = Image GUIOBJECT deriving Eq
 -- | Constructs a new image object and returns a handler.
 -- The image object can be packed like a widget, then it is implicitely
 -- displayed inside a label widget.
-newImage :: [Config Image] 
+newImage :: [Config Image]
    -- ^ the list of configuration options for this image
    -- object.
    -> IO Image
@@ -86,25 +86,25 @@ formatToString f =
 imgGamma :: Double -> Config Image
 imgGamma g = tkImgConfig ("-gamma "++ show g)
 
--- | The colour palette specifies a private palette for this image. 
+-- | The colour palette specifies a private palette for this image.
 -- You can either specify a grayscale palette (of n shades of grey), or an
--- RGB triple. 
-class PaletteSpec p where 
+-- RGB triple.
+class PaletteSpec p where
   -- Internal function only
   tkShowPalette :: p-> String
 
-instance PaletteSpec Int where 
+instance PaletteSpec Int where
   tkShowPalette p = show p
 
 instance PaletteSpec (Int, Int, Int) where
   tkShowPalette (r, g, b) = show r ++ "/"++ show g++ "/"++ show b
 
 imgPalette :: PaletteSpec p=> p-> Config Image
-imgPalette p = tkImgConfig ("-palette "++ tkShowPalette p) 
+imgPalette p = tkImgConfig ("-palette "++ tkShowPalette p)
 
 
 -- We leave the  getImgGamma and getImgPalette functions as exercises
--- to the interested reader of this source code. 
+-- to the interested reader of this source code.
 
 
 
@@ -115,7 +115,7 @@ imgPalette p = tkImgConfig ("-palette "++ tkShowPalette p)
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Image where 
+instance GUIObject Image where
   toGUIObject (Image w) = w
   cname _ = "Image"
 
@@ -147,9 +147,9 @@ instance HasFile Image where
   -- Specifies the image file path.
   filename str w =
     execTclScript [tkImageCreate no str] >> cset w "image" no
-    where no = getObjectNo (toGUIObject w) 
+    where no = getObjectNo (toGUIObject w)
   -- Gets the image\'s file name.
-  getFileName w = evalTclScript [tkGetImageFile no] 
+  getFileName w = evalTclScript [tkGetImageFile no]
     where no = getObjectNo (toGUIObject w)
 
 -- | You can synchronize on an image object.
@@ -165,7 +165,7 @@ instance Synchronized Image where
 -- | Internal.
 intToImage :: Int -> IO (Maybe Image)
 intToImage 0 = return Nothing
-intToImage no = lookupGUIObject (ObjectID no) >>= return . Just . Image 
+intToImage no = lookupGUIObject (ObjectID no) >>= return . Just . Image
 
 {- this function converts the Tk representation of an image to the HTK
    representation. Needed by several other image retrieval function.
@@ -192,7 +192,7 @@ tkImageCreateFromData :: Int -> Format -> String -> String
 tkImageCreateFromData no f dat = "image create photo " ++ show no ++ " -data " ++ show dat ++ " -format " ++ show (formatToString f)
 
 tkImgConfig :: String-> Config Image
-tkImgConfig cstr w = 
+tkImgConfig cstr w =
   do execTclScript [show no++ " configure "++ cstr]
      return w
   where no = getObjectNo (toGUIObject w)

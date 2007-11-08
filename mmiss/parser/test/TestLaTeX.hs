@@ -38,31 +38,31 @@ main =
       args <- System.getArgs
       if ((length args) == 0)
         then do putStr "You must specify an input file. See testLaTeX --help for usage info\n"
-		exitWith ExitSuccess
+                exitWith ExitSuccess
         else done
       fileName <- return(last args)
       if ((length (elemIndices "--help" args)) > 0)
         then do putStr "Structue checking tool for MMiSSLaTeX v0.1\n"
-		putStr "usage:\n  testLaTeX [OPTIONS] INPUTFILE [> OUTFILE]\n"
-		putStr "Options are:\n"
-	        putStr "  -root=<element type>  (default: group)\n" 
+                putStr "usage:\n  testLaTeX [OPTIONS] INPUTFILE [> OUTFILE]\n"
+                putStr "Options are:\n"
+                putStr "  -root=<element type>  (default: group)\n"
                 putStr "              The validation process expects this element type as root\n"
                 putStr "              of the MMiSS document. This would be 'section' if you just have a section and\n"
                 putStr "              no whole package in your input. In the new DTD, the normal root element\n"
                 putStr "              is 'group', the old DTD states a 'package' as root element.\n"
-		putStr "  -xml        Prints only the resulting XML tree\n"
-		putStr "  -latex      Prints only the regenerated MMiSSLaTeX (parse-validate-regenerate cycle)\n"
-		putStr "  -preamble   Prints the regenerated MMiSSLaTeX with document preamble -> ready for latex\n"
+                putStr "  -xml        Prints only the resulting XML tree\n"
+                putStr "  -latex      Prints only the regenerated MMiSSLaTeX (parse-validate-regenerate cycle)\n"
+                putStr "  -preamble   Prints the regenerated MMiSSLaTeX with document preamble -> ready for latex\n"
                 putStr "  -oldDTD     XML output conforms to the old DTD.\n"
                 putStr "              (You must specify the DTD location with --uni-MMiSSDTD\n"
                 putStr "              and the correct root element with -root= (normally 'package'))\n"
                 putStr "  --uni-MMiSSDTD=<MMiSSDTD-File>  Sets location of the DTD file.\n"
-		exitWith ExitSuccess
+                exitWith ExitSuccess
         else done
       let
-         mbRoot = find (isPrefixOf "-root=") args 
+         mbRoot = find (isPrefixOf "-root=") args
          expected = case mbRoot of
-                      (Just rootOpt) -> drop 6 rootOpt 
+                      (Just rootOpt) -> drop 6 rootOpt
                       Nothing -> "group"
          xmlOutput   = if ((elemIndices "-xml" args) == []) then False else True
          latexOutput = if ((elemIndices "-latex" args) == []) then False else True
@@ -73,38 +73,38 @@ main =
       --
       -- Parse LaTeX input
       --
-      elEither <- if oldDTD 
-                    then parseMMiSSLatexOldDTD standardFileSystem fileName True 
-                    else parseMMiSSLatex standardFileSystem fileName True 
+      elEither <- if oldDTD
+                    then parseMMiSSLatexOldDTD standardFileSystem fileName True
+                    else parseMMiSSLatex standardFileSystem fileName True
       (el, preambleList) <- case fromWithError elEither of
-                          Left message -> let str = "The following errors occured during parsing:\n" 
+                          Left message -> let str = "The following errors occured during parsing:\n"
                                           in error (str ++ message)
                           Right a -> return a
       --
-      -- validate the XML-Element 
+      -- validate the XML-Element
       --
       let verified = validateElement expected el
       case verified of
          [] -> case (duplicateLabels el) of
                  [] -> done
-                 l -> do if (xmlOutput == True) 
-                           then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (toExportableXml el)) 
+                 l -> do if (xmlOutput == True)
+                           then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (toExportableXml el))
                            else done
-                         let  
+                         let
                            str1 = "\nParse: Successfull\nValidating: Successfull"
                            str2 = "The following Labels are duplicated:\n"
                            str3 = concat (map (++ " ") l)
                          error (unlines ([str1] ++ [str2] ++ [str3]))
-         errors -> do if (xmlOutput == True) 
-                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE group SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el)) 
---                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el))) 
+         errors -> do if (xmlOutput == True)
+                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE group SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el))
+--                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el)))
                         else done
-                      let  
+                      let
                          str1 = "Parse: Successfull\n"
                          str2 = "The following errors occured during validation against the DTD:\n\n"
                       error (unlines ([str1] ++ [str2] ++ errors))
       --
-      -- Reconstruct LaTeX from XML-Element and Preamble 
+      -- Reconstruct LaTeX from XML-Element and Preamble
       --
       let packageIdContent = deep (iffind "packageId" returnPackageID none) (CElem el)
           packageId = case packageIdContent of
@@ -112,21 +112,21 @@ main =
                         [CString True str] -> PackageId str
                         otherwise -> PackageId ""
           -- emptyPreambleData = MMiSSExtraPreambleData {callSite = Nothing}
-          (emacsCont, preambleStr) = 
+          (emacsCont, preambleStr) =
             case preambleList of
               [] -> ((makeMMiSSLatex el True []), "")
-              (p:ps) -> ((makeMMiSSLatex el True [((fst p),packageId)]), (toString (fst p)))               
+              (p:ps) -> ((makeMMiSSLatex el True [((fst p),packageId)]), (toString (fst p)))
           (EmacsContent l) = coerceWithError emacsCont
-      if (xmlOutput == True) 
---        then putStr( "<?xml version='1.0' encoding='UTF-8'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el)) 
-        then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (toExportableXml el)) 
--- (render (element el))) 
+      if (xmlOutput == True)
+--        then putStr( "<?xml version='1.0' encoding='UTF-8'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el))
+        then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (toExportableXml el))
+-- (render (element el)))
         else if (latexOutput)
                then putStr (mkLaTeXString (EmacsContent l))
-               else if (latexWithPreOutput) 
+               else if (latexWithPreOutput)
                       then putStr ((mkLaTeXString (EmacsContent l))
                            ++ "\n\n************** Preamble:\n" ++ preambleStr)
-                      else done 
+                      else done
       hPutStr stderr "Parse: Successfull\nValidate XML: Successfull\n"
   where
     returnPackageID value _ = [CString True value]
@@ -134,18 +134,18 @@ main =
 
 duplicateLabels :: Element -> [String]
 
-duplicateLabels e = 
+duplicateLabels e =
   let contents = multi (attr "label") (CElem e)
       labels = filter (/= "") (map extractLabel contents)
   in nub(labels \\ (nub labels))
   where
-    extractLabel (CElem(Elem _ attrs _)) = 
+    extractLabel (CElem(Elem _ attrs _)) =
       let labelAtt = find ((== "label").fst) attrs
       in case labelAtt of
            Just((_, (AttValue []))) -> ""
            Just((_, (AttValue (v:[])))) -> case v of
                                              Left str -> str
                                              Right _ -> ""
-           _ -> ""   
+           _ -> ""
 
 

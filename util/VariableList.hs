@@ -5,9 +5,9 @@ module VariableList(
    singletonList, -- :: a -> VariableList a
    VariableList,
    ListDrawer(..),
-   attachListOp, -- :: VariableList a -> ListDrawer a -> IO (IO ()) 
+   attachListOp, -- :: VariableList a -> ListDrawer a -> IO (IO ())
    coMapListDrawer, -- :: (a -> b) -> ListDrawer b pos -> ListDrawer a pos
-   map2ListDrawer, -- :: (pos1 -> pos2) -> (pos2 -> pos2) -> 
+   map2ListDrawer, -- :: (pos1 -> pos2) -> (pos2 -> pos2) ->
       -- ListDrawer b pos1 -> ListDrawer b pos2
 
    catVariableLists, -- :: VariableList a -> VariableList a -> VariableList a
@@ -50,7 +50,7 @@ data ListDrawer a pos = ListDrawer {
    }
 
 -- | Return the close action.
--- attachListOp :: ParallelExec -> VariableList a -> ListDrawer a -> IO (IO ()) 
+-- attachListOp :: ParallelExec -> VariableList a -> ListDrawer a -> IO (IO ())
 
 data VariableList a = VariableList {
    attachListOp :: forall pos . ParallelExec -> ListDrawer a pos -> IO (IO ())
@@ -80,7 +80,7 @@ coMapListDrawer fn (ListDrawer {
       ListDrawer {
          newPos = newPos1,setPos = setPos1,delPos = delPos1,redraw = redraw1}
 
-map2ListDrawer :: (pos1 -> pos2) -> (pos2 -> pos1) -> 
+map2ListDrawer :: (pos1 -> pos2) -> (pos2 -> pos1) ->
       ListDrawer b pos1 -> ListDrawer b pos2
 map2ListDrawer toPos2 toPos1 (ListDrawer {
       newPos = newPos1,setPos = setPos1,delPos = delPos1,redraw = redraw1}) =
@@ -130,8 +130,8 @@ emptyVariableList =
 singletonList :: forall a . a -> VariableList a
 singletonList a =
    let
-      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos 
-	-> IO (IO ())
+      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos
+        -> IO (IO ())
       attachListOp parallelX listDrawer =
          do
             parallelExec parallelX (
@@ -143,12 +143,12 @@ singletonList a =
    in
       VariableList attachListOp
 
-newVariableListFromSet :: forall a . Ord a => VariableSetSource a 
+newVariableListFromSet :: forall a . Ord a => VariableSetSource a
     -> VariableList a
 newVariableListFromSet (variableSetSource :: VariableSetSource a) =
    let
-      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos 
-	-> IO (IO ())
+      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos
+        -> IO (IO ())
       attachListOp parallelX listDrawer =
          do
             (posRegistry :: Registry a pos) <- newRegistry
@@ -157,7 +157,7 @@ newVariableListFromSet (variableSetSource :: VariableSetSource a) =
 
             let
                updateFn :: VariableSetUpdate a -> IO ()
-               updateFn (AddElement a) = 
+               updateFn (AddElement a) =
                   do
                      addElement a
                      groupCount <- readIORef groupingCount
@@ -191,7 +191,7 @@ newVariableListFromSet (variableSetSource :: VariableSetSource a) =
                delElement :: a -> IO ()
                delElement a =
                   transformValue posRegistry a (\ posOpt -> case posOpt of
-                     Just pos -> 
+                     Just pos ->
                         do
                            delPos listDrawer pos
                            return (Nothing,())
@@ -199,19 +199,19 @@ newVariableListFromSet (variableSetSource :: VariableSetSource a) =
 
             sinkID <- newSinkID
 
-            (x,sink) <- addNewSinkWithInitial variableSetSource 
+            (x,sink) <- addNewSinkWithInitial variableSetSource
                initialElements updateFn sinkID parallelX
 
             return (invalidate sinkID)
    in
-      VariableList attachListOp   
-            
-newVariableListFromList :: forall a . Ord a => SimpleSource [a] 
+      VariableList attachListOp
+
+newVariableListFromList :: forall a . Ord a => SimpleSource [a]
     -> VariableList a
-newVariableListFromList (simpleSource :: SimpleSource [a]) = 
+newVariableListFromList (simpleSource :: SimpleSource [a]) =
    let
-      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos 
-	-> IO (IO ())
+      attachListOp :: forall pos . ParallelExec -> ListDrawer a pos
+        -> IO (IO ())
       attachListOp parallelX listDrawer =
          do
             -- state stores the current a values and a list of the same length
@@ -226,9 +226,9 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
                      let
                         changes = diff2 oldAs newAs
 
-                        oldAsPlus :: [(a,Bool)] 
+                        oldAsPlus :: [(a,Bool)]
                            -- True means that it is in both lists
-                        oldAsPlus = concat (map 
+                        oldAsPlus = concat (map
                            (\ diffElement -> case diffElement of
                               InSecond _ -> []
                               InFirst l -> map (\ a -> (a,False)) l
@@ -237,9 +237,9 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
                            changes
                            )
 
-                        newAsPlus :: [(a,Bool)] 
+                        newAsPlus :: [(a,Bool)]
                            -- True means that it is in both lists
-                        newAsPlus = concat (map 
+                        newAsPlus = concat (map
                            (\ diffElement -> case diffElement of
                               InFirst _ -> []
                               InSecond l -> map (\ a -> (a,False)) l
@@ -260,10 +260,10 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
                         -- (2) compute the positions which are common
                         commonPos = catMaybes
                            (zipWith
-                              (\ (oldA,isCommon) oldPos -> 
-                                 if isCommon 
+                              (\ (oldA,isCommon) oldPos ->
+                                 if isCommon
                                     then
-                                       Just oldPos 
+                                       Just oldPos
                                     else
                                        Nothing
                                  )
@@ -273,10 +273,10 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
                         -- (3) compute pairs (Maybe pos,[a]) where (Maybe pos)
                         -- is the last position before an insertion, [a] is
                         -- the insertion.
-                        mkPairs :: Maybe pos -> [pos] -> [(a,Bool)] 
+                        mkPairs :: Maybe pos -> [pos] -> [(a,Bool)]
                            -> [(Maybe pos,[a])] -> [(Maybe pos,[a])]
                         mkPairs lastPosOpt [] [] acc0 = acc0
-                        mkPairs lastPosOpt poss0 
+                        mkPairs lastPosOpt poss0
                               (xs0@((a,isCommon):rest)) acc0 =
                            if isCommon
                               then
@@ -286,8 +286,8 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
                               else
                                  -- scan to next common element or end
                                  let
-                                    getInsertion :: [(a,Bool)] 
-                                       -> ([a],[(a,Bool)]) 
+                                    getInsertion :: [(a,Bool)]
+                                       -> ([a],[(a,Bool)])
                                     getInsertion [] = ([],[])
                                     getInsertion (xs@((_,True):_)) = ([],xs)
                                     getInsertion (((a,False):xs0)) =
@@ -319,7 +319,7 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
                               )
                            pairs
 
-                     -- (5) Do the additions and deletions.   
+                     -- (5) Do the additions and deletions.
                      (newPosss0 :: [[pos]]) <- addAct
                      deleteAct
                      redraw listDrawer
@@ -327,21 +327,21 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
                      let
                         -- (6) Compute all the new positions given the new
                         -- list + old common and new positions.
-                        mkNewPos :: [(a,Bool)] -> [pos] -> [pos] -> [pos] 
+                        mkNewPos :: [(a,Bool)] -> [pos] -> [pos] -> [pos]
                            -> [pos]
                         mkNewPos [] [] [] posAcc = posAcc
                         mkNewPos ((_,isCommon):xs0) posOld posNew posAcc =
                            if isCommon
                               then
                                  case posOld of
-                                    pos:posOld1 -> 
+                                    pos:posOld1 ->
                                        mkNewPos xs0 posOld1 posNew (pos:posAcc)
                               else
                                  case posNew of
-                                    pos:posNew1 -> 
+                                    pos:posNew1 ->
                                        mkNewPos xs0 posOld posNew1 (pos:posAcc)
 
-                        newPos =  mkNewPos newAsPlus commonPos 
+                        newPos =  mkNewPos newAsPlus commonPos
                            (reverse (concat newPosss0)) []
 
                      writeIORef state (newAs,reverse newPos)
@@ -351,7 +351,7 @@ newVariableListFromList (simpleSource :: SimpleSource [a]) =
             addNewSinkWithInitial simpleSource updateList updateList sinkID
                parallelX
 
-            return (invalidate sinkID)                        
+            return (invalidate sinkID)
    in
       VariableList attachListOp
 
@@ -368,7 +368,7 @@ catVariableLists (VariableList attachListOp1) (VariableList attachListOp2) =
             middlePos <- newPos listDrawer Nothing Nothing
             let
                listDrawer1 = listDrawer
-               
+
                newPos2 posOpt aOpt =
                   let
                      pos = fromMaybe middlePos posOpt

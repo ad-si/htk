@@ -20,7 +20,7 @@ import HTk
 -- -----------------------------------------------------------------------
 
 -- | The @SpinButton@ datatype.
-data SpinButton = 
+data SpinButton =
         SpinButton {
                 fContainer :: Box,
                 fButtonUp :: Button,
@@ -33,16 +33,16 @@ data Spin = Down | Up deriving (Eq,Ord)
 
 
 -- -----------------------------------------------------------------------
--- construction 
+-- construction
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new spin button and returns a handler.
-newSpinButton :: Container par => par 
+newSpinButton :: Container par => par
    -- ^ the parent widget, which has to be a container widget.
-   -> (Spin -> IO a) 
+   -> (Spin -> IO a)
    -- ^ the command to execute, when a button is pressed.
    ->
-   [Config SpinButton] 
+   [Config SpinButton]
    -- ^ the list of configuration options for this spin
    -- button.
    -> IO SpinButton
@@ -67,17 +67,17 @@ newSpinButton par cmd cnf =
     configure (SpinButton b bup bdown (syncNoWait (send death ())))
               cnf
 
-                
+
 -- -----------------------------------------------------------------------
 -- SpinButton instances
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance Eq SpinButton where 
+instance Eq SpinButton where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject SpinButton where 
+instance GUIObject SpinButton where
   toGUIObject sb = toGUIObject (fContainer sb)
   cname _ = "SpinButton"
 
@@ -97,7 +97,7 @@ instance Synchronized SpinButton where
 
 -- | A spin button has a normal foreground and background colour and an
 -- active\/disabled foreground and background colour.
-instance HasColour SpinButton where 
+instance HasColour SpinButton where
   legalColourID _ _ = True
   setColour sb cid col =
     do
@@ -111,9 +111,9 @@ instance HasBorder SpinButton
 
 
 -- | A spin button is a stateful widget, it can be enabled or disabled.
-instance HasEnable SpinButton where 
+instance HasEnable SpinButton where
   -- Sets the spin button\'s state.
-  state s sb = 
+  state s sb =
     synchronize sb (do
                       foreach [fButtonUp sb, fButtonDown sb] (state s)
                       return sb)
@@ -123,7 +123,7 @@ instance HasEnable SpinButton where
 -- | A spin button has a configureable font.
 instance HasFont SpinButton where
   -- Sets the spin button\'s font.
-  font f sb = 
+  font f sb =
     synchronize sb (do
                       foreach [fButtonUp sb, fButtonDown sb] (font f)
                       return sb)
@@ -139,13 +139,13 @@ instance HasSize SpinButton
 -- -----------------------------------------------------------------------
 
 msDownButtonImg :: Image
-msDownButtonImg = 
-  unsafePerformIO (newImage [imgData GIF 
+msDownButtonImg =
+  unsafePerformIO (newImage [imgData GIF
      "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPoRvHnRRys5oCADs="])
 {-# NOINLINE msDownButtonImg #-}
 
 msUpButtonImg :: Image
-msUpButtonImg = 
-  unsafePerformIO (newImage [imgData GIF 
+msUpButtonImg =
+  unsafePerformIO (newImage [imgData GIF
      "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPF2nh6aKKkp0CADs"])
 {-# NOINLINE msUpButtonImg #-}

@@ -1,8 +1,8 @@
 -- | This module contains the code for exporting an MMiSS object or file
--- with a particular variant. 
+-- with a particular variant.
 module MMiSSExportVariantBundle(
-   exportLinkedObjectVariant, 
-      -- :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch 
+   exportLinkedObjectVariant,
+      -- :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch
       -- -> IO Bundle
    ) where
 
@@ -37,25 +37,25 @@ import MMiSSPackageFolder
 -- Splitting
 -- --------------------------------------------------------------------------
 
-exportLinkedObjectVariant 
+exportLinkedObjectVariant
    :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch -> IO Bundle
 exportLinkedObjectVariant view linkedObject exportOpts variantSearch =
    do
       bundle <-
          case splitLinkedObject linkedObject of
-            MMiSSFileC fileLink -> 
+            MMiSSFileC fileLink ->
                exportMMiSSFileVariant view fileLink exportOpts variantSearch
-            MMiSSObjectC objectLink -> 
-               exportMMiSSObjectVariant view 
+            MMiSSObjectC objectLink ->
+               exportMMiSSObjectVariant view
                   objectLink exportOpts variantSearch
-            _ ->     
+            _ ->
                do
                   packageId <- mkPackageId view linkedObject
                   errorMess ("Unable to extract " ++ packageIdStr packageId)
                   bundleNode <- getUnknownBundleNode view linkedObject
                   return (Bundle [(packageId,bundleNode)])
       validateBundleOut bundle
-      return bundle  
+      return bundle
 
 
 -- --------------------------------------------------------------------------
@@ -63,7 +63,7 @@ exportLinkedObjectVariant view linkedObject exportOpts variantSearch =
 -- --------------------------------------------------------------------------
 
 
-exportMMiSSObjectVariant :: View -> Link MMiSSObject -> ExportOpts 
+exportMMiSSObjectVariant :: View -> Link MMiSSObject -> ExportOpts
    -> MMiSSVariantSearch -> IO Bundle
 exportMMiSSObjectVariant view mmissObjectLink exportOpts variantSearch =
    do
@@ -71,7 +71,7 @@ exportMMiSSObjectVariant view mmissObjectLink exportOpts variantSearch =
          if getText exportOpts
             then
                do
-                  extractedWE <- extractMMiSSObject1 view True 
+                  extractedWE <- extractMMiSSObject1 view True
                         mmissObjectLink (Just variantSearch) exportOpts
 
                   (objectString :: String,exportFiles :: ExportFiles)
@@ -91,12 +91,12 @@ exportMMiSSObjectVariant view mmissObjectLink exportOpts variantSearch =
                return (NoData,[])
                   -- not clear why anyone would want this, but we support it
                   -- for reasons of consistency.
-            
+
       mmissObject <- readLink view mmissObjectLink
       let
          mmissObjectType = mmissObjectAsFileType (format exportOpts)
 
-      elementBundle <- wrapContainingMMiSSPackage2 
+      elementBundle <- wrapContainingMMiSSPackage2
          view mmissObject mmissObjectType elementBundleNodeData
 
       (containedFiles0 :: [[(Link MMiSSFile,MMiSSVariantSearch)]]) <-
@@ -127,10 +127,10 @@ exportMMiSSObjectVariant view mmissObjectLink exportOpts variantSearch =
          completeBundleWE = mergeBundles (elementBundle : fileBundles)
       coerceImportExportIO completeBundleWE
 
-        
 
 
- 
+
+
 
 
 -- --------------------------------------------------------------------------
@@ -139,25 +139,25 @@ exportMMiSSObjectVariant view mmissObjectLink exportOpts variantSearch =
 
 exportMMiSSFileVariant :: View -> Link MMiSSFile -> ExportOpts
    -> MMiSSVariantSearch -> IO Bundle
-exportMMiSSFileVariant view link exportOpts variantSearch = 
+exportMMiSSFileVariant view link exportOpts variantSearch =
    do
       mmissFile <- readLink view link
       fileLoc1 <- getFileLoc view (toLinkedObject mmissFile)
       bundleNodeData1 <- getBundleNodeDataForVariant view mmissFile exportOpts
          variantSearch
 
-      wrapContainingMMiSSPackage2 view mmissFile (objectType fileLoc1) 
+      wrapContainingMMiSSPackage2 view mmissFile (objectType fileLoc1)
          bundleNodeData1
 
 -- --------------------------------------------------------------------------
 -- Utility Functions
 -- --------------------------------------------------------------------------
 
-wrapContainingMMiSSPackage2 :: HasLinkedObject object 
+wrapContainingMMiSSPackage2 :: HasLinkedObject object
    => View -> object -> BundleType -> BundleNodeData -> IO Bundle
 wrapContainingMMiSSPackage2 view object bundleType bundleNodeData =
    do
-      packageFolderAndNameWE <- getMMiSSPackageFolderAndName 
+      packageFolderAndNameWE <- getMMiSSPackageFolderAndName
          view object
       (packageFolder,name) <- coerceImportExportIO packageFolderAndNameWE
       packageId <- mkPackageId view (toLinkedObject packageFolder)
@@ -165,7 +165,7 @@ wrapContainingMMiSSPackage2 view object bundleType bundleNodeData =
       packageFolderNameOpt <- readContents (getLinkedObjectTitleOpt (
          toLinkedObject packageFolder))
       let
-         bundleNodeWE = wrapContainingMMiSSPackage packageFolderNameOpt name 
+         bundleNodeWE = wrapContainingMMiSSPackage packageFolderNameOpt name
             bundleType bundleNodeData
       bundleNode <- coerceImportExportIO bundleNodeWE
       return (Bundle [(packageId,bundleNode)])

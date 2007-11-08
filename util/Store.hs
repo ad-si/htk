@@ -1,14 +1,14 @@
 -- | A Store a contains an (a) value which is only to be computed once,
--- when it is first needed. 
--- 
--- Perhaps we should use laziness and unsafePerformIO? 
+-- when it is first needed.
+--
+-- Perhaps we should use laziness and unsafePerformIO?
 module Store(
    Store,
    newStore, -- :: IO (Store a)
    takeStore, -- :: IO a -> Store a -> IO a
    ) where
 
-import Control.Concurrent.MVar 
+import Control.Concurrent.MVar
 
 newtype Store a = Store (MVar (Maybe a))
 

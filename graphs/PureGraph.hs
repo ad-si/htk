@@ -1,6 +1,6 @@
 -- | This module implements a simple \"pure\" graph interface, destined
 -- to be used for the complex graph operations required by VersionDag.
--- 
+--
 -- We instance 'Show' for debugging purposes.
 module PureGraph(
    PureGraph(..),
@@ -9,16 +9,16 @@ module PureGraph(
 
    emptyPureGraph, -- :: Ord nodeInfo => PureGraph nodeInfo arcInfo
 
-   addNode, -- :: Ord nodeInfo 
-      -- => PureGraph nodeInfo arcInfo -> nodeInfo -> [(arcInfo,nodeInfo)] 
+   addNode, -- :: Ord nodeInfo
+      -- => PureGraph nodeInfo arcInfo -> nodeInfo -> [(arcInfo,nodeInfo)]
       -- -> PureGraph nodeInfo arcInfo
 
    deleteNode, -- :: Ord nodeInfo
-      -- => PureGraph nodeInfo arcInfo -> nodeInfo 
+      -- => PureGraph nodeInfo arcInfo -> nodeInfo
       -- -> PureGraph nodeInfo arcInfo
 
    mapArcInfo,
-      -- :: (arcInfo1 -> arcInfo2) -> PureGraph nodeInfo arcInfo1 
+      -- :: (arcInfo1 -> arcInfo2) -> PureGraph nodeInfo arcInfo1
       -- -> PureGraph nodeInfo arcInfo2
 
    parentNodes,
@@ -27,8 +27,8 @@ module PureGraph(
 
 
    toAllNodes, -- :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> [nodeInfo]
-   toNodeParents, 
-      -- :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo 
+   toNodeParents,
+      -- :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo
       -- -> Maybe [nodeInfo]
       -- returns Nothing if the node does not exist.
 
@@ -52,7 +52,7 @@ newtype PureGraph nodeInfo arcInfo = PureGraph {
 
 data NodeData nodeInfo arcInfo = NodeData {
    parents :: [ArcData nodeInfo arcInfo]
-   } deriving (Show,Eq,Ord) 
+   } deriving (Show,Eq,Ord)
 
 data ArcData nodeInfo arcInfo = ArcData {
    arcInfo :: arcInfo,
@@ -64,12 +64,12 @@ data ArcData nodeInfo arcInfo = ArcData {
 -- ---------------------------------------------------------------------------
 
 -- The Show instances are mainly there for debugging purposes.
-instance (Show nodeInfo,Show arcInfo)  
+instance (Show nodeInfo,Show arcInfo)
       => Show (PureGraph nodeInfo arcInfo) where
    show (PureGraph fm) = show (fmToList fm)
 
 instance Show (PartialShow (PureGraph nodeInfo arcInfo)) where
-   show (PartialShow (PureGraph fm)) = "NParents dump :" 
+   show (PartialShow (PureGraph fm)) = "NParents dump :"
       ++ show (PartialShow (eltsFM fm))
 
 instance Show (PartialShow (NodeData nodeInfo arcInfo)) where
@@ -83,8 +83,8 @@ emptyPureGraph :: Ord nodeInfo => PureGraph nodeInfo arcInfo
 emptyPureGraph = PureGraph emptyFM
 
 -- | add a node with given parent arcs from it.
-addNode :: Ord nodeInfo 
-   => PureGraph nodeInfo arcInfo -> nodeInfo -> [(arcInfo,nodeInfo)] 
+addNode :: Ord nodeInfo
+   => PureGraph nodeInfo arcInfo -> nodeInfo -> [(arcInfo,nodeInfo)]
    -> PureGraph nodeInfo arcInfo
 addNode (PureGraph fm) newNode newArcs =
    PureGraph (addToFM
@@ -110,7 +110,7 @@ deleteNode (PureGraph fm) node = PureGraph (delFromFM fm node)
 toAllNodes :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> [nodeInfo]
 toAllNodes (PureGraph fm) = keysFM fm
 
-toNodeParents :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo 
+toNodeParents :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo
    -> Maybe [nodeInfo]
 toNodeParents (PureGraph fm) nodeInfo =
    do
@@ -120,10 +120,10 @@ toNodeParents (PureGraph fm) nodeInfo =
 nodeExists :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo -> Bool
 nodeExists (PureGraph fm) nodeInfo = elemFM nodeInfo fm
 
-mapArcInfo :: (arcInfo1 -> arcInfo2) -> PureGraph nodeInfo arcInfo1 
+mapArcInfo :: (arcInfo1 -> arcInfo2) -> PureGraph nodeInfo arcInfo1
    -> PureGraph nodeInfo arcInfo2
 mapArcInfo mapArc (PureGraph fm) =
-   PureGraph (mapFM 
+   PureGraph (mapFM
       (\ _ nodeData1 ->
          let
             parents1 = parents nodeData1

@@ -1,10 +1,10 @@
 -- | This file was taken from Sven Panne's page on 31st July 2001.
 -- I have since changed it a little.  The version before these
--- changes may be found in DaVinciTypes.hs.orig. 
+-- changes may be found in DaVinciTypes.hs.orig.
 
 -----------------------------------------------------------------------------------------
 -- Haskell binding for daVinci API
--- 
+--
 -- Original version:       Sven Panne  <Sven.Panne@informatik.uni-muenchen.de>  1997/99
 -- Adapted to daVinci 2.1: Tim Geisler <Tim.Geisler@informatik.uni-muenchen.de> May 1998
 --                         marked all extensions with '(V2.1 API)'
@@ -19,7 +19,7 @@
 module DaVinciTypes(
    DaVinciCmd(..), GraphCmd(..), MultiCmd(..), MenuCmd(..), FileMenuCmd(..),
    ViewMenuCmd(..), NavigationMenuCmd(..), AbstractionMenuCmd(..), LayoutMenuCmd(..),
-   AppMenuCmd(..), SetCmd(..), WindowCmd(..), TclCmd(..), SpecialCmd(..), 
+   AppMenuCmd(..), SetCmd(..), WindowCmd(..), TclCmd(..), SpecialCmd(..),
    VisualCmd(..), DragAndDropCmd(..), -- (V2.1 API)
 
    DaVinciAnswer(..),
@@ -42,7 +42,7 @@ where
 
 --- API commands ----------------------------------------------------------
 
-data DaVinciCmd =                   -- Commands of the API (top-level). 
+data DaVinciCmd =                   -- Commands of the API (top-level).
     Graph GraphCmd                     -- Graph category
   | Multi MultiCmd                     -- Multi category
   | Menu MenuCmd                       -- Menu category
@@ -53,7 +53,7 @@ data DaVinciCmd =                   -- Commands of the API (top-level).
   | Special SpecialCmd                 -- Special category
   | DVNothing                          -- No operation, for syncronization.
   | Visual VisualCmd                   -- Visual category (V2.1 API)
-  | DragAndDrop DragAndDropCmd	       -- Drag and Drop category (V2.1 API)
+  | DragAndDrop DragAndDropCmd         -- Drag and Drop category (V2.1 API)
   deriving Eq
 
 data GraphCmd =                     -- Send and update graphs
@@ -63,7 +63,7 @@ data GraphCmd =                     -- Send and update graphs
   | ChangeAttr [AttrChange]            -- Change attributes
   | UpdateAndChangeAttr [NodeUpdate] [EdgeUpdate] [AttrChange]
                                        -- Combination of both
-  | UpdateMixed [MixedUpdate]	       -- Send mixed graph updates (V2.1 API)
+  | UpdateMixed [MixedUpdate]          -- Send mixed graph updates (V2.1 API)
   | UpdateAndChangeAttrMixed [MixedUpdate] [AttrChange]
                                        -- Combination of both (V2.1 API)
   | ChangeType [TypeChange]            -- Change types (V2.1 API)
@@ -111,7 +111,7 @@ data NavigationMenuCmd =            -- Navigation menu functions
     SelectParents [NodeId]             -- Select parents of nodes
   | SelectSiblings [NodeId]            -- Select siblings of nodes
   | SelectChilds [NodeId]              -- Select childs of nodes
-  | SelectChildren [NodeId]	       -- Select childs of nodes (V2.1 API)
+  | SelectChildren [NodeId]            -- Select childs of nodes (V2.1 API)
   | Navigator (Maybe (NodeId,Direction,Bool)) -- Navigate in graph
   | Find (Maybe (String,Bool,Bool))    -- Find a node
   deriving Eq
@@ -151,7 +151,7 @@ data SetCmd =                       -- Set options
   | ScrollingOnSelection Bool          -- Auto focusing node
   | AnimationSpeed Int                 -- Speed of animation
   | NoCache Bool                       -- Control pixmap caching. Details
-  | RulesFirst Bool		       -- Should rules overlap attributes? (V2.1 API)
+  | RulesFirst Bool                    -- Should rules overlap attributes? (V2.1 API)
   deriving Eq
 
 data WindowCmd =                    -- Control windows
@@ -183,16 +183,16 @@ data SpecialCmd =                   -- Special commands
   | Version                            -- show version number (V3.0)
   deriving Eq
 
-data VisualCmd =	            -- Visual commands (V2.1 API)
-    NewRules [VisualRule]	       -- Specify new rules
-  | AddRules [VisualRule]	       -- Add rules or exchange existing ones
+data VisualCmd =                    -- Visual commands (V2.1 API)
+    NewRules [VisualRule]              -- Specify new rules
+  | AddRules [VisualRule]              -- Add rules or exchange existing ones
   deriving Eq
 
-data DragAndDropCmd =		    -- Drag and Drop commands (V2.1 API)
-    DraggingOn	                       -- Switch dragging on
-  | DragAndDropOn	               -- Switch drag&drop on
-  | DraggingOff	                       -- Switch drag* off
-  | NewNodeAtCoord NodeUpdate	       -- Insert at coordinate
+data DragAndDropCmd =               -- Drag and Drop commands (V2.1 API)
+    DraggingOn                         -- Switch dragging on
+  | DragAndDropOn                      -- Switch drag&drop on
+  | DraggingOff                        -- Switch drag* off
+  | NewNodeAtCoord NodeUpdate          -- Insert at coordinate
   | NewEdgeAndNodeAtCoord NodeUpdate EdgeUpdate
                                        -- Dito, plus edge where node is the child
   deriving Eq
@@ -209,22 +209,22 @@ data DaVinciAnswer =                      -- Answers from the API
   | EdgeDoubleClick                       -- Sel. edge double-clicked
   | MenuSelection MenuId                  -- ID of selected menu
   | IconSelection IconId                  -- ID of selected icon
-  | Context ContextId                     -- Other context (graph) 
+  | Context ContextId                     -- Other context (graph)
   | TclAnswer String                      -- Answer from Tcl script
   | BrowserAnswer String String           -- File browser result
   | Disconnect                            -- Termination request
   | Closed                                -- Context (graph) closed
   | Quit                                  -- daVinci terminated
-  | PopupSelectionNode NodeId MenuId	  -- Pop-up menu selected. (V2.1 API)
-  | PopupSelectionEdge EdgeId MenuId	  -- Pop-up menu selected (V2.1 API)
-  | CreateNode				  -- Dragging answer (V2.1 API)
-  | CreateNodeAndEdge NodeId		  -- Parent ID of new edge (V2.1 API)
-  | CreateEdge NodeId NodeId		  -- Node IDs of new edge (V2.1 API)
+  | PopupSelectionNode NodeId MenuId      -- Pop-up menu selected. (V2.1 API)
+  | PopupSelectionEdge EdgeId MenuId      -- Pop-up menu selected (V2.1 API)
+  | CreateNode                            -- Dragging answer (V2.1 API)
+  | CreateNodeAndEdge NodeId              -- Parent ID of new edge (V2.1 API)
+  | CreateEdge NodeId NodeId              -- Node IDs of new edge (V2.1 API)
   | DropNode NodeId ContextId WindowId NodeId
                                           -- Node A dropped on B (V2.1 API)
   | ContextWindow ContextId WindowId      -- Context ID + window ID (V2.1 API)
-  | OpenWindow				  -- New window opened (V2.1 API)
-  | CloseWindow WindowId		  -- Window closed (V2.1 API)
+  | OpenWindow                            -- New window opened (V2.1 API)
+  | CloseWindow WindowId                  -- Window closed (V2.1 API)
   | Versioned String                      -- answers special(version). (V3.0).
   deriving (Eq,Ord)
 
@@ -239,8 +239,8 @@ data Edge = E EdgeId Type [Attribute] Node -- Edges with ID/type/attr/child
   deriving Eq
 
 data Attribute =
-    A String String		       -- regular node/edge attributes (key/val)
-  | M [MenuEntry]		       -- pop-up menu for node/edge (V2.1 API)
+    A String String                    -- regular node/edge attributes (key/val)
+  | M [MenuEntry]                      -- pop-up menu for node/edge (V2.1 API)
   deriving Eq
 
 --- Graph Updates ---------------------------------------------------------
@@ -256,9 +256,9 @@ data EdgeUpdate =                      -- Delete or remove edges
   | NewEdgeBehind EdgeId EdgeId Type [Attribute] NodeId NodeId
   deriving Eq
 
-data MixedUpdate =		       -- Node or Edge update (V2.1)
-    NU NodeUpdate			  -- wrapper needed in Haskell
-  | EU EdgeUpdate			  -- wrapper needed in Haskell
+data MixedUpdate =                     -- Node or Edge update (V2.1)
+    NU NodeUpdate                         -- wrapper needed in Haskell
+  | EU EdgeUpdate                         -- wrapper needed in Haskell
   deriving Eq
 
 data AttrChange =                      -- Change attributes
@@ -266,9 +266,9 @@ data AttrChange =                      -- Change attributes
   | Edge EdgeId [Attribute]
   deriving Eq
 
-data TypeChange =		       -- Change types (V2.1 API)
-    NodeType NodeId Type	          -- Label, type
-  | EdgeType EdgeId Type		  -- Label, type
+data TypeChange =                      -- Change types (V2.1 API)
+    NodeType NodeId Type                  -- Label, type
+  | EdgeType EdgeId Type                  -- Label, type
   deriving Eq
 
 --- Application Menus and Icons -------------------------------------------
@@ -290,9 +290,9 @@ data IconEntry =                       -- Create Icons
 
 --- Visualization Rules (V2.1 API) ---------------------------------------
 
-data VisualRule =		       -- (V2.1 API)
+data VisualRule =                      -- (V2.1 API)
     NR Type [Attribute]                  -- Rules for all nodes of given type
-  | ER Type [Attribute]			 -- Rules for all edges of given type
+  | ER Type [Attribute]                  -- Rules for all edges of given type
   deriving Eq
 
 --- String Sorts ----------------------------------------------------------
@@ -333,8 +333,8 @@ instance Show DaVinciCmd where
    showsPrec _ (Tcl tclCmd)                         = showFunc1  "tcl" tclCmd
    showsPrec _ (Special specialCmd)                 = showFunc1  "special" specialCmd
    showsPrec _ DVNothing                            = showString "nothing"
-   showsPrec _ (Visual visualCmd)		    = showFunc1  "visual" visualCmd
-   showsPrec _ (DragAndDrop dragAndDropCmd)	    = showFunc1  "drag_and_drop" dragAndDropCmd
+   showsPrec _ (Visual visualCmd)                   = showFunc1  "visual" visualCmd
+   showsPrec _ (DragAndDrop dragAndDropCmd)         = showFunc1  "drag_and_drop" dragAndDropCmd
 
 instance Show GraphCmd where
    showsPrec _ (New nodes)                          = showFunc1  "new" nodes
@@ -343,7 +343,7 @@ instance Show GraphCmd where
    showsPrec _ (ChangeAttr aChs)                    = showFunc1  "change_attr" aChs
    showsPrec _ (UpdateAndChangeAttr nUpds eUpds aChs)
                                                     = showFunc3  "update_and_change_attr" nUpds eUpds aChs
-   showsPrec _ (UpdateMixed mUpds)		    = showFunc1  "mixed_update" mUpds
+   showsPrec _ (UpdateMixed mUpds)                  = showFunc1  "mixed_update" mUpds
    showsPrec _ (UpdateAndChangeAttrMixed mUpds aChs)= showFunc2  "update_and_change_attr" mUpds aChs
    showsPrec _ (ChangeType tChs)                    = showFunc1  "change_type" tChs
 
@@ -425,7 +425,7 @@ instance Show SetCmd where
    showsPrec _ (ScrollingOnSelection x)             = showBoolFunc "scrolling_on_selection" x
    showsPrec _ (AnimationSpeed x)                   = showFunc1  "animation_speed" x
    showsPrec _ (NoCache x)                          = showBoolFunc "no_cache" x
-   showsPrec _ (RulesFirst x)			    = showBoolFunc "rules_first" x
+   showsPrec _ (RulesFirst x)                       = showBoolFunc "rules_first" x
 
 instance Show WindowCmd where
    showsPrec _ (Title str)                          = showFunc1  "title" str
@@ -454,14 +454,14 @@ instance Show SpecialCmd where
    showsPrec _ Version                              = showString "version"
 
 instance Show VisualCmd where
-   showsPrec _ (NewRules visualRules)		    = showFunc1  "new_rules" visualRules
-   showsPrec _ (AddRules visualRules)		    = showFunc1  "add_rules" visualRules
+   showsPrec _ (NewRules visualRules)               = showFunc1  "new_rules" visualRules
+   showsPrec _ (AddRules visualRules)               = showFunc1  "add_rules" visualRules
 
 instance Show DragAndDropCmd where
-   showsPrec _ DraggingOn			    = showString "dragging_on"
-   showsPrec _ DragAndDropOn			    = showString "drag_and_drop_on"
-   showsPrec _ DraggingOff 			    = showString "dragging_off"
-   showsPrec _ (NewNodeAtCoord nUpd)		    = showFunc1  "new_node_at_coord" nUpd
+   showsPrec _ DraggingOn                           = showString "dragging_on"
+   showsPrec _ DragAndDropOn                        = showString "drag_and_drop_on"
+   showsPrec _ DraggingOff                          = showString "dragging_off"
+   showsPrec _ (NewNodeAtCoord nUpd)                = showFunc1  "new_node_at_coord" nUpd
    showsPrec _ (NewEdgeAndNodeAtCoord nUpd eUpd)    = showFunc2  "new_edge_and_node_at_coord" nUpd eUpd
 ---------------------------------------------------------------------------
 
@@ -481,15 +481,15 @@ instance Show DaVinciAnswer where
    showsPrec _ Disconnect                           = showString "disconnect"
    showsPrec _ Closed                               = showString "close"
    showsPrec _ Quit                                 = showString "quit"
-   showsPrec _ (PopupSelectionNode nId mId)	    = showFunc2	 "popup_selection_node" nId mId
-   showsPrec _ (PopupSelectionEdge eId mId)	    = showFunc2	 "popup_selection_edge" eId mId
-   showsPrec _ CreateNode			    = showString "create_node"
-   showsPrec _ (CreateNodeAndEdge nId)		    = showFunc1	 "create_node_and_edge" nId
-   showsPrec _ (CreateEdge nId1 nId2)		    = showFunc2	 "create_edge" nId1 nId2
+   showsPrec _ (PopupSelectionNode nId mId)         = showFunc2  "popup_selection_node" nId mId
+   showsPrec _ (PopupSelectionEdge eId mId)         = showFunc2  "popup_selection_edge" eId mId
+   showsPrec _ CreateNode                           = showString "create_node"
+   showsPrec _ (CreateNodeAndEdge nId)              = showFunc1  "create_node_and_edge" nId
+   showsPrec _ (CreateEdge nId1 nId2)               = showFunc2  "create_edge" nId1 nId2
    showsPrec _ (DropNode nId1 cId2 wId2 nId2)       = showFunc4 "drop_node" nId1 cId2 wId2 nId2
-   showsPrec _ (ContextWindow cId wId)		    = showFunc2	 "context_window" cId wId
-   showsPrec _ OpenWindow			    = showString "open_window"
-   showsPrec _ (CloseWindow wId)		    = showFunc1	 "close_window" wId
+   showsPrec _ (ContextWindow cId wId)              = showFunc2  "context_window" cId wId
+   showsPrec _ OpenWindow                           = showString "open_window"
+   showsPrec _ (CloseWindow wId)                    = showFunc1  "close_window" wId
    showsPrec _ (Versioned string)                   = showFunc1 "version" string
 instance Read DaVinciAnswer where
    readsPrec _ r =
@@ -520,22 +520,22 @@ instance Read DaVinciAnswer where
       [ (Closed,                                    s) | ("close",                 s) <- lexR       ] ++
       [ (Quit,                                      s) | ("quit",                   s) <- lexR       ] ++
       [ (PopupSelectionNode (NodeId n) (MenuId m),  t) | ("popup_selection_node",   s) <- lexR ,
-							 ([n,m],		    t) <- readArgs s ] ++
+                                                         ([n,m],                    t) <- readArgs s ] ++
       [ (PopupSelectionEdge (EdgeId e) (MenuId m),  t) | ("popup_selection_edge",   s) <- lexR ,
-							 ([e,m],		    t) <- readArgs s ] ++
-      [ (CreateNode,				    s) | ("create_node",            s) <- lexR       ] ++
-      [ (CreateNodeAndEdge (NodeId n),		    t) | ("create_node_and_edge",   s) <- lexR ,
-							 ([n],			    t) <- readArgs s ] ++
-      [ (CreateEdge (NodeId n1) (NodeId n2),	    t) | ("create_edge",	    s) <- lexR ,
-							 ([n1, n2],		    t) <- readArgs s ] ++
-      [ (DropNode (NodeId n1) (ContextId c2) (WindowId w2) (NodeId n2), t) 
-						       | ("drop_node",		    s) <- lexR ,
-							 ([n1,c2,w2,n2],	    t) <- readArgs s ] ++
-      [ (ContextWindow (ContextId c) (WindowId w), t)| ("context_window",	    s) <- lexR ,
-							 ([c,w],		    t) <- readArgs s ] ++
-      [ (OpenWindow,				    s) | ("open_window",	    s) <- lexR       ] ++
-      [ (CloseWindow (WindowId w),		    t) | ("close_window",	    s) <- lexR ,
-							 ([w],			    t) <- readArgs s ]
+                                                         ([e,m],                    t) <- readArgs s ] ++
+      [ (CreateNode,                                s) | ("create_node",            s) <- lexR       ] ++
+      [ (CreateNodeAndEdge (NodeId n),              t) | ("create_node_and_edge",   s) <- lexR ,
+                                                         ([n],                      t) <- readArgs s ] ++
+      [ (CreateEdge (NodeId n1) (NodeId n2),        t) | ("create_edge",            s) <- lexR ,
+                                                         ([n1, n2],                 t) <- readArgs s ] ++
+      [ (DropNode (NodeId n1) (ContextId c2) (WindowId w2) (NodeId n2), t)
+                                                       | ("drop_node",              s) <- lexR ,
+                                                         ([n1,c2,w2,n2],            t) <- readArgs s ] ++
+      [ (ContextWindow (ContextId c) (WindowId w), t)| ("context_window",           s) <- lexR ,
+                                                         ([c,w],                    t) <- readArgs s ] ++
+      [ (OpenWindow,                                s) | ("open_window",            s) <- lexR       ] ++
+      [ (CloseWindow (WindowId w),                  t) | ("close_window",           s) <- lexR ,
+                                                         ([w],                      t) <- readArgs s ]
 
          where lexR = lex r
 

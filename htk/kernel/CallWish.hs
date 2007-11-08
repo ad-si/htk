@@ -20,7 +20,7 @@ import ChildProcess
 newtype CalledWish = CalledWish ChildProcess
 
 callWish :: IO CalledWish
-callWish = 
+callWish =
    do
       wishPath <- getWishPath
       childProcess <- newChildProcess wishPath [
@@ -44,4 +44,4 @@ destroyCalledWish :: CalledWish -> IO ()
 destroyCalledWish (CalledWish childProcess) = destroy childProcess
 
 
-   
+

@@ -72,12 +72,12 @@ data GBObject o => GenericBrowser o =
 
 -- | Constructs a new generic browser and returns a handler.
 newGenericBrowser :: (GBObject o, Container par) =>
-   par 
+   par
    -- ^ the parent widget (which has to be a container
    -- widget).
-   -> [o] 
+   -> [o]
    -- ^ the list of top level objects.
-   -> [Config (GenericBrowser o)]  
+   -> [Config (GenericBrowser o)]
    -- ^ the list of configuration options for this
    -- generic browser.
    ->
@@ -244,7 +244,7 @@ sendEv gb ev =
 
 -- | Binds a listener for generic browser events to the tree list and
 -- returns a corresponding event and an unbind action.
-bindGenericBrowserEv :: GBObject o => GenericBrowser o 
+bindGenericBrowserEv :: GBObject o => GenericBrowser o
    -- ^ the concerned generic browser.
    ->
    IO (Event (GenericBrowserEvent o),

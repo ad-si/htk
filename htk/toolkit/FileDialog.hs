@@ -28,30 +28,30 @@ import TkVariables
 import ModalDialog
 import DialogWin (createWarningWin,createConfirmWin)
 
-debugMsg :: String-> IO () 
-debugMsg str = done -- putStr (">>> " ++ str ++ "\n") 
+debugMsg :: String-> IO ()
+debugMsg str = done -- putStr (">>> " ++ str ++ "\n")
 
 
 -- Display a warning window with a meaningful error message
 ioErrorWindow :: Exception -> IO ()
-ioErrorWindow excep = 
+ioErrorWindow excep =
   warningMess ("Error while reading directory:\n"++
      case ioErrors excep of
-        Just ioe ->        
+        Just ioe ->
            ioeGetErrorString ioe++"\n"++
-           case ioeGetFileName ioe of 
+           case ioeGetFileName ioe of
                 Just fn -> "with file "++fn++"\n"
                 Nothing -> ""
         Nothing -> "Exception: "++show excep++"\n"
-    ) 
+    )
 
-tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either Exception 
+tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either Exception
                                                         ([FilePath], [FilePath]))
 tryGetFilesAndFolders path showhidden =
   do
     debugMsg ("getting directory contents of " ++ path)
     dc <- Control.Exception.try (getDirectoryContents path)
-    case dc of 
+    case dc of
        Left exn -> do debugMsg "... error!"
                       return (Left exn)
        Right dcontents -> do debugMsg "...ok\n"
@@ -65,13 +65,13 @@ tryGetFilesAndFolders path showhidden =
           else
             do
               fileIsDir <- doesDirectoryExist (abs ++ f)
-              if fileIsDir 
+              if fileIsDir
                  then
                     sort fs files ((f ++ "/") : folders) abs
-                 else 
+                 else
                     sort fs (f : files) folders abs
         sort _ files folders _ =
-          return (List.sort files, 
+          return (List.sort files,
                   if path == "/" then List.sort folders
                                  else ".." : (List.sort folders))
         hidden :: FilePath -> Bool
@@ -79,11 +79,11 @@ tryGetFilesAndFolders path showhidden =
 
 getFilesAndFolders  :: FilePath -> Bool -> IO ([FilePath], [FilePath])
 getFilesAndFolders path showhidden =
-  do dc <- tryGetFilesAndFolders path showhidden 
+  do dc <- tryGetFilesAndFolders path showhidden
      case dc of
        Left ioe-> do ioErrorWindow ioe
                      return ([], [".."])
-       Right cont-> return cont          
+       Right cont-> return cont
 
 
 dropLast :: FilePath -> FilePath
@@ -146,9 +146,9 @@ changeToFolder :: FilePath -> Ref [FilePath] -> Ref [FilePath] ->
 changeToFolder path foldersref filesref pathref folderslb fileslb
                file_var showhidden =
   let path' = if path == "" then "/" else path
-  in  do debugMsg "getting files and folders"         
+  in  do debugMsg "getting files and folders"
          st <- tryGetFilesAndFolders path' showhidden
-         case st of 
+         case st of
            Right (files, folders) ->
              do setRef pathref path
                 debugMsg "got files and folders"
@@ -158,10 +158,10 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
                 folderslb # value folders
                 setTkVariable file_var ""
                 return True
-           Left excep -> 
+           Left excep ->
               case ioErrors excep of
                  Just error | isPermissionError error -> return False
-                 Nothing -> 
+                 Nothing ->
                     do
                        ioErrorWindow excep
                        return False
@@ -191,11 +191,11 @@ selectedFolder i foldersref filesref pathref folderslb fileslb file_var
     path <- getRef pathref
     let
        trimmedPath = trimDir path
-    
-       nupath = if (folders !! i) == ".." 
+
+       nupath = if (folders !! i) == ".."
           then
              dropLast trimmedPath
-          else 
+          else
              combineNames trimmedPath (folders !! i)
     changeToFolder nupath foldersref filesref pathref folderslb fileslb
       file_var showhidden
@@ -320,33 +320,33 @@ confirmDeleteFile par fp childwindow ret =
 
 
 -- | Opens a file dialog box for a file which is to be created.
-newFileDialogStr :: String 
+newFileDialogStr :: String
    -- ^ the window title of the file dialog box.
-   -> FilePath 
+   -> FilePath
    -- ^ the filepath to browse.
    -> IO (Event (Maybe FilePath))
    -- ^ An event (returning the selected FilePath if
    -- available) that is invoked when the file dialog is
    -- finished.
-newFileDialogStr title fp = do pr <- newRef fp 
+newFileDialogStr title fp = do pr <- newRef fp
                                fileDialog' True title pr
 
 -- | Opens a file dialog box for a file which should already exist.
-fileDialogStr :: String 
+fileDialogStr :: String
    -- ^ the window title of the file dialog box.
-   -> FilePath 
+   -> FilePath
    -- ^ the filepath to browse.
    -> IO (Event (Maybe FilePath))
    -- ^ An event (returning the selected FilePath if
    -- available) that is invoked when the file dialog is
    -- finished.
-fileDialogStr title fp = do pr <- newRef fp 
-			    fileDialog' False title pr
+fileDialogStr title fp = do pr <- newRef fp
+                            fileDialog' False title pr
 
 -- | Opens a file dialog box for a file which is to be created.
-newFileDialog :: String 
+newFileDialog :: String
    -- ^ the window title of the file dialog box.
-   -> Ref FilePath 
+   -> Ref FilePath
    -- ^ refernce to filepath to browse.
    -> IO (Event (Maybe FilePath))
    -- ^ An event (returning the selected FilePath if
@@ -355,9 +355,9 @@ newFileDialog :: String
 newFileDialog = fileDialog' True
 
 -- | Opens a file dialog box for a file which should already exist.
-fileDialog :: String 
+fileDialog :: String
    -- ^ the window title of the file dialog box.
-   -> Ref FilePath 
+   -> Ref FilePath
    -- ^ reference to filepath to browse.
    -> IO (Event (Maybe FilePath))
    -- ^ An event (returning the selected FilePath if
@@ -367,11 +367,11 @@ fileDialog = fileDialog' False
 
 
 -- | Opens a file dialog box.
-fileDialog' :: Bool 
+fileDialog' :: Bool
    -- ^ True if the file is new, False if it should already exist.
-   -> String 
+   -> String
    -- ^ the window title of the file dialog box.
-   -> Ref FilePath 
+   -> Ref FilePath
    -- ^ reference to the filepath to browse.
    -> IO (Event (Maybe FilePath))
    -- ^ An event (returning the selected FilePath if
@@ -382,8 +382,8 @@ fileDialog' isNew title pathref =
     fp <- getRef pathref
     -- check wether we got a directory or directory/filename
     isDir <- doesDirectoryExist fp
-    let (path,fn) = 
-            if isDir 
+    let (path,fn) =
+            if isDir
             then (if last fp == '/' then fp else fp ++ "/","")
             else (\ (x,y) -> (x++"/",y)) (splitName fp)
     setRef pathref path
@@ -499,7 +499,7 @@ fileDialog' isNew title pathref =
            always (
               do
                  quit <- doFileInner
-                 if quit 
+                 if quit
                     then
                        do
                           cleanUp
@@ -510,14 +510,14 @@ fileDialog' isNew title pathref =
 
         doFileInner :: IO Bool
         doFileInner =
-           do 
+           do
               file_nm <- readTkVariable file_var
               path <- getRef pathref
               let
-                 trimmedPath = trimDir path 
+                 trimmedPath = trimDir path
                     -- probably completely unnecessary, but I can't be
-                    -- bothered to decrypt Andre's logic here. 
-                 fullnm= case file_nm of 
+                    -- bothered to decrypt Andre's logic here.
+                 fullnm= case file_nm of
                    '/':_ -> file_nm
                    _ -> combineNames trimmedPath file_nm
 
@@ -529,7 +529,7 @@ fileDialog' isNew title pathref =
 
               if fileIsDir
                  then
-                   do 
+                   do
                       showhidden <- getRef showhiddenref
                       status # text "Reading...     "
                       success <- changeToFolder fullnm foldersref
@@ -554,7 +554,7 @@ fileDialog' isNew title pathref =
                          fileExists <- doesFileExist fullnm
                          if fileExists
                             then
-                               if isNew 
+                               if isNew
                                   then
                                      do
                                         proceed <- confirmMess
@@ -575,7 +575,7 @@ fileDialog' isNew title pathref =
                                   else
                                      do
                                         warningMess
-                                           ("No such file or directory: "++ 
+                                           ("No such file or directory: "++
                                               fullnm)
                                         reset
                                         return False
@@ -674,7 +674,7 @@ fileDialog' isNew title pathref =
                          else status # text "Permission denied!" >>
                               done)) >>
               listenDialog)
-          +> (do clickedshowHiddenFiles 
+          +> (do clickedshowHiddenFiles
                  always (do s <- getRef showhiddenref
                             setRef showhiddenref (not s)
                             status # text "Reading...     "
@@ -683,8 +683,8 @@ fileDialog' isNew title pathref =
                             status # text "Reading...ready"
                             done)
                  listenDialog)
-          +> (do 
-                 enterName 
+          +> (do
+                 enterName
                  doFile
               )
           +> (clickeddeletefilebutton >>
@@ -730,14 +730,14 @@ fileDialog' isNew title pathref =
 
     return (receive msgQ)
 
-upImg = newImage [imgData GIF 
+upImg = newImage [imgData GIF
  "R0lGODlhFAAUAKEAAP//////AAAAAP///yH5BAEAAAMALAAAAAAUABQAAAJAnI+py+0Po1Si2iiC3gLZn21iN4TiWXGdeWqfu7bqW5WyG6RZvbOjyculWkOhTQh6wY7I5I95Q5GSVNChWp0oCgA7"]
 
-refreshImg = newImage [imgData GIF 
+refreshImg = newImage [imgData GIF
  "R0lGODlhFAAUAIQAAPj4+Pz8/Pv7+/b29gYGBvX19ZiYmPr6+oCAgAgICAcHB/Pz8/n5+QUFBYiIiJaWlv39/f7+/v///wAAAP///////////////////////////////////////////////yH5BAEAAB8ALAAAAAAUABQAAAU74CeOZGmeaKqu4+Q+rOjOLvuSz6TWccuXOlOC9vvMTgoaiXgiFInF1unYkwVRDdNtB4XFqNWweEwWhQAAOw=="]
 
-newFolderImg = newImage [imgData GIF 
+newFolderImg = newImage [imgData GIF
  "R0lGODlhFAAUAKEAAAAAAP//////AP///yH5BAEAAAMALAAAAAAUABQAAAI5nI+pywjzXlOgzlXlPRHSbG2AQJYaBGblKkgjC6/WG8dzXd84rO9y5GP1gi0gkTQMhlLMJqcJ3TQKADs="]
 
-deleteFileImg = newImage [imgData GIF 
+deleteFileImg = newImage [imgData GIF
  "R0lGODlhFAAUAKEAAP////8AAP///////yH5BAEAAAAALAAAAAAUABQAAAIyhI+py+0WUnShTmBplVvZi2ShyHSY2WTk84HP6Wrt+8HxaNaLju/rgYIEOZwbcPhKPgoAOw=="]

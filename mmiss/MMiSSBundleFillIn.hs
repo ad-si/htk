@@ -1,12 +1,12 @@
 -- | This module fills in various fields of bundles which might be unset after
--- they have been read in. 
--- 
--- Specifically it 
---    (1) parses MMiSSEnum objects (stored as MMiSSFiles with extension "tex" 
+-- they have been read in.
+--
+-- Specifically it
+--    (1) parses MMiSSEnum objects (stored as MMiSSFiles with extension "tex"
 --        or  "xml").
 --    (2) fills in FolderEnum extra fields when these are Nothing by
 --        guessing at a plain Folder or an MMiSS SubFolder (depending on
---        whether we are inside a package or not). 
+--        whether we are inside a package or not).
 module MMiSSBundleFillIn(
    fillInBundle, -- :: Maybe EntityName -> Bundle -> IO Bundle
    ) where
@@ -57,17 +57,17 @@ fillInBundle packageNameOpt (Bundle bundleItems) =
                Nothing -> importExportError ("Package " ++ toString packageId
                   ++ " is not a folder")
                Just bundleNode -> return (packageId,bundleNode)
-            )  
+            )
          parsedOut
       let
          bundle1 = Bundle bundleItems1
 
          bundles = concat (map (snd . snd) parsedOut)
-       
+
          bundleWE = mergeBundles (bundle1 : bundles)
 
       coerceImportExportIO bundleWE
-     
+
 -- -----------------------------------------------------------------------
 -- Convert embedded XML or TeX files into MMiSSObjects with Elements attached.
 -- Also provide put MMiSSPreambles in appropriately.
@@ -75,7 +75,7 @@ fillInBundle packageNameOpt (Bundle bundleItems) =
 
 type ParseNodeOut = (Maybe BundleNode,[Bundle])
 
-parseNode :: LocInfo -> BundleNode -> IO ParseNodeOut 
+parseNode :: LocInfo -> BundleNode -> IO ParseNodeOut
 parseNode locInfo0 bundleNode =
    case base1 of
       -- recursive cases
@@ -83,9 +83,9 @@ parseNode locInfo0 bundleNode =
       MMiSSFolderEnum -> isFolder
       -- interesting cases
       MMiSSPreambleEnum -> isPreamble
-      MMiSSFileEnum 
+      MMiSSFileEnum
          | bundleType1 == mmissObjectAsXMLType
-         -> isEmbeddedObject XML 
+         -> isEmbeddedObject XML
       MMiSSFileEnum
          | bundleType1 == mmissObjectAsTeXType
          -> isEmbeddedObject LaTeX
@@ -102,7 +102,7 @@ parseNode locInfo0 bundleNode =
 
       isFolder :: IO ParseNodeOut
       isFolder = case data1 of
-         Object _ -> importExportError 
+         Object _ -> importExportError
             "Folder unexpectedly contains object data"
          NoData -> isUnchanged
          Dir bundleNodes0 ->
@@ -130,7 +130,7 @@ parseNode locInfo0 bundleNode =
                (\ (vb@(variantSpecOpt,bundleText0)) ->
                   case bundleText0 of
                      BundleDyn {} -> return vb
-                     NoText -> importExportError 
+                     NoText -> importExportError
                         "Preamble element has no text!"
                      _ ->
                         do
@@ -138,7 +138,7 @@ parseNode locInfo0 bundleNode =
                               str = bundleTextToString bundleText0
                            let
                               preambleWE = fromStringWE str
-                           (preamble :: MMiSSLatexPreamble) 
+                           (preamble :: MMiSSLatexPreamble)
                               <- coerceImportExportIO preambleWE
                            let
                               bundleText1 = mkBundleText preamble
@@ -146,7 +146,7 @@ parseNode locInfo0 bundleNode =
                   )
                variants0
 
-            return (Just (mkNode (Object variants1)),[]) 
+            return (Just (mkNode (Object variants1)),[])
 
 
       isEmbeddedObject :: Format -> IO ParseNodeOut
@@ -158,7 +158,7 @@ parseNode locInfo0 bundleNode =
             nameStr <- case nameStrOpt of
                Nothing -> importExportError "MMiSS object has no name"
                Just nameStr -> return nameStr
- 
+
             let
                locInfo1WE = subDir (Just (EntityName nameStr)) False locInfo0
             locInfo1 <- coerceImportExportIO locInfo1WE
@@ -193,7 +193,7 @@ parseNode locInfo0 bundleNode =
       bundleType1 = objectType fileLoc1
       base1 = base bundleType1
 
-      fileLoc2 = 
+      fileLoc2 =
          case (base1,extra bundleType1) of
             (FolderEnum,Nothing) ->
                let
@@ -211,7 +211,7 @@ parseNode locInfo0 bundleNode =
       getVariants :: IO [(Maybe MMiSSVariantSpec,BundleText)]
       getVariants = case bundleNodeData1 of
          Object variants -> return variants
-         NoData -> importExportError 
+         NoData -> importExportError
             "Imported object has no attached data"
          Dir _ -> importExportError
             "Imported object has subobjects when it's not a file"
@@ -224,18 +224,18 @@ parseObject locInfo format objectStr =
       let
          filePath = describeLocInfo locInfo
          fileSystem = oneFileFileSystem filePath objectStr
-      (bundle,_) 
+      (bundle,_)
          <- parseBundle1 (toElementInfo locInfo) format fileSystem filePath
       return bundle
 
-parseNodes :: LocInfo -> [BundleNode] -> IO ([BundleNode],[Bundle]) 
+parseNodes :: LocInfo -> [BundleNode] -> IO ([BundleNode],[Bundle])
 parseNodes locInfo0 bundleNodes0 =
    do
-      (parsedOut :: [(Maybe BundleNode,[Bundle])]) <- 
+      (parsedOut :: [(Maybe BundleNode,[Bundle])]) <-
          mapM (parseNode locInfo0) bundleNodes0
       let
          bundleNodes1 = catMaybes (map fst parsedOut)
          bundles1 = concat (map snd parsedOut)
-      return (bundleNodes1,bundles1) 
-      
+      return (bundleNodes1,bundles1)
+
 

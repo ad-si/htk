@@ -8,8 +8,8 @@
 -- %[upper-case-letter]
 -- in the format string are replaced by the corresponding insert string; if no
 -- such string exists this is an error.
--- 
--- We also provide a mechanism for "escaping" the insert strings.  
+--
+-- We also provide a mechanism for "escaping" the insert strings.
 -- Specifically, there is a fixed partial map from lower-case letters to
 -- functions :: String -> String; these functions we call the transformers.
 -- For a combination of the form
@@ -17,19 +17,19 @@
 -- we take the insert string corresponding to upper-case-letter, and then
 -- pass it through the transformers corresponding to lower-case-letter-n,
 -- and so on down to the transformer corresponding to lower-case-letter-1.
--- 
+--
 -- Instead of [upper-case-letter] we may also write "%" in which case the
 -- insert string is just "%"; thus "%%" transforms to "%".
--- 
+--
 -- Sections of the input string not containing % are left untouched.
--- 
+--
 -- Defined transformers with their corresponding letters:
 --    b  transformer suitable for escaping bash strings quoted with ".
 --    e  transformer suitable for escaping emacs lisp strings quoted with ".
 -- None of these transformers insert the closing or end quotes, allowing you
 -- to use them in the middle of strings.
--- 
--- Other transformers will be added as the need arises. 
+--
+-- Other transformers will be added as the need arises.
 module CommandStringSub(
    CompiledFormatString,
       -- This represents a format string in which all the transformers and
@@ -38,7 +38,7 @@ module CommandStringSub(
    -- compileFormatString and runFormatString split the computation into
    -- two stages so we can save a bit of time if the same format string is
    -- used more than once.
-   compileFormatString, 
+   compileFormatString,
       -- :: String -> WithError CompiledFormatString
    runFormatString,
       -- :: CompiledFormatString -> (Char -> Maybe String) -> WithError String
@@ -63,7 +63,7 @@ import Computation
 -- --------------------------------------------------------------------------
 
 data FormatItem =
-      Unescaped String  
+      Unescaped String
    |  Escaped (String -> String) Char
 
 newtype CompiledFormatString = CompiledFormatString [FormatItem]
@@ -76,18 +76,18 @@ compileFormatString :: String -> WithError CompiledFormatString
 compileFormatString str =
    case splitToDollar str of
       Nothing -> hasValue (prependLiteral str (CompiledFormatString []))
-      Just (s1,s2) -> 
+      Just (s1,s2) ->
          mapWithError'
             (\ (ch,transformer,withError) ->
                mapWithError
                   (\ (CompiledFormatString l) ->
                      prependLiteral s1
                         (CompiledFormatString ((Escaped transformer ch):l))
-                     ) 
+                     )
                   withError
                )
             (compileFromEscape s2)
-         
+
 -- | Return portion up to (not including) first %, and portion after it.
 splitToDollar :: String -> Maybe (String,String)
 splitToDollar "" = Nothing
@@ -99,7 +99,7 @@ prependLiteral "" compiledFormatString = compiledFormatString
 prependLiteral s (CompiledFormatString l) =
    CompiledFormatString (Unescaped s:l)
 
-compileFromEscape :: String 
+compileFromEscape :: String
    -> WithError (Char,String -> String,WithError CompiledFormatString)
 compileFromEscape "" = hasError "Format string ends unexpectedly"
 compileFromEscape (c:rest) =
@@ -112,13 +112,13 @@ compileFromEscape (c:rest) =
             compiledRest = compileFormatString rest
             e = error "Attempt to run bad format string"
             restFaked = hasValue (e,e,compiledRest)
-            message = if isLower c then 
+            message = if isLower c then
                "Transformer character " ++ [c] ++ " not recognised."
-               else "Unexpected character "++ show c ++ " in format string." 
-         in      
+               else "Unexpected character "++ show c ++ " in format string."
+         in
             mapWithError snd (pairWithError (hasError message) restFaked)
-           
-mapEscapeFunction :: (String -> String) -> String -> 
+
+mapEscapeFunction :: (String -> String) -> String ->
    WithError (Char,String -> String,WithError CompiledFormatString)
 mapEscapeFunction escapeFunction s =
    mapWithError
@@ -171,7 +171,7 @@ chEmacsEscape ch =
                [_] -> "00"++chOct
                [_,_] -> "0" ++ chOct
                [_,_,_] -> chOct
-               _ -> error 
+               _ -> error
                   "Character with enormous character code can't be emacs-escaped"
 
 
@@ -195,7 +195,7 @@ toOctal ch =
 -- runFormatString
 -- --------------------------------------------------------------------------
 
-runFormatString :: CompiledFormatString -> (Char -> Maybe String) 
+runFormatString :: CompiledFormatString -> (Char -> Maybe String)
    -> WithError String
 runFormatString (CompiledFormatString l) lookup =
    let
@@ -207,7 +207,7 @@ runFormatString (CompiledFormatString l) lookup =
               Escaped transformer ch -> case lookup ch of
                  Nothing -> hasError ("%"++[ch]++" not defined")
                  Just str -> hasValue (transformer str)
-              ) 
+              )
            l
       appendWithError we1 we2 = mapWithError (uncurry (++))
          (pairWithError we1 we2)

@@ -1,5 +1,5 @@
--- | This module contains the functions for connecting to a server, closing 
--- it, and listing versions. 
+-- | This module contains the functions for connecting to a server, closing
+-- it, and listing versions.
 module MMiSSCallServer(
    connect,
    closeServer,
@@ -29,11 +29,11 @@ import MMiSSImportExportErrors
 -- Connecting
 -- --------------------------------------------------------------------------
 
-connect :: MMiSSSessionState -> Connect -> PasswordFile.User 
+connect :: MMiSSSessionState -> Connect -> PasswordFile.User
    -> IO ConnectResponse
 connect state (Connect attrs serverRefOpt) user =
    do
-      (serverStr,password) 
+      (serverStr,password)
          <- case (connectServer attrs,connectPassword attrs) of
             (Just serverStr,Just password) ->
                return (serverStr,password)
@@ -75,7 +75,7 @@ closeServer state (CloseServer serverRef) =
    do
       deleteVersionGraph state serverRef
       return CloseServerResponse
-      
+
 
 -- --------------------------------------------------------------------------
 -- Listing versions
@@ -86,10 +86,10 @@ listVersions state (ListVersions serverRef) =
    do
       versionGraph <- lookupVersionGraph state serverRef
       let
-         graphClient :: VersionGraphClient 
+         graphClient :: VersionGraphClient
          graphClient = toVersionGraphClient versionGraph
 
-      (versionInfos1 :: [VersionGraphClient.VersionInfo1]) 
+      (versionInfos1 :: [VersionGraphClient.VersionInfo1])
          <- getVersionInfos graphClient
       let
          versionInfos2 :: [VersionInfo.VersionInfo]

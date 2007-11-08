@@ -1,10 +1,10 @@
 -- | This module contains the top-level functions for importing and exporting
--- bundles. 
+-- bundles.
 module MMiSSImportExportBundle(
    importBundle,
       -- :: View -> LinkedObject -> Bundle -> IO ()
       -- This corresponds to mmiss/MMiSSRequest.dtd's putObject element.
-   exportBundle, 
+   exportBundle,
       -- :: View -> LinkedObject -> ExportOpts -> Maybe MMiSSVariantSearch
       -- -> IO Bundle
       -- This corresponds to mmiss/MMiSSRequest.dtd's getObject element.
@@ -31,7 +31,7 @@ import MMiSSImportExportErrors
 importBundle :: View -> EntityFullName -> Maybe PackageId -> Bundle -> IO ()
 importBundle view fullName packageIdOpt bundle =
    do
-      insertionPointWE <- getInsertionPoint view fullName 
+      insertionPointWE <- getInsertionPoint view fullName
       insertionPoint <- coerceImportExportIO insertionPointWE
       writeBundle bundle packageIdOpt Nothing view insertionPoint
 
@@ -40,7 +40,7 @@ importBundle view fullName packageIdOpt bundle =
 -- --------------------------------------------------------------------------
 
 -- | This corresponds to mmiss\/MMiSSRequest.dtd\'s getObject element.
-exportBundle :: View -> LinkedObject -> ExportOpts 
+exportBundle :: View -> LinkedObject -> ExportOpts
    -> Maybe MMiSSVariantSearch -> IO Bundle
 exportBundle view linkedObject exportOpts variantSearchOpt =
    case variantSearchOpt of

@@ -1,8 +1,8 @@
 -- | This module contains the HasBundleNodeWrite class that
 -- objects need to implement to be able to be written from
--- a bundle, and some miscellaneous instances of it. 
+-- a bundle, and some miscellaneous instances of it.
 module MMiSSBundleNodeWriteClass(
-   HasBundleNodeWrite(..),   
+   HasBundleNodeWrite(..),
    BundleNodeLocations(..),
    BundleNodeExtraData(..),
    ) where
@@ -28,12 +28,12 @@ import MMiSSBundleSimpleUtils
 -- ------------------------------------------------------------------------
 
 
--- A few types (in particular MMiSSPackageFolder) will need a 
+-- A few types (in particular MMiSSPackageFolder) will need a
 -- BundleNodeLocations value.
 
 -- Given a location of some node within a bundle (corresponding to
 -- the packagePath field in MMiSSBundleSimpleUtils), the link we
--- have constructed for that node. 
+-- have constructed for that node.
 newtype BundleNodeLocations = BundleNodeLocations {
    fm :: FiniteMap [EntityName] BundleNodeExtraData
    }
@@ -47,7 +47,7 @@ newtype BundleNodeExtraData = BundleNodeExtraData {
 -- ------------------------------------------------------------------------
 
 class HasBundleNodeWrite object where
-   -- NB. This may make all the assumptions checked in 
+   -- NB. This may make all the assumptions checked in
    -- MMiSSBundleValidate.validateBundle
    -- and
    -- MMiSSBundleNodeCheckTypes.checkBundleNodeTypes.
@@ -59,15 +59,15 @@ class HasBundleNodeWrite object where
    -- Given a link, which may contain the existing value of the object,
    -- or may be entirely new and empty, create the object
    -- and link in its children.
-   bundleNodeWrite1 :: 
-     View 
-     -> BundleNodeLocations 
+   bundleNodeWrite1 ::
+     View
+     -> BundleNodeLocations
         -- ^ all the locations in the bundle (which are preallocated)
-     -> [EntityName] 
+     -> [EntityName]
         -- ^ the location of this node in the bundle
      -> BundleNode
-        -- ^ the BundleNode corresponding to this object 
-     -> Link object 
+        -- ^ the BundleNode corresponding to this object
+     -> Link object
         -- ^ the pre-allocated link for this object.
      -> IO (IO ())
      -- The action returned is performed after all the bundleNodeWrite's for
@@ -78,7 +78,7 @@ class HasBundleNodeWrite object where
          bundleNodeWrite view node link
          return done
 
- 
+
 -- ------------------------------------------------------------------------
 -- Instance for simple file
 -- ------------------------------------------------------------------------
@@ -89,7 +89,7 @@ instance HasBundleNodeWrite File where
          let
             Just extra1 = extra . objectType . fileLoc $ node
             globalKey = fromString extra1
-            
+
             Object [(_,text)] = bundleNodeData node
 
             icsl = bundleTextToAsciiICSL text
@@ -106,4 +106,4 @@ instance HasBundleNodeWrite Folder where
             Just extra1 = extra . objectType . fileLoc $ node
             globalKey = fromString extra1
          writeEmptyFolder view folderLink globalKey
-         
+

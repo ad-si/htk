@@ -54,7 +54,7 @@ main =
                hSetBuffering handle (BlockBuffering (Just 4096))
                forkIO (mainHandle handle hostName)
                serverAction
- 
+
       serverAction
 
 mainHandle :: Handle -> String -> IO ()
@@ -85,16 +85,16 @@ mainHandle handle hostName  =
                Nothing -> authError
                Just user -> return user
 
-            passwordOK <- verifyPassword password 
+            passwordOK <- verifyPassword password
                (encryptedPassword user)
-            if passwordOK 
+            if passwordOK
                then
                   return user
                else
                   authError
          ))
 
-      Control.Exception.try ( 
+      Control.Exception.try (
          -- general wrapper to catch IO errors
          case fromWithError userWE of
             Right user ->
@@ -105,9 +105,9 @@ mainHandle handle hostName  =
                   calendarTime <- toCalendarTime clockTime
 
                   putStrLn (userId user ++ "@" ++ hostName ++ ":"
-                     ++ calendarTimeToString calendarTime) 
+                     ++ calendarTimeToString calendarTime)
                   hFlush stdout
-                  hFlush handle         
+                  hFlush handle
 
                   doXml handle user
             Left mess ->

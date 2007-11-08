@@ -3,12 +3,12 @@
 -- but this is done only by nulling the cell they are contained in, otherwise
 -- we would need to double-link.   Other operations, IE the push and pop
 -- function must not occur on the same queue concurrently.
--- 
+--
 -- Although the queues are impure, we return the new queue to be used
 -- in future after push and search operations.
--- 
+--
 -- RefQueue are intended for use for queues of guarded strings,
--- hence the specialised implementation. 
+-- hence the specialised implementation.
 module RefQueue(
    RefQueue,
    newRefQueue, -- :: IO (RefQueue a)
@@ -45,14 +45,14 @@ data RefQueue a = RefQueue {
    }
 
 newRefQueue :: IO (RefQueue a)
-newRefQueue = 
+newRefQueue =
    do
       ioRef <- newIORef Nothing
       backRef <- newIORef ioRef
       return (RefQueue {front = ioRef,backRef = backRef,sinceClean = 0})
 
 pushRefQueue :: RefQueue a -> a -> IO (RefQueue a,IO ())
-pushRefQueue (refQueue@RefQueue {backRef = backRef,sinceClean = sinceClean}) 
+pushRefQueue (refQueue@RefQueue {backRef = backRef,sinceClean = sinceClean})
       val =
    do
       cell <- newCell val
@@ -72,7 +72,7 @@ pushRefQueue (refQueue@RefQueue {backRef = backRef,sinceClean = sinceClean})
       return (refQueue3,emptyCell cell)
 {-# INLINE pushRefQueue #-}
 
-searchRefQueue :: RefQueue a -> (a -> Bool) 
+searchRefQueue :: RefQueue a -> (a -> Bool)
    -> IO (Maybe (a,IO (RefQueue a)),RefQueue a)
 searchRefQueue (refQueue :: RefQueue a) (filter :: a -> Bool) =
    do
@@ -85,7 +85,7 @@ searchRefQueue (refQueue :: RefQueue a) (filter :: a -> Bool) =
                let
                   valAndAct' = fmap
                      (\ (b,act) -> (b,(act >> return refQueue2)))
-                     valFound' 
+                     valFound'
                return (valAndAct',refQueue2)
    where
       switchBack :: ListPtr a -> ListPtr a -> IO ()
@@ -95,13 +95,13 @@ searchRefQueue (refQueue :: RefQueue a) (filter :: a -> Bool) =
       switchBack oldPtr newPtr =
          do
             oldBack <- readIORef (backRef refQueue)
-            if (oldBack == oldPtr) 
+            if (oldBack == oldPtr)
                then
                   writeIORef (backRef refQueue) newPtr
                else
                   done
 
-      searchPtr :: ListPtr a -> ListItem a 
+      searchPtr :: ListPtr a -> ListItem a
          -> IO (Maybe (a,IO ()))
       -- The second argument is (Just ptr) to make ptr the new
       -- backref.
@@ -120,7 +120,7 @@ searchRefQueue (refQueue :: RefQueue a) (filter :: a -> Bool) =
                         Just listItem -> searchPtr next listItem
                Just a ->
                   do
-                     if filter a 
+                     if filter a
                         then
                            do
                               -- Unlink this item from the list
@@ -129,7 +129,7 @@ searchRefQueue (refQueue :: RefQueue a) (filter :: a -> Bool) =
                               switchBack next ptr
                               let
                                  relink =
-                                    do 
+                                    do
                                        switchBack ptr next
                                        writeIORef ptr (Just listItem0)
                               return (Just(a,relink))
@@ -161,5 +161,5 @@ cleanRefQueue refQueue =
                      case cellContents of
                         Nothing -> cleanQueue next
                         Just _ -> return (ptr,Just listItem)
-               
-      
+
+

@@ -9,10 +9,10 @@ module Scale (
 
   HasIncrement(..),
 
-  digits, 
+  digits,
   getDigits,
 
-  interval, 
+  interval,
   getInterval,
   intervalTo,
   getIntervalTo,
@@ -69,16 +69,16 @@ instance ScaleValue Double where
   toDouble = id
   fromDouble = id
 
-        
+
 -- -----------------------------------------------------------------------
 -- Scale creation
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new scale widget and returns a handler.
 newScale :: (GUIValue a, ScaleValue a, Container par) =>
-   par 
+   par
    -- ^ the parent widget, which has to be a container widget.
-   -> [Config (Scale a)] 
+   -> [Config (Scale a)]
    -- ^ the list of configuration options for this scale
    -- widget.
    -> IO (Scale a)
@@ -96,11 +96,11 @@ newScale par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance Eq (Scale a) where 
+instance Eq (Scale a) where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject (Scale a) where 
+instance GUIObject (Scale a) where
   toGUIObject (Scale w _) = w
   cname _ = "Scale"
 
@@ -195,15 +195,15 @@ getIntervalFrom w = cget w "from" >>= return . fromDouble
 
 -- | Sets the scale widgets maximum and minumum value.
 interval :: ScaleValue a => (a, a) -> Config (Scale a)
-interval (b,e) w = 
+interval (b,e) w =
         synchronize w (do{
-                cset w "to" (toDouble b); 
+                cset w "to" (toDouble b);
                 cset w "from" (toDouble e)
                 })
 
 -- | Gets the scale widgets maximum and minumum value.
 getInterval :: ScaleValue a => Scale a -> IO (a,a)
-getInterval w = 
+getInterval w =
         synchronize w (do {
                 cget w "to" >>= \b ->
                 cget w "from" >>= \e ->
@@ -218,7 +218,7 @@ getInterval w =
 -- | A scale\'s slider has a configureable resulution.
 instance ScaleValue a => HasIncrement (Slider (Scale a)) a where
         -- Sets the slider\'s resolution.
-        increment d w   = cset w "resolution" (toDouble d) 
+        increment d w   = cset w "resolution" (toDouble d)
         -- Gets the slider\'s resolution.
         getIncrement w  = cget w "resolution" >>= return . fromDouble
 
@@ -231,7 +231,7 @@ instance HasSize (Slider (Scale a)) where
         -- Sets the sliders height.
         height d w      = cset w "sliderlength" d
         -- Gets the sliders height.
-        getHeight w     = cget w "sliderlength"  
+        getHeight w     = cget w "sliderlength"
 
 -- | Sets the coarse grain slider adjustment value.
 bigIncrement ::  ScaleValue a => a -> Config (Slider (Scale a))
@@ -266,5 +266,5 @@ tkScaleCmd :: ObjectID -> TclCmd
 tkScaleCmd (ObjectID i) = "Scaled " ++ show i
 {-# INLINE tkScaleCmd #-}
 
-tkPackScale  _ _ name opts oid binds = 
-  ("pack " ++ (show name) ++ " " ++ (showConfigs opts)) 
+tkPackScale  _ _ name opts oid binds =
+  ("pack " ++ (show name) ++ " " ++ (showConfigs opts))

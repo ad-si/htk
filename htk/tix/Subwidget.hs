@@ -1,24 +1,24 @@
 module Subwidget (
 
-  CanBeSubwidget (..), 
+  CanBeSubwidget (..),
   createSubwidget
 
 ) where
 
-import Core 
+import Core
   (ObjectKind (..),createGUIObject,ObjectName,ObjectID,TclScript,
    ConfigOption, Methods (..), GUIOBJECT,getObjectName,getParentObject)
-import BaseClasses (Widget) 
+import BaseClasses (Widget)
 
--- | Using the function createSubwidget, instantiating the 
+-- | Using the function createSubwidget, instantiating the
 -- @class CanBeSubwidget@
 -- should be easy, compare as an example instantiation of the @Entry@ widget.
 createSubwidget :: ObjectKind -> Methods -> GUIOBJECT -> IO GUIOBJECT
-createSubwidget kind meths megawidget 
+createSubwidget kind meths megawidget
     = do mwName <- getObjectName megawidget
          Just parent <- getParentObject megawidget
-         let megaName = show mwName 
-         createGUIObject parent (SUBWIDGET kind megaName) 
+         let megaName = show mwName
+         createGUIObject parent (SUBWIDGET kind megaName)
               (meths  { createCmd = tkDoNothing })
 
 -- ---------------------------------------------------------
@@ -27,17 +27,17 @@ createSubwidget kind meths megawidget
 
 tkDoNothing::ObjectName->ObjectKind->ObjectName->ObjectID->[ConfigOption]
            ->TclScript
-tkDoNothing _ _ _ _ _ = [] 
+tkDoNothing _ _ _ _ _ = []
 {-# INLINE tkDoNothing #-}
 
 -- | Tix mega widgets are composed of several subwidgets.
 -- As it is sometimes important to access these subwidgets, there
--- is a way in Htk of creating widgets as subwidgets by instanciating the 
+-- is a way in Htk of creating widgets as subwidgets by instanciating the
 -- @class CanBeSubwidget@.
 
-class Widget w => CanBeSubwidget w  where 
+class Widget w => CanBeSubwidget w  where
 -- | Use createAsSubwidget instead of the normal constructor new[WidgetName].
-  createAsSubwidget :: GUIOBJECT 
+  createAsSubwidget :: GUIOBJECT
   -- ^ The only parameter is a reference to the mega widget the subwidget
   -- is part of.
                     -> IO w

@@ -21,7 +21,7 @@ toVersionInfoServiceWrapped versionState =
       )
 
 versionInfoService :: ((Bool,VersionInfo),(Bool,VersionInfo),VersionState)
-versionInfoService = serviceArg 
+versionInfoService = serviceArg
 -- The Bool is False when a version is created, and True when the version info
 -- is (only) being updated.
 

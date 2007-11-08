@@ -5,8 +5,8 @@ AUTHOR        : Simon Drees,
 DATE          : 2006
 VERSION       : 1.0
 DESCRIPTION   : Provides utility functions for uDraw (Ontology).
-				At the Moment a datastrukture for selectet relations 
-				and a function to get the uDraw (Graph) home.
+                                At the Moment a datastrukture for selectet relations
+                                and a function to get the uDraw (Graph) home.
 -------------------------------------}
 
 module UDraw.Util (

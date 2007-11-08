@@ -1,4 +1,4 @@
--- | A simple reference counter 
+-- | A simple reference counter
 module ReferenceCount(
    RefCount,
 

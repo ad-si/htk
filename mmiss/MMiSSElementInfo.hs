@@ -3,7 +3,7 @@
 -- putting it back in again (for when we write it out).
 module MMiSSElementInfo(
    ElementInfo(..),
-   emptyElementInfo, -- :: ElementInfo 
+   emptyElementInfo, -- :: ElementInfo
    changeLabel, -- :: Element -> EntitySearchName -> WithError Element
       -- Change an Element's label.
    getElementInfo, -- :: Element -> WithError (ElementInfo,Element)
@@ -73,7 +73,7 @@ data ElementInfo = ElementInfo {
 -- Main Functions
 -- ----------------------------------------------------------------------
 
-emptyElementInfo :: ElementInfo 
+emptyElementInfo :: ElementInfo
 emptyElementInfo = ElementInfo {
    packageIdOpt = Nothing,
    packagePathOpt1 = Nothing,
@@ -88,17 +88,17 @@ getElementInfo (Elem name0 _ content0) =
       (attributesElement,content1) <- case content0 of
          CElem (attributesElement @ (Elem "attributes" _ _)) : content1
             -> return (attributesElement,content1)
-         _ -> fail (name0 ++ 
-            " element does not begin with an attributes element") 
+         _ -> fail (name0 ++
+            " element does not begin with an attributes element")
 
       let
-         Elem _ attributeElementAttributes0 attributesElementContent 
+         Elem _ attributeElementAttributes0 attributesElementContent
             = attributesElement
 
       case validateElement0 attributesElement of
          [] -> done
          errorMessages -> fail (unlines (
-            ("Unable to validate attributes element in " ++ name0 
+            ("Unable to validate attributes element in " ++ name0
                ++ " element:")
                : errorMessages) ++ toUglyExportableXml attributesElement)
          -- From now on we can assume attributesElement matches the DTD,
@@ -124,7 +124,7 @@ getElementInfo (Elem name0 _ content0) =
             variants = variants0
             }
 
-         attributeElementAttributes1 = 
+         attributeElementAttributes1 =
             filter
                (\ (name,_) -> case name of
                   "label" -> False
@@ -134,7 +134,7 @@ getElementInfo (Elem name0 _ content0) =
                   )
                attributeElementAttributes0
 
-         attributesElem1 
+         attributesElem1
             = Elem "attributes" attributeElementAttributes1 restAttributes
 
          remainingElem = Elem name0 [] (CElem attributesElem1 : content1)
@@ -142,11 +142,11 @@ getElementInfo (Elem name0 _ content0) =
       return (elementInfo,remainingElem)
 
 packagePathOpt :: ElementInfo -> Maybe EntityFullName
-packagePathOpt elInfo = 
+packagePathOpt elInfo =
    case packagePathOpt1 elInfo of
       Just fullName -> Just fullName
       Nothing -> guessPackagePathFromLabel (labelOpt elInfo)
-   
+
 setElementInfoStrict :: Element -> ElementInfo -> WithError Element
 setElementInfoStrict element0 elInfo0 =
    do
@@ -174,7 +174,7 @@ changeLabel element0 name =
          element4 = prependElementInfo elInfo3 element1
 
       return element4
-            
+
 
 mergeElementInfoStrict :: ElementInfo -> ElementInfo -> WithError ElementInfo
 mergeElementInfoStrict elementInfo1 elementInfo2 =
@@ -183,7 +183,7 @@ mergeElementInfoStrict elementInfo1 elementInfo2 =
       labelOpt0 <- mm "label" labelOpt
       packagePathOpt0 <- mm "packagePath" packagePathOpt1
       packageNameOpt0 <- mm "package name" packageNameOpt
-      variants0 <- mergeMMiSSVariantSpecStrict 
+      variants0 <- mergeMMiSSVariantSpecStrict
          (variants elementInfo1) (variants elementInfo2)
       return (ElementInfo {
          packageIdOpt = packageIdOpt0,
@@ -193,16 +193,16 @@ mergeElementInfoStrict elementInfo1 elementInfo2 =
          variants = variants0
          })
    where
-      mm :: (Show a,Eq a) 
+      mm :: (Show a,Eq a)
          => String -> (ElementInfo -> Maybe a) -> WithError (Maybe a)
-      mm fieldName fieldFn 
+      mm fieldName fieldFn
          = mergeMaybe fieldName (fieldFn elementInfo1) (fieldFn elementInfo2)
 
 -- -----------------------------------------------------------------
 -- Functions for accessing the system attributes
 -- In general, functions ending "Att" work with the attributes list
 -- of the <attribute> element.  Functions which don't work with the
--- actual <group>, <unit>, <atom> or <embedded> involved. 
+-- actual <group>, <unit>, <atom> or <embedded> involved.
 --
 -- The latter functions are also a lot more careless about error conditions.
 -- -----------------------------------------------------------------
@@ -226,7 +226,7 @@ getPackageId elem =
       attributes <- getAttributes elem
       getPackageIdAtt attributes
 
--- | Get the files imported by a particular element (but not by included 
+-- | Get the files imported by a particular element (but not by included
 -- elements).
 getFiles :: Element -> WithError [String]
 getFiles elem =
@@ -246,19 +246,19 @@ getAllFiles elem =
    let
       elems :: [Element]
       elems = getAllElements1 elem
-     
-      files1 :: [WithError [String]] 
+
+      files1 :: [WithError [String]]
       files1 = map getFiles elems
 
       files2 :: [[String]]
-      files2 = map 
+      files2 = map
          (\ ssWE -> case fromWithError ssWE of
             Left _ -> []
             Right ss -> ss
             )
          files1
    in
-      uniqOrd (concat files2)    
+      uniqOrd (concat files2)
 
 getAttributes :: Element -> WithError [Attribute]
 getAttributes (Elem name0 _ content) =
@@ -274,7 +274,7 @@ getLabelAtt attributes =
       labelStrOpt <- getAttribute attributes "label"
       case labelStrOpt of
          Nothing -> return Nothing
-         Just labelStr -> 
+         Just labelStr ->
             do
                label <- fromStringWE labelStr
                return (Just label)
@@ -301,13 +301,13 @@ getPackagePathAtt attributes =
                return (Just packagePath)
 
 getPriorityAtt :: [Attribute] -> WithError String
-getPriorityAtt attributes = 
+getPriorityAtt attributes =
    do
       pOpt <- getAttribute attributes "priority"
       return (fromMaybe "1" pOpt)
 
 getFilesAtt :: [Attribute] -> WithError [String]
-getFilesAtt attributes = 
+getFilesAtt attributes =
    do
       filesOpt <- getAttribute attributes "files"
       return (case filesOpt of
@@ -331,11 +331,11 @@ setAttributes :: ([Attribute] -> [Attribute]) -> Element -> Element
 setAttributes newAttributesFn (Elem name0 atts0 content0) =
    let
       (attributesElem0,content1) = case content0 of
-         (CElem attributesElem) : content1 -> 
+         (CElem attributesElem) : content1 ->
             (attributesElem,content1)
          _ -> (Elem "attributes" [] [],content0)
             -- I'm not sure if this ever happens.
-      
+
       (Elem attributesElemName attributesElemAttributes0
          attributesElemContent) = attributesElem0
       attributesElemAttributes1 = newAttributesFn attributesElemAttributes0
@@ -363,30 +363,30 @@ setPriorityAtt attributes priority =
 
 -- | Add ElementInfo back to an Element.  It is assumed that the
 -- Element supplied is the result of getElementInfo, so it contains
--- no system attributes apart from objectClass and no variant attributes. 
+-- no system attributes apart from objectClass and no variant attributes.
 prependElementInfo :: ElementInfo -> Element -> Element
 prependElementInfo elInfo (Elem name0 [] content0) =
    let
       (attributesElement0,content1) = case content0 of
          CElem (attributesElement0 @ (Elem "attributes" _ _)) : content1
             -> (attributesElement0,content1)
-         _ -> error ("MMiSSElementInfo.prependElementInfo: " ++ name0 ++ 
-            " element does not begin with an attributes element") 
+         _ -> error ("MMiSSElementInfo.prependElementInfo: " ++ name0 ++
+            " element does not begin with an attributes element")
             -- this should not happen, I hope, since this function is supposed
             -- to be called too internally.
-     
+
       Elem _ attributes0 attributesContent = attributesElement0
 
       -- (1) compute the new system attributes
       attributes1 :: [Attribute]
-      attributes1 = 
+      attributes1 =
          (addAtt "label" labelOpt) .
-         (addAtt "packageId" packageIdOpt) . 
+         (addAtt "packageId" packageIdOpt) .
          (addAtt "packagePath" packagePathOpt1) $
          attributes0
 
-      addAtt :: StringClass object 
-         => String -> (ElementInfo -> Maybe object) 
+      addAtt :: StringClass object
+         => String -> (ElementInfo -> Maybe object)
          -> [Attribute] -> [Attribute]
       addAtt attName toAtt atts1 =
          case toAtt elInfo of
@@ -394,34 +394,34 @@ prependElementInfo elInfo (Elem name0 [] content0) =
            Just att -> setAttribute0 atts1 attName (toString att)
 
       -- (2) compute the variants, if any
-      variantAttributesElements = 
+      variantAttributesElements =
          if variants elInfo == emptyMMiSSVariantSpec
             then
                []
             else
                [CElem (fromMMiSSVariantSpecToXml (variants elInfo))]
 
-      attributesElement1 = Elem "attributes" attributes1 
+      attributesElement1 = Elem "attributes" attributes1
          (variantAttributesElements ++ attributesContent)
    in
       Elem name0 [] ((CElem attributesElement1) : content1)
 
-stripUnnecessaryPackagePath :: ElementInfo -> ElementInfo 
+stripUnnecessaryPackagePath :: ElementInfo -> ElementInfo
 stripUnnecessaryPackagePath elInfo0 =
    if guessPackagePathFromLabel (labelOpt elInfo0) == packagePathOpt1 elInfo0
       then
          elInfo0 {packagePathOpt1 = Nothing}
       else
          elInfo0
-      
+
 
 guessPackagePathFromLabel :: Maybe EntitySearchName -> Maybe EntityFullName
 guessPackagePathFromLabel labelOpt0 = case labelOpt0 of
    Just (FromHere fullName)-> Just fullName
    Just (FromCurrent fullName) -> Just fullName
    _ -> Nothing
-      
-mergeMaybe :: (Show a,Eq a) 
+
+mergeMaybe :: (Show a,Eq a)
    => String -> Maybe a -> Maybe a -> WithError (Maybe a)
 mergeMaybe keyName aOpt1 aOpt2 =
    case (aOpt1,aOpt2) of
@@ -429,8 +429,8 @@ mergeMaybe keyName aOpt1 aOpt2 =
          -> fail ("Conflicting values for " ++ keyName ++
                ": " ++ show a1 ++ " and " ++ show a2)
       (Just a1,_) -> return aOpt1
-      _ -> return aOpt2 
+      _ -> return aOpt2
 
 
-   
+
 

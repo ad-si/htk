@@ -6,7 +6,7 @@ import ICStringLen
 import ExtendedPrelude
 
 main :: IO ()
-main = 
+main =
    do
       let
          icsl :: ICStringLen
@@ -22,7 +22,7 @@ main =
       testb [(s,icsl)]
       testb ([] :: [(String,ICStringLen)])
       return ()
-         
+
 
 testb :: (HasCodedValue a) => a -> IO a
 testb a1 =

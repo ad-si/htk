@@ -1,11 +1,11 @@
 -- | We implement in this module a general cache strategy for lookup
--- tables, using weak pointers. 
+-- tables, using weak pointers.
 module CacheTable(
    -- Class describing table lookup operations
    LookupTable(..),
    -- Type which lifts up a table to include a cache.
    CachedTable,
- 
+
    ) where
 
 import System.Mem.Weak
@@ -35,7 +35,7 @@ type Cache key value = MVar (FiniteMap key (Weak value))
 -- important for deleteFromCache, which is invoked inside garbage collection
 
 -- Create a new empty cache
-newCache :: IO (Cache key value) 
+newCache :: IO (Cache key value)
 newCache = newMVar emptyFM
 
 -- Adds a value to the cache, or if it's already there replaces it.
@@ -75,7 +75,7 @@ getFromCache cache key getValue =
                value <- getValue
                addToCache cache key value
                return value
-         Just value -> return value 
+         Just value -> return value
 
 -- -------------------------------------------------------------------
 -- Adding a cache to a lookup table
@@ -86,12 +86,12 @@ data CachedTable table key value = CachedTable {
    cache :: Cache key value
    }
 
-instance (LookupTable table key value,Ord key) 
+instance (LookupTable table key value,Ord key)
    => LookupTable (CachedTable table key value) key value where
 
    openTable =
       do
-         table <- openTable 
+         table <- openTable
          cache <- newCache
          return (CachedTable {table = table,cache = cache})
 

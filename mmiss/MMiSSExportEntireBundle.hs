@@ -1,11 +1,11 @@
 -- | This module handles the Entire export of a BundleNode, that is, the sort
 -- you get when you select a folder or a file, so that it includes every
--- variant of a file. 
+-- variant of a file.
 module MMiSSExportEntireBundle(
    exportEntireLinkedObject,
       -- :: View -> LinkedObject -> ExportOpts -> IO Bundle
    exportMMiSSPreamble,
-      -- :: View -> Link MMiSSPreamble -> Bool 
+      -- :: View -> Link MMiSSPreamble -> Bool
       -- -> IO BundleNode
    ) where
 
@@ -55,13 +55,13 @@ exportEntireLinkedObject view linkedObject exportOpts =
 -- Splitting
 -- --------------------------------------------------------------------------
 
-exportEntireLinkedObject1 :: View -> LinkedObject -> ExportOpts 
+exportEntireLinkedObject1 :: View -> LinkedObject -> ExportOpts
    -> IO BundleNode
 exportEntireLinkedObject1 view linkedObject exportOpts =
    case splitLinkedObject linkedObject of
       FileC fileLink -> exportEntireFile view fileLink exportOpts
       FolderC folderLink -> exportEntireFolder view folderLink exportOpts
-      MMiSSPackageFolderC packageFolderLink 
+      MMiSSPackageFolderC packageFolderLink
          -> exportEntirePackageFolder view packageFolderLink exportOpts
       MMiSSObjectC objectLink
          -> exportEntireMMiSSObject view objectLink exportOpts
@@ -79,7 +79,7 @@ exportEntireLinkedObject1 view linkedObject exportOpts =
 -- MMiSSPackageFolders
 -- --------------------------------------------------------------------------
 
-exportEntirePackageFolder 
+exportEntirePackageFolder
    :: View -> Link MMiSSPackageFolder -> ExportOpts -> IO BundleNode
 exportEntirePackageFolder view packageFolderLink exportOpts =
    do
@@ -93,7 +93,7 @@ exportEntirePackageFolder view packageFolderLink exportOpts =
                   preambleNode <- exportMMiSSPreamble view
                      (toMMiSSPreambleLink packageFolder) exportOpts
                   return [preambleNode]
-                  
+
             else
                return []
 
@@ -103,9 +103,9 @@ exportEntirePackageFolder view packageFolderLink exportOpts =
 -- Preambles
 -- --------------------------------------------------------------------------
 
-exportMMiSSPreamble :: View -> Link MMiSSPreamble -> ExportOpts 
+exportMMiSSPreamble :: View -> Link MMiSSPreamble -> ExportOpts
    -> IO BundleNode
-exportMMiSSPreamble view link exportOpts = 
+exportMMiSSPreamble view link exportOpts =
    do
       bundleText1 <- if (getText exportOpts)
          then
@@ -115,7 +115,7 @@ exportMMiSSPreamble view link exportOpts =
                   preambleStr :: String
                   preambleStr = toString mmissLaTeXPreamble
 
-                  preambleICSL :: ICStringLen 
+                  preambleICSL :: ICStringLen
                   preambleICSL = fromString preambleStr
 
                   bundleText1 = BundleString {
@@ -164,13 +164,13 @@ exportEntireFile view fileLink exportOpts =
          bundleNodeData = bundleNodeData1
          })
 
-      
+
 -- --------------------------------------------------------------------------
 -- Folders
 -- --------------------------------------------------------------------------
 
 exportEntireFolder :: View -> Link Folder -> ExportOpts -> IO BundleNode
-exportEntireFolder view link exportOpts = 
+exportEntireFolder view link exportOpts =
    do
       folder <- readLink view link
       exportDir view (toLinkedObject folder) exportOpts
@@ -179,12 +179,12 @@ exportEntireFolder view link exportOpts =
 -- MMiSSObjects
 -- --------------------------------------------------------------------------
 
-exportEntireMMiSSObject :: View -> Link MMiSSObject -> ExportOpts 
+exportEntireMMiSSObject :: View -> Link MMiSSObject -> ExportOpts
    -> IO BundleNode
 exportEntireMMiSSObject view link exportOpts =
    do
       mmissObject <- readLink view link
-      fileLoc1 
+      fileLoc1
          <- getFileLocForExport view (toLinkedObject mmissObject) exportOpts
       bundleNodeData1 <- getBundleNodeData1 view mmissObject exportOpts
 
@@ -203,7 +203,7 @@ exportEntireMMiSSFile view link exportOpts =
       mmissFile <- readLink view link
       fileLoc1 <- getFileLoc view (toLinkedObject mmissFile)
       bundleNodeData1 <- getBundleNodeData1 view mmissFile exportOpts
-      
+
       return (BundleNode {
          fileLoc = fileLoc1,
          bundleNodeData = bundleNodeData1
@@ -213,7 +213,7 @@ exportEntireMMiSSFile view link exportOpts =
 -- Modified version of getBundleNodeData1 which checks for recursion depth.
 -- --------------------------------------------------------------------------
 
-getBundleNodeData1 :: HasBundleNodeData object 
+getBundleNodeData1 :: HasBundleNodeData object
    => View -> object -> ExportOpts -> IO BundleNodeData
 getBundleNodeData1 view object exportOpts =
    if recurseDepth exportOpts >= 1
@@ -227,14 +227,14 @@ getBundleNodeData1 view object exportOpts =
 -- --------------------------------------------------------------------------
 
 -- Export the objects within the contents of a linked object and construct
--- a BundleNode containing them 
+-- a BundleNode containing them
 exportDir :: View -> LinkedObject -> ExportOpts -> IO BundleNode
 exportDir view linkedObject exportOpts =
    exportDirPlus view linkedObject exportOpts []
 
 -- Generalisation of exportDir where we also supply a list of
 -- nodes to be prepended to the contents.
-exportDirPlus :: View -> LinkedObject -> ExportOpts -> [BundleNode] 
+exportDirPlus :: View -> LinkedObject -> ExportOpts -> [BundleNode]
    -> IO BundleNode
 exportDirPlus view linkedObject0 exportOpts0 extraNodes =
    do
@@ -252,14 +252,14 @@ exportDirPlus view linkedObject0 exportOpts0 extraNodes =
       linkedObjects <- if recurseDepth1 >= 0
          then
             do
-               objectContents 
+               objectContents
                   <- readContents (listObjectContents linkedObject0)
                return (map snd objectContents)
          else
             return []
 
       bundleNodes0 <- mapMConcurrentExcep
-         (\ linkedObject1 
+         (\ linkedObject1
             -> exportEntireLinkedObject1 view linkedObject1 exportOpts1
             )
          linkedObjects

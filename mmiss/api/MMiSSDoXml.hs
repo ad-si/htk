@@ -1,5 +1,5 @@
 -- | This module contains the code which actually processes and
--- distributes XML requests. 
+-- distributes XML requests.
 module MMiSSDoXml(
    doXml, -- :: Handle -> IO ()
    ) where
@@ -45,7 +45,7 @@ doXml handle user =
    do
       state <- newSessionState
 
-      (result :: Either String ()) 
+      (result :: Either String ())
          <- catchErrors (doRequests state handle user)
 
       case result of
@@ -67,18 +67,18 @@ doRequests state handle user =
             (request,block) <- readRequest handle
 
             block <- doRequests2 state handle user block request
-            writeResponse handle block                      
+            writeResponse handle block
          )
 
       case result of
          Right () -> done
-         Left mess -> 
+         Left mess ->
             signalError handle Messages_status_fail mess
 
       doRequests state handle user
-      
 
-doRequests2 :: MMiSSSessionState -> Handle -> User -> Block -> Request 
+
+doRequests2 :: MMiSSSessionState -> Handle -> User -> Block -> Request
    -> IO Block
 doRequests2 state handle user blockIn request =
    -- Get hold of the lock, which will protect some other client from
@@ -108,28 +108,28 @@ doRequests2 state handle user blockIn request =
             RequestListVersions command ->
                 do
                   response <- listVersions state command
-                  pn (ThreeOf12 response)               
+                  pn (ThreeOf12 response)
             RequestCheckOut command ->
                 do
                   response <- checkOut state command
-                  pn (FourOf12 response)               
+                  pn (FourOf12 response)
             RequestChangeUserInfo command ->
                 do
                   response <- changeUserInfo state command
-                  pn (FiveOf12 response)               
+                  pn (FiveOf12 response)
             RequestCommitVersion command ->
                 do
                   response <- commitVersion state command
-                  pn (SixOf12 response)               
+                  pn (SixOf12 response)
             RequestCloseVersion command ->
                 do
                   response <- closeVersion state command
-                  pn (SevenOf12 response)               
+                  pn (SevenOf12 response)
             RequestGetObject command ->
                 do
-                  
+
                   (response,blockOut) <- getObject state command dummyBlock
-                  return (EightOf12 response,Just blockOut)               
+                  return (EightOf12 response,Just blockOut)
             RequestPutObject command ->
                 do
                   response <- putObject state command blockIn
@@ -147,7 +147,7 @@ doRequests2 state handle user blockIn request =
                    response <- setAdminStatus state command
                    pn (TwelveOf12 response)
 
-            
+
 
          messages <- getMessages state
          let
@@ -161,11 +161,11 @@ doRequests2 state handle user blockIn request =
       )
 
 -- We lock our access to the MessFns.
-requestLock :: BSem 
+requestLock :: BSem
 requestLock = unsafePerformIO newBSem
 {-# NOINLINE requestLock #-}
-      
-         
+
+
 -- --------------------------------------------------------------------------
 -- Handling parsing errors and so on.
 -- --------------------------------------------------------------------------
@@ -187,7 +187,7 @@ signalErrors :: Handle -> Messages_status -> [String] -> IO ()
 signalErrors handle status messes =
    do
       let
-         messages = Messages 
+         messages = Messages
             (Messages_Attrs {
                messagesStatus = NonDefault status
                })
@@ -198,8 +198,8 @@ signalErrors handle status messes =
       writeResponse handle (toSimpleBlock response)
 
 -- --------------------------------------------------------------------------
--- Reading and Writing XML.  These functions also handle escaping 
--- / unescaping. 
+-- Reading and Writing XML.  These functions also handle escaping
+-- / unescaping.
 -- --------------------------------------------------------------------------
 
 readRequest :: Handle -> IO (Request,Block)
@@ -207,9 +207,9 @@ readRequest handle =
    do
       block <- readBlock handle
       requestStr <- case lookupBlockData block 0 of
-         Just (BlockData {blockType = 0,blockText = icsl}) -> 
+         Just (BlockData {blockType = 0,blockText = icsl}) ->
             return (toString icsl)
-         _ -> importExportError 
+         _ -> importExportError
             "Request block does not begin with an XML element"
       let
          Document _ _ elementE _ = xmlParse "MMiSS API input" requestStr
@@ -222,20 +222,20 @@ readRequest handle =
 
       case fromElem [CElem element] of
          (Just request,[]) -> return (request,block)
-         (Nothing,_) -> importExportError ("No request found in " 
+         (Nothing,_) -> importExportError ("No request found in "
             ++ requestStr)
-         (_,_) -> importExportError ("Unwanted extra input found in " 
-            ++ requestStr) 
+         (_,_) -> importExportError ("Unwanted extra input found in "
+            ++ requestStr)
 
 
 writeResponse :: Handle -> Block -> IO ()
-writeResponse handle block = 
+writeResponse handle block =
    do
       writeBlock handle block
       hFlush handle
 
 toSimpleBlock :: Response -> Block
-toSimpleBlock response = 
+toSimpleBlock response =
    fst (addBlockData emptyBlock (toResponseBlockData response))
 
 dummyBlock :: Block
@@ -253,10 +253,10 @@ toResponseBlockData response =
       icsl = fromString (toUglyExportableXml element)
    in
       BlockData {blockType = 0,blockText = icsl}
-      
-         
 
-      
+
+
+
 -- --------------------------------------------------------------------------
 -- Validation
 -- --------------------------------------------------------------------------
@@ -269,7 +269,7 @@ validateElement elementName (element @ (Elem name _ _)) =
          ["Expected a "++elementName++" but found a "++name]
       else
          (simpleDTD theAPIDTD) element
-   
+
 
 theAPIDTD :: MMiSSDTD
 theAPIDTD = unsafePerformIO getTheAPIDTD

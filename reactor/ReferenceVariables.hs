@@ -1,18 +1,18 @@
--- | 
+-- |
 -- - Reentrant, protected references: an IORef in an MVar, protected by
 -- - a reentrant monitor.
 -- -
--- - The operations which change the value (setRef, changeRef, withRef) 
+-- - The operations which change the value (setRef, changeRef, withRef)
 -- - are protected by the monitor, which additionally provides a reentrant
--- - synchronize method. 
- 
+-- - synchronize method.
+
 
 module ReferenceVariables(
   Ref,       -- type Ref a
   newRef,    -- :: a -> IO (Ref a)
   setRef,    -- :: Ref a -> a -> IO ()
   changeRef, -- :: Ref a -> (a -> a) -> IO ()
-  changeRefM, -- :: Ref a-> (a-> IO a) -> IO () 
+  changeRefM, -- :: Ref a-> (a-> IO a) -> IO ()
   withRef,   -- :: Ref a -> (a -> b) -> IO b
   getRef     -- :: Ref a -> IO a
 
@@ -28,7 +28,7 @@ import MSem
 data Ref a = Ref MSem (MVar (IORef a))
 
 newRef :: a -> IO (Ref a)
-newRef val = 
+newRef val =
   do
     ioref <- newIORef val
     mvar <- newMVar ioref

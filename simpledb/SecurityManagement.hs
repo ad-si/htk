@@ -1,4 +1,4 @@
--- | The functions in this module manage and verify access to the 
+-- | The functions in this module manage and verify access to the
 -- database.
 module SecurityManagement(
    setPermissions1,
@@ -43,7 +43,7 @@ setPermissions1 simpleDB (PrimitiveLocation key) permissions =
 
 getPermissions1 :: SimpleDB -> PrimitiveLocation -> IO Permissions
 getPermissions1 simpleDB (PrimitiveLocation key) =
-   getObject (securityDB simpleDB) (fromIntegral key) 
+   getObject (securityDB simpleDB) (fromIntegral key)
 
 getGlobalPermissions :: SimpleDB -> IO Permissions
 getGlobalPermissions simpleDB = getObject (miscDB simpleDB) 3
@@ -51,7 +51,7 @@ getGlobalPermissions simpleDB = getObject (miscDB simpleDB) 3
 setGlobalPermissions :: SimpleDB -> Permissions -> IO ()
 setGlobalPermissions simpleDB permissions =
    do
-      setObjectHere (miscDB simpleDB) 3 permissions 
+      setObjectHere (miscDB simpleDB) 3 permissions
       flushBDB (miscDB simpleDB)
 
 -- ----------------------------------------------------------------------
@@ -59,14 +59,14 @@ setGlobalPermissions simpleDB permissions =
 -- ----------------------------------------------------------------------
 
 
-verifyAccess :: SimpleDB -> User -> ObjectVersion -> Maybe Location 
+verifyAccess :: SimpleDB -> User -> ObjectVersion -> Maybe Location
    -> Activity -> IO ()
 verifyAccess simpleDB user objectVersion locationOpt activity =
    do
       vLocationOpt <- getVLocation simpleDB objectVersion locationOpt
       verifyMultiAccess simpleDB user objectVersion vLocationOpt [activity]
 
-verifyGetPermissionsAccess :: SimpleDB -> User -> ObjectVersion 
+verifyGetPermissionsAccess :: SimpleDB -> User -> ObjectVersion
    -> Maybe Location -> IO ()
 verifyGetPermissionsAccess simpleDB user objectVersion locationOpt =
    do
@@ -74,7 +74,7 @@ verifyGetPermissionsAccess simpleDB user objectVersion locationOpt =
       verifyMultiAccess simpleDB user objectVersion vLocationOpt
          [ReadActivity,PermissionsActivity]
 
-getVLocation :: SimpleDB -> ObjectVersion -> Maybe Location 
+getVLocation :: SimpleDB -> ObjectVersion -> Maybe Location
    -> IO (Maybe (VersionData,Location))
 getVLocation simpleDB version Nothing = return Nothing
 getVLocation simpleDB version (Just location ) =
@@ -83,17 +83,17 @@ getVLocation simpleDB version (Just location ) =
       return (Just (versionData,location))
 
 -- | Verify if /any/ of the given activities are permissable.
-verifyMultiAccess :: SimpleDB -> User -> ObjectVersion 
+verifyMultiAccess :: SimpleDB -> User -> ObjectVersion
    -> Maybe (VersionData,Location) -> [Activity] -> IO ()
 verifyMultiAccess simpleDB user version vLocationOpt activities =
    do
       groupFile <- getGroupFile
-      verifyMultiAccess1 simpleDB groupFile user 
+      verifyMultiAccess1 simpleDB groupFile user
          version vLocationOpt activities
 
-verifyMultiAccess1 :: SimpleDB -> GroupFile -> User -> ObjectVersion 
+verifyMultiAccess1 :: SimpleDB -> GroupFile -> User -> ObjectVersion
    -> Maybe (VersionData,Location) -> [Activity] -> IO ()
-verifyMultiAccess1 simpleDB groupFile user objectVersion vLocationOpt 
+verifyMultiAccess1 simpleDB groupFile user objectVersion vLocationOpt
       activities =
    case activities of
       [] ->
@@ -109,24 +109,24 @@ verifyMultiAccess1 simpleDB groupFile user objectVersion vLocationOpt
                      ++ " denied")
       (activity : activities1) ->
          do
-            access0 <- 
-               verifyAccess0 simpleDB groupFile (PasswordFile.userId user) 
+            access0 <-
+               verifyAccess0 simpleDB groupFile (PasswordFile.userId user)
                   objectVersion vLocationOpt activity
             if access0
                then
                   done
                else
-                  verifyMultiAccess1 simpleDB groupFile user objectVersion 
+                  verifyMultiAccess1 simpleDB groupFile user objectVersion
                      vLocationOpt activities1
 
-verifyAccess0 :: SimpleDB -> GroupFile -> String -> ObjectVersion 
+verifyAccess0 :: SimpleDB -> GroupFile -> String -> ObjectVersion
    -> Maybe (VersionData,Location) -> Activity -> IO Bool
 verifyAccess0 simpleDB groupFile userId0 objectVersion vLocationOpt activity =
    do
       allowedOpt <- case vLocationOpt of
          Nothing -> return Nothing
          Just (versionData,location) ->
-            verifyAccess1 simpleDB groupFile userId0 objectVersion 
+            verifyAccess1 simpleDB groupFile userId0 objectVersion
                versionData location activity
       case allowedOpt of
          Just allowed -> return allowed
@@ -137,9 +137,9 @@ verifyAccess0 simpleDB groupFile userId0 objectVersion vLocationOpt activity =
                   groupFile userId0 objectVersion activity permissions0
                return (fromMaybe True result1)
 
-verifyAccess1 :: SimpleDB -> GroupFile -> String -> ObjectVersion 
+verifyAccess1 :: SimpleDB -> GroupFile -> String -> ObjectVersion
    -> VersionData -> Location -> Activity -> IO (Maybe Bool)
-verifyAccess1 simpleDB groupFile userId0 version versionData location1 
+verifyAccess1 simpleDB groupFile userId0 version versionData location1
       activity =
    do
       let
@@ -153,7 +153,7 @@ verifyAccess1 simpleDB groupFile userId0 version versionData location1
          Nothing ->
             case lookupFM (parentsMap versionData) location1 of
                Nothing -> return Nothing
-               Just location2 ->   
+               Just location2 ->
                   verifyAccess1 simpleDB groupFile userId0 version versionData
                      location2 activity
 
@@ -171,7 +171,7 @@ verifyGlobalMultiAccess user permissions activities =
       groupFile <- getGroupFile
       verifyGlobalMultiAccess1 groupFile user permissions activities
 
-verifyGlobalMultiAccess1 :: GroupFile -> User -> Permissions -> [Activity] 
+verifyGlobalMultiAccess1 :: GroupFile -> User -> Permissions -> [Activity]
    -> IO ()
 verifyGlobalMultiAccess1 groupFile user permissions activities =
    case activities of
@@ -193,5 +193,5 @@ verifyGlobalMultiAccess1 groupFile user permissions activities =
                then
                   done
                else
-                  verifyGlobalMultiAccess1 
+                  verifyGlobalMultiAccess1
                      groupFile user permissions activities1

@@ -15,7 +15,7 @@ module CodedValueType(
    CodedValueType,
    -- represents the type,
    HasCodedValueType(..),
-   -- Things which have this type.  
+   -- Things which have this type.
 
    CodedValueTypeNorm,
    -- Something (a) to which a CodedValueType can be converted;
@@ -56,4 +56,4 @@ instance HasTyCon CodedValueTypeNorm where
 instance HasCodedValue CodedValueTypeNorm where
    encodeIO = mapEncodeIO (\ (CodedValueTypeNorm a) -> Str a)
    decodeIO = mapDecodeIO (\ (Str a) -> CodedValueTypeNorm a)
-   
+

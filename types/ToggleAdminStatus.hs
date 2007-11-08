@@ -25,11 +25,11 @@ data AdminStatus = AdminStatus {
 -- Functions
 -- ------------------------------------------------------------------------
 
--- | Create a new 'AdminStatus' value. 
+-- | Create a new 'AdminStatus' value.
 -- NB.  This function assumes that
--- 
+--
 --     *  the user does not have admin status to the repository.
---  
+--
 --     *  there is no other AdminStatus value for the repository,
 --        and after newAdminStatus is called, no other accesss to
 --        toggleAdminStatus for the repository.
@@ -49,15 +49,15 @@ toggleAdminStatus adminStatus =
    do
       currentlyIsAdmin <- takeMVar (statusMVar adminStatus)
       let
-         message = 
+         message =
             if currentlyIsAdmin
                then
                   "Revoke admin status?"
                else
                   "Claim admin status?"
 
-      
-      nextIsAdmin <- 
+
+      nextIsAdmin <-
          do
             goAhead <- confirmMess message
             if goAhead
@@ -70,9 +70,9 @@ toggleAdminStatus adminStatus =
                         setAdminStatus (repository adminStatus) newStatus)
                      case succeeded of
                         Just () -> return newStatus
-                        Nothing -> return currentlyIsAdmin         
+                        Nothing -> return currentlyIsAdmin
                else
                   return currentlyIsAdmin
 
       putMVar (statusMVar adminStatus) nextIsAdmin
-       
+

@@ -4,7 +4,7 @@ module Main (main) where
 import HTk
 
 main :: IO ()
-main = 
+main =
   do main <- initHTk [text "My third HTk Program"]
 
      mb <- createMenu main False []
@@ -25,7 +25,7 @@ main =
 
      (entered, _) <-
        bind e1 [WishEvent [] (KeyPress (Just (KeySym "Return")))]
-	
+
      pack f []
      pack l [PadX 10, Side AtLeft]
      pack f2 [Side AtRight]
@@ -35,6 +35,6 @@ main =
      clickedqb <- clicked qb
      spawnEvent (forever ((clickedqb >>> destroy main) +>
                           (entered >>> do txt <- readTkVariable v1
-				          main # text txt >> done)))
+                                          main # text txt >> done)))
 
      finishHTk

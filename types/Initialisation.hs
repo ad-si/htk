@@ -1,5 +1,5 @@
 -- | This module contains functions for connecting to the repository,
--- and if necessary initialising it with the top item. 
+-- and if necessary initialising it with the top item.
 module Initialisation(
    initialise, -- :: IO Repository,
    openRepository, -- :: (?server :: HostPort) => IO VersionDB.Repository
@@ -40,30 +40,30 @@ openRepositoryInternal :: VersionState.VersionState -> IO VersionDB.Repository
 openRepositoryInternal = openRepositoryGeneralInternal (\ view -> done)
 
 -- | More general initialisation, which provides an extra function
--- to be executed when the very first view is created. 
-initialiseGeneral :: (?server :: HostPort) 
+-- to be executed when the very first view is created.
+initialiseGeneral :: (?server :: HostPort)
    => (View -> IO ()) -> IO VersionDB.Repository
 initialiseGeneral initialiseView =
    do
       doRegistrations
       openRepositoryGeneral initialiseView
 
-openRepositoryGeneral :: (?server :: HostPort) 
+openRepositoryGeneral :: (?server :: HostPort)
    => (View -> IO ()) -> IO VersionDB.Repository
-openRepositoryGeneral initialiseView = 
+openRepositoryGeneral initialiseView =
    do
       repository <- VersionDB.initialise
       viewVersions <- listViews repository
       case viewVersions of
-         [] -> 
+         [] ->
             do
                createRepository initialiseView repository
          _ -> done -- the repository is already initialised
       return repository
 
-openRepositoryGeneralInternal 
+openRepositoryGeneralInternal
    :: (View -> IO ()) -> VersionState.VersionState -> IO VersionDB.Repository
-openRepositoryGeneralInternal initialiseView versionState = 
+openRepositoryGeneralInternal initialiseView versionState =
    do
       repository <- VersionDB.initialiseInternal versionState
       viewVersions <- listViews repository

@@ -1,7 +1,7 @@
 -- | Here we create a simple guarded queue which allows guarding by equality
 -- according to an ordered key.  Thus guards have three values,
--- match anything, match nothing, and match this value.  
--- 
+-- match anything, match nothing, and match this value.
+--
 -- To simplify the implementation, we specify that an Eq match has higher
 -- priority than a MatchAnything match, and when we must choose between
 -- values for MatchAnything, do not necessarily choose the first
@@ -23,10 +23,10 @@ import FMQueue
 type EqGuardedChannel key value = GuardedChannel (EqMatch key) (key,value)
 
 newEqGuardedChannel :: Ord key => IO (EqGuardedChannel key value)
-newEqGuardedChannel = 
+newEqGuardedChannel =
    newEqGuardedChannelPrim (error "EqGuard.1") (error "EqGuard.2")
 
-newEqGuardedChannelPrim :: Ord key => key -> value 
+newEqGuardedChannelPrim :: Ord key => key -> value
    -> IO (EqGuardedChannel key value)
 -- The arguments to newEqGuardedChannelPrim are not looked at, but
 -- help us to avoid overloading woes.
@@ -38,7 +38,7 @@ newEqGuardedChannelPrim (_::key) (_ ::value) =
 -- The Guard type
 -- --------------------------------------------------------------------
 
-data EqMatch key = 
+data EqMatch key =
       Eq !key
    |  EqMatchAny
    |  EqMatchNone
@@ -57,7 +57,7 @@ instance Ord key => Guard (EqMatch key) where
 -- The value queue.
 -- --------------------------------------------------------------------
 
-newtype Ord key => EqValueQueue key value valueCont = 
+newtype Ord key => EqValueQueue key value valueCont =
    EqValueQueue (FMQueue key ((key,value),valueCont))
 
 instance Ord key => HasEmpty (EqValueQueue key value) where
@@ -69,20 +69,20 @@ instance Ord key => HasAdd (EqValueQueue key value) (key,value) where
          (fmQueue2,invalidate) <- addFMQueue fmQueue key (keyValue,valueCont)
          return (EqValueQueue fmQueue2,invalidate)
 
-instance Ord key => HasRemove (EqValueQueue key value) (EqMatch key) 
+instance Ord key => HasRemove (EqValueQueue key value) (EqMatch key)
       (key,value) where
    remove (EqValueQueue fmQueue) EqMatchAny =
       do
          (removed,fmQueue0) <- removeFMQueueAny fmQueue
          case removed of
             Nothing -> return (Nothing,EqValueQueue fmQueue0)
-            (Just (_,(keyValue,valueCont),fmQueue2)) -> 
+            (Just (_,(keyValue,valueCont),fmQueue2)) ->
                return (Just(keyValue,valueCont,
                      return (EqValueQueue fmQueue0)),
                   EqValueQueue fmQueue2)
    remove (EqValueQueue fmQueue) (Eq key) =
       do
-         (removed,fmQueue0) <- removeFMQueue fmQueue key 
+         (removed,fmQueue0) <- removeFMQueue fmQueue key
          case removed of
             Nothing -> return (Nothing,EqValueQueue fmQueue0)
             (Just ((keyValue,valueCont),fmQueue2)) ->
@@ -109,7 +109,7 @@ instance Ord key => HasEmpty (EqGuardQueue key) where
 instance Ord key => HasAdd (EqGuardQueue key) (EqMatch key) where
    add guardQueue guard guardCont =
       case guard of
-         Eq key -> 
+         Eq key ->
             do
                let fmQueue = eqs guardQueue
                (fmQueue2,invalidate) <- addFMQueue fmQueue key guardCont
@@ -121,11 +121,11 @@ instance Ord key => HasAdd (EqGuardQueue key) (EqMatch key) where
                deleteQueue3 <- cleanQueue deleteQueue2
                return (guardQueue {matchAnys = deleteQueue2},invalidate)
          EqMatchNone -> return (guardQueue,done)
- 
+
 instance Ord key => HasRemove (EqGuardQueue key) (key,value) (EqMatch key) where
    remove guardQueue (key,_) =
       do
-         removed <- removeFMQueue (eqs guardQueue) key 
+         removed <- removeFMQueue (eqs guardQueue) key
          case removed of
             (Just (guardCont,fmQueue2),fmQueue0) ->
                do
@@ -136,7 +136,7 @@ instance Ord key => HasRemove (EqGuardQueue key) (key,value) (EqMatch key) where
                do
                   let
                      mAs = matchAnys guardQueue
-                     gq dq = EqGuardQueue {matchAnys = dq,eqs = fmQueue0} 
+                     gq dq = EqGuardQueue {matchAnys = dq,eqs = fmQueue0}
                   removed2 <- removeQueue mAs
                   case removed2 of
                      Just (guardCont,dqueue2,dqueue0) ->

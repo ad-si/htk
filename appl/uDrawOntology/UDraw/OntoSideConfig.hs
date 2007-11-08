@@ -18,9 +18,9 @@ import Char (isSpace)
 
 data Config = Config Nodes Relations Packages
             deriving (Eq,Show)
-newtype Nodes = Nodes [Node] 		deriving (Eq,Show)
-newtype Relations = Relations [Relation] 		deriving (Eq,Show)
-newtype Packages = Packages [Package] 		deriving (Eq,Show)
+newtype Nodes = Nodes [Node]            deriving (Eq,Show)
+newtype Relations = Relations [Relation]                deriving (Eq,Show)
+newtype Packages = Packages [Package]           deriving (Eq,Show)
 data Node = Node
     { nodeType :: String
     , nodeFontStyle :: String
@@ -106,7 +106,7 @@ instance XmlAttributes Node where
           , nodeBorder = definiteA fromAttrToStr "node" "border" as
           , nodeShape = definiteA fromAttrToStr "node" "shape" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "type" (nodeType v)
         , toAttrFrStr "fontStyle" (nodeFontStyle v)
         , toAttrFrStr "fontFamily" (nodeFontFamily v)
@@ -132,7 +132,7 @@ instance XmlAttributes Relation where
           , relationEdgePattern = definiteA fromAttrToStr "relation" "edgepattern" as
           , relationHead = definiteA fromAttrToStr "relation" "head" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "label" (relationLabel v)
         , toAttrFrStr "showLabel" (relationShowLabel v)
         , toAttrFrStr "fontStyle" (relationFontStyle v)
@@ -155,7 +155,7 @@ instance XmlAttributes Package where
           { packageLabel = definiteA fromAttrToStr "package" "label" as
           , packageColor = definiteA fromAttrToStr "package" "color" as
           }
-    toAttrs v = catMaybes 
+    toAttrs v = catMaybes
         [ toAttrFrStr "label" (packageLabel v)
         , toAttrFrStr "color" (packageColor v)
         ]

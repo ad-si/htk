@@ -1,5 +1,5 @@
 -- | This module contains the ObjectSource functions.  An ObjectSource
--- refers to either something like a String, or the contents of a file. 
+-- refers to either something like a String, or the contents of a file.
 module ObjectSource(
    ObjectSource,
    -- type of data as retrieved from the repository.
@@ -52,7 +52,7 @@ exportFile :: ObjectSource -> FilePath -> IO ()
 exportFile (ObjectSource act) filePath =
    do
       icsl <- act
-      withICStringLen icsl 
+      withICStringLen icsl
          (\ len cString -> copyCStringLenToFile (cString,len) filePath)
 
 importString :: String -> IO ObjectSource

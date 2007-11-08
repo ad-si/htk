@@ -1,7 +1,7 @@
--- | This module contains the functions for converting to and from the 
+-- | This module contains the functions for converting to and from the
 -- bundles described in "MMiSSBundle" into our own Bundle type
 -- described in "MMiSSRequest".
--- 
+--
 -- It also contains the (much simpler) functions for converting to
 -- the ExportOpts required for the \<getObject\> element,
 -- and for converting to and from 'MMiSSVariantSpec' s.
@@ -61,7 +61,7 @@ toBundle block (MMiSSRequest.Bundle (l0 :: [Bundle_])) =
             )
          l0
       return (MMiSSBundle.Bundle l1)
-           
+
 
 fromBundle :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Bundle
 fromBundle (MMiSSBundle.Bundle (l0 :: [(MMiSSBundle.PackageId,BundleNode)])) =
@@ -70,11 +70,11 @@ fromBundle (MMiSSBundle.Bundle (l0 :: [(MMiSSBundle.PackageId,BundleNode)])) =
          (\ (packageId,bundleNode) ->
             do
                file <- fromBundleNode bundleNode
-               return (Bundle_ 
+               return (Bundle_
                   (MMiSSRequest.PackageId (packageIdStr packageId))
                   file
                   )
-            ) 
+            )
          l0
       return (MMiSSRequest.Bundle l1)
 
@@ -83,7 +83,7 @@ fromBundle (MMiSSBundle.Bundle (l0 :: [(MMiSSBundle.PackageId,BundleNode)])) =
 -- Converting to and from lists of BundleNode's.
 -- ---------------------------------------------------------------------------
 
-toBundleNodes :: Block -> MMiSSRequest.Files 
+toBundleNodes :: Block -> MMiSSRequest.Files
    -> WithError [MMiSSBundle.BundleNode]
 toBundleNodes block (Files files) =
    do
@@ -94,13 +94,13 @@ fromBundleNodes :: [MMiSSBundle.BundleNode] -> BlockM MMiSSRequest.Files
 fromBundleNodes (bundleNodes :: [BundleNode]) =
    do
       files <- mapM fromBundleNode bundleNodes
-      return (Files files) 
+      return (Files files)
 
 -- ---------------------------------------------------------------------------
 -- Converting to and from BundleNode
 -- ---------------------------------------------------------------------------
 
-toBundleNode :: Block -> MMiSSRequest.File 
+toBundleNode :: Block -> MMiSSRequest.File
    -> WithError (MMiSSBundle.BundleNode)
 toBundleNode block (File fileLoc0 oneOfOpt) =
    case oneOfOpt of
@@ -113,7 +113,7 @@ toBundleNode block (File fileLoc0 oneOfOpt) =
                      do
                         vSpecOpt <- case variantsOpt of
                            Nothing -> return Nothing
-                           Just variants -> 
+                           Just variants ->
                               do
                                  variantSpec <- fromVariants variants
                                  return (Just variantSpec)
@@ -124,8 +124,8 @@ toBundleNode block (File fileLoc0 oneOfOpt) =
             return (mkBundleNode (Object vList))
       Just (TwoOf2 files) ->
          do
-            bundleNodes <- toBundleNodes block files 
-            return (mkBundleNode (Dir bundleNodes))      
+            bundleNodes <- toBundleNodes block files
+            return (mkBundleNode (Dir bundleNodes))
    where
       fileLoc1 = toFileLoc fileLoc0
 
@@ -134,7 +134,7 @@ toBundleNode block (File fileLoc0 oneOfOpt) =
          fileLoc = fileLoc1,
          bundleNodeData = bundleNodeData1
          }
-  
+
 fromBundleNode :: MMiSSBundle.BundleNode -> BlockM MMiSSRequest.File
 fromBundleNode (BundleNode {
       fileLoc = fileLoc0,bundleNodeData = bundleNodeData0}) =
@@ -142,7 +142,7 @@ fromBundleNode (BundleNode {
       NoData -> return (mkFile Nothing)
       Object vList ->
          do
-            (variants :: [FileVariant]) <- 
+            (variants :: [FileVariant]) <-
                mapM
                   (\ (vSpecOpt,bundleText) ->
                      do
@@ -156,7 +156,7 @@ fromBundleNode (BundleNode {
       Dir bundleNodes ->
          do
             files <- fromBundleNodes bundleNodes
-            return (mkFile (Just (TwoOf2 files))) 
+            return (mkFile (Just (TwoOf2 files)))
    where
       fileLoc1 = fromFileLoc fileLoc0
 
@@ -173,15 +173,15 @@ fromVariants (Variants variants) =
             (\ var -> (variantKey var,variantValue var))
             variants
       toMMiSSVariantSpec strs
-      
+
 toVariants :: MMiSSVariantSpec -> MMiSSRequest.Variants
 toVariants variantSpec =
    let
       strs = fromMMiSSVariantSpec variantSpec
    in
       Variants (
-         map 
-            (\ (key0,value0) 
+         map
+            (\ (key0,value0)
                -> Variant {variantKey = key0,variantValue = value0})
             strs
          )
@@ -191,7 +191,7 @@ toVariants variantSpec =
 -- it's an Element.
 -- ---------------------------------------------------------------------------
 
-toBundleText :: Block -> Maybe MMiSSRequest.FileContents 
+toBundleText :: Block -> Maybe MMiSSRequest.FileContents
    -> WithError MMiSSBundle.BundleText
 toBundleText block ftOpt =
    case ftOpt of
@@ -199,7 +199,7 @@ toBundleText block ftOpt =
          case readCheck dbnStr of
             Just (blockNo :: Int) ->
                case lookupBlockData block blockNo of
-                  Just blockData 
+                  Just blockData
                      | blockType blockData == blockType1
                         -> return (
                            BundleString {
@@ -219,7 +219,7 @@ toBundleText block ftOpt =
             dbnStr = fileContentsDataBlock ft
       Nothing -> return NoText
 
-fromBundleText :: MMiSSBundle.BundleText 
+fromBundleText :: MMiSSBundle.BundleText
    -> BlockM (Maybe MMiSSRequest.FileContents)
 fromBundleText bt = case bundleToICSL bt of
    Nothing -> return Nothing
@@ -227,12 +227,12 @@ fromBundleText bt = case bundleToICSL bt of
       do
          block0 <- get
          let
-            (block1,icslNo) = addBlockData block0 
+            (block1,icslNo) = addBlockData block0
                (BlockData {
                   blockType = blockType1,
                   blockText = icsl
                   })
-         put block1      
+         put block1
          return (Just (FileContents {
             fileContentsDataBlock = show icslNo,
             fileContentsCharType = toDefaultable FileContents_charType_unicode
@@ -253,9 +253,9 @@ toCharType ct = case ct of
 
 fromCharType :: MMiSSBundle.CharType -> MMiSSRequest.FileContents_charType
 fromCharType ct = case ct of
-   Byte    -> FileContents_charType_byte    
+   Byte    -> FileContents_charType_byte
    Unicode -> FileContents_charType_unicode
-    
+
 -- ---------------------------------------------------------------------------
 -- Converting to and from FileLocs
 -- ---------------------------------------------------------------------------
@@ -300,22 +300,22 @@ fromBundleType bt =
 toBundleTypeEnum :: MMiSSRequest.ObjectType_baseType ->
    MMiSSBundle.BundleTypeEnum
 toBundleTypeEnum bt = case bt of
-   ObjectType_baseType_folder -> FolderEnum 
+   ObjectType_baseType_folder -> FolderEnum
    ObjectType_baseType_plainFile -> FileEnum
    ObjectType_baseType_mmissFolder -> MMiSSFolderEnum
-   ObjectType_baseType_mmissObject -> MMiSSObjectEnum 
+   ObjectType_baseType_mmissObject -> MMiSSObjectEnum
    ObjectType_baseType_mmissFile -> MMiSSFileEnum
    ObjectType_baseType_mmissPreamble -> MMiSSPreambleEnum
 
-fromBundleTypeEnum :: MMiSSBundle.BundleTypeEnum 
+fromBundleTypeEnum :: MMiSSBundle.BundleTypeEnum
    -> MMiSSRequest.ObjectType_baseType
-fromBundleTypeEnum bte = case bte of 
-   FolderEnum        -> ObjectType_baseType_folder        
-   FileEnum          -> ObjectType_baseType_plainFile     
-   MMiSSFolderEnum   -> ObjectType_baseType_mmissFolder   
-   MMiSSObjectEnum   -> ObjectType_baseType_mmissObject   
-   MMiSSFileEnum     -> ObjectType_baseType_mmissFile     
-   MMiSSPreambleEnum -> ObjectType_baseType_mmissPreamble 
+fromBundleTypeEnum bte = case bte of
+   FolderEnum        -> ObjectType_baseType_folder
+   FileEnum          -> ObjectType_baseType_plainFile
+   MMiSSFolderEnum   -> ObjectType_baseType_mmissFolder
+   MMiSSObjectEnum   -> ObjectType_baseType_mmissObject
+   MMiSSFileEnum     -> ObjectType_baseType_mmissFile
+   MMiSSPreambleEnum -> ObjectType_baseType_mmissPreamble
 
 -- ---------------------------------------------------------------------------
 -- ExportOpts stuff
@@ -326,18 +326,18 @@ toExportOpts attrs =
    let
       what0 = fromDefaultable (getObjectWhat attrs)
       getText1 = case what0 of
-         GetObject_what_locations -> False 
+         GetObject_what_locations -> False
          GetObject_what_everything -> True
 
       format0 = fromDefaultable (getObjectFormat attrs)
       format1 = case format0 of
-         GetObject_format_LaTeX -> LaTeX 
+         GetObject_format_LaTeX -> LaTeX
          GetObject_format_XML -> XML
 
       recurse0 = fromDefaultable (getObjectRecurse attrs)
       recurseDepth1 = case recurse0 of
          GetObject_recurse_justThis -> 1
-	 GetObject_recurse_allIncluded -> infinity 
+         GetObject_recurse_allIncluded -> infinity
    in
       ExportOpts {
          getText = getText1,
@@ -350,5 +350,5 @@ toExportOpts attrs =
 -- ---------------------------------------------------------------------------
 
 toPackageId :: MMiSSRequest.PackageId -> LaTeXParser.PackageId
-toPackageId packageId 
+toPackageId packageId
    = LaTeXParser.PackageId (MMiSSRequest.packageIdId packageId)

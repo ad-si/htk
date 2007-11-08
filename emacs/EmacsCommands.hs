@@ -1,4 +1,4 @@
--- | This module contains basic code for constructing Emacs commands 
+-- | This module contains basic code for constructing Emacs commands
 
 module EmacsCommands(
    HasEmacsCommand(..),
@@ -25,19 +25,19 @@ import EmacsBasic
 class HasEmacsCommand emacsCommand where
    toEmacsString :: emacsCommand -> String
 
-execEmacs :: HasEmacsCommand emacsCommand 
+execEmacs :: HasEmacsCommand emacsCommand
    => EmacsSession -> emacsCommand -> IO ()
-execEmacs emacsSession emacsCommand 
+execEmacs emacsSession emacsCommand
    = execEmacsString emacsSession (toEmacsString emacsCommand)
 
-evalEmacs :: HasEmacsCommand emacsCommand 
+evalEmacs :: HasEmacsCommand emacsCommand
    => EmacsSession -> emacsCommand -> IO String
-evalEmacs emacsSession emacsCommand 
+evalEmacs emacsSession emacsCommand
    = evalEmacsString emacsSession (toEmacsString emacsCommand)
 
-evalEmacsQuick :: HasEmacsCommand emacsCommand 
+evalEmacsQuick :: HasEmacsCommand emacsCommand
    => EmacsSession -> emacsCommand -> IO String
-evalEmacsQuick emacsSession emacsCommand 
+evalEmacsQuick emacsSession emacsCommand
    = evalEmacsStringQuick emacsSession (toEmacsString emacsCommand)
 
 -- -------------------------------------------------------------------------
@@ -50,13 +50,13 @@ instance HasEmacsCommand String where
 
 -- | A call to a function with one String argument.
 instance HasEmacsCommand (String,String) where
-   toEmacsString (funName,arg) = toEmacsString (funName,[arg])  
+   toEmacsString (funName,arg) = toEmacsString (funName,[arg])
 
 -- | A call to a function with one Int argument.
 instance HasEmacsCommand (String,Int) where
    toEmacsString (funName,arg) = "(" ++ funName ++ " " ++ show arg ++ ")"
 
--- | A call to a function with a number of arguments to be passed as 
+-- | A call to a function with a number of arguments to be passed as
 -- Emacs Strings.
 instance HasEmacsCommand (String,[String]) where
    toEmacsString (funName,args) =
@@ -71,7 +71,7 @@ instance HasEmacsCommand (String,[String]) where
 newtype Prin x = Prin x
 
 instance HasEmacsCommand x => HasEmacsCommand (Prin x) where
-   toEmacsString (Prin x) = 
+   toEmacsString (Prin x) =
       "(uni-prin "++toEmacsString x++")"
 
 
@@ -91,6 +91,6 @@ multi :: HasEmacsCommand emacsCommand => emacsCommand -> Multi
 multi emacsCommand = Multi (toEmacsString emacsCommand)
 
 instance HasEmacsCommand [Multi] where
-   toEmacsString commands = 
-      "(" ++ unsplitByChar ' ' ("progn":(map (\ (Multi s) -> s) commands)) 
+   toEmacsString commands =
+      "(" ++ unsplitByChar ' ' ("progn":(map (\ (Multi s) -> s) commands))
          ++ ")"

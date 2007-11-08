@@ -33,10 +33,10 @@ newtype Message = Message GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new message widget and returns a handler.
-newMessage :: Container par => par 
+newMessage :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Message] 
+   -> [Config Message]
    -- ^ the list of configuration options for this message
    -- widget.
    -> IO Message
@@ -52,7 +52,7 @@ newMessage par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Message where 
+instance GUIObject Message where
   toGUIObject (Message w) = w
   cname _ = "Message"
 
@@ -113,7 +113,7 @@ aspect :: Int -> Config Message
 aspect i mes = cset mes "aspect" i
 
 -- | Gets the aspect froma message widget.
-getAspect :: Message 
+getAspect :: Message
    -- ^ the concerned message widget.
    -> IO Int
    -- ^ The current aspect of this message widget.

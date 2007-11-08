@@ -1,4 +1,4 @@
--- | This module interfaces the strerror function. 
+-- | This module interfaces the strerror function.
 module StrError(
    strError, -- :: Int -> IO String
    ) where
@@ -18,7 +18,7 @@ strError i =
       )
 
 
-foreign import ccall unsafe "string.h strerror" strErrorPrim 
+foreign import ccall unsafe "string.h strerror" strErrorPrim
    :: Int -> IO CString
 
 lock :: MVar ()

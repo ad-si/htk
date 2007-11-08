@@ -6,9 +6,9 @@
 module VersionInfoFilter(
    VersionInfoFilter(..),
 
-   defaultVersionInfoFilter, 
+   defaultVersionInfoFilter,
       -- :: VersionInfoFilter
-   filterVersionInfo, 
+   filterVersionInfo,
       -- :: VersionInfoFilter -> VersionInfo -> Bool
    readVersionInfoFilter,
       -- :: IO (Maybe VersionInfoFilter)
@@ -16,7 +16,7 @@ module VersionInfoFilter(
    -- Functions for controlling the deletion count
    upDeleteCount, -- :: VersionInfo -> WithError VersionInfo
    downDeleteCount, -- :: VersionInfo -> WithError VersionInfo
-   
+
    ) where
 
 import Debug.Trace
@@ -38,7 +38,7 @@ import VersionInfo
 -- ----------------------------------------------------------------------
 
 data VersionInfoFilter =
-      AndFilter [VersionInfoFilter] 
+      AndFilter [VersionInfoFilter]
    |  OrFilter [VersionInfoFilter]
    |  NotFilter VersionInfoFilter
    |  SinceTimeFilter ClockTime
@@ -63,7 +63,7 @@ filterVersionInfo filter versionInfo =
             OrFilter filters -> or (map f filters)
             NotFilter filter -> not (f filter)
             SinceTimeFilter ct -> (timeStamp . server $ versionInfo) > ct
-            MaxDeletionCountFilter i ->        
+            MaxDeletionCountFilter i ->
                let
                   dcount = case fromWithError (toDeletionCount versionInfo) of
                      Left mess -> trace (
@@ -80,7 +80,7 @@ filterVersionInfo filter versionInfo =
 -- ----------------------------------------------------------------------
 
 readVersionInfoFilter :: IO (Maybe VersionInfoFilter)
-readVersionInfoFilter = 
+readVersionInfoFilter =
    doForm "Set Version Filter" versionInfoFilterForm
 
 
@@ -112,7 +112,7 @@ deletionCountForm0 = newFormEntry "Maximum Allowed Deletion Count" 0
 deletionCountForm :: Form Int
 deletionCountForm =
    guardForm
-      (>=0) 
+      (>=0)
       "Maximum Allowed Deletion Count must be at least 0"
       deletionCountForm0
 
@@ -189,7 +189,7 @@ dateForm =
 -- ----------------------------------------------------------------------
 
 toDeletionCount :: VersionInfo -> WithError Int
-toDeletionCount versionInfo 
+toDeletionCount versionInfo
    = toDeletionCount0 . versionAttributes . user $ versionInfo
 
 upDeleteCount :: VersionInfo -> WithError VersionInfo
@@ -235,9 +235,9 @@ upDeleteCount0 versionAttributes0 =
       delCount0 <- toDeletionCount0 versionAttributes0
       let
          delCount1 = delCount0 + 1
-         versionAttributes1 = 
+         versionAttributes1 =
             setVersionAttribute versionAttributes0 deleteCountKey
-               (show delCount1) 
+               (show delCount1)
       return versionAttributes1
 
 downDeleteCount0 :: VersionAttributes -> WithError VersionAttributes
@@ -251,9 +251,9 @@ downDeleteCount0 versionAttributes0 =
             done
       let
          delCount1 = delCount0 - 1
-         versionAttributes1 = 
+         versionAttributes1 =
             setVersionAttribute versionAttributes0 deleteCountKey
-               (show delCount1) 
+               (show delCount1)
       return versionAttributes1
 
 deleteCountKey :: String

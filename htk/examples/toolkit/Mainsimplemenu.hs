@@ -31,7 +31,7 @@ main =
                   Button "Quit" 'Q'
                   ])
 
-      (menuButton,event) <- compileHTkMenu top simpleMenu 
+      (menuButton,event) <- compileHTkMenu top simpleMenu
       pack menuButton []
 
       let

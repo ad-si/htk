@@ -29,7 +29,7 @@ module DaVinciBasic(
 
    withHandler, -- :: (DaVinciAnswer -> IO ()) -> Context -> IO a -> IO a
       -- temporarily change the handler of this context.
-      -- If withHandler is used twice simultaneously on the same context, the 
+      -- If withHandler is used twice simultaneously on the same context, the
       -- second invocation will block, until the first one terminates.
 
    -- Generating unique identifiers.
@@ -46,8 +46,8 @@ module DaVinciBasic(
       -- For versions before 3.0, this is Nothing.  For 3.0 onwards,
       -- it will be the string returned by the (new) "special(version)"
       -- commands
-   
-   
+
+
    ) where
 
 import Maybe
@@ -77,7 +77,7 @@ import BSem
 import ChildProcess
 import InfoBus
 
-import qualified DaVinciTypes 
+import qualified DaVinciTypes
 import DaVinciTypes hiding (DaVinciAnswer(Context))
 import DaVinciTypes (DaVinciAnswer())
 
@@ -101,7 +101,7 @@ data DaVinci = DaVinci {
 
    version :: Maybe String -- For daVinci versions before 3.0 Nothing,
       -- Afterwards, should be the version of daVinci.
-   
+
    }
 
 daVinci :: DaVinci
@@ -129,7 +129,7 @@ newDaVinci =
             Just daVinciIcons -> return daVinciIcons
 
       env <- System.Environment.getEnvironment
-      let 
+      let
          configs = [
             environment (("DAVINCI_ICONDIR",daVinciIcons):env),
             arguments ["-pipe"],
@@ -153,15 +153,15 @@ newDaVinci =
 -- Collect initial answers from daVinci.
       versionAnswer <- getNextAnswer childProcess
       -- With the exception of "Menu(File(Exit))" which will be used in
-      -- a couple of lines to terminate daVinci, all commands in future will 
+      -- a couple of lines to terminate daVinci, all commands in future will
       -- be channelled through doInContextVeryGeneral, and all answers through
       -- the answer dispatcher.
       let
          version = case versionAnswer of
             Versioned str -> Just str
             CommunicationError _ -> Nothing
-            
-         daVinci = 
+
+         daVinci =
             DaVinci {
                childProcess = childProcess,
                contextRegistry = contextRegistry,
@@ -185,12 +185,12 @@ newDaVinci =
 
       registerToolDebug "daVinci" daVinci
       return daVinci
-  
+
 daVinciVersion :: Maybe String
 daVinciVersion = version daVinci
 
 workAroundDaVinciBug1 :: Bool
-workAroundDaVinciBug1 = 
+workAroundDaVinciBug1 =
    case daVinciVersion of
       Just "daVinci Presenter Professional 3.0.3" -> True
       Just "daVinci Presenter Professional 3.0.4" -> True
@@ -200,7 +200,7 @@ workAroundDaVinciBug1 =
 daVinciSkip :: IO ()
 daVinciSkip =
    if workAroundDaVinciBug1 then delay (secs 0.1) else done
-    
+
 instance Destroyable DaVinci where
    destroy (DaVinci {
       destroyActMVar = destroyActMVar,
@@ -236,7 +236,7 @@ getDaVinciEnvironment =
                   Right envVal -> Just (envName,envVal)
                   )
 
-      (daVinciEnvs :: [Maybe (String,String)]) 
+      (daVinciEnvs :: [Maybe (String,String)])
          <- mapM getEnvOpt [
             "DISPLAY","LD_LIBRARY_PATH","DAVINCIHOME","LANG","OSTYPE",
             "PATH","PWD","USER"]
@@ -266,7 +266,7 @@ data Context = Context {
 newContext :: (DaVinciAnswer -> IO ()) -> IO Context
 newContext handler =
    do
-      (newContextId,result) 
+      (newContextId,result)
          <- doInContextVeryGeneral (Multi NewContext) Nothing
       case result of
          Ok -> done
@@ -279,7 +279,7 @@ newContext handler =
       handlerIORef <- newIORef handler
       withHandlerLock <- newBSem
 
-      let 
+      let
          newContext = Context {
             contextId = newContextId,
             destructChannel = destructChannel,
@@ -290,7 +290,7 @@ newContext handler =
             withHandlerLock = withHandlerLock
             }
       setValue (contextRegistry daVinci) newContextId newContext
-      return newContext  
+      return newContext
 
 instance Destroyable Context where
    destroy (context@ Context {contextId = contextId}) =
@@ -336,7 +336,7 @@ doInContextGeneral daVinciCmd context =
       return answer
 
 -- doInContextVeryGeneral is the all-purpose daVinci command
--- function, which is good enough, for example, for 
+-- function, which is good enough, for example, for
 -- context-setting functions, which require extra generality
 -- and are only used in this module.
 --
@@ -347,7 +347,7 @@ doInContextGeneral daVinciCmd context =
 --    daVinci is also (something).
 -- If contextOpt is Nothing, we change the MVar to the returned context
 --    from daVinci.
-doInContextVeryGeneral :: DaVinciCmd -> Maybe Context 
+doInContextVeryGeneral :: DaVinciCmd -> Maybe Context
    -> IO (ContextId,DaVinciAnswer)
 doInContextVeryGeneral daVinciCmd contextOpt =
    do
@@ -362,13 +362,13 @@ doInContextVeryGeneral daVinciCmd contextOpt =
             childProcess = childProcess,
             responseMVar = responseMVar,
             currentContextIdMVar = currentContextIdMVar
-            } = daVinci 
+            } = daVinci
 
       withCStringLen cmdString (\ cStringLen ->
          -- packing the command string this early has the advantage of forcing
          -- it to be fully evaluated before we lock daVinci.
          do
-            currentContextId <- takeMVar currentContextIdMVar 
+            currentContextId <- takeMVar currentContextIdMVar
             -- Here is where daVinci actually gets created, if necessary.
             -- Change context id, if necessary.
             case cIdOpt of
@@ -379,13 +379,13 @@ doInContextVeryGeneral daVinciCmd contextOpt =
                         done
                      else
                         do
-                           sendMsg childProcess 
+                           sendMsg childProcess
                               (show(Multi(SetContext newContextId)))
                            (gotContextId,result) <- takeMVar responseMVar
                            if gotContextId /= newContextId
                               then
                                  do
-                                    putStrLn ("daVinci bug: " 
+                                    putStrLn ("daVinci bug: "
                                        ++ "set_context returned wrong context")
                                     failSafeSetContext newContextId
                               else
@@ -394,7 +394,7 @@ doInContextVeryGeneral daVinciCmd contextOpt =
                            case result of
                               Ok -> done
                               _ -> error ("set_context returned "++
-                                 (show result)) 
+                                 (show result))
             sendMsgRaw childProcess cStringLen
             result@(gotContextId,daVinciAnswer) <- takeMVar responseMVar
             putMVar currentContextIdMVar gotContextId
@@ -426,7 +426,7 @@ failSafeSetContext contextId =
          else
             done
 
-           
+
 
 forAllContexts :: (Context -> IO ()) -> IO ()
 forAllContexts contextAct =
@@ -479,7 +479,7 @@ answerDestination Ok = Response
 answerDestination (CommunicationError _) = Response
 answerDestination (TclAnswer _) = Response
 answerDestination (Versioned _) = Response
-answerDestination DaVinciTypes.Quit = GlobalEvent 
+answerDestination DaVinciTypes.Quit = GlobalEvent
 answerDestination Disconnect = GlobalEvent
 -- this should never occur actually, since we are starting daVinci
 answerDestination _ = LocalEvent
@@ -501,7 +501,7 @@ answerDispatcher (daVinci@DaVinci{
    responseMVar = responseMVar
    }) =
    do
-      answerDispatcher' 
+      answerDispatcher'
    where
       forward :: DaVinciAnswer -> Context -> IO ()
       forward daVinciAnswer context =
@@ -509,7 +509,7 @@ answerDispatcher (daVinci@DaVinci{
             handler <- readIORef (handlerIORef context)
             handler daVinciAnswer
             case destroysContext daVinciAnswer of
-               Yes -> 
+               Yes ->
                   do
                      -- Invalidate current context.
                      takeMVar currentContextIdMVar
@@ -517,15 +517,15 @@ answerDispatcher (daVinci@DaVinci{
                      sync (noWait (send (destructChannel context) ()))
                No -> done
 
-      answerDispatcher' = 
+      answerDispatcher' =
          do
             (contextId,daVinciAnswer) <- getMultiAnswer childProcess
             case answerDestination daVinciAnswer of
-               LocalEvent -> 
+               LocalEvent ->
                   do
                      contextOpt <- getValueOpt contextRegistry contextId
                      case contextOpt of
-                        Nothing -> done 
+                        Nothing -> done
                            -- this can theoretically happen if there is an
                            -- event immediately after the context is opened
                            -- and before newContext registers it.
@@ -537,11 +537,11 @@ answerDispatcher (daVinci@DaVinci{
                GlobalEvent ->
                   forAllContexts (forward daVinciAnswer)
             answerDispatcher'
-  
+
 
 getMultiAnswer :: ChildProcess -> IO (ContextId,DaVinciAnswer)
 -- Get next answer (associated with a ContextId).  We assume these
--- are never split by an intervening error. 
+-- are never split by an intervening error.
 getMultiAnswer childProcess =
    do
       answer1 <- getNextAnswer childProcess
@@ -584,7 +584,7 @@ getNextAnswer childProcess =
 -- ---------------------------------------------------------------------
 
 newType :: Context -> IO Type
-newType context = 
+newType context =
    do
       typeString <- newUniqueString (typeSource context)
       return (Type typeString)
@@ -594,7 +594,7 @@ newNodeId context =
    do
       nodeString <- newUniqueString (idSource context)
       return (NodeId nodeString)
- 
+
 newEdgeId :: Context -> IO EdgeId
 newEdgeId context =
    do
@@ -613,7 +613,7 @@ newMenuId context =
 -- ---------------------------------------------------------------------
 
 instance Eq Context where
-   (==) = mapEq contextId   
+   (==) = mapEq contextId
 
 instance Ord Context where
-   compare = mapOrd contextId   
+   compare = mapOrd contextId

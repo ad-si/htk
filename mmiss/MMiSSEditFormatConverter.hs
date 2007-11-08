@@ -1,21 +1,21 @@
 -- | We define functions which convert an object into a text form in a format
--- specified by MMiSSFormat.hs 
+-- specified by MMiSSFormat.hs
 module MMiSSEditFormatConverter(
    EditFormatConverter(..), -- The functions provided
    toEditFormatConverter, -- :: Format -> EditFormatConverter
 
    exportElement,
-      -- :: View -> Format -> [MMiSSPackageFolder] -> Element 
+      -- :: View -> Format -> [MMiSSPackageFolder] -> Element
       -- -> IO (WithError String)
 
    -- for specification see comment by definition.
    exportElement1,
-      -- :: View -> Format 
-      -- -> Bool -- ^ if set, include a \documentclass header. 
+      -- :: View -> Format
+      -- -> Bool -- ^ if set, include a \documentclass header.
       -- -> [MMiSSPackageFolder] -> Element  -> IO (WithError String)
    ) where
 
-import Computation 
+import Computation
 import Messages
 import AtomString(toString)
 
@@ -42,11 +42,11 @@ import MMiSSPackageFolder
 
 -- | For EditFormatConvert, the String\'s are the file name (made available
 -- for error messages).
--- 
+--
 data EditFormatConverter = EditFormatConverter {
-   toEdit :: String -> Element 
+   toEdit :: String -> Element
       -> WithError (EmacsContent (TypedName,IncludeInfo)),
-   fromEdit :: String -> EmacsContent (TypedName,IncludeInfo) 
+   fromEdit :: String -> EmacsContent (TypedName,IncludeInfo)
       -> IO (WithError Element)
    }
 
@@ -55,7 +55,7 @@ data EditFormatConverter = EditFormatConverter {
 -- ----------------------------------------------------------------------
 
 toEditFormatConverter :: Format -> EditFormatConverter
-toEditFormatConverter XML = 
+toEditFormatConverter XML =
    EditFormatConverter {
       toEdit = (\ str elem -> hasValue (toEditableXml str elem)),
       fromEdit = fromEditableXml
@@ -63,10 +63,10 @@ toEditFormatConverter XML =
 toEditFormatConverter LaTeX =
    EditFormatConverter {
       toEdit = (\ preambleOpt element -> makeMMiSSLatexContent element False []),
-      fromEdit = (\ fileName content 
+      fromEdit = (\ fileName content
          ->
             do
-               let 
+               let
                   str = mkLaTeXString content
 
                   fileSystem = oneFileFileSystem fileName str
@@ -80,15 +80,15 @@ toEditFormatConverter LaTeX =
                   Left mess -> return (Left mess)
                   Right (element,preambles) ->
                      do
-                        case preambles of 
+                        case preambles of
                            (preamble,_):_ ->
                               let
                                  maxLen = 70
 
                                  preambleString1 = toString preamble
-                                 preambleString2 = 
+                                 preambleString2 =
                                     if length preambleString1 < maxLen
-                                       then 
+                                       then
                                           preambleString1
                                        else
                                           take maxLen preambleString1
@@ -99,27 +99,27 @@ toEditFormatConverter LaTeX =
                            [] -> done
                         return (Right element)
 
-               return (mapWithError 
-                  (\ (element,_) -> element) 
+               return (mapWithError
+                  (\ (element,_) -> element)
                   parsedWE
                   )
          )
       }
 
-exportElement :: View -> Format 
+exportElement :: View -> Format
    -> [MMiSSPackageFolder] -> Element -> IO (WithError String)
 exportElement view format = exportElement1 view format True
 
 -- | Convert an Element to an XML or LaTeX String
-exportElement1 :: View -> Format 
-   -> Bool -- ^ if set, include a \documentclass header. 
+exportElement1 :: View -> Format
+   -> Bool -- ^ if set, include a \documentclass header.
    -> [MMiSSPackageFolder] -> Element  -> IO (WithError String)
 exportElement1 _ XML _ _ element = return (hasValue (toExportableXml element))
 exportElement1 view LaTeX includeHeader packageFolders element =
    do
-      (laTeXPreambles :: [(MMiSSLatexPreamble,PackageId)]) 
+      (laTeXPreambles :: [(MMiSSLatexPreamble,PackageId)])
          <- mapM
-            (\ packageFolder -> 
+            (\ packageFolder ->
                do
                   let
                      preambleLink = toMMiSSPreambleLink packageFolder
@@ -134,11 +134,11 @@ exportElement1 view LaTeX includeHeader packageFolders element =
             packageFolders
 
       let
-         emacsContentWE = 
+         emacsContentWE =
             makeMMiSSLatexContent element includeHeader laTeXPreambles
       return (mapWithError
          (\ emacsContent -> mkLaTeXString emacsContent)
          emacsContentWE
          )
 
-      
+

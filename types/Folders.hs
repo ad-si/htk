@@ -1,8 +1,8 @@
 -- |
 -- Description: Simple repository 'Folders.Folder's.
--- 
+--
 -- In this module we implement the folder type, and a display type for
--- displaying the directory structure. 
+-- displaying the directory structure.
 module Folders(
    registerFolders, -- :: IO ()
       -- to be done at initialisation
@@ -33,12 +33,12 @@ module Folders(
 
    toArcEndsGeneral,
       -- :: (Ord a,HasKey a key)
-      -- -> Blocker a -> BlockID -> (a -> ArcData WrappedLink ArcType) 
+      -- -> Blocker a -> BlockID -> (a -> ArcData WrappedLink ArcType)
       -- -> IO ArcEnds
 
 
-   registerAsMoveable, 
-      -- :: (HasCodedValue object,HasLinkedObject object) 
+   registerAsMoveable,
+      -- :: (HasCodedValue object,HasLinkedObject object)
       -- => (object :: object) -> IO ()
       -- Register that objects of this type may be moved into folders.
       -- The value of the argument is ignored.
@@ -112,9 +112,9 @@ instance DisplayType FolderDisplayType where
       do
          globalMenu <- newDefaultMenu displaySort view
          let
-            graphTitleSource =  
+            graphTitleSource =
                fmap
-                  (\ versionTitle -> 
+                  (\ versionTitle ->
                      GraphTitle (versionTitle++": structure graph")
                      )
                   (getViewTitleSource view)
@@ -127,7 +127,7 @@ instance DisplayType FolderDisplayType where
                   done
                ) $$
             AllowDragging True $$
-            LeftRight $$            
+            LeftRight $$
             graphTitleSource $$
             emptyGraphParms
             )
@@ -150,14 +150,14 @@ displayTypeRegistry = unsafePerformIO createGlobalRegistry
 data FolderType = FolderType {
    folderTypeId :: GlobalKey,
    allowAddFiles :: Bool,
-      -- If this is set, allow new objects to be created within a folder of 
+      -- If this is set, allow new objects to be created within a folder of
       -- this type by dragging from it using addFileGesture.
       -- Also allows folders to be dragged into other files and for other
       -- folders to be dragged into this one.  Maybe we need three bools
       -- here rather than one but for now I can't be bothered.
    folderTypeLabel :: Maybe String,
       -- If set, allow folders of this type to be added with addFileGesture;
-      -- the String will be the menu label the use selects. 
+      -- the String will be the menu label the use selects.
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (Link Folder),
    topFolderLinkOpt :: Maybe (Link Folder)
@@ -170,7 +170,7 @@ instance HasBinary FolderType CodingMonad where
             folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt})
-         -> 
+         ->
          (folderTypeId,allowAddFiles,folderTypeLabel,
             requiredAttributes,displayParms,topFolderLinkOpt)
          )
@@ -207,12 +207,12 @@ instance HasAttributes Folder where
    readPrimAttributes object = attributes object
 
 instance HasBinary Folder CodingMonad where
-   writeBin = mapWrite 
+   writeBin = mapWrite
       (\ (Folder {folderType = folderType,attributes = attributes,
              linkedObject = linkedObject}) ->
          (folderTypeId folderType,attributes,linkedObject)
          )
-   readBin = mapReadViewIO 
+   readBin = mapReadViewIO
       (\ view (folderTypeId,attributes,linkedObject) ->
          createFolder view folderTypeId attributes linkedObject
          )
@@ -239,7 +239,7 @@ instance HasMerging Folder where
    attemptMerge linkReAssigner newView newLink vlos =
       addFallOutWE (\ break ->
          do
-            (vlos @ ((vlo1 @ (view1,link1,folder1))  : vlosRest)) 
+            (vlos @ ((vlo1 @ (view1,link1,folder1))  : vlosRest))
                <- mergePrune vlos
 
             -- (1) check that the folder types match and compute the new
@@ -248,7 +248,7 @@ instance HasMerging Folder where
                folderType1 = folderType folder1
                folderType1Id = folderTypeId folderType1
 
-            mapM_ 
+            mapM_
                (\ (_,_,folder) ->
                   if folderType1Id
                         /= folderTypeId (folderType folder)
@@ -272,14 +272,14 @@ instance HasMerging Folder where
             -- (3) now for the interesting bit ...
             newLinkedObjectWE <- attemptLinkedObjectMerge
                linkReAssigner newView newLink
-                  (map 
+                  (map
                      (\ (view,link,folder) -> (view,toLinkedObject folder))
                      vlos
                      )
 
             newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
 
-            isSame 
+            isSame
                <- linkedObjectsSame (toLinkedObject folder1) newLinkedObject
 
             if isSame
@@ -288,7 +288,7 @@ instance HasMerging Folder where
                else
                   do
                      -- (4) create ...
-                     folder <- createFolder newView newFolderTypeId 
+                     folder <- createFolder newView newFolderTypeId
                         newAttributes newLinkedObject
 
                      setLink newView folder newLink
@@ -333,23 +333,23 @@ instance ObjectType FolderType Folder where
 
    toLinkedObjectOpt folder = Just (linkedObject folder)
 
-   getNodeDisplayData view wrappedDisplayType folderType 
+   getNodeDisplayData view wrappedDisplayType folderType
          displayedViewAction =
       do
          blockID <- newBlockID
 
          let
-            nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType 
+            nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType
                (displayParms folderType)
 
-            openAction link = 
+            openAction link =
                do
                   folder <- readLink view link
                   bracketForImportErrors view
                      (openBlocker (openContents folder) blockID)
 
 
-            closeAction link = 
+            closeAction link =
                do
                   folder <- readLink view link
                   delay view (closeBlocker (openContents folder) blockID)
@@ -362,13 +362,13 @@ instance ObjectType FolderType Folder where
                         Nothing -> []
                         Just link -> [link],
                      arcTypes = [(theArcType,emptyArcTypeParms)],
-                     nodeTypes = 
+                     nodeTypes =
                         let
                            editOptions1 = [
-                              Button "Open Folder" (\ link 
+                              Button "Open Folder" (\ link
                                  -> openAction link
                                  ),
-                              Button "Close Folder" (\ link 
+                              Button "Close Folder" (\ link
                                  -> closeAction link
                                  ),
                               Button "Hide Links" (\ link ->
@@ -379,15 +379,15 @@ instance ObjectType FolderType Folder where
                                  )
                               ]
                               ++ permissionsMenu view
-                              ++ if isEmptyAttributesType 
+                              ++ if isEmptyAttributesType
                                     (requiredAttributes folderType)
                                  then
                                     []
                                  else [
-                                    Button "Edit Attributes" (\ link 
+                                    Button "Edit Attributes" (\ link
                                        -> editObjectAttributes view link)
                                     ]
-                           menu = LocalMenu (Menu (Just "Folder options") 
+                           menu = LocalMenu (Menu (Just "Folder options")
                               editOptions1)
                         in
                           [(theNodeType,
@@ -396,13 +396,13 @@ instance ObjectType FolderType Folder where
                            (fontStyleSource view) $$$
                            (DoubleClickAction openAction) $$$
                            (if allowAddFiles folderType
-                              then 
+                              then
                                  Just (addFileGesture view)
                               else
                                  Nothing
                               ) $$$?
                            (if allowAddFiles folderType
-                              then 
+                              then
                                  Just (moveFileGesture view)
                               else
                                  Nothing
@@ -415,7 +415,7 @@ instance ObjectType FolderType Folder where
                            folder <- readLink view link
                            toArcEnds (openContents folder) blockID
                         ),
-                     specialNodeActions = 
+                     specialNodeActions =
                         (\ object ->
                            fmap
                               (\ (arcsHidden :: Maybe NodeArcsHidden) ->
@@ -426,9 +426,9 @@ instance ObjectType FolderType Folder where
                            )
                      })
                Nothing -> Nothing
-            )              
+            )
       where
-         hideAction :: Link Folder -> Bool -> IO () 
+         hideAction :: Link Folder -> Bool -> IO ()
          hideAction link bool =
             do
                folder <- readLink view link
@@ -436,7 +436,7 @@ instance ObjectType FolderType Folder where
 
 
    -- Merging
-   fixedLinksPrim = 
+   fixedLinksPrim =
       (\ view folderType -> return (
          case topFolderLinkOpt folderType of
             Nothing -> []
@@ -454,7 +454,7 @@ addFileGesture view =
       addFile folderLink =
          do
             objectCreated <- createObjectMenu view folderLink
-            if objectCreated 
+            if objectCreated
                then
                   done
                else
@@ -499,26 +499,26 @@ moveFileGesture view =
                               let
                                  folderLinkedObject = toLinkedObject folder
                               resultWE <- moveObject linkedObject
-                                 (Just (mkInsertion folderLinkedObject 
+                                 (Just (mkInsertion folderLinkedObject
                                     thisName))
                               case fromWithError resultWE of
                                  Left mess -> errorMess mess
                                  Right () -> done
    in
-      NodeDragAndDrop moveFile      
+      NodeDragAndDrop moveFile
 
 
 moveableListRef :: IORef [View -> Dyn -> IO (Maybe LinkedObject)]
 moveableListRef = unsafePerformIO (newIORef [])
 {-# NOINLINE moveableListRef #-}
 
-registerAsMoveable :: 
-   (HasCodedValue object,HasLinkedObject object) 
+registerAsMoveable ::
+   (HasCodedValue object,HasLinkedObject object)
    => object -> IO ()
 registerAsMoveable = registerAsMoveable1 (const True)
 
-registerAsMoveable1 :: 
-   (HasCodedValue object,HasLinkedObject object) 
+registerAsMoveable1 ::
+   (HasCodedValue object,HasLinkedObject object)
    => (object -> Bool) -> object -> IO ()
 registerAsMoveable1 objectIsMoveable (_ :: object) =
    do
@@ -535,8 +535,8 @@ registerAsMoveable1 objectIsMoveable (_ :: object) =
                         else
                            Nothing
                         )
-      
-      atomicModifyIORef moveableListRef 
+
+      atomicModifyIORef moveableListRef
          (\ moveableList -> (getLinkedObject : moveableList,()))
 
 -- ------------------------------------------------------------------
@@ -552,10 +552,10 @@ globalRegistry = unsafePerformIO createGlobalRegistry
 -- ------------------------------------------------------------------
 
 registerFolders :: IO ()
-registerFolders = 
+registerFolders =
    do
       registerObjectType (error "Unknown FolderType" :: FolderType)
-      registerDisplayType 
+      registerDisplayType
          (error "Unknown FolderDisplayType" :: FolderDisplayType)
       registerAsMoveable1 (allowAddFiles . folderType)
          (error "Unknown Folder" :: Folder)
@@ -566,7 +566,7 @@ registerFolders =
 
 getExtraFolderTypes :: IO [FolderType]
 getExtraFolderTypes =
-   atomicModifyIORef extraFolderTypesList 
+   atomicModifyIORef extraFolderTypesList
       (\ ftl0 ->
          let
             ftl1 = ftl0 {isUsed = True}
@@ -585,7 +585,7 @@ registerExtraFolderType folderType =
             in
                (ftl1,ftl1)
             )
-      if isUsed ftl1 
+      if isUsed ftl1
          then
             error ("Folders.registerExtraFolderType: attempt to use this for "
                ++ describeFolderType folderType
@@ -594,17 +594,17 @@ registerExtraFolderType folderType =
             done
 
 describeFolderType :: FolderType -> String
-describeFolderType ft = 
+describeFolderType ft =
    fromMaybe
-      (describeGlobalKey (folderTypeId ft)) 
+      (describeGlobalKey (folderTypeId ft))
       (folderTypeLabel ft)
-                 
+
 
 data FolderTypeList = FolderTypeList {
    folderTypes :: [FolderType],
-   isUsed :: Bool 
+   isUsed :: Bool
       -- becomes True when extraObjectTypes is accessed.  Used to
-      -- detect attempts to add extra folder types too late. 
+      -- detect attempts to add extra folder types too late.
    }
 
 extraFolderTypesList :: IORef FolderTypeList
@@ -612,7 +612,7 @@ extraFolderTypesList = unsafePerformIO mkExtraFolderTypesList
 {-# NOINLINE extraFolderTypesList #-}
 
 mkExtraFolderTypesList :: IO (IORef FolderTypeList)
-mkExtraFolderTypesList = 
+mkExtraFolderTypesList =
    let
       folderTypeList = FolderTypeList {
          folderTypes = [plainFolderType],
@@ -638,10 +638,10 @@ plainFolderType = FolderType {
 
 plainFolderNodeTypeParms :: NodeTypes value
 plainFolderNodeTypeParms =
-   addNodeRule 
+   addNodeRule
       AllDisplays
-      (SimpleNodeAttributes { shape = Just Triangle, 
-         nodeColor = Just (Color "green")}) 
+      (SimpleNodeAttributes { shape = Just Triangle,
+         nodeColor = Just (Color "green")})
       emptyNodeTypes
 
 plainFolderKey :: GlobalKey
@@ -666,14 +666,14 @@ mkFolderType0 thisKey displayParms =
       displayParms = displayParms,
       topFolderLinkOpt = Nothing
       }
-      
+
 
 -- ------------------------------------------------------------------
 -- Retrieving the top folder.
 -- ------------------------------------------------------------------
 
 -- | getTopFolder returns a link to the topFolder, creating it in the exceptional
--- circumstance that it doesn\'t already exist in the view. 
+-- circumstance that it doesn\'t already exist in the view.
 getTopFolder :: View -> IO (Link Folder)
 getTopFolder view =
    do
@@ -683,7 +683,7 @@ getTopFolder view =
             attributes <- newEmptyAttributes view
             linkedObjectWE <- newLinkedObject view (
                WrappedLink (topLink :: Link Folder)) Nothing
-            linkedObject <- coerceWithErrorIO linkedObjectWE 
+            linkedObject <- coerceWithErrorIO linkedObjectWE
             openContents <- newOpenContents view linkedObject
             hideFolderArcs <- mkArcsHiddenSource
             return (Folder {
@@ -692,7 +692,7 @@ getTopFolder view =
                linkedObject = linkedObject,
                openContents = openContents,
                hideFolderArcs = hideFolderArcs
-               })               
+               })
          )
       return (makeLink versioned)
 
@@ -708,7 +708,7 @@ getImportsState view =
          folder <- readLink view folderLink
          let
             folderStructure = toFolderStructure (linkedObject folder)
-         newImportsState folderStructure (delayer view) 
+         newImportsState folderStructure (delayer view)
          )
       (importsState view)
 
@@ -718,13 +718,13 @@ describeLinkedObject view linkedObject =
       importsState <- getImportsState view
       fullName <- getName (folders importsState) linkedObject
       return (toString fullName)
-   
+
 
 -- ------------------------------------------------------------------
 -- Indexing in a folder
 -- ------------------------------------------------------------------
 
-{-# DEPRECATED getInFolder,lookupFileName "Use LinkManager functions instead" 
+{-# DEPRECATED getInFolder,lookupFileName "Use LinkManager functions instead"
     #-}
 
 -- | getInFolder returns the wrapped link indexed in the folder by the given
@@ -758,7 +758,7 @@ lookupFileName view (first:rest) =
                         case unpackWrappedLink wrappedLink of
                            Nothing -> return Nothing
                            Just link -> doLookup link first2 rest2
-                     
+
 
 
 -- ------------------------------------------------------------------
@@ -767,15 +767,15 @@ lookupFileName view (first:rest) =
 
 -- | Create a new empty folder in the view and insert it in
 -- the given parent.
--- 
+--
 -- We use the inputAttributes method to get the attributes, and
 -- return False if the user cancels, or there was some other error.
-newEmptyFolder :: FolderType -> View -> LinkedObject 
+newEmptyFolder :: FolderType -> View -> LinkedObject
    -> IO Bool
 newEmptyFolder folderType view parentLinkedObject =
    do
       -- Construct an extraFormItem for the name.
-      extraFormItem <- 
+      extraFormItem <-
          mkExtraFormItem (
             guardNothing "Folder name not specified"
                (newFormEntry "Name" Nothing))
@@ -814,7 +814,7 @@ writeEmptyFolder view folderLink typeKey =
       if isEmpty
          then
             do
-               linkedObjectWE <- newLinkedObject view (WrappedLink folderLink) 
+               linkedObjectWE <- newLinkedObject view (WrappedLink folderLink)
                   Nothing
                let
                   linkedObject = coerceWithError linkedObjectWE
@@ -859,7 +859,7 @@ newEmptyFolder1 folderType view parentLinkedObject name =
              )
        case linkOpt of
          Nothing -> return(Nothing)
-         Just folderLink -> 
+         Just folderLink ->
            do folder <- readLink view folderLink
               return (Just(toLinkedObject folder))
 
@@ -876,13 +876,13 @@ createNewFolderType :: View -> IO (Maybe FolderType)
 createNewFolderType view =
    do
       let
-         firstForm :: Form (String,NodeTypes (Link Folder)) 
+         firstForm :: Form (String,NodeTypes (Link Folder))
          firstForm =
             titleForm //
             simpleNodeTypesForm
 
          titleForm0 :: Form String
-         titleForm0 = newFormEntry "Title" "" 
+         titleForm0 = newFormEntry "Title" ""
 
          titleForm = guardForm (/= "") "Title must be non-empty" titleForm0
       typeData1Opt <- doForm "Node Type Appearance" firstForm
@@ -890,7 +890,7 @@ createNewFolderType view =
          Nothing -> return Nothing
          Just (title,displayParms) ->
             do
-               requiredAttributesOpt <- getAttributesType 
+               requiredAttributesOpt <- getAttributesType
                case requiredAttributesOpt of
                   Nothing -> return Nothing
                   Just requiredAttributes ->
@@ -918,16 +918,16 @@ mkArcsHiddenSource = newSimpleBroadcaster Nothing
 -- ------------------------------------------------------------------
 
 --
--- General purpose object creation functions, which also does helpful 
+-- General purpose object creation functions, which also does helpful
 -- things like displaying the error message if things go wrong.
 createWithLinkedObject :: ObjectType objectType object
-   => View -> Link Folder -> EntityName -> (LinkedObject -> object) 
+   => View -> Link Folder -> EntityName -> (LinkedObject -> object)
    -> IO (Maybe (Link object))
 createWithLinkedObject view parentLink name toObject =
    createWithLinkedObjectIO view parentLink name (return . toObject)
 
 createWithLinkedObjectIO :: ObjectType objectType object
-   => View -> Link Folder -> EntityName -> (LinkedObject -> IO object) 
+   => View -> Link Folder -> EntityName -> (LinkedObject -> IO object)
    -> IO (Maybe (Link object))
 createWithLinkedObjectIO view parentLink name getObject =
    do
@@ -954,9 +954,9 @@ createWithLinkedObjectIO view parentLink name getObject =
 
 -- | This function is like createWithLinkedObjectIO, but does not actually
 -- insert the new object into the folder, instead inserting it nowhere.
--- The action it returns DOES insert the object in the folder. 
+-- The action it returns DOES insert the object in the folder.
 createWithLinkedObjectSplitIO :: ObjectType objectType object
-   => View -> Link Folder -> EntityName -> (LinkedObject -> IO object) 
+   => View -> Link Folder -> EntityName -> (LinkedObject -> IO object)
    -> IO (Maybe (Link object,IO (WithError ())))
 createWithLinkedObjectSplitIO view parentLink name getObject =
    do
@@ -993,16 +993,16 @@ createWithLinkedObjectSplitIO view parentLink name getObject =
 -- ------------------------------------------------------------------
 
 toArcEnds :: Blocker WrappedLink -> BlockID -> IO ArcEnds
-toArcEnds blocker blockID = 
-   toArcEndsGeneral blocker blockID 
+toArcEnds blocker blockID =
+   toArcEndsGeneral blocker blockID
       (\ wrappedLink -> toArcData wrappedLink theArcType True)
 
-toArcEndsGeneral 
+toArcEndsGeneral
    :: (Ord a,HasKey a key)
    => Blocker a -> BlockID -> (a -> ArcData WrappedLink ArcType) -> IO ArcEnds
 toArcEndsGeneral (blocker :: Blocker a) blockId mkArcData =
    do
-      (setSource1 :: VariableSetSource a) 
+      (setSource1 :: VariableSetSource a)
          <- blockVariableSet blocker blockId
 
       let
@@ -1015,8 +1015,8 @@ toArcEndsGeneral (blocker :: Blocker a) blockId mkArcData =
       return variableSet2
 
 newOpenContents :: View -> LinkedObject -> IO (Blocker WrappedLink)
-newOpenContents view linkedObject 
-   = newBlockerWithPreAction (objectContents linkedObject) 
+newOpenContents view linkedObject
+   = newBlockerWithPreAction (objectContents linkedObject)
       (wrapPreFetchLinks view)
 
 -- ------------------------------------------------------------------
@@ -1030,4 +1030,4 @@ getTopLinkedObject view =
       folderLink <- getTopFolder view
       folder <- readLink view folderLink
       return (toLinkedObject folder)
-      
+

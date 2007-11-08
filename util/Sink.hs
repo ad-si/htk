@@ -1,5 +1,5 @@
 -- | Very primitive concurrency, this implements a sink, which passes messages
--- along until the receiver is no longer interested. 
+-- along until the receiver is no longer interested.
 module Sink(
    HasInvalidate(..),
 
@@ -51,7 +51,7 @@ class HasInvalidate source where
 -- -------------------------------------------------------------------------
 
 --
--- A SinkID identifies the consumer and whether the consumer is still 
+-- A SinkID identifies the consumer and whether the consumer is still
 -- interested.
 data SinkID = SinkID {
    oID :: ObjectID,
@@ -115,7 +115,7 @@ instance HasInvalidate (Sink x) where
 -- The provider's interface
 -- -------------------------------------------------------------------------
 
--- | Put a value into the sink, returning False if the sink id has been 
+-- | Put a value into the sink, returning False if the sink id has been
 -- invalidated.
 putSink :: Sink x -> x -> IO Bool
 putSink sink x =
@@ -123,7 +123,7 @@ putSink sink x =
       interested <- isInterested (sinkID sink)
       if interested then (action sink x) else done
       return interested
--- | Put a list of values into the sink, returning False if the sink id has been 
+-- | Put a list of values into the sink, returning False if the sink id has been
 -- invalidated
 putSinkMultiple :: Sink x -> [x] -> IO Bool
 putSinkMultiple sink [] = return True
@@ -131,7 +131,7 @@ putSinkMultiple sink (x:xs) =
    do
       interested <- putSink sink x
       if interested
-         then 
+         then
             putSinkMultiple sink xs
          else
             return interested
@@ -164,7 +164,7 @@ coMapIOSink' actFn (Sink {sinkID = sinkID,action = action}) =
                 Just x -> action x
     in
        Sink {sinkID = sinkID,action = action'}
-                   
+
 -- -------------------------------------------------------------------------
 -- The CanAddSinks class.
 -- -------------------------------------------------------------------------
@@ -174,12 +174,12 @@ coMapIOSink' actFn (Sink {sinkID = sinkID,action = action}) =
 -- x, containing a representation of the current value, and delta,
 -- containing the (incremental) updates which are put in the sink.
 -- Only the addOrdSink function must be defined by instances.
-class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta 
+class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
       where
    ---
    -- Create and add a new sink containing the given action.
    addNewSink :: sinkSource -> (delta -> IO ()) -> IO (x,Sink delta)
-   addNewSink sinkSource action = 
+   addNewSink sinkSource action =
       do
          parallelX <- newParallelExec
          addNewQuickSink sinkSource
@@ -187,9 +187,9 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
 
    ---
    -- Like addNewSink, but use the supplied SinkID
-   addNewSinkGeneral :: sinkSource -> (delta -> IO ()) -> SinkID 
+   addNewSinkGeneral :: sinkSource -> (delta -> IO ()) -> SinkID
       -> IO (x,Sink delta)
-   addNewSinkGeneral sinkSource action sinkID = 
+   addNewSinkGeneral sinkSource action sinkID =
       do
          parallelX <- newParallelExec
          addNewSinkVeryGeneral sinkSource action sinkID parallelX
@@ -199,8 +199,8 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
    addNewSinkVeryGeneral :: sinkSource -> (delta -> IO ()) -> SinkID
       -> ParallelExec -> IO (x,Sink delta)
    addNewSinkVeryGeneral sinkSource action sinkID parallelX =
-      addNewQuickSinkGeneral 
-         sinkSource 
+      addNewQuickSinkGeneral
+         sinkSource
          (\ delta -> parallelExec parallelX (
             do
                -- add an extra check here to prevent surplus queued actions
@@ -209,11 +209,11 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
                if interested then action delta else done
             ))
          sinkID
-     
+
    ---
    -- Like addNewSinkVeryGeneral, but compute an action from the x value which
    -- is performed in the parallelExec thread first of all.
-   addNewSinkWithInitial :: sinkSource -> (x -> IO ()) -> (delta -> IO ()) 
+   addNewSinkWithInitial :: sinkSource -> (x -> IO ()) -> (delta -> IO ())
       -> SinkID -> ParallelExec -> IO (x,Sink delta)
    addNewSinkWithInitial sinkSource xAction deltaAction sinkID parallelX =
       do
@@ -224,7 +224,7 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
                   x <- takeMVar mVar
                   xAction x
          parallelExec parallelX firstAct
-         (returnValue @ (x,sink)) 
+         (returnValue @ (x,sink))
             <- addNewSinkVeryGeneral sinkSource deltaAction sinkID parallelX
          putMVar mVar x
          return returnValue
@@ -241,7 +241,7 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
 
    ---
    -- Like addNewQuickSink, but use the supplied SinkID
-   addNewQuickSinkGeneral :: sinkSource -> (delta -> IO ()) -> SinkID 
+   addNewQuickSinkGeneral :: sinkSource -> (delta -> IO ()) -> SinkID
       -> IO (x,Sink delta)
    addNewQuickSinkGeneral sinkSource action sinkID =
       do
@@ -255,15 +255,15 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
 
 -- | Add an action to a sinkSource which is performed until the action returns
 -- False.
-addNewAction :: CanAddSinks sinkSource x delta 
+addNewAction :: CanAddSinks sinkSource x delta
    => sinkSource -> (delta -> IO Bool) -> IO x
 addNewAction sinkSource action =
    do
-      sinkMVar <- newEmptyMVar 
+      sinkMVar <- newEmptyMVar
       let
          deltaAct delta =
             do
-               continue <- action delta 
+               continue <- action delta
                if continue
                   then
                      done
@@ -279,12 +279,12 @@ addNewAction sinkSource action =
 
 -- -------------------------------------------------------------------------
 -- A ParallelExec executes actions concurrently in a separate thread
--- 
--- Apart from (probably) being cheaper than forking off a new thread 
+--
+-- Apart from (probably) being cheaper than forking off a new thread
 -- each time, it also guarantees the order of the actions.
 --
 -- The Thread can be stopped with simpleFallOut.
--- 
+--
 -- We also provide a VSem which is locked locally when a parallelExec action
 -- is pending.
 -- -------------------------------------------------------------------------
@@ -305,7 +305,7 @@ newParallelExec =
                act <- readChan chan
                result <- try act
                case result of
-                  Left excep -> putStrLn ("Exception detected: " 
+                  Left excep -> putStrLn ("Exception detected: "
                      ++ showException2 excep)
                   Right () -> done
                releaseLocal parallelExecVSem
@@ -321,8 +321,8 @@ newParallelExec =
       return (ParallelExec chan)
 
 parallelExec :: ParallelExec -> IO () -> IO ()
-parallelExec (ParallelExec chan) act = 
-   do 
+parallelExec (ParallelExec chan) act =
+   do
       acquireLocal parallelExecVSem
       writeChan chan act
 
@@ -351,14 +351,14 @@ newParallelDelayedSink =
       sink <- newSinkGeneral sinkID (\ delta -> parallelExec parallelX (
          do
             interested <- isInterested sinkID
-            if interested 
-               then 
+            if interested
+               then
                   do
                      action <- readMVar actionMVar
-                     action delta 
-               else 
+                     action delta
+               else
                   done
          ))
 
       return (sink,putMVar actionMVar)
- 
+

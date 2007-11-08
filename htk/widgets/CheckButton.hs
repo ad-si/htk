@@ -36,10 +36,10 @@ newtype CheckButton a = CheckButton GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new checkbutton widget and returns a handler.
-newCheckButton :: Container par => par 
+newCheckButton :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config (CheckButton a)] 
+   -> [Config (CheckButton a)]
    -- ^ the list of configuration options for this
    -- checkbutton.
    ->
@@ -56,7 +56,7 @@ newCheckButton par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject (CheckButton a) where 
+instance GUIObject (CheckButton a) where
   toGUIObject (CheckButton w) = w
   cname _ = "CheckButton"
 
@@ -82,7 +82,7 @@ instance HasBorder (CheckButton a)
 
 -- | A checkbutton widget has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
-instance HasColour (CheckButton a) where 
+instance HasColour (CheckButton a) where
   legalColourID = buttonColours
 
 -- | A checkbutton widget is a stateful widget, it can be enabled or
@@ -116,7 +116,7 @@ instance Synchronized (CheckButton a) where
 instance HasCommand (CheckButton a)
 
 -- | A checkbutton has a value, that corresponds to a polymorphic
--- @TkVariable@.  
+-- @TkVariable@.
 -- instance GUIValue a => HasValue (CheckButton a) a
 -- No, it doesn\'t.
 

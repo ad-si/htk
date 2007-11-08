@@ -43,12 +43,12 @@ newtype PanedWindow = PanedWindow GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new paned window and returns it as a value.
-newPanedWindow :: Container par => par 
+newPanedWindow :: Container par => par
    -- ^ the list of configuration options for this
    -- paned window.
-   -> Orientation 
+   -> Orientation
    ->
-   [Config PanedWindow] 
+   [Config PanedWindow]
    -> IO PanedWindow
    -- ^ A paned window.
 newPanedWindow par or cnf =
@@ -87,7 +87,7 @@ tkCreatePanedWindow _ _ _ _ _ = []
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject PanedWindow where 
+instance GUIObject PanedWindow where
   toGUIObject (PanedWindow f) = f
   cname _ = "PanedWindow"
 
@@ -122,11 +122,11 @@ newtype Pane = Pane GUIOBJECT deriving Eq
 
 -- | Constructs a new pane inside a paned window and returns it as a
 -- value.
-createPane :: PanedWindow 
+createPane :: PanedWindow
    -- ^ the parent widget, which has to be a paned window.
-   -> [CreationConfig Pane]  
+   -> [CreationConfig Pane]
    -- ^ the list of configuration options for this pane.
-   -> [Config Pane] 
+   -> [Config Pane]
    ->
    IO Pane
    -- ^ A window pane.
@@ -167,12 +167,12 @@ at n = return ("at " ++ show n)
 -- | Specifies the expand\/shrink factor of this pane as a non-negative
 -- floating point number. The default value is 0.0. The expand\/shrink
 -- factor is used to calculate how much each pane should grow or shrink
--- when the size of the PanedWindow main window is changed. When the main 
+-- when the size of the PanedWindow main window is changed. When the main
 -- window expands\/shrinks by n pixels, then pane i will grow\/shrink by
 -- about n \* factor(i) \/ summation(factors), where factor(i) is the
 -- expand\/shrink factor of pane i and summation(factors) is the summation
--- of the expand\/shrink factors of all the panes. If summation(factors) 
--- is 0.0, however, only the last visible pane will be grown or shrunk. 
+-- of the expand\/shrink factors of all the panes. If summation(factors)
+-- is 0.0, however, only the last visible pane will be grown or shrunk.
 expand :: Double -> CreationConfig Pane
 expand d = return ("expand " ++ show d)
 
@@ -186,9 +186,9 @@ minsize i = return ("min " ++ show i)
 maxsize :: Int -> CreationConfig Pane
 maxsize i = return ("max " ++ show i)
 
--- | Specifies the size, in pixels, of the new pane; if the -size option is 
+-- | Specifies the size, in pixels, of the new pane; if the -size option is
 -- not given, the PanedWindow widget will use the natural size of the pane
--- subwidget. 
+-- subwidget.
 initsize :: Int -> CreationConfig Pane
 initsize i = return ("size " ++ show i)
 
@@ -241,7 +241,7 @@ tkCreatePane _ _ _ _ _ _ = []
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Pane where 
+instance GUIObject Pane where
   toGUIObject (Pane f) = f
   cname _ = "Pane"
 
@@ -254,7 +254,7 @@ instance Destroyable Pane where
 instance Widget Pane
 
 -- | A pane has a background colour.
-instance HasColour Pane where 
+instance HasColour Pane where
   legalColourID = hasBackGroundColour
 
 -- | A pane is a container for widgets. You can pack widgets to a pane via

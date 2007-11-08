@@ -10,7 +10,7 @@ randomColour = do
    green<-randomRIO(0,255)
    blue <-randomRIO(0,255)
    return (red, green, blue)
-      
+
 main:: IO ()
 main =
   do

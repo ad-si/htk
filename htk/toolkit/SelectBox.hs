@@ -38,11 +38,11 @@ type Elements = [Button]
 
 -- | Constructs a new select box and returns a handler.
 newSelectBox :: Container par =>
-   par 
+   par
    -- ^ the parent widget, which has to be a container widget.
-   -> Maybe Int 
+   -> Maybe Int
    -- ^ the optional index of a default button.
-   -> [Config SelectBox] 
+   -> [Config SelectBox]
    -- ^ the list of configuration options for this select box.
    -> IO SelectBox
    -- ^ A select box.
@@ -67,7 +67,7 @@ newSelectBox par def@(Just i) ol =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance Eq SelectBox where 
+instance Eq SelectBox where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | A select box can be destroyed.
@@ -76,12 +76,12 @@ instance Destroyable SelectBox where
   destroy = destroy . toGUIObject
 
 -- | Internal.
-instance GUIObject SelectBox where 
+instance GUIObject SelectBox where
   toGUIObject (SelectBox b _ e) = toGUIObject b
   cname _ = "SelectBox"
 
 -- | A select box has a configureable foreground and background colour.
-instance HasColour SelectBox where 
+instance HasColour SelectBox where
   legalColourID = hasForeGroundColour
 
 -- | A select box has standard widget properties
@@ -97,7 +97,7 @@ instance HasBorder SelectBox
 -- | A select box is a stateful widget, it can be enabled or disabled.
 instance HasEnable SelectBox where
   -- Sets the select box\'es state.
-  state st sb@(SelectBox b _ em) = 
+  state st sb@(SelectBox b _ em) =
     synchronize sb (do
                       ibs <- getRef em
                       foreach ibs (\ib -> configure ib [state st])
@@ -108,7 +108,7 @@ instance HasEnable SelectBox where
                   if b then return Normal else return Disabled
   -- @True@, if the select box is enabled, otherwise
   -- @False@.
-  isEnabled sb@(SelectBox b _ em) = 
+  isEnabled sb@(SelectBox b _ em) =
     synchronize sb (do
                       ibs <- getRef em
                       sl <- sequence (map getState ibs)
@@ -125,7 +125,7 @@ instance Synchronized SelectBox where
 -- -----------------------------------------------------------------------
 
 -- | Selects the default button of a select box.
-selectDefault :: SelectBox 
+selectDefault :: SelectBox
    -- ^ the concerned select box.
    -> IO ()
    -- ^ None.
@@ -135,7 +135,7 @@ selectDefault sb =
     incase mbt (\bt -> flash bt >> invoke bt)
 
 -- | Gets the default button from a select box (if there is one).
-getDefault :: SelectBox 
+getDefault :: SelectBox
    -- ^ the concerned select box.
    -> IO (Maybe Button)
    -- ^ The default button of the select box
@@ -152,9 +152,9 @@ getDefault sb@(SelectBox b (Just (f,i)) em) =
 -- -----------------------------------------------------------------------
 
 -- | Adds a space widget at the end of the select box.
-addSpace :: SelectBox 
+addSpace :: SelectBox
    -- ^ the concerned select box.
-   -> Distance 
+   -> Distance
    -- ^ the width of the space widget.
    -> IO Space
    -- ^ A space widget.
@@ -165,12 +165,12 @@ addSpace sb@(SelectBox b _ em) dist =
     return s
 
 -- | Adds a button widget at the end of the select box.
-addButton :: SelectBox 
+addButton :: SelectBox
    -- ^ the concerned select box.
-   -> [Config Button] 
+   -> [Config Button]
    -- ^ the list of configuration options for the constructed
    -- button.
-   -> [PackOption] 
+   -> [PackOption]
    -- ^ the list of pack options for the constructed button.
    -> IO Button
    -- ^ A button widget.

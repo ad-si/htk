@@ -1,16 +1,16 @@
 -- | Library for converting types to and from binary, so that they can
 -- be written to and from files, stored compactly in memory, and so on.
--- 
--- This is a preliminary version of the library, hence I have decided 
+--
+-- This is a preliminary version of the library, hence I have decided
 -- /not/ to optimise heavily, beyond putting in strictness annotations
 -- in where they seem appropriate.
--- 
+--
 -- A good place to start optimising would probably be the separate
 -- "Bytes" libary.
 --
 -- See also "BinaryInstances", which declares instances for the standard
 -- types (and one or two others), "BinaryUtils", which contains
--- (mostly) material for declaring new instances, "BinaryExtras", 
+-- (mostly) material for declaring new instances, "BinaryExtras",
 -- which contains other miscellaneous utilities, and finally
 -- "BinaryAll" which just imports and reexports everything.
 module Binary (
@@ -51,16 +51,16 @@ module Binary (
    mkBinArea, -- :: (Bytes,Int) -> BinArea
    -- pass to things which read.
    readBinaryBinArea, -- :: ReadBinary StateBinArea
-   -- check that the BinArea is completely read. 
+   -- check that the BinArea is completely read.
    checkFullBinArea, -- :: BinArea -> IO ()
 
 
    -- Functions for transforming WriteBinary/ReadBinary values.
-   liftWriteBinary, 
+   liftWriteBinary,
       -- :: (forall a . m a -> n a) -> WriteBinary m -> WriteBinary n
    liftReadBinary,
       -- :: (forall a . m a -> n a) -> ReadBinary m -> ReadBinary n
-  
+
    ) where
 
 -- Standard imports
@@ -109,7 +109,7 @@ class HasBinary a m where
       -- ^ Given a consumer of binary data, and an (a), write out the (a)
    readBin :: ReadBinary m -> m a
       -- ^ Given a source of binary data, provide an (a)
-   
+
 -- ----------------------------------------------------------------------
 -- Reading/Writing HasBinary instances to Handles.
 -- ----------------------------------------------------------------------
@@ -124,7 +124,7 @@ hRead :: HasBinary a IO => Handle -> IO a
 hRead handle = readBin (toReadBinaryHandle handle)
 
 toWriteBinaryHandle :: Handle -> WriteBinary IO
-toWriteBinaryHandle handle = 
+toWriteBinaryHandle handle =
    WriteBinary {
       writeByte = hPutByte handle,
       writeBytes = hPutBytes handle
@@ -138,7 +138,7 @@ toReadBinaryHandle handle =
       }
 
 toWriteBinaryHandleDebug :: Handle -> WriteBinary IO
-toWriteBinaryHandleDebug handle = 
+toWriteBinaryHandleDebug handle =
    WriteBinary {
       writeByte = (\ b -> bracketDebug 1 (hPutByte handle b)),
       writeBytes = (\ b i -> bracketDebug i (hPutBytes handle b i))
@@ -152,9 +152,9 @@ toReadBinaryHandleDebug handle =
       }
 
 bracketDebug :: Int -> IO a -> IO a
-bracketDebug i act = 
+bracketDebug i act =
    do
-      putStr ("[" ++ show i) 
+      putStr ("[" ++ show i)
       hFlush stdout
       a <- act
       putStr "]"
@@ -188,7 +188,7 @@ writeToBytes = writeToBytes0 1000
 -- too small, there will be unnecessary reallocations; if too large,
 -- too much memory will be used.
 writeToBytes0 :: HasBinary a StateBinArea => Int -> a -> IO (Bytes,Int)
--- 
+--
 -- The result is returned as a pair (data area,length)
 writeToBytes0 len0 a =
    do
@@ -197,11 +197,11 @@ writeToBytes0 len0 a =
       closeBinArea binArea1
 
 -- | Create an empty 'BinArea', given the initial size.
-mkEmptyBinArea :: Int -> IO BinArea 
+mkEmptyBinArea :: Int -> IO BinArea
 -- the argument gives the initial size to use (which had better be positive).
 mkEmptyBinArea len =
    do
-      bytes <- bytesMalloc len 
+      bytes <- bytesMalloc len
       return (BinArea {
          bytes = bytes,
          len = len,
@@ -215,11 +215,11 @@ closeBinArea binArea =
       let
          bytes1 = bytes binArea
          len = next binArea
-      bytes2 <- bytesReAlloc bytes1 len 
+      bytes2 <- bytesReAlloc bytes1 len
       return (bytes2,len)
 
 -- | a state monad containing the BinArea.
-type StateBinArea = StateT BinArea IO 
+type StateBinArea = StateT BinArea IO
 
 -- | A 'BinArea' as somewhere to put binary data.
 writeBinaryBinArea :: WriteBinary StateBinArea
@@ -265,7 +265,7 @@ ensureBinArea binArea size =
               len = len1,
               next = next binArea
               })
-   
+
 -- ----------------------------------------------------------------------
 -- Reading Binary instances from a memory area
 -- We use BinArea's for this too.  But this is simpler, because we don't have to
@@ -287,7 +287,7 @@ readFromBytes (bl@(bytes',len')) =
 -- | Turn binary data in memory into a 'BinArea' (so that you can
 -- read from it).
 mkBinArea :: (Bytes,Int) -> BinArea
-mkBinArea (bytes',len') = 
+mkBinArea (bytes',len') =
    BinArea {
       bytes = bytes',
       len = len',
@@ -296,12 +296,12 @@ mkBinArea (bytes',len') =
 
 checkFullBinArea :: BinArea -> IO ()
 checkFullBinArea binArea =
-   if next binArea == len binArea 
+   if next binArea == len binArea
       then
          return ()
       else
          error "Binary.checkFullBinArea: mysterious extra bytes"
-   
+
 
 -- | A BinArea as a source of binary data.
 readBinaryBinArea :: ReadBinary StateBinArea
@@ -315,7 +315,7 @@ readBinaryBinArea = ReadBinary {
          byte <- getByteFromBytes (bytes binArea0) next0
          return (byte,binArea0 {next = next1})
       ),
-   readBytes = (\ len -> 
+   readBytes = (\ len ->
       StateT (\ binArea0 ->
          do
             let

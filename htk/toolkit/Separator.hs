@@ -1,29 +1,29 @@
 -- | Separators for widgets. It is just
--- a frame with a given relief and borderwidth etc. 
+-- a frame with a given relief and borderwidth etc.
 module Separator (
         Separator,
         newSeparator,
         newHSeparator,
         newVSeparator
-        
+
         ) where
 
 import Core
 import HTk
-                
+
 -- --------------------------------------------------------------------------
 -- Separator
--- --------------------------------------------------------------------------   
+-- --------------------------------------------------------------------------
 
 -- | The @Separator@ datatype.
 data Separator = Separator Frame deriving Eq
 
 
 -- | Constructs a new separator widget and returns it as a value.
-newSeparator :: (Container par) => par 
+newSeparator :: (Container par) => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Separator] 
+   -> [Config Separator]
    -- ^ the list of configuration options for this separator.
    -> IO Separator
    -- ^ a separator widget.
@@ -34,37 +34,37 @@ newSeparator par conf =
 
 
 -- | Constructs a new horizontal separator widget and returns it as a value. (no packing needed)
-newHSeparator :: (Container par) => par 
+newHSeparator :: (Container par) => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
    -> IO Separator
    -- ^ a separator widget.
-newHSeparator par = 
- do 
+newHSeparator par =
+ do
   w <- newFrame par [relief Sunken, height 2, borderwidth 1]
   pack w [Expand Off, Fill X]
   configure (Separator w) []
-  
+
 -- | Constructs a new vertical separator widget and returns it as a value. (no packing needed)
-newVSeparator :: (Container par) => par 
+newVSeparator :: (Container par) => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
    -> IO Separator
    -- ^ a separator widget.
-newVSeparator par = 
- do 
+newVSeparator par =
+ do
   w <- newFrame par [relief Sunken, width 2, borderwidth 1]
   pack w [Expand Off, Fill Y]
   configure (Separator w) []
-                
+
 -- --------------------------------------------------------------------------
 -- Instances
--- --------------------------------------------------------------------------   
+-- --------------------------------------------------------------------------
 -- | Internal.
-instance GUIObject Separator where 
+instance GUIObject Separator where
         toGUIObject (Separator w) = toGUIObject w
         cname w = "Separator"
-	
+
 -- | A separator can be destroyed.
 instance Destroyable Separator where
         -- Destroys a separator widget.

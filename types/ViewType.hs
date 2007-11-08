@@ -1,9 +1,9 @@
 -- | ViewType defines the actual type of a view.  Note that we don't actually
 -- do anything with it in this file; the real work is done in View.
 -- However, defining the type here means CodedValue can import it,
--- and View can import CodedValue, without a circularity. 
--- 
--- However circularities can't be entirely avoided, see RECURSION. 
+-- and View can import CodedValue, without a circularity.
+--
+-- However circularities can't be entirely avoided, see RECURSION.
 module ViewType(
    View(..),
    ObjectData(..),
@@ -85,7 +85,7 @@ data ObjectData =
             -- (For the meaning of the Either, see VersionDB.commit.)
             -- The supplied ObjectVersion is that belonging to the
             -- containing view.
-            
+
             --
             -- If it returns Nothing, that means the object does not
             -- need to be updated, as this version is up-to-date.
@@ -138,7 +138,7 @@ getParentVersion view =
 -- -----------------------------------------------------------------
 
 getViewTitleSource :: View -> SimpleSource String
-getViewTitleSource view = 
+getViewTitleSource view =
    fmap (label . user) (toSimpleSource . viewInfoBroadcaster $ view)
 
 -- -----------------------------------------------------------------
@@ -157,9 +157,9 @@ getParentLocationInView view thisLocation =
                versionOpt <- getParentVersion view
                case versionOpt of
                   Nothing -> return Nothing
-                  Just version -> 
+                  Just version ->
                      getParentLocation (repository view) version thisLocation
-   
+
 -- -----------------------------------------------------------------
 -- Instance of HasDelayer
 -- -----------------------------------------------------------------

@@ -1,4 +1,4 @@
--- | The TempFile module allocates temporary files 
+-- | The TempFile module allocates temporary files
 module TempFile(
    newTempFile, -- :: IO FilePath
    ) where
@@ -35,7 +35,7 @@ tempFileSource = unsafePerformIO (
 newTempFile :: IO FilePath
 newTempFile =
    do
-      let 
+      let
          TempFileSource {fileStore = fileStore,fileSource = fileSource} =
             tempFileSource
       fileCounter <- takeMVar fileSource

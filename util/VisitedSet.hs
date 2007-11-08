@@ -1,7 +1,7 @@
 module VisitedSet(
    VisitedSet,
    newVisitedSet, -- :: Ord key => IO (VisitedSet key)
-   isVisited, 
+   isVisited,
       -- :: Ord key => VisitedSet key -> key -> IO Bool
       -- return True if the element has already been visited, otherwise
       -- visit it.
@@ -21,7 +21,7 @@ newVisitedSet =
 isVisited :: Ord key => VisitedSet key -> key -> IO Bool
 isVisited (VisitedSet mVar) key =
    modifyMVar mVar
-      (\ set -> 
+      (\ set ->
          return (if elementOf key set
             then
                (set,True)

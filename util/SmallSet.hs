@@ -19,7 +19,7 @@ module SmallSet(
       -- :: Ord elt => SmallSet elt -> SmallSet elt -> SmallSet elt
       -- returns nodes in first set but not in second
    mapMSmallSet
-      -- :: (Ord eltIn,Ord eltOut) => 
+      -- :: (Ord eltIn,Ord eltOut) =>
       --    (eltIn -> IO eltOut) -> SmallSet eltInt -> IO (SmallSet eltOut)
    ) where
 
@@ -78,7 +78,7 @@ removeSmallSet elt (SmallSet eltList) =
                rest
             else
                first:(remove rest)
-        
+
 
 listSmallSet :: Ord elt => SmallSet elt -> [elt]
 listSmallSet (SmallSet eltList) = eltList
@@ -95,9 +95,9 @@ minusSmallSet (SmallSet eltList1) (SmallSet eltList2) =
             EQ -> subtract rest1 rest2
             GT -> subtract eltList1 rest2
 
-mapMSmallSet :: (Ord eltIn,Ord eltOut) => 
+mapMSmallSet :: (Ord eltIn,Ord eltOut) =>
       (eltIn -> IO eltOut) -> SmallSet eltIn -> IO (SmallSet eltOut)
-mapMSmallSet fn (SmallSet eltListIn) = 
+mapMSmallSet fn (SmallSet eltListIn) =
    do
       eltListOut <- mapM fn eltListIn
       return(SmallSet eltListOut)

@@ -1,12 +1,12 @@
 -- | This module allows the user to enter an arbitrary number of variant
--- attributes. 
+-- attributes.
 --
 -- These are essentially just lists of key-value pairs of the form
 -- [(String,Maybe String)] except that the strings may not begin or end
 -- with a space, and duplicate keys or keys "Version" are not allowed.
 module MMiSSGetVariantAttributes(
    getVariantAttributes, -- :: IO (Maybe [(String,Maybe String)])
-   editVariantAttributes, -- :: [(String,Maybe String)] 
+   editVariantAttributes, -- :: [(String,Maybe String)]
       -- -> IO (Maybe [(String,Maybe String)])
 
 
@@ -28,14 +28,14 @@ getVariantAttributes :: IO (Maybe [(String,Maybe String)])
 getVariantAttributes = editVariantAttributes []
 
 -- | Edit the supplied list of variant attributes
-editVariantAttributes :: [(String,Maybe String)] 
+editVariantAttributes :: [(String,Maybe String)]
    -> IO (Maybe [(String,Maybe String)])
 editVariantAttributes = editVariantAttributes1 10
 
 
 -- | Get a list of variant attributes, presenting the user with a window
 -- where he can type up to n at a type.
-editVariantAttributes1 
+editVariantAttributes1
    :: Int -> [(String,Maybe String)] -> IO (Maybe [(String,Maybe String)])
 editVariantAttributes1 n oldVariants =
    editRemainingAttributes n emptySet oldVariants
@@ -55,16 +55,16 @@ editRemainingAttributes n keysSoFar remainingDefaults0 =
          keyForm keyDefault = fmap trimSpaces1 (newFormEntry "key" keyDefault)
 
          valueForm :: Maybe String -> Form (Maybe String)
-         valueForm valueDefault = 
+         valueForm valueDefault =
             fmap trimSpaces1 (newFormEntry "value" (fromMaybe "" valueDefault))
- 
-         keyValueForm :: (String,Maybe String) 
+
+         keyValueForm :: (String,Maybe String)
             -> Form (Maybe (String,Maybe String))
          keyValueForm (keyDefault,valueDefault) =
             mapForm
                (\ (k,v) -> case (k,v) of
                   (Nothing,Nothing) -> return Nothing
-                  (Nothing,Just _) -> fail 
+                  (Nothing,Just _) -> fail
                      "Value given with no key"
                   (Just "Version",_) -> fail (
                      "You are not allowed to enter the \"Version\" attribute "
@@ -81,38 +81,38 @@ editRemainingAttributes n keysSoFar remainingDefaults0 =
          (theseDefaults,remainingDefaults2) = splitAt n remainingDefaults1
 
          keyValueForms0 :: [Form (Maybe (String,Maybe String))]
-         keyValueForms0 = fmap keyValueForm 
+         keyValueForms0 = fmap keyValueForm
             (take n (theseDefaults ++ repeat ("",Nothing)))
 
          keyValueForms1 :: Form [Maybe (String,Maybe String)]
-         keyValueForms1 = 
-            foldr 
-               (\ form1 form2 -> 
+         keyValueForms1 =
+            foldr
+               (\ form1 form2 ->
                   fmap (\ (kv,list) -> kv:list) (form1 // form2)
                   )
-               (fmap (const []) emptyForm) 
+               (fmap (const []) emptyForm)
                keyValueForms0
 
          keyValueForms2 :: Form [(String,Maybe String)]
          keyValueForms2 = fmap catMaybes keyValueForms1
 
-         keyValueForms3 :: Set String 
+         keyValueForms3 :: Set String
             -> Form ([(String,Maybe String)],Set String)
          keyValueForms3 keysSoFar =
             let
-               checkFn :: Set String -> [(String,Maybe String)] 
+               checkFn :: Set String -> [(String,Maybe String)]
                   -> WithError (Set String)
                checkFn keysSoFar [] = return keysSoFar
                checkFn keysSoFar ((key,_):otherValues) =
-                  if elementOf key keysSoFar 
+                  if elementOf key keysSoFar
                      then
-                        fail ("Element " ++ key 
+                        fail ("Element " ++ key
                            ++ " is specified multiple times")
                      else
                         checkFn (addToSet keysSoFar key) otherValues
             in
                mapForm
-                  (\ keyValues -> 
+                  (\ keyValues ->
                      do
                         set <- checkFn keysSoFar keyValues
                         return (keyValues,set)
@@ -136,7 +136,7 @@ editRemainingAttributes n keysSoFar remainingDefaults0 =
                return (Just (list ++ remainingAttributes3))
          Just ((list,keysSoFar2),True) ->
             do
-               remainingAttributesOpt 
+               remainingAttributesOpt
                   <- editRemainingAttributes n keysSoFar2 remainingDefaults2
                return (fmap (list ++) remainingAttributesOpt)
 

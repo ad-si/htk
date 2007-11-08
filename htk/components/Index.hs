@@ -37,11 +37,11 @@ data EndOfText = EndOfText deriving Eq
 
 -- | Internal.
 instance Show EndOfText where
-  showsPrec d _ r = "end" ++ r 
+  showsPrec d _ r = "end" ++ r
 
 -- | Internal.
 instance Read EndOfText where
-  readsPrec p str = 
+  readsPrec p str =
     case str of ('e':'n':'d':xs) -> [(EndOfText,xs)]
                 _ -> []
 
@@ -69,12 +69,12 @@ instance Show Pixels where
 
 -- | The @First@ datatype - a handle indexing the first entry
 -- e.g. inside a listbox.
-data First = First 
+data First = First
 
 -- | Internal.
 instance Show First where
    showsPrec d _ r = "first" ++ r
-        
+
 
 -- -----------------------------------------------------------------------
 -- Index: Last, for entry and text widgets
@@ -82,12 +82,12 @@ instance Show First where
 
 -- | The @Last@ datatype - a handle indexing the last entry
 -- e.g. inside a listbox.
-data Last = Last 
+data Last = Last
 
 -- | Internal.
 instance Show Last where
    showsPrec d _ r = "first" ++ r
-        
+
 
 -- -----------------------------------------------------------------------
 -- BaseIndex

@@ -1,4 +1,4 @@
--- | This contains functions for copying to and from files 
+-- | This contains functions for copying to and from files
 module CopyFile(
    copyFile,
    copyFileWE,
@@ -29,7 +29,7 @@ import DeepSeq
 
 -- amahnke: Supplemented C-Code by System.Directory.CopyFile:
 --
--- foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim 
+-- foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim
 --   :: CString -> CString -> IO Int
 
 copyFile :: String -> String -> IO ()
@@ -40,22 +40,22 @@ copyFile source destination =
 
 copyFileWE :: String -> String -> IO (WithError ())
 copyFileWE source destination =
-   if source == destination 
+   if source == destination
       then
          return (hasValue ())
       else
-             IOErr.catch (do 
+             IOErr.catch (do
                             Dir.copyFile source destination
-                            return(hasValue())) 
-              (\ioErr -> 
-                  let 
-                     codeStr = if IOErr.isAlreadyExistsError ioErr 
+                            return(hasValue()))
+              (\ioErr ->
+                  let
+                     codeStr = if IOErr.isAlreadyExistsError ioErr
                                  then  ("Can't write to " ++ destination ++ ". File already exists!")
                                  else if IOErr.isDoesNotExistError ioErr
                                         then ("Can't read from " ++ source ++ ". File doesn't exists!")
-                                        else if IOErr.isPermissionError ioErr 
+                                        else if IOErr.isPermissionError ioErr
                                                then ("Can't write to " ++ destination ++ ". Insufficient permissions!")
-                                               else if IOErr.isFullError ioErr 
+                                               else if IOErr.isFullError ioErr
                                                       then ("Can't write to " ++ destination ++ ". Disk full!")
                                                       else ("Something went wrong within copyFile.")
                   in
@@ -90,13 +90,13 @@ copyFileToString :: FilePath -> IO String
 copyFileToString filePath =
    do
       s <- IO.readFile filePath
-      
+
 --      (cString,len) <- copyFileToCStringLen filePath
 --      string <- peekCStringLen (cString,len)
 --      free cString
       s `deepSeq` (return s)
 
--- | Read in a file, catching certain errors 
+-- | Read in a file, catching certain errors
 copyFileToStringCheck :: FilePath -> IO (WithError String)
 copyFileToStringCheck filePath =
    exceptionToError
@@ -114,7 +114,7 @@ copyFileToStringCheck filePath =
             then
                Just "No read access to file"
             else
-               Nothing     
+               Nothing
          )
       (copyFileToString filePath)
 
@@ -130,7 +130,7 @@ copyFileToICStringLenCheck filePath =
       (\ exception ->
          case ioErrors exception of
             Nothing -> Nothing
-            Just ioError -> Just (show ioError) 
+            Just ioError -> Just (show ioError)
          )
       (copyFileToICStringLen filePath)
 
@@ -140,15 +140,15 @@ copyFileToICStringLen filePath =
       -- shamelessly pirated from GHC's slurpFile function.
       handle <- IO.openFile filePath IO.ReadMode
       len <- IO.hFileSize handle
-      if len > fromIntegral (maxBound::Int) 
+      if len > fromIntegral (maxBound::Int)
          then
-            error "CopyFile.copyFileToICStringLen: file too big" 
+            error "CopyFile.copyFileToICStringLen: file too big"
          else
             do
                let
                   len_i = fromIntegral len
                mkICStringLen len_i
-                  (\ cString -> 
+                  (\ cString ->
                      do
                         lenRead <- hGetBuf handle cString len_i
                         when (lenRead < len_i)
@@ -170,13 +170,13 @@ copyStringToFileCheck str filePath =
       (\ exception ->
          case ioErrors exception of
             Nothing -> Nothing
-            Just ioError -> Just (show ioError) 
+            Just ioError -> Just (show ioError)
          )
       (copyStringToFile str filePath)
 
 copyStringToFile :: String -> FilePath -> IO ()
 copyStringToFile str filePath =
-   withCStringLen str 
+   withCStringLen str
       (\ cStringLen -> copyCStringLenToFile cStringLen filePath)
 
 copyCStringLenToFile :: CStringLen -> FilePath -> IO ()

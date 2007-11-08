@@ -1,7 +1,7 @@
 -- | Basic Thread operations.
 module Thread (
    module Computation,
-   
+
    ThreadId,
 
    hashThreadId, -- :: ThreadId -> Int32
@@ -13,11 +13,11 @@ module Thread (
       -- Try to be more helpful about catching exceptions.
 
 
-   forkIOquiet, 
+   forkIOquiet,
       -- ALMOST identical with standard action.
       -- The differences are (a) that it takes an extra string argument
-      -- (which goes first); (b) if the thread fails because of 
-      -- "BlockedOnDeadMVar" nothing is printed, but we output a 
+      -- (which goes first); (b) if the thread fails because of
+      -- "BlockedOnDeadMVar" nothing is printed, but we output a
       -- message to "debug" which includes the label.
       -- NB.  This function no longer seems to be necessary in recent
       -- versions of GHC (current is 6.02.1) so please don't use it.
@@ -27,12 +27,12 @@ module Thread (
    -- just returns.  This is useful for Expect and other things which
    -- get rid of a redundant thread by killing it.
    -- Now changed so that it also prints nothing for BlockedOnDeadMVar
-   
-   
+
+
    -- delay thread execution
    Duration,
    mins,
-   secs,   
+   secs,
    msecs,
    usecs,
    delay,
@@ -41,11 +41,11 @@ module Thread (
 
    mapMConcurrent,
    mapMConcurrent_,
-      -- evaluate a list of IO actions concurrently.   
+      -- evaluate a list of IO actions concurrently.
    mapMConcurrentExcep,
       -- evaluate a list of IO actions concurrently, also propagating
       -- exceptions properly.
-   ) 
+   )
 where
 
 import qualified GHC.Conc
@@ -68,13 +68,13 @@ import ExtendedPrelude
 type Duration = Int -- time in microseconds
 
 delay :: Duration -> IO ()
-delay d = 
+delay d =
    if d<0
       then
          debug("Thread.delay - delay time of " ++ show d)
       else
          threadDelay d
-{-# INLINE delay #-} 
+{-# INLINE delay #-}
 
 after :: Duration -> IO a -> IO a
 after d c = do {delay d; c}
@@ -100,7 +100,7 @@ goesQuietly :: IO () -> IO ()
 goesQuietly action =
    do
       result <-
-         tryJust 
+         tryJust
             (\ exception -> case exception of
                AsyncException ThreadKilled -> Just ()
                BlockedOnDeadMVar -> Just ()
@@ -114,7 +114,7 @@ goesQuietly action =
 -- --------------------------------------------------------------------------
 -- forkIOSafe
 -- --------------------------------------------------------------------------
-             
+
 forkIODebug :: IO () -> IO ThreadId
 forkIODebug = forkIO . errorOurExceps
 
@@ -139,7 +139,7 @@ forkIOquiet label action =
                   Left () ->
                      do
                         debug ("Thread.forkIOquiet: "++label)
-      forkIO newAction          
+      forkIO newAction
 
 
 -- --------------------------------------------------------------------------
@@ -191,7 +191,7 @@ mapMConcurrentExcep mapFn as =
                return mVar
             )
          as
-      mapM 
+      mapM
          (\ mVar ->
             do
                bAnswer <- takeMVar mVar
@@ -213,5 +213,5 @@ hashThreadId :: ThreadId -> Int32
 -- Currently implemented by a horrible hack requiring access to GHC internals.
 hashThreadId (GHC.Conc.ThreadId ti) = hashInt (getThreadId ti)
 
-foreign import ccall unsafe "rts_getThreadId" getThreadId 
+foreign import ccall unsafe "rts_getThreadId" getThreadId
    :: GHC.Base.ThreadId# -> Int

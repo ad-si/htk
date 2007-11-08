@@ -1,4 +1,4 @@
--- | 
+-- |
 -- MODULE        : Debug
 -- AUTHOR        : George Russell
 -- University of Bremen
@@ -7,15 +7,15 @@
 --              purposes.  In final versions of this module it would
 --              be best to make the debug function do nothing and
 --              force it to be inlined.
--- 
--- ######################################################################### 
+--
+-- #########################################################################
 
 module Debug(
   debug, -- show something to log file if debugging is turned on.
 
-  debugAct, 
+  debugAct,
   -- If an action fails print out a message before
-  -- propagating message.  
+  -- propagating message.
   (@:),
   -- inline version of debugAct
 
@@ -32,7 +32,7 @@ module Debug(
 
 
   wrapError, -- :: String -> a -> a
-     -- If debugging is on, transforms value so that when evaluated, if 
+     -- If debugging is on, transforms value so that when evaluated, if
      -- the evaluation calls an error call, the given String is prepended
      -- to the evaluation.
   ) where
@@ -48,17 +48,17 @@ openDebugFile :: IO (Maybe Handle)
 openDebugFile =
    do
       debugFileName <- getDebugFileName
-      IO.catch ( 
+      IO.catch (
          do
-             handle <- openFile debugFileName WriteMode 
+             handle <- openFile debugFileName WriteMode
              hSetBuffering handle NoBuffering
              return (Just handle)
-         ) 
+         )
          (\ _-> return Nothing)
 
 debugFile = unsafePerformIO openDebugFile
 debugFile :: Maybe Handle
-{-# NOINLINE debugFile #-} 
+{-# NOINLINE debugFile #-}
 
 $(
 
@@ -70,8 +70,8 @@ $(
                   Just f -> IO.hPutStr f s
                   Nothing -> return ()
 
-            debug s = 
-               case debugFile of 
+            debug s =
+               case debugFile of
                   Just f  -> IO.hPutStrLn f (show s)
                   Nothing -> return ()
 
@@ -108,17 +108,17 @@ debug :: Show a => a -> IO()
 debugString :: String -> IO ()
 
 -- | If an action fails print out a message before
--- propagating message.  
+-- propagating message.
 debugAct :: String -> IO a -> IO a
 
 (@:) :: String -> IO a -> IO a
 (@:) = debugAct
 
 
--- | always show something to the log file 
+-- | always show something to the log file
 alwaysDebug :: Show a => a -> IO()
-alwaysDebug s = 
-   case debugFile of 
+alwaysDebug s =
+   case debugFile of
       Just f  -> IO.hPutStrLn f (show s)
       Nothing -> return ()
 
@@ -140,13 +140,13 @@ alwaysDebugAct mess act =
 wrapError :: String -> a -> a
 #ifdef DEBUG
 wrapError str value = unsafePerformIO (wrapErrorIO str value)
-#else 
+#else
 wrapError str value = value
 #endif
 
 wrapErrorIO :: String -> a -> IO a
 wrapErrorIO str value =
    Control.Exception.catchJust errorCalls (value `seq` return value)
-      (\ mess -> error (str++":"++mess)) 
-      
-      
+      (\ mess -> error (str++":"++mess))
+
+

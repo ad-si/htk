@@ -4,7 +4,7 @@ import HTk
 
 main :: IO ()
 
-main = 
+main =
   do main <- initHTk [text "Entry example"]
 
      f <- newFrame main []
@@ -13,16 +13,16 @@ main =
 
      (entered, _) <-
        bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
-        
+
      pack f []
      pack l [PadX 10, Side AtLeft]
      pack e [PadX 10, Side AtRight]
 
-     spawnEvent 
-      (forever 
+     spawnEvent
+      (forever
         (entered >>> do txt <- (getValue e) :: IO String
                         e # value ""
                         main # text txt >> done))
 
-     finishHTk  
+     finishHTk
 

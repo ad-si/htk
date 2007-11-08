@@ -118,15 +118,15 @@ main =
     cc <- clicked cmdc
 
     let menusel = ca >>> click "A" +> cb >>> click "B" +> cc >>> click "C"
-                  
+
     (press, _) <- bind main [WishEvent [] (ButtonPress (Just 3))]
 
 
      -- A pop-up menu can finish without it doing anything, hence we
-     -- cannot just sync on menusel above after popping up. 
+     -- cannot just sync on menusel above after popping up.
      -- In particular, the following does not occur when the pop-up
      -- menu disappears:
-     -- (eop, _) <- bindSimple men Destroy 
+     -- (eop, _) <- bindSimple men Destroy
      -- Solution: have one thread handle the pop-up menu exclusively.
 
 
@@ -154,7 +154,7 @@ main =
                               do popup men (xRoot eventInfo,
                                             yRoot eventInfo)
                                            (Nothing :: Maybe HTk)
-				 putStrLn "We've popped up")))
+                                 putStrLn "We've popped up")))
     finishHTk
 
   where selected :: GUIValue a => String -> TkVariable a -> IO ()

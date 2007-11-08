@@ -1,31 +1,31 @@
--- | API for MMiSS.  This gives basic text-only access to the repository. 
--- 
+-- | API for MMiSS.  This gives basic text-only access to the repository.
+--
 -- NB.  This module is now largely obsolete, and will be replaced for
 -- practical purposes by the XML interface in the other modules in this
 -- directory.  Still it may still be useful for testing and so on.
 module MMiSSAPI(
-   -- General Idea.  We maintain lots of "current" things,  the 
-   -- "current server", the "current version", the "current directory", and 
+   -- General Idea.  We maintain lots of "current" things,  the
+   -- "current server", the "current version", the "current directory", and
    -- the "current variants".
    -- Many operations are provided in two (or more) forms;
    -- the simple one which just uses the current server (or current whatever),
    -- and the more complex one which takes an argument.  Then the more complex
    -- operation will have the same name as the simple operation, only with a
    -- number attached, for example "listVersions" (the simple version) and
-   -- "listVersions1" (the more complex version). 
+   -- "listVersions1" (the more complex version).
    --
    -- Each Version maintains its own current directory.  However the
    -- current variants and current server are global.
 
-   open, 
+   open,
       -- :: String -> IO Server
       -- open a connection to a server and make it current
       -- The String should be the hostname of the server, possibly followed
       -- by a colon and the port-number.
-   listVersions, 
+   listVersions,
       -- :: IO ()
       -- list versions available on current server (with their numbers).
-   listVersions1, 
+   listVersions1,
       -- :: Server -> IO ()
       -- list versions available on server.
    setVersionFormat,
@@ -41,7 +41,7 @@ module MMiSSAPI(
       --    %P to the parents (as a list of version numbers)
       --    %U to the committing user
       --    %T to the timestamp
-      -- 
+      --
       -- Example: a format of "%V %L %P\n" will give a short description of the
       -- version (version number, label, and parents).  "%V %L %P %U %T\n%C\n"
       -- will put the short information (version number, label, parents, user,
@@ -50,7 +50,7 @@ module MMiSSAPI(
    cdServer,
       -- :: Server -> IO ()
       -- change the current server.
-   checkOut, 
+   checkOut,
    checkOut1,
       -- :: Server -> Int -> IO Version
       -- :: Int -> IO Version
@@ -72,7 +72,7 @@ module MMiSSAPI(
       -- Change current version.  (This will not change the current
       -- server or current variants.)
 
-   ls, 
+   ls,
       -- :: IO ()
       -- List contents of current directory in version.
    cd,
@@ -80,7 +80,7 @@ module MMiSSAPI(
       -- Change current directory.
       -- The string has the form A.B.[blah] or Root.A.B.[blah] or
       -- Parent.Parent.A.B.[blah], like search-names we use for import
-      -- statements.  It is evaluated using the current directory as a 
+      -- statements.  It is evaluated using the current directory as a
       -- starting point.
 
    get,
@@ -90,13 +90,13 @@ module MMiSSAPI(
    getXML,
       -- :: String -> IO ()
       -- Like get, but retrives an MMiSS-XML file instead.
-   
-   put, 
+
+   put,
       -- :: String -> IO ()
       -- Read the given Unix MMiSS LaTeX or MMiSS XML file in,
       -- which should be new, and put it in the current directory.
 
-   reput, 
+   reput,
       -- :: String -> IO ()
       -- Read the given file into the current directory, which should
       -- be the corresponding MMiSSPackageFolder
@@ -110,7 +110,7 @@ module MMiSSAPI(
 
    lsVariants,
       -- :: String -> IO ()
-      -- Look up the given MMiSS object or file, and list its available 
+      -- Look up the given MMiSS object or file, and list its available
       -- variants
    set,
       -- :: String -> String -> IO Variant
@@ -212,7 +212,7 @@ data State = State {
    }
 
 -- Used to represent a directory.
-data Dir = 
+data Dir =
       Folder (Link Folder)
    |  Package (Link MMiSSPackageFolder)
 
@@ -291,7 +291,7 @@ getCurrentVariants = getStateValue currentVariant
 -- by a colon and the port-number.
 open :: String -> IO Server
 open serverString =
-   printError ( 
+   printError (
       do
          modifyMVar_ stateMVar
             (\ state -> if registrationsDone state
@@ -348,7 +348,7 @@ listVersions1' (Server {versionGraph = versionGraph}) =
          graphClient :: VersionGraphClient
          graphClient = toVersionGraphClient versionGraph
 
-      (versionInfo1s :: [VersionInfo1]) 
+      (versionInfo1s :: [VersionInfo1])
          <- VersionGraphClient.getVersionInfos graphClient
 
       let
@@ -366,8 +366,8 @@ setVersionFormat formatStr =
          let
             formatWE = checkVersionInfoFormat formatStr
          format <- coerceWithErrorOrBreakIO apiError formatWE
-         modifyMVar_ stateMVar 
-            (\ state -> 
+         modifyMVar_ stateMVar
+            (\ state ->
                return (state {versionInfoFormat = format})
                )
       )
@@ -384,7 +384,7 @@ checkOut v =
       do
          server <- getCurrentServer
          checkOut1' server v
-      )      
+      )
 
 -- | check out a version and make it current, with the current directory
 -- the top object.
@@ -418,7 +418,7 @@ checkOut1' (Server {versionGraph = versionGraph}) v =
                      return (state {
                         currentVersion = Just version,
                         currentDirs =
-                           addToFM (currentDirs state) version 
+                           addToFM (currentDirs state) version
                               (Folder topFolderLink)
                         })
                      )
@@ -431,7 +431,7 @@ checkOut1' (Server {versionGraph = versionGraph}) v =
 
 -- | change the current server.
 cdServer :: Server -> IO ()
-cdServer server = modifyMVar_ stateMVar 
+cdServer server = modifyMVar_ stateMVar
    (\ state -> return (state {currentServer = Just server}))
 
 -- | Change current version.  (This will not change the current
@@ -453,7 +453,7 @@ ls =
          (version @ (Version view)) <- getCurrentVersion
          dir <- getCurrentDir version
          linkedObject <- getLinkedObject view dir
-               
+
          contents <- readContents (listObjectContents linkedObject)
          putStrLn (unlines (
             map
@@ -465,7 +465,7 @@ ls =
 -- | Change current directory.
 -- The string has the form A.B.[blah] or Root.A.B.[blah] or
 -- Parent.Parent.A.B.[blah], like search-names we use for import
--- statements.  It is evaluated using the current directory as a 
+-- statements.  It is evaluated using the current directory as a
 -- starting point.
 cd :: String -> IO ()
 cd newDir =
@@ -488,7 +488,7 @@ cd newDir =
                apiError ("Found " ++ newDir ++ " but it is neither a folder \n"
                   ++ " nor a package folder.  Its internal type is "
                   ++ wrappedLinkTypeName wrappedLink1 ++ ".")
-         
+
          setCurrentDir version dir
       )
 
@@ -508,7 +508,7 @@ getLinkedObjectName view linkedObject =
    do
       folderStructure <- getFolderStructure view
       getName folderStructure linkedObject
-   
+
 
 -- | General utility for retrieving an object by version and
 -- string (representing a search name).
@@ -517,7 +517,7 @@ getObjectByName (version @ (Version view)) searchNameStr =
    do
       let
          searchNameWE = fromStringWE searchNameStr
-      (searchName :: EntitySearchName) 
+      (searchName :: EntitySearchName)
          <- coerceWithErrorOrBreakIO apiError searchNameWE
 
       dir <- getCurrentDir version
@@ -525,7 +525,7 @@ getObjectByName (version @ (Version view)) searchNameStr =
 
       folderStructure <- getFolderStructure view
 
-      linkedObject1OptSource <- lookupSearchName folderStructure 
+      linkedObject1OptSource <- lookupSearchName folderStructure
          linkedObject0 searchName
       linkedObject1Opt <- readContents linkedObject1OptSource
       case linkedObject1Opt of
@@ -556,7 +556,7 @@ getMMiSSObjectLinkByName (version @ (Version view)) name =
 -- --------------------------------------------------------------------------
 -- Retrieving from the repository
 -- --------------------------------------------------------------------------
-      
+
 -- | Export the given object to the current Unix directory on the current
 -- system, as a LaTeX file.  (Also export all associated graphics)
 get :: String -> IO ()
@@ -583,9 +583,9 @@ getFormat format name =
                format = format,
                recurseDepth = infinity
                }
-               
+
          extracted0 <- extractMMiSSObject1 view True mmissObjectLink
-            (Just variantSearch) exportOpts                
+            (Just variantSearch) exportOpts
          (fileContents,exportedFiles) <- case fromWithError extracted0 of
             Left mess -> apiError mess
             Right extracted1 -> return extracted1
@@ -624,7 +624,7 @@ put fileName =
          (version @ (Version view)) <- getCurrentVersion
          dir <- getCurrentDir version
          linkedObject <- getLinkedObject view dir
-       
+
          success <- importMMiSSPackage1 view linkedObject (Just fileName)
          if success
             then
@@ -642,10 +642,10 @@ reput fileName =
          (version @ (Version view)) <- getCurrentVersion
          dir <- getCurrentDir version
          linkedObject <- getLinkedObject view dir
-         packageFolderLink <- 
+         packageFolderLink <-
             case unpackWrappedLink (toWrappedLink linkedObject) of
                Just packageFolderLink -> return packageFolderLink
-               Nothing -> apiError 
+               Nothing -> apiError
                   "Current directory needs to be package folder to re-import."
          reimportMMiSSPackage1 view packageFolderLink (Just fileName)
       )
@@ -653,8 +653,8 @@ reput fileName =
 -- --------------------------------------------------------------------------
 -- Variant Operations
 -- --------------------------------------------------------------------------
-   
--- | Look up the given MMiSS object or file, and list its available 
+
+-- | Look up the given MMiSS object or file, and list its available
 -- variants
 lsVariants :: String -> IO ()
 lsVariants name =
@@ -677,10 +677,10 @@ set key0 value0 =
             do
                let
                   (Variant variantSearch0) = currentVariant state0
-                  variantSearch1WE 
+                  variantSearch1WE
                      = addToVariantSearch variantSearch0 key0 value0
 
-               variantSearch1 
+               variantSearch1
                   <- coerceWithErrorOrBreakIO apiError variantSearch1WE
                let
                   variant1 = Variant variantSearch0
@@ -698,10 +698,10 @@ unset key0 =
             do
                let
                   (Variant variantSearch0) = currentVariant state0
-                  variantSearch1WE 
+                  variantSearch1WE
                      = removeFromVariantSearch variantSearch0 key0
 
-               variantSearch1 
+               variantSearch1
                   <- coerceWithErrorOrBreakIO apiError variantSearch1WE
                let
                   variant1 = Variant variantSearch0
@@ -713,7 +713,7 @@ unset key0 =
 -- | Change the current variant.
 cdVariant :: Variant -> IO ()
 cdVariant variant1 =
-   modifyMVar_ stateMVar 
+   modifyMVar_ stateMVar
       (\ state0 -> return (state0 {currentVariant = variant1}))
 
 -- --------------------------------------------------------------------------
@@ -736,15 +736,15 @@ whereami =
          Just (version @ (Version view)) ->
             do
                versionInfo <- readContents (viewInfoBroadcaster view)
-               versionStr <- evalVersionInfoFormat (versionInfoFormat state) 
+               versionStr <- evalVersionInfoFormat (versionInfoFormat state)
                   versionInfo
 
                dir <- getCurrentDir version
-               linkedObject <- getLinkedObject view dir 
+               linkedObject <- getLinkedObject view dir
                fullName <- getLinkedObjectName view linkedObject
 
-               return ("Version: " ++ versionStr ++ "\n Dir " 
-                  ++ toString (FromRoot fullName) 
+               return ("Version: " ++ versionStr ++ "\n Dir "
+                  ++ toString (FromRoot fullName)
                   )
 
       let
@@ -765,7 +765,7 @@ changeVersionInfo :: IO ()
 changeVersionInfo =
    printError (
       modifyMVar_ stateMVar
-         (\ state -> 
+         (\ state ->
             case currentVersion state of
                Nothing -> apiError "No current checked-out version"
                Just (Version view) ->
@@ -813,13 +813,13 @@ lcd newDir = (printError . anyErrorToAPI) (setCurrentDirectory newDir)
 
 -- | Execute the given String in a shell on the current system.
 shell :: String -> IO ()
-shell command = 
+shell command =
    (printError . anyErrorToAPI) (
       do
          exitCode <- system command
          case exitCode of
             ExitSuccess -> done
-            ExitFailure i -> 
+            ExitFailure i ->
                errorMess ("Command returned exit code " ++ show i)
       )
 
@@ -830,7 +830,7 @@ shell command =
 fallOut :: (ObjectID,IO a -> IO (Either String a))
 fallOut = unsafePerformIO newFallOut
 
-printError :: IO a -> IO a 
+printError :: IO a -> IO a
    -- we go via anyErrorToAPI for historical reasons
 printError act =
    do
@@ -852,5 +852,5 @@ anyErrorToAPI act =
          Right (Left apiMess) -> apiError apiMess
          Left excep -> case ourExcepToMess excep of
             Just mess -> apiError ("Uncaught exception: " ++ mess)
-            Nothing -> apiError ("Uncaught and unknown exception: " 
+            Nothing -> apiError ("Uncaught and unknown exception: "
                ++ show excep)

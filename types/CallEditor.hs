@@ -1,5 +1,5 @@
 -- | Parses the editor string and calls the editor, returning when it's
--- finished. 
+-- finished.
 module CallEditor(
    callEditor,
    editObject,
@@ -27,7 +27,7 @@ editorCommand = unsafePerformIO (
       editorStringOpt <- getEditorString
       case editorStringOpt of
          Nothing -> error "No editor is defined"
-         Just editorString -> 
+         Just editorString ->
             return (coerceWithError (compileFormatString editorString))
 
    )

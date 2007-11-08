@@ -1,4 +1,4 @@
--- | Instances of various classes for Element. 
+-- | Instances of various classes for Element.
 module MMiSSElementInstances(
    ) where
 
@@ -39,9 +39,9 @@ instance StringClass Element where
 newtype XmlAttributes = XmlAttributes [Attribute] deriving (Typeable)
 
 instance HasBinary XmlAttributes CodingMonad where
-   writeBin = mapWriteViewIO 
+   writeBin = mapWriteViewIO
       (\ view (XmlAttributes xmlAttributes) ->
-         do         
+         do
             attributesWE <- fromXmlAttributes view xmlAttributes
             return (coerceWithError attributesWE)
          )
@@ -57,12 +57,12 @@ instance Typeable Misc where
    typeOf _ = mkTypeRep "MMiSSElementInstances" "Misc"
 
 instance Monad m => HasBinary Misc m where
-   writeBin = mapWrite 
+   writeBin = mapWrite
       (\ misc -> case misc of
          Comment comment -> Left comment
          PI pi -> Right pi
          )
-   readBin = mapRead 
+   readBin = mapRead
       (\ either -> case either of
          Left comment -> Comment comment
          Right pi -> PI pi
@@ -111,11 +111,11 @@ instance HasBinary Content CodingMonad where
 
 instance HasBinary Element CodingMonad where
    writeBin = mapWrite
-      (\ (Elem name xmlAttributes contents) 
+      (\ (Elem name xmlAttributes contents)
          -> (name,XmlAttributes xmlAttributes,contents))
    readBin = mapRead
-      (\ (name,XmlAttributes xmlAttributes,contents) 
-         -> Elem name xmlAttributes contents) 
+      (\ (name,XmlAttributes xmlAttributes,contents)
+         -> Elem name xmlAttributes contents)
 
 -- ------------------------------------------------------------------------
 -- Eq

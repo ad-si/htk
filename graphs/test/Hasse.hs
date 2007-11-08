@@ -1,5 +1,5 @@
 -- | Given a list of poset relations, remove those which can be deduced
--- from others. 
+-- from others.
 module Hasse(
    hasse -- Ord a => [(a,a)] -> [(a,a)]
    ) where
@@ -28,7 +28,7 @@ hasse relations =
             Left result -> result
             Right nextStep -> doWork nextStep
    in
-      doWork init 
+      doWork init
 
 initialise :: Ord a => [(a,a)] -> HasseData a
 initialise relations =
@@ -49,7 +49,7 @@ initialise relations =
             emptyMap
             relations
    in
-      HasseData { 
+      HasseData {
          leftToDo = sorted,
          positions = positions,
          soFar = soFar,
@@ -59,7 +59,7 @@ initialise relations =
 
 oneStep :: Ord a => HasseData a -> Either [(a,a)] (HasseData a)
 oneStep (HasseData {
-   leftToDo = leftToDo, 
+   leftToDo = leftToDo,
    positions = positions,
    soFar = soFar,
    directPredecessors = directPredecessors,
@@ -67,18 +67,18 @@ oneStep (HasseData {
    }) =
    case leftToDo of
       [] -> Left soFar
-      (next:remainingToDo) -> 
+      (next:remainingToDo) ->
          let
             Just nextPredecessors = lookupFM directPredecessors next
             sortedPredecessors =
-               sortBy 
+               sortBy
                   (\ x y ->
                      let
                         Just xNo = lookupFM positions x
                         Just yNo = lookupFM positions y
                      in
                         compare xNo yNo
-                     ) 
+                     )
                   nextPredecessors
             lessThanNext = unitSet next
             (newSoFar,lessThanNext2) =
@@ -95,11 +95,11 @@ oneStep (HasseData {
                               ((predecessor,next):soFar,
                                  union predPredecessors lessThanNext
                                  )
-                     ) 
+                     )
                   (soFar,lessThanNext)
                   sortedPredecessors
             knownPredecessors2 = addToFM knownPredecessors next lessThanNext2
-         in    
+         in
             Right (HasseData{
                leftToDo = remainingToDo,
                positions = positions,
@@ -108,4 +108,4 @@ oneStep (HasseData {
                knownPredecessors = knownPredecessors2
                })
 
-   
+

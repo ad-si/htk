@@ -1,9 +1,9 @@
 module GetAncestors(
    getAncestors,
-      -- :: Graph graph => Bool 
+      -- :: Graph graph => Bool
       -- -> graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
       -- -> (nodeLabel -> IO Bool) -> Node -> IO [Node]
-      -- 
+      --
       -- Given an acyclic graph, a function (f :: nodeLabel -> IO Bool),
       -- and a node v, we return the set of nodes W such that for w in W,
       -- (1) (f w) returns True
@@ -14,24 +14,24 @@ module GetAncestors(
       -- If the Bool is True, the path must be of length at least 1.
 
    getDescendants,
-      -- :: Graph graph => Bool 
+      -- :: Graph graph => Bool
       -- -> graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
       -- -> (nodeLabel -> IO Bool) -> node -> IO [node]
       --  Same specification as getAncestors, with arc directions reversed.
 
    getAncestorsGeneric,
-      -- :: Ord node => Bool -> (node -> IO [node]) -> (node -> IO Bool) 
-      -- -> node 
+      -- :: Ord node => Bool -> (node -> IO [node]) -> (node -> IO Bool)
+      -- -> node
       -- -> IO [node]
       -- general function for doing the above.
 
    isAncestorPure, -- :: Ord node => (node -> [node]) -> node -> node -> Bool
       -- Returns True if first node is ancestor or equal to the second.
-   isAncestor, -- :: (Monad m,Ord node) => (node -> m [node]) -> node -> node 
+   isAncestor, -- :: (Monad m,Ord node) => (node -> m [node]) -> node -> node
       -- -> m Bool
    getAncestorsPure,
       -- :: Ord node => (node -> [node]) -> node -> [node]
-      -- This is a pure cut-down function for extracting a node's ancestors. 
+      -- This is a pure cut-down function for extracting a node's ancestors.
    ) where
 
 import Monad
@@ -46,14 +46,14 @@ import Graph
 -- The functions
 -- ------------------------------------------------------------------------
 
-getAncestors 
-   :: Graph graph 
+getAncestors
+   :: Graph graph
    => Bool -> graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> (nodeLabel -> IO Bool) -> Node -> IO [Node]
 getAncestors nonTrivial graph f1 node0 =
    let
       getParents :: Node -> IO [Node]
-      getParents node = 
+      getParents node =
          do
             arcs <- getArcsIn graph node
             mapM (getSource graph) arcs
@@ -65,17 +65,17 @@ getAncestors nonTrivial graph f1 node0 =
             f1 label
    in
       getAncestorsGeneric nonTrivial getParents f node0
-    
-   
 
-getDescendants 
-   :: Graph graph 
+
+
+getDescendants
+   :: Graph graph
    => Bool -> graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> (nodeLabel -> IO Bool) -> Node -> IO [Node]
 getDescendants nonTrivial graph f1 node0 =
    let
       getParents :: Node -> IO [Node]
-      getParents node = 
+      getParents node =
          do
             arcs <- getArcsOut graph node
             mapM (getTarget graph) arcs
@@ -92,20 +92,20 @@ getDescendants nonTrivial graph f1 node0 =
 -- getAncestorsGeneric
 -- ------------------------------------------------------------------------
 
-getAncestorsGeneric 
-   :: Ord node 
-   => Bool -> (node -> IO [node]) -> (node -> IO Bool) -> node 
+getAncestorsGeneric
+   :: Ord node
+   => Bool -> (node -> IO [node]) -> (node -> IO Bool) -> node
    -> IO [node]
-getAncestorsGeneric nonTrivial getParents f node = 
+getAncestorsGeneric nonTrivial getParents f node =
    do
-      (visited,ancestors) <- 
-         (if nonTrivial then getAncestorsGenericInnerStrict 
+      (visited,ancestors) <-
+         (if nonTrivial then getAncestorsGenericInnerStrict
             else getAncestorsGenericInner)
          getParents f (emptySet,[]) node
       return ancestors
 
 getAncestorsGenericInner
-   :: Ord node => (node -> IO [node]) -> (node -> IO Bool)  
+   :: Ord node => (node -> IO [node]) -> (node -> IO Bool)
    -> (Set node,[node]) -> node -> IO (Set node,[node])
 getAncestorsGenericInner getParents f (state @ (visitedSet0,ancestors0)) node =
    if elementOf node visitedSet0
@@ -124,7 +124,7 @@ getAncestorsGenericInner getParents f (state @ (visitedSet0,ancestors0)) node =
                      (visitedSet1,ancestors0) node
 
 getAncestorsGenericInnerStrict
-   :: Ord node => (node -> IO [node]) -> (node -> IO Bool)  
+   :: Ord node => (node -> IO [node]) -> (node -> IO Bool)
    -> (Set node,[node]) -> node -> IO (Set node,[node])
 getAncestorsGenericInnerStrict getParents f (state @ (visitedSet0,ancestors0))
       node =
@@ -132,11 +132,11 @@ getAncestorsGenericInnerStrict getParents f (state @ (visitedSet0,ancestors0))
       parents <- getParents node
       foldM
          (getAncestorsGenericInner getParents f)
-         (visitedSet0,ancestors0)                   
+         (visitedSet0,ancestors0)
          parents
 
 -- | Returns True if first node is ancestor or equal to the second.
-isAncestor :: (Monad m,Ord node) => (node -> m [node]) -> node -> node 
+isAncestor :: (Monad m,Ord node) => (node -> m [node]) -> node -> node
    -> m Bool
 isAncestor (getParents :: node -> m [node]) (node1 :: node) (node2 :: node) =
    let
@@ -170,9 +170,9 @@ isAncestor (getParents :: node -> m [node]) (node1 :: node) (node2 :: node) =
                Just visitedSet1 -> scanParents visitedSet1 nodes
    in
       do
-         searchResultOpt <- isAncestorInner (unitSet node1) node2          
+         searchResultOpt <- isAncestorInner (unitSet node1) node2
          return (not (isJust searchResultOpt))
-{-# SPECIALIZE isAncestor 
+{-# SPECIALIZE isAncestor
    :: (Integer -> IO [Integer]) -> Integer -> Integer -> IO Bool #-}
 -- this will be used for VersionState.versionIsAncestor
 
@@ -201,7 +201,7 @@ isAncestorPure getParents (node1 :: node) (node2 :: node) =
          case isAncestorPureInner visitedSet0 node of
             Nothing -> Nothing
             Just visitedSet1 -> scanParents visitedSet1 nodes
-   in         
+   in
       not (isJust (isAncestorPureInner (unitSet node1) node2))
 
 getAncestorsPure :: Ord node => (node -> [node]) -> node -> [node]

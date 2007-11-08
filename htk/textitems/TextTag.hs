@@ -2,7 +2,7 @@
 module TextTag (
 
   module Index,
-        
+
   TextTag,
   createTextTag,
 
@@ -68,13 +68,13 @@ data TextTag = TextTag Editor GUIOBJECT
 -- | Creates a text tag inside an editor widget and returns a handler.
 createTextTag :: (HasIndex Editor i1 BaseIndex,
    HasIndex Editor i2 BaseIndex) =>
-   Editor 
+   Editor
    -- ^ the concerned editor widget.
-   -> i1 
+   -> i1
    -- ^ the start index.
-   -> i2 
+   -> i2
    -- ^ the end index.
-   -> [Config TextTag] 
+   -> [Config TextTag]
    -- ^ the list of configuration options for this text tag.
    -> IO TextTag
    -- ^ A text tag.
@@ -96,11 +96,11 @@ createTextTag ed i1 i2 cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance Eq TextTag where 
+instance Eq TextTag where
   (TextTag _ w1) == (TextTag _ w2) = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
-instance GUIObject TextTag where 
+instance GUIObject TextTag where
   toGUIObject (TextTag _ w) = w
   cname _ = "TextTag"
 
@@ -113,7 +113,7 @@ instance Destroyable TextTag where
 instance HasBorder TextTag
 
 -- | A text tag has a configureable foregroud and background colour.
-instance HasColour TextTag where 
+instance HasColour TextTag where
   legalColourID = hasForeGroundColour
 
 -- | A text tag has a configureable font.
@@ -141,11 +141,11 @@ instance Synchronized TextTag where
 -- | Adds the specified text range to a text tag.
 addTextTag :: (HasIndex Editor i1 BaseIndex,
    HasIndex Editor i2 BaseIndex) =>
-   TextTag 
+   TextTag
    -- ^ the concerned text tag.
-   -> i1 
+   -> i1
    -- ^ the start index.
-   -> i2 
+   -> i2
    -- ^ the end index.
    -> IO ()
    -- ^ None.
@@ -160,15 +160,15 @@ addTextTag tag@(TextTag tp _) start end =
 -- | Removes the specified text range from a text tag.
 removeTextTag :: (HasIndex Editor i1 BaseIndex,
    HasIndex Editor i2 BaseIndex) =>
-   TextTag 
+   TextTag
    -- ^ the concerned text tag.
-   -> i1 
+   -> i1
    -- ^ the start index.
-   -> i2 
+   -> i2
    -- ^ the end index.
    -> IO ()
    -- ^ None.
-removeTextTag tag @ (TextTag tp _) start end = 
+removeTextTag tag @ (TextTag tp _) start end =
   synchronize tag (
     do
       start' <- getBaseIndex tp start
@@ -177,20 +177,20 @@ removeTextTag tag @ (TextTag tp _) start end =
   )
 
 -- | Lowers the text tag.
-lowerTextTag :: TextTag 
+lowerTextTag :: TextTag
    -- ^ the concerned text tag.
    -> IO ()
    -- ^ None.
 lowerTextTag tag = execMethod tag (\nm -> tkTagLower nm)
 
 -- | Raises the given text tag.
-raiseTextTag :: TextTag 
+raiseTextTag :: TextTag
    -- ^ the concerned text tag.
    -> IO ()
    -- ^ None.
 raiseTextTag tag = execMethod tag (\nm -> tkTagRaise nm)
 
-        
+
 -- -----------------------------------------------------------------------
 -- tag configure options
 -- -----------------------------------------------------------------------
@@ -294,7 +294,7 @@ getTagName tag =
 -- tag methods
 -- -----------------------------------------------------------------------
 
-tagMethods = 
+tagMethods =
         Methods
                 tkGetTextTagConfig
                 tkSetTextTagConfigs
@@ -320,7 +320,7 @@ tkGetTextTagConfig _ _ = []
 
 tkSetTextTagConfigs :: ObjectName -> [ConfigOption] -> TclScript
 tkSetTextTagConfigs _ [] = []
-tkSetTextTagConfigs (TextPaneItemName name (tnm @ (TextTagID k))) args = 
+tkSetTextTagConfigs (TextPaneItemName name (tnm @ (TextTagID k))) args =
   [show name ++ " tag configure " ++ show tnm ++ " " ++ showConfigs args]
 tkSetTextTagConfigs _ _ = []
 {-# INLINE tkSetTextTagConfigs #-}

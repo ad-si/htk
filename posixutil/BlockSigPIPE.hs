@@ -23,9 +23,9 @@ $(
          |]
       else
          [d|
-            blockSigPIPE = 
+            blockSigPIPE =
                do
-                  $(dynName "installHandler") $(dynName "sigPIPE") 
+                  $(dynName "installHandler") $(dynName "sigPIPE")
                      $(conE . mkName $ "Ignore") Nothing
                   done
          |]

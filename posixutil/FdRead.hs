@@ -24,7 +24,7 @@ fdWritePrim fd (cstring,len) =
       let len_csize = fromIntegral len
       rc  <- writePrim fd cstring len_csize
       if fromIntegral rc == len_csize
-         then 
+         then
             done
          else
             ioError(userError("Error writing to child process"))
@@ -32,7 +32,7 @@ fdWritePrim fd (cstring,len) =
 fdWriteLn :: System.Posix.Fd -> String -> IO ()
 fdWriteLn fd str =
    do
-      let 
+      let
          toWrite = str ++ "\n"
          len = length toWrite
       nWritten <- fdWrite fd toWrite
@@ -83,7 +83,7 @@ fdReadLn buffer = fdR buffer []
                   do
                      putMVar buffer rest
                      return (acc++line)
-               Nothing -> 
+               Nothing ->
                   do
                      refreshBuffer fdB
                      fdR fdB (acc++contents)

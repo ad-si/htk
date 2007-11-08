@@ -1,13 +1,13 @@
 -- | This module contains the code which connects to the VersionInfo service
--- (defined in simpledb) and constructs a graph.  It also defines 
--- functions for packing and unpacking Node values. 
+-- (defined in simpledb) and constructs a graph.  It also defines
+-- functions for packing and unpacking Node values.
 module VersionGraphClient(
    -- Get the VersionGraph, and arrange for the connection to be closed
    -- when the program ends.
 
    -- types
    VersionGraphClient, -- contains the graph
-   VersionGraphNode(..), -- represents a node in the graph 
+   VersionGraphNode(..), -- represents a node in the graph
    VersionInfo1, -- generalised VersionInfo that can also contain the view.
 
    mkVersionGraphClient, -- :: (?server :: HostPort) => IO VersionGraphClient
@@ -16,10 +16,10 @@ module VersionGraphClient(
    -- operations for modifying the graph.
    -- NB.  Changes to the committed versions are not given by this functions,
    -- but come from the server.
-   newWorkingVersion, 
-      -- :: VersionGraphClient -> View 
+   newWorkingVersion,
+      -- :: VersionGraphClient -> View
       -- -> IO VersionGraphNode
-      -- The parents are changed, and updated, from the view's 
+      -- The parents are changed, and updated, from the view's
       -- viewInfoBroadcaster
    deleteWorkingVersion,
       -- :: VersionGraphClient -> View -> IO ()
@@ -27,7 +27,7 @@ module VersionGraphClient(
 
    setNewFilter0, -- :: VersionGraphClient -> VersionGraphFilter -> IO ()
 
-   toVersionGraphConnection,  
+   toVersionGraphConnection,
       -- :: VersionGraphClient -> GraphConnection VersionInfo1 () () ()
       -- How to draw the graph.
 
@@ -47,7 +47,7 @@ module VersionGraphClient(
    -- node and arc types
    checkedInType, workingType, checkedInTypeHidden, workingTypeHidden,
       -- :: NodeType
-   checkedInArcType, workingArcType, arcTypeHidden, 
+   checkedInArcType, workingArcType, arcTypeHidden,
       -- :: ArcType
    ) where
 
@@ -87,7 +87,7 @@ import VersionInfoService
 -- Datatypes
 -- ------------------------------------------------------------------------
 
-data VersionGraphNode = 
+data VersionGraphNode =
       CheckedInNode ObjectVersion
    |  WorkingNode View
    deriving (Eq,Ord)
@@ -102,7 +102,7 @@ data VersionGraphClient = VersionGraphClient {
    versionDag :: VersionDag VersionGraphNode VersionInfo1 Bool
       -- ^ the Bool is True for a checked-in version
    }
- 
+
 type VersionTypes dataSort = dataSort VersionInfo1 () Bool ()
 
 -- ------------------------------------------------------------------------
@@ -111,18 +111,18 @@ type VersionTypes dataSort = dataSort VersionInfo1 () Bool ()
 
 instance Show VersionGraphNode where -- this is mainly used for debugging
    show (CheckedInNode ov) = "Checked in node:" ++ show ov
-   show (WorkingNode _) = "Unknown view" 
+   show (WorkingNode _) = "Unknown view"
 
 
 versionInfo1Map :: VersionInfo1 -> (Full VersionInfo,Maybe View)
-versionInfo1Map versionInfo1 
+versionInfo1Map versionInfo1
    = (Full (versionInfo versionInfo1),viewOpt versionInfo1)
 
 instance Eq VersionInfo1 where
    (==) = mapEq versionInfo1Map
 
 instance Ord VersionInfo1 where
-   compare = mapOrd versionInfo1Map   
+   compare = mapOrd versionInfo1Map
 
 -- ------------------------------------------------------------------------
 -- Creating VersionGraphClient's.
@@ -153,7 +153,7 @@ mkVersionGraphClientInternal versionState =
 connectToServer :: (?server :: HostPort) => IO (VersionGraphClient,IO ())
 connectToServer =
    do
-      (getNextUpdate,closeConnection,initialVersionInfos) 
+      (getNextUpdate,closeConnection,initialVersionInfos)
           <- connectExternal versionInfoService
       connectToServer1 getNextUpdate closeConnection initialVersionInfos
 
@@ -174,12 +174,12 @@ connectToServerInternal versionState =
       let
          getNextUpdate = takeMVar updateMVar
 
-      connectToServer1 getNextUpdate done versionInfos    
+      connectToServer1 getNextUpdate done versionInfos
 
 -- | This is the general version-graph construction function, for
--- external and internal version graphs.  
-connectToServer1 :: 
-   IO (Bool,VersionInfo) 
+-- external and internal version graphs.
+connectToServer1 ::
+   IO (Bool,VersionInfo)
        -- ^ source of updates.  The Bool indicates that a version info is
        -- not new, but simply being changed.
    -> IO () -- ^ close action
@@ -197,14 +197,14 @@ connectToServer1 getNextUpdate closeConnection initialVersionInfos =
          toParents :: VersionInfo1 -> [(Bool,VersionGraphNode)]
          toParents versionInfo1 =
             let
-               isWorking = isJust . viewOpt $ versionInfo1 
+               isWorking = isJust . viewOpt $ versionInfo1
             in
-               map 
+               map
                   (\ parent -> (isWorking,CheckedInNode parent))
-                  (parents . user . versionInfo $ versionInfo1) 
+                  (parents . user . versionInfo $ versionInfo1)
 
-      versionDag <- newVersionDag 
-         ((mkHidden defaultVersionInfoFilter) . versionInfo) 
+      versionDag <- newVersionDag
+         ((mkHidden defaultVersionInfoFilter) . versionInfo)
          toNodeKey toParents
 
       let
@@ -244,7 +244,7 @@ connectToServer1 getNextUpdate closeConnection initialVersionInfos =
 newWorkingVersion :: VersionGraphClient -> View -> IO VersionGraphNode
 newWorkingVersion versionGraphClient view =
    do
-      let 
+      let
          mkVersionInfo1 versionInfo = VersionInfo1 {
             versionInfo = versionInfo,
             viewOpt = Just view
@@ -253,19 +253,19 @@ newWorkingVersion versionGraphClient view =
 
          initialAct :: VersionInfo -> IO ()
          initialAct versionInfo =
-            addVersion (versionDag versionGraphClient) 
+            addVersion (versionDag versionGraphClient)
                (mkVersionInfo1 versionInfo)
 
 
          updateAct :: VersionInfo -> IO ()
-         updateAct versionInfo = 
-            setNodeInfo 
-                (versionDag versionGraphClient) 
+         updateAct versionInfo =
+            setNodeInfo
+                (versionDag versionGraphClient)
                (mkVersionInfo1 versionInfo)
 --         case parents . user $ versionInfo of
 --            [parent] ->
 --               doWhenVersionExists versionGraphClient parent
---                  (setNodeInfo (versionDag versionGraphClient) 
+--                  (setNodeInfo (versionDag versionGraphClient)
 --                     (mkVersionInfo1 versionInfo))
 --            _ -> error (
 --               "VersionGraphClient: attempt to change parents of working "
@@ -291,7 +291,7 @@ mkHidden filter versionInfo = not (filterVersionInfo filter versionInfo)
 
 changeIsHidden :: VersionGraphClient -> (VersionInfo -> Bool) -> IO ()
 changeIsHidden versionGraphClient isHidden =
-   VersionDag.changeIsHidden 
+   VersionDag.changeIsHidden
       (versionDag versionGraphClient) (isHidden . versionInfo)
 
 -- ------------------------------------------------------------------------
@@ -300,7 +300,7 @@ changeIsHidden versionGraphClient isHidden =
 
 -- | Get the graph corresponding to a version graph, which can then be
 -- displayed.
-toVersionGraphConnection :: VersionGraphClient 
+toVersionGraphConnection :: VersionGraphClient
    -> GraphConnection VersionInfo1 () () ()
 toVersionGraphConnection versionGraphClient =
    let
@@ -308,7 +308,7 @@ toVersionGraphConnection versionGraphClient =
       displayedGraph1 = toDisplayedGraph (versionDag versionGraphClient)
 
       mapNode :: (VersionInfo1,Bool) -> (VersionInfo1,NodeType)
-      mapNode (versionInfo1,isHidden) = 
+      mapNode (versionInfo1,isHidden) =
          let
             nodeType = case (isJust (viewOpt versionInfo1),isHidden) of
                (False,False) -> checkedInType
@@ -326,7 +326,7 @@ toVersionGraphConnection versionGraphClient =
                Just False -> checkedInArcType
                Nothing -> arcTypeHidden
          in
-            ((),arcType) 
+            ((),arcType)
 
       initialUpdates = [
          NewNodeType checkedInType (),
@@ -338,15 +338,15 @@ toVersionGraphConnection versionGraphClient =
          NewArcType arcTypeHidden ()
          ]
    in
-      mapGraphConnection mapNode mapArc initialUpdates displayedGraph1  
+      mapGraphConnection mapNode mapArc initialUpdates displayedGraph1
 
 -- | Extract GraphBack structure representing all the nodes in the
 -- graph (including deleted ones).
-getInputGraphBack :: VersionGraphClient 
+getInputGraphBack :: VersionGraphClient
    -> (VersionGraphNode -> VersionInfo1 -> graphBackNodeKey)
    -> IO (GraphBack VersionGraphNode graphBackNodeKey)
 getInputGraphBack versionGraphClient toGraphBackNodeKey =
-   VersionDag.getInputGraphBack (versionDag versionGraphClient) 
+   VersionDag.getInputGraphBack (versionDag versionGraphClient)
       toGraphBackNodeKey
 
 -- ------------------------------------------------------------------------
@@ -374,9 +374,9 @@ getVersionInfo versionGraphClient version =
          Just versionInfo1 -> return (versionInfo versionInfo1)
 
 getVersionInfos :: VersionGraphClient -> IO [VersionInfo1]
-getVersionInfos versionGraphClient 
+getVersionInfos versionGraphClient
    = getNodeInfos (versionDag versionGraphClient)
-         
+
 -- ------------------------------------------------------------------------
 -- The node and arc types
 -- ------------------------------------------------------------------------

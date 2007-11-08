@@ -1,4 +1,4 @@
--- | A Broadcaster/SimpleBroadcaster is a variable Source/SimpleSource paired 
+-- | A Broadcaster/SimpleBroadcaster is a variable Source/SimpleSource paired
 -- with its update function
 module Broadcaster(
    -- instances of HasSource (and so CanAddSinks)
@@ -21,11 +21,11 @@ module Broadcaster(
 
    applyGeneralUpdate, -- :: GeneralBroadcaster x d -> (x -> (x,[d],extra)) -> IO extra
 
-   switchOffSimpleSource, 
+   switchOffSimpleSource,
       -- :: SimpleSource a -> IO (SimpleSource a,IO (IO ()))
-      -- Replace a SimpleSource by another which comes with a switch-off 
+      -- Replace a SimpleSource by another which comes with a switch-off
       -- function, which temporarily blocks further updates.
-      -- The action returned by the switch-off function switches the source 
+      -- The action returned by the switch-off function switches the source
       -- again.
 
    mirrorSimpleSource,
@@ -35,11 +35,11 @@ module Broadcaster(
       -- The IO action stops the mirroring.
 
    mirrorSimpleSourceWithDelayer,
-      -- :: Delayer -> (a -> IO ()) -> SimpleSource a 
+      -- :: Delayer -> (a -> IO ()) -> SimpleSource a
       -- -> IO (SimpleSource a,IO ())
       -- Replace a SimpleSource by another which mirrors it, but only copies
-      -- from it once, hopefully saving CPU time.  In addition, block all 
-      -- update while the Delayer is delaying things. 
+      -- from it once, hopefully saving CPU time.  In addition, block all
+      -- update while the Delayer is delaying things.
 
    ) where
 
@@ -113,14 +113,14 @@ newGeneralBroadcaster x =
 -- -----------------------------------------------------------------
 
 class BroadcasterClass broadcaster value | broadcaster -> value where
-   broadcast :: broadcaster -> value -> IO () 
+   broadcast :: broadcaster -> value -> IO ()
 
 instance BroadcasterClass (Broadcaster x d) (x,[d]) where
    broadcast (Broadcaster {updateAct = updateAct}) (x,ds) =
       updateAct (\ _ -> (x,ds))
 
 instance BroadcasterClass (SimpleBroadcaster x) x where
-   broadcast broadcaster x = 
+   broadcast broadcaster x =
       updateAct2 broadcaster (\ _ -> x)
 
 applySimpleUpdate :: SimpleBroadcaster x -> (x -> x) -> IO ()
@@ -192,7 +192,7 @@ switchOffSimpleSource simpleSource =
 mirrorSimpleSource :: SimpleSource a -> IO (SimpleSource a,IO ())
 mirrorSimpleSource (simpleSource :: SimpleSource a) =
    do
-      (sourceMVar :: MVar.MVar (Maybe (SimpleSource a)))  
+      (sourceMVar :: MVar.MVar (Maybe (SimpleSource a)))
          <- MVar.newMVar Nothing
       sinkId <- newSinkID
 
@@ -204,9 +204,9 @@ mirrorSimpleSource (simpleSource :: SimpleSource a) =
                Nothing ->
                   do
                      parallelX <- newParallelExec
-                     broadcaster <- newSimpleBroadcaster 
+                     broadcaster <- newSimpleBroadcaster
                         (error "mirrorSimpleSource: 1")
-                     initialised <- MVar.newEmptyMVar 
+                     initialised <- MVar.newEmptyMVar
 
                      let
                         writeX a =
@@ -217,10 +217,10 @@ mirrorSimpleSource (simpleSource :: SimpleSource a) =
                            do
                               broadcast broadcaster a
 
-                     addNewSourceActions (toSource simpleSource) writeX writeD 
+                     addNewSourceActions (toSource simpleSource) writeX writeD
                         sinkId parallelX
                      MVar.takeMVar initialised
-                     let 
+                     let
                         source = toSimpleSource broadcaster
                      return (Just source,source)
                )
@@ -231,8 +231,8 @@ mirrorSimpleSource (simpleSource :: SimpleSource a) =
 
 
 -- | Replace a SimpleSource by another which mirrors it, but only copies
--- from it once, hopefully saving CPU time.  In addition, block all 
--- update while the Delayer is delaying things. 
+-- from it once, hopefully saving CPU time.  In addition, block all
+-- update while the Delayer is delaying things.
 mirrorSimpleSourceWithDelayer :: Delayer -> SimpleSource a -> IO (SimpleSource a,IO ())
 mirrorSimpleSourceWithDelayer delayer (simpleSource :: SimpleSource a) =
    do
@@ -240,7 +240,7 @@ mirrorSimpleSourceWithDelayer delayer (simpleSource :: SimpleSource a) =
       parallelX <- newParallelExec
       let
          -- emergencyRead should not be used too often I hope.
-         emergencyRead = 
+         emergencyRead =
             do
                debug "Broadcaster: emergency read"
                readContents simpleSource
@@ -264,7 +264,7 @@ mirrorSimpleSourceWithDelayer delayer (simpleSource :: SimpleSource a) =
                writeAct val
                delayedAct delayer delayedBumpAct
 
-      addNewSourceActions (toSource simpleSource) 
+      addNewSourceActions (toSource simpleSource)
          (broadcast broadcaster) updateAct sinkId parallelX
 
       return (toSimpleSource broadcaster,invalidate sinkId)

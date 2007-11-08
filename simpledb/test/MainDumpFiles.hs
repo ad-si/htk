@@ -1,4 +1,4 @@
-{- This program dumps the server files (the locs file and the version info 
+{- This program dumps the server files (the locs file and the version info
    file) to its stdout.  -}
 module Main where
 
@@ -15,10 +15,10 @@ main =
          sList = unlines . (map show)
 
       (versionInfos :: [VersionInfo]) <- readLog "versionInfos"
-      putStrLn ("Version Infos:\n" 
+      putStrLn ("Version Infos:\n"
          ++ sList versionInfos)
 
       (serverOps :: [ServerOp]) <- readLog "objectLocs"
-      putStrLn ("\n\n--------------------\nServer Ops\n" 
+      putStrLn ("\n\n--------------------\nServer Ops\n"
          ++ sList serverOps)
-   
+

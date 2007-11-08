@@ -3,9 +3,9 @@
 --
 -- This module contains the hooks for displaying messages to the user
 -- (errors, alerts, warnings and the like) and getting yes\/no responses.
--- 
--- The idea is that these are by default textual, and go via 
--- 'stdin', 'stdout' and 'stderr' .  However if the DialogWin function 
+--
+-- The idea is that these are by default textual, and go via
+-- 'stdin', 'stdout' and 'stderr' .  However if the DialogWin function
 -- 'useHTk' is invoked, windows will pop up.
 module Messages(
    -- Functions for displaying messages
@@ -14,9 +14,9 @@ module Messages(
    warningMess, -- :: String -> IO ()
    confirmMess, -- :: String -> IO Bool
    messageMess, -- :: String -> IO ()
-   
+
    -- Miscellaneous
-   htkPresent, 
+   htkPresent,
       -- :: IO Bool
       -- If True, indicates that the flag corresponding to a graphical mode
       -- has been set.  This is used occasionally for deciding whether to
@@ -85,7 +85,7 @@ textQuery :: String -> IO String
 textQuery query =
    do
       putStrLn query
-      reply <- getLine 
+      reply <- getLine
       return (trimSpaces reply)
 
 -- ------------------------------------------------------------------------
@@ -115,7 +115,7 @@ getMessFn :: (MessFns -> (String -> IO a)) -> (String -> IO a)
 getMessFn toFn str =
    do
       messFns <- getMessValue id
-      (toFn messFns) str 
+      (toFn messFns) str
 
 getMessValue :: (MessFns -> a) -> IO a
 getMessValue toA =
@@ -160,7 +160,7 @@ defaultConfirm str =
                   Just c -> return c
                   Nothing ->
                      do
-                        putStrLn ("Type O (or some prefix of OK) or C " 
+                        putStrLn ("Type O (or some prefix of OK) or C "
                            ++ "(or some prefix of CANCEL)")
                         getOC
 
@@ -171,7 +171,7 @@ defaultConfirm str =
                let
                   result1 = fmap toUpper (trimSpaces result0)
 
-               case (result1,isPrefix result1 "OK",isPrefix result1 "CANCEL") 
+               case (result1,isPrefix result1 "OK",isPrefix result1 "CANCEL")
                      of
                   ("",_,_) -> return Nothing
                   (_,Just _,_) -> return (Just True)
@@ -183,7 +183,7 @@ defaultMessage :: String -> IO ()
 defaultMessage = putStrLn
 
 -- ------------------------------------------------------------------------
--- Reducing the number of error messages.  
+-- Reducing the number of error messages.
 -- ------------------------------------------------------------------------
 
 pendingErrorMessagesMVar :: MVar [String]
@@ -200,7 +200,7 @@ errorMess2 message0 =
       let
          messages1 = reverse (lines message0)
 
-      modifyMVar_ pendingErrorMessagesMVar 
+      modifyMVar_ pendingErrorMessagesMVar
          (\ messages -> return (messages1 ++ messages))
       clearPendingErrorMessages
 
@@ -226,7 +226,7 @@ clearPendingErrorMessages = cpe emptySet
                      errorMess (unlines (reverse messages2))
 
                      let
-                        alreadyDisplayedSet1 = 
+                        alreadyDisplayedSet1 =
                            union alreadyDisplayedSet0 (mkSet messages2)
 
                      cpe alreadyDisplayedSet1

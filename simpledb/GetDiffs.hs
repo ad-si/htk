@@ -27,17 +27,17 @@ import Retrieve
 --        the version given by the first argument.
 -- Thus it is possible for the user to find out if something has
 -- changed since an older ancestor version, even without read access
--- to the ancestor version. 
-getDiffs :: SimpleDB -> User -> ObjectVersion -> [ObjectVersion] 
+-- to the ancestor version.
+getDiffs :: SimpleDB -> User -> ObjectVersion -> [ObjectVersion]
    -> IO ([(Location,Diff)],[(Location,Location)])
 getDiffs simpleDB user thisVersion parentVersions =
    do
       mapM_
          (\ parentVersion ->
             do
-               isAncestor <- versionIsAncestor (versionState simpleDB) 
+               isAncestor <- versionIsAncestor (versionState simpleDB)
                   parentVersion thisVersion
-               if isAncestor 
+               if isAncestor
                   then
                      done
                   else
@@ -47,7 +47,7 @@ getDiffs simpleDB user thisVersion parentVersions =
          parentVersions
 
       thisVersionData <- getVersionData simpleDB thisVersion
-      
+
       (parentData :: [(ObjectVersion,VersionData)])
          <- mapM
             (\ parentVersion ->
@@ -57,7 +57,7 @@ getDiffs simpleDB user thisVersion parentVersions =
                )
             parentVersions
 
-      
+
       (diffs1 :: [(Location,Diff)]) <- case parentData of
          [] -> -- we just have to return IsNew for everything
             mapM
@@ -73,7 +73,7 @@ getDiffs simpleDB user thisVersion parentVersions =
                (getLocations thisVersionData)
          ((headParentVersion,headParentVersionData):_) ->
             do
-               -- Construct a map back from BDBKey 
+               -- Construct a map back from BDBKey
                -- -> (ObjectVersion,Location) for the parents.
                (bdbDict :: FiniteMap BDBKey (ObjectVersion,Location)) <- foldM
                   (\ map0 (parentVersion,parentVersionData) ->
@@ -83,13 +83,13 @@ getDiffs simpleDB user thisVersion parentVersions =
                               let
                                  primitiveLocation = retrievePrimitiveLocation
                                     parentVersionData location
-                              bdbKey <- retrieveKey parentVersionData 
-                                 primitiveLocation 
+                              bdbKey <- retrieveKey parentVersionData
+                                 primitiveLocation
                               return (addToFM map0 bdbKey (
                                  parentVersion,location))
                            )
                         map0
-                        (getLocations parentVersionData) 
+                        (getLocations parentVersionData)
                      )
                   emptyFM
                   parentData
@@ -101,7 +101,7 @@ getDiffs simpleDB user thisVersion parentVersions =
                   locationMap = foldl
                      (\ map0 (parentVersion,parentVersionData) ->
                         foldl
-                           (\ map0 location 
+                           (\ map0 location
                               -> addToFM map0 location parentVersion)
                            map0
                            (getLocations parentVersionData)
@@ -109,31 +109,31 @@ getDiffs simpleDB user thisVersion parentVersions =
                      emptyFM
                      parentData
 
-                  -- Function constructing Diff for a particular item in the 
+                  -- Function constructing Diff for a particular item in the
                   -- new version's object dictionary
                   mkDiff :: Location -> BDBKey -> IO Diff
                   mkDiff location key1 =
                      let
-                        pLocation1 = retrievePrimitiveLocation 
+                        pLocation1 = retrievePrimitiveLocation
                            headParentVersionData location
-                        key2Opt = retrieveKeyOpt headParentVersionData 
+                        key2Opt = retrieveKeyOpt headParentVersionData
                            pLocation1
                      in
                         case key2Opt of
-                           Just key2 | key1 == key2 
+                           Just key2 | key1 == key2
                               -> return IsOld
-                           _ -> 
+                           _ ->
                               do
                                  changed <- case lookupFM bdbDict key1 of
                                     Just locVers -> return (Right locVers)
-                                    Nothing -> 
+                                    Nothing ->
                                        do
                                           icsl <- retrieve simpleDB
                                              user thisVersion location
                                           return (Left icsl)
                                  case lookupFM locationMap location of
-                                    Nothing -> 
-                                       return (IsNew { 
+                                    Nothing ->
+                                       return (IsNew {
                                           changed = changed
                                           })
                                     Just parentVersion ->
@@ -142,12 +142,12 @@ getDiffs simpleDB user thisVersion parentVersions =
                                              existsIn = parentVersion,
                                              changed = changed
                                           })
-                                    
+
                mapM
                   (\ location ->
                      do
                         let
-                           pLocation = retrievePrimitiveLocation 
+                           pLocation = retrievePrimitiveLocation
                               thisVersionData location
                         key <- retrieveKey thisVersionData pLocation
                         diff <- mkDiff location key
@@ -156,11 +156,11 @@ getDiffs simpleDB user thisVersion parentVersions =
                   (getLocations thisVersionData)
 
       let
-         diffFM :: FiniteMap Location Location -> FiniteMap Location Location 
+         diffFM :: FiniteMap Location Location -> FiniteMap Location Location
             -> [(Location,Location)]
          diffFM thisFM parentFM =
             filter
-               (\ (location,parent1) -> 
+               (\ (location,parent1) ->
                   (lookupFM parentFM location /= Just parent1)
                   )
                (fmToList thisFM)
@@ -168,9 +168,9 @@ getDiffs simpleDB user thisVersion parentVersions =
          parentParentsMap = case parentData of
             [] -> emptyFM
             ((_,headParentVersionData):_) -> parentsMap headParentVersionData
-           
+
 
          diffs2 :: [(Location,Location)]
          diffs2 = diffFM (parentsMap thisVersionData) parentParentsMap
-               
+
       return (diffs1,diffs2)

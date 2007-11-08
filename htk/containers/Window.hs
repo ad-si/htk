@@ -88,7 +88,7 @@ class GUIObject w => Window w where
 
   aspectRatio ratio win = cset win "aspect" ratio
 
-  getAspectRatio win = cget win "aspect" 
+  getAspectRatio win = cget win "aspect"
 
   positionFrom w win = cset win "positionfrom" w
 
@@ -100,7 +100,7 @@ class GUIObject w => Window w where
 
 
 -- -----------------------------------------------------------------------
--- instances 
+-- instances
 -- -----------------------------------------------------------------------
 
 -- | A window has a configureable size and anchor position (geometry).
@@ -179,9 +179,9 @@ getMinSize win = cget win "minsize"
 
 -- | Puts the first given window just above the second given window
 -- in the stacking order.
-raiseWin :: (Window w1, Window w2) => w1 
+raiseWin :: (Window w1, Window w2) => w1
    -- ^ the first window.
-   -> w2 
+   -> w2
    -- ^ the second window.
    -> IO ()
    -- ^ None.
@@ -192,9 +192,9 @@ raiseWin win1 win2 =
 
 -- | Puts the first given window just below the second given window
 -- in the stacking order.
-lowerWin :: (Window w1, Window w2) => w1 
+lowerWin :: (Window w1, Window w2) => w1
    -- ^ the first window.
-   -> w2 
+   -> w2
    -- ^ the second window.
    -> IO ()
    -- ^ None.
@@ -227,15 +227,15 @@ instance Read WindowState where
 
 -- | Internal.
 instance Show WindowState where
-  showsPrec d p r = 
-    (case p of 
+  showsPrec d p r =
+    (case p of
        Deiconified -> "deiconify"
        Iconified -> "iconic"
        Withdrawn -> "withdraw") ++ r
 
 
 -- -----------------------------------------------------------------------
--- AspectRatio 
+-- AspectRatio
 -- -----------------------------------------------------------------------
 
 -- | The @AspectRatio@ datatype.
@@ -245,7 +245,7 @@ data AspectRatio = AspectRatio Int Int Int Int deriving Eq
 instance GUIValue AspectRatio where
   cdefault = AspectRatio 0 0 0 0
   toGUIValue v  = GUIVALUE HaskellTk (show v)
-  maybeGUIValue (GUIVALUE _ s)     = 
+  maybeGUIValue (GUIVALUE _ s)     =
     case [x | (x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
       _ -> Nothing
@@ -253,15 +253,15 @@ instance GUIValue AspectRatio where
 -- | Internal.
 instance Show AspectRatio where
   showsPrec d c r = cshow c ++ r
-    where cshow (AspectRatio xt yt xf yf) = 
+    where cshow (AspectRatio xt yt xf yf) =
             (show xt) ++ " " ++ (show yt) ++ " " ++
             (show xf) ++ " " ++ (show yf)
 
 -- | Internal.
 instance Read AspectRatio where
-  readsPrec p str = [(cread str,[])] 
+  readsPrec p str = [(cread str,[])]
     where cread str = AspectRatio (read xt) (read yt) (read xf) (read yf)
-          [xt,yt,xf,yf] = words str 
+          [xt,yt,xf,yf] = words str
 
 
 -- -----------------------------------------------------------------------
@@ -285,8 +285,8 @@ instance Read Whom where
 
 -- | Internal.
 instance Show Whom where
-  showsPrec d p r = 
-    (case p of 
+  showsPrec d p r =
+    (case p of
        Program -> "program"
        User -> "user") ++ r
 

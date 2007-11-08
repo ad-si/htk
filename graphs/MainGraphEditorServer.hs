@@ -10,7 +10,7 @@ import Server
 import GraphEditorService
 
 main :: IO ()
-main = 
+main =
    do
       parseArgumentsRequiring ["port"]
       runServer [graphEditorServiceWrapped]

@@ -1,13 +1,13 @@
 -- | GetAttributes is used by the GraphEditor to pop up HTk windows
 -- to get information from the user.
 module GetAttributes(
-   NodeTypeAttributes(..), -- instance of Typeable 
+   NodeTypeAttributes(..), -- instance of Typeable
    getNodeTypeAttributes, -- :: IO (Maybe NodeTypeAttributes)
-   NodeAttributes(..), -- instance of Typeable 
+   NodeAttributes(..), -- instance of Typeable
    getNodeAttributes, -- :: IO (Maybe NodeAttributes)
    ArcTypeAttributes(..), -- instance of Typeable
    getArcTypeAttributes, -- :: IO (Maybe ArcTypeAttributes)
-   ArcAttributes(..), -- instance of Typeable 
+   ArcAttributes(..), -- instance of Typeable
    getArcAttributes, -- :: IO (Maybe ArcAttributes)
    displayError, -- :: String -> IO ()
    ) where
@@ -49,20 +49,20 @@ getNodeTypeAttributes :: IO (Maybe(NodeTypeAttributes nodeLabel))
 getNodeTypeAttributes =
    allowCancel (
       do
-         PreAttributes {shapeSort=shapeSort,nodeTypeTitle'=nodeTypeTitle} <- 
+         PreAttributes {shapeSort=shapeSort,nodeTypeTitle'=nodeTypeTitle} <-
             getNodeTypeAttributes1
-         
+
          shape <- case shapeSort of
             Box -> return GraphConfigure.Box
             Circle -> return GraphConfigure.Circle
             Ellipse -> return GraphConfigure.Ellipse
             Rhombus -> return GraphConfigure.Rhombus
             Triangle -> return GraphConfigure.Triangle
-            GetAttributes.Icon -> 
+            GetAttributes.Icon ->
                do
                   fname <- getSingleString "Icon filename"
                   return (GraphConfigure.Icon fname)
-   
+
          return NodeTypeAttributes {shape=shape,nodeTypeTitle=nodeTypeTitle}        )
 
 getNodeTypeAttributes1 :: IO PreAttributes
@@ -70,7 +70,7 @@ getNodeTypeAttributes1 :: IO PreAttributes
 getNodeTypeAttributes1 =
    do
       let def = PreAttributes {shapeSort=Box,nodeTypeTitle'=""}
-      (iw, form) <- createInputWin "Node Type Attributes" 
+      (iw, form) <- createInputWin "Node Type Attributes"
                                 (\p-> newInputForm p (Just def) []) []
       newEnumField form [Box .. GetAttributes.Icon] [
          -- text "Node Shape",
@@ -102,7 +102,7 @@ data NodePreAttributes = NodePreAttributes {
    preNodeTitle :: String
    } deriving Show
 
-getNodeAttributes :: (Registry String nodeType) -> 
+getNodeAttributes :: (Registry String nodeType) ->
    IO (Maybe (NodeAttributes nodeType))
 -- getNodeAttributes gets the required attributes of a node given
 -- its possible types (with their titles).
@@ -111,7 +111,7 @@ getNodeAttributes registry =
       do
          knownTypeNames <- listKeys registry
          case knownTypeNames of
-            [] -> 
+            [] ->
                do
                   displayError "You must first define some node types"
                   cancelQuery
@@ -121,13 +121,13 @@ getNodeAttributes registry =
                preNodeType=head knownTypeNames,
                preNodeTitle=""
                }
-            -- iform p = newInputForm p (Just def) []   
-         (inputWin, form) <- createInputWin "Node Attributes" 
+            -- iform p = newInputForm p (Just def) []
+         (inputWin, form) <- createInputWin "Node Attributes"
                                          (\p-> newInputForm p (Just def) []) []
          newEnumField form knownTypeNames [
             -- text "Node Type",
             selector preNodeType,
-            modifier (\ old nodeTypeName -> 
+            modifier (\ old nodeTypeName ->
                old {preNodeType = nodeTypeName})
             ]
          newEntryField form [
@@ -143,7 +143,7 @@ getNodeAttributes registry =
                preNodeType = nodeTypeName
                }) ->
                   do
-                     nodeType <- Registry.getValue registry nodeTypeName 
+                     nodeType <- Registry.getValue registry nodeTypeName
                      return (NodeAttributes {
                         nodeTitle = nodeTitle,
                         nodeType = nodeType
@@ -159,11 +159,11 @@ data ArcTypeAttributes = ArcTypeAttributes {
    arcTypeTitle :: String
    } deriving (Read,Show,Typeable)
 
-getArcTypeAttributes :: IO (Maybe ArcTypeAttributes) 
+getArcTypeAttributes :: IO (Maybe ArcTypeAttributes)
 getArcTypeAttributes =
    do
       let def = ArcTypeAttributes {arcTypeTitle=""}
-      (iw, form) <- createInputWin "Arc Type Attributes" 
+      (iw, form) <- createInputWin "Arc Type Attributes"
                                 (\p-> newInputForm p (Just def) []) []
       newEntryField form [
          text "Arc Type title",
@@ -172,7 +172,7 @@ getArcTypeAttributes =
          width 20
          ]
       wait iw True
-   
+
 ------------------------------------------------------------------------
 -- Arcs
 ------------------------------------------------------------------------
@@ -185,7 +185,7 @@ data ArcPreAttributes = ArcPreAttributes {
    preArcType :: String
    }
 
-getArcAttributes :: (Registry String arcType) -> 
+getArcAttributes :: (Registry String arcType) ->
    IO (Maybe (ArcAttributes arcType))
 -- getArcAttributes gets the required attributes of an arc given
 -- its possible types (with their titles).
@@ -194,7 +194,7 @@ getArcAttributes registry =
       do
          knownTypeNames <- listKeys registry
          case knownTypeNames of
-            [] -> 
+            [] ->
                do
                   displayError "You must first define some arc types"
                   cancelQuery
@@ -203,12 +203,12 @@ getArcAttributes registry =
             def = ArcPreAttributes {
                preArcType=head knownTypeNames
                }
-         (iw, form) <- createInputWin "Arc Attributes" 
-	                           (\p-> newInputForm p (Just def) []) []
+         (iw, form) <- createInputWin "Arc Attributes"
+                                   (\p-> newInputForm p (Just def) []) []
          newEnumField form knownTypeNames [
             -- text "Arc Type",
             selector preArcType,
-            modifier (\ old arcTypeName -> 
+            modifier (\ old arcTypeName ->
                old {preArcType = arcTypeName})
             ]
          result <- wait iw True
@@ -217,7 +217,7 @@ getArcAttributes registry =
                preArcType = arcTypeName
                }) ->
                   do
-                     arcType <- Registry.getValue registry arcTypeName 
+                     arcType <- Registry.getValue registry arcTypeName
                      return (ArcAttributes {
                         arcType = arcType
                         })
@@ -230,7 +230,7 @@ getArcAttributes registry =
 
 displayError :: String -> IO ()
 -- This displays an error message.
-displayError = errorMess 
+displayError = errorMess
 
 getSingleString :: String -> IO String
 -- This gets a single string from the user, prompting with the argument
@@ -256,8 +256,8 @@ cancelQuery :: IO anything
 cancelQuery = throwDyn (CancelException ())
 
 allowCancel :: IO a -> IO (Maybe a)
-allowCancel action = 
-   catchDyn 
+allowCancel action =
+   catchDyn
       (do
          result <- action
          return (Just result)

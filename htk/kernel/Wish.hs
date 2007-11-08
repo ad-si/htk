@@ -25,23 +25,23 @@ module Wish (
   CallBackId(..),
   showP,
 
-  requirePackage,	-- :: String -> IO(Bool).  Try to load a package.
-  forgetPackage,	-- :: String -> IO().	   Forget a package.
-  isPackageAvailable,	-- :: String -> IO(Bool).  True if package loaded.
-  isTixAvailable,	-- :: IO Bool.  True if we are using tixwish, which
-			-- means it was successfully loaded with requirePackage
+  requirePackage,       -- :: String -> IO(Bool).  Try to load a package.
+  forgetPackage,        -- :: String -> IO().      Forget a package.
+  isPackageAvailable,   -- :: String -> IO(Bool).  True if package loaded.
+  isTixAvailable,       -- :: IO Bool.  True if we are using tixwish, which
+                        -- means it was successfully loaded with requirePackage
   cleanupWish,
 
   delayWish, -- :: IO a -> IO a
      -- delayWish does an action, with the proviso that wish commands
-     -- executed within the action by this or any other thread 
+     -- executed within the action by this or any other thread
      -- may be delayed.  This can (allegedly) be faster.
 
 ) where
 
 -- The preprocessor symbol ASYNC_WISH_ERRORS, if non-zero, causes wish
 -- errors to be handled asynchronously.  This is done by default unless DEBUG
--- is set.  
+-- is set.
 -- This is an optimisation.  The possible bad consequences are that should
 -- wish itself produce an error,
 -- (1) we may execute some additional wish commands before detecting it.
@@ -145,12 +145,12 @@ execTclScript script =
 
 ---
 -- delayWish does an action, with the proviso that wish commands
--- executed within the action by this or any other thread 
+-- executed within the action by this or any other thread
 -- may be delayed.  This can (allegedly) be faster.
 delayWish :: IO a -> IO a
 delayWish action =
    do
-      beginBuffering 
+      beginBuffering
       tried <- Control.Exception.try action
       endBuffering
       propagate tried
@@ -181,7 +181,7 @@ endBuffering =
 ---
 -- evalCmdInner takes a (possibly empty) TclScript and executes it,
 -- returning a response.  It does not look at the buffer, so should
--- not be called from outside.      
+-- not be called from outside.
 evalCmdInner :: TclScript -> IO TclResponse
 evalCmdInner [] = return (OK "")
 evalCmdInner tclScript =
@@ -202,8 +202,8 @@ evalCmdPrim cStringLen =
          rWish = readWish wish
          wWish = writeWish wish
       synchronize (wishLock wish) (
-         do     
-            wWish cStringLen  
+         do
+            wWish cStringLen
             sync(
                   toEvent (rWish |> Eq OKType) >>>=
                      (\ (_,okString) -> return (OK okString))
@@ -236,7 +236,7 @@ execCmdPrim cStringLen = writeWish wish cStringLen
 #else
 
 execCmdInner :: TclScript -> IO ()
-execCmdInner script = 
+execCmdInner script =
    do
       response <- evalCmdInner script
       doResponse1 response
@@ -255,7 +255,7 @@ doResponse1 :: TclResponse -> IO ()
 doResponse1 (OK res) = return ()
 #if ! ASYNC_WISH_ERRORS
 doResponse1 (ER err) =
-   do 
+   do
       fingersCrossed err
       done
 #endif
@@ -275,7 +275,7 @@ data Wish = Wish {
       -- received, as yet.
 
    eventQueue :: EqGuardedChannel BindTag EventInfo,
-   -- Wish puts events here, parameterised by the 
+   -- Wish puts events here, parameterised by the
    -- widget tag, which for us is always a widget id.
    -- The events will be taken off by the event dispatcher.
 
@@ -288,11 +288,11 @@ data Wish = Wish {
 
    bindTags :: MVar BindTag,
 
-   readWish :: 
+   readWish ::
       GuardedEvent (EqMatch TclMessageType) (TclMessageType,String),
-      -- Wish output sorted by prefix. 
+      -- Wish output sorted by prefix.
 
-   writeWish :: CStringLen -> IO (), 
+   writeWish :: CStringLen -> IO (),
       -- Command to execute a Wish command.
 
    destroyWish :: IO (), -- Command to destroy this Wish instance.
@@ -346,7 +346,7 @@ newWish :: IO Wish
 newWish =
    do
       calledWish <- callWish
-      let 
+      let
          writeWish = sendCalledWish calledWish
 
       -- Set up initial wish procedures.
@@ -360,7 +360,7 @@ newWish =
 -- Execute the command, returning the result.
             "proc evS x {" ++
                "set status [catch {eval $x} res];" ++
-               "set val [ConvertTkValue $res];" ++ 
+               "set val [ConvertTkValue $res];" ++
                "if {$status == 0} {puts \"OK $val\"} else {puts \"ER $val\"}" ++
                "};" ++
 #if ASYNC_WISH_ERRORS
@@ -370,7 +370,7 @@ newWish =
                "if {$status} {puts [concat \"EX \" [ConvertTkValue $res]]}" ++
                "};" ++
 #endif
-            "proc relay {evId val} {" ++ 
+            "proc relay {evId val} {" ++
                "set res [ConvertTkValue $val];" ++
                "puts \"CO $evId $res\"" ++
                "};" ++
@@ -390,7 +390,7 @@ newWish =
                "bindtags $widget $x};" ++
             -- rmtag removes a bind tag from a widget
             "proc rmtag {widget tag} {" ++
-               "bindtags $widget [ldelete [bindtags $widget] $tag]}\n"  
+               "bindtags $widget [ldelete [bindtags $widget] $tag]}\n"
 
       withCStringLen wishHeader writeWish
 
@@ -409,7 +409,7 @@ newWish =
                -- Wish reactor will be garbage collected.
       destroyWish <- doOnce destroyWish1
       bufferedCommands <- newMVar (0,[])
-      oID <- newObject 
+      oID <- newObject
       let
          wish = Wish {
             wishLock = wishLock,
@@ -446,7 +446,7 @@ eventForwarder = forever handleEvent
                (_,coString) <- toEvent (rWish |> Eq COType)
                noWait(send (coQueue wish) (parseCallBack coString))
             )
-#if ASYNC_WISH_ERRORS 
+#if ASYNC_WISH_ERRORS
          +> (do
                -- Handle wish errors
                (_,erString) <- toEvent (rWish |> Eq ERType)
@@ -455,15 +455,15 @@ eventForwarder = forever handleEvent
 #endif
 
 
-readWishEvent :: CalledWish 
+readWishEvent :: CalledWish
    -> IO (GuardedEvent (EqMatch TclMessageType) (TclMessageType,String),
       IO())
 readWishEvent calledWish =
    do
       wishInChannel <- newEqGuardedChannel
       destroy <- spawnEvent(forever(
-         do 
-            next <- 
+         do
+            next <-
                always (Control.Exception.catch (readCalledWish calledWish)                                    (\_-> return "OK Terminated"))
             send wishInChannel (typeWishAnswer next)
          ))
@@ -519,18 +519,18 @@ loadedPackages = unsafePerformIO (newRef [])
 requirePackage :: String -> IO (Bool)
 requirePackage package =
        do response <- evalCmd ("package require " ++ package)
-	  if response == ("can't find package " ++ package)
-	     then return False
-	     else do loaded <- getRef loadedPackages
-		     setRef loadedPackages ([package] `union` loaded)
-		     return True
+          if response == ("can't find package " ++ package)
+             then return False
+             else do loaded <- getRef loadedPackages
+                     setRef loadedPackages ([package] `union` loaded)
+                     return True
 
 forgetPackage :: String -> IO ()
-forgetPackage package = 
+forgetPackage package =
        do evalCmd ("package forget " ++ package)
-	  loaded <- getRef loadedPackages
-	  setRef loadedPackages (delete package loaded)
-	  return ()
+          loaded <- getRef loadedPackages
+          setRef loadedPackages (delete package loaded)
+          return ()
 
 -- isPackageAvailable is used to determine if a package is loaded
 -- (must use requirePackage to load it first, if desired)
@@ -573,7 +573,7 @@ succBindTag (BindTag n) = BindTag (n+1)
 -- We do not allow general Bind commands.  All bind commands simply
 -- put the result to stdout in the following format:
 -- "EV [bindTag]( [id][value])*"
--- where 
+-- where
 -- [bindTag] is our tag for the binding.
 -- [id] is a single character identifying the information
 -- [value] is the String value
@@ -593,7 +593,7 @@ mkBoundCmdArg bindTag eventInfoSet break =
                 foldr (\ par soFar -> let tag = epToChar par
                                       in ' ':tag:'%':tag:soFar)
                       "" (listEventInfoSet eventInfoSet)
-  in "{puts " ++ (delimitString bindStr) ++ 
+  in "{puts " ++ (delimitString bindStr) ++
        if break then "; break}" else "}"
 
 parseEVString :: String -> (BindTag,EventInfo)
@@ -614,40 +614,40 @@ parseEVString str =
 -- NB - we won't encourage people to get hold of Wish's current
 -- name for an event, since this is hard to reconcile to our
 -- encapsulation (EG it probably involves detailed knowledge of
--- local keysyms to do it properly). 
+-- local keysyms to do it properly).
 -- -----------------------------------------------------------------------
 
-data WishEvent = WishEvent [WishEventModifier] WishEventType 
+data WishEvent = WishEvent [WishEventModifier] WishEventType
    deriving (Ord,Eq)
 
 instance Show WishEvent where
    -- We specify that the resulting String is already escaped
    -- as necessary.
    showsPrec _ (WishEvent modifiers wishEventType) acc =
-    '<' : 
-       (foldr 
+    '<' :
+       (foldr
           (\ modifier soFar -> showP modifier ('-':soFar))
           (typeToStringP wishEventType ('>':acc))
           modifiers
           )
 
--- page 290 except that we merge keysyms (page 291) into the KeyPress and 
+-- page 290 except that we merge keysyms (page 291) into the KeyPress and
 -- KeyRelease type.
 data WishEventType =
-   Activate | 
-   ButtonPress (Maybe BNo) | ButtonRelease (Maybe BNo) | 
+   Activate |
+   ButtonPress (Maybe BNo) | ButtonRelease (Maybe BNo) |
    Circulate |
    Colormap | Configure | Deactivate | Destroy | Enter | Expose |
-   FocusIn | FocusOut | Gravity | 
+   FocusIn | FocusOut | Gravity |
    KeyPress (Maybe KeySym) | KeyRelease (Maybe KeySym)|
-   Motion | Leave | Map | Property | Reparent | Unmap | 
-   Visibility deriving (Show,Eq,Ord) 
+   Motion | Leave | Map | Property | Reparent | Unmap |
+   Visibility deriving (Show,Eq,Ord)
    -- the Show instance won't work for KeySyms, so we fix up later
 
 newtype KeySym = KeySym String deriving (Show,Ord,Eq)
 -- A KeySym can be a single character representing a key.  However others
 -- are defined, and depend on the window implementation.  For example,
--- on this machine the Return key is called "Return", and the 
+-- on this machine the Return key is called "Return", and the
 -- Enter key "KP_Enter".  Page291 has a wish binding for determining
 -- the keysym for a key.
 -- The KeySym is escaped as necessary before being fed to Wish;
@@ -665,9 +665,9 @@ bNoToStringP Nothing acc = acc
 bNoToStringP (Just bNo) acc = '-':(showP bNo acc)
 
 typeToStringP :: WishEventType -> String -> String
-typeToStringP (ButtonPress bNo) acc = 
+typeToStringP (ButtonPress bNo) acc =
    "ButtonPress" ++ (bNoToStringP bNo acc)
-typeToStringP (ButtonRelease bNo) acc = 
+typeToStringP (ButtonRelease bNo) acc =
    "ButtonRelease" ++ (bNoToStringP bNo acc)
 typeToStringP (KeyPress ks) acc = "KeyPress" ++ (ksToStringP ks acc)
 typeToStringP (KeyRelease ks) acc = "KeyRelease" ++ (ksToStringP ks acc)
@@ -679,7 +679,7 @@ typeToStringP other acc = showP other acc
 data WishEventModifier =
    Control | Shift | Lock | CommandKey | Meta | M | Alt | Mod1 |
    Mod2 | Mod3 | Mod4 | Mod5 |
-   Button1 | Button2 | Button3 | Button4 | Button5 | 
+   Button1 | Button2 | Button3 | Button4 | Button5 |
    Double | Triple deriving (Show,Ord,Eq)
 
 

@@ -46,7 +46,7 @@ module Core (
 
 -- * GUIObjects and methods (internal representation of Tk-Widgets)
 
-  GUIOBJECT(..), 
+  GUIOBJECT(..),
   OST(..),              -- the gui objects state
   GUIObject(..),
 
@@ -245,7 +245,7 @@ lookupGUIObject key = do {
                   error "Haskell-Tk Error: gui object not found"
                 (Just wid) -> return wid
         }                                               -- TD ???
- 
+
 getParentPathName :: GUIObject w => w -> IO (Maybe ObjectName)
 getParentPathName w =
   do
@@ -257,10 +257,10 @@ getParentPathName w =
 
 lookupGUIObjectByName :: WidgetName -> IO (Maybe GUIOBJECT)
 lookupGUIObjectByName (WidgetName "") = return Nothing
-lookupGUIObjectByName (WidgetName str) = 
+lookupGUIObjectByName (WidgetName str) =
         queryGUI (\wd -> lookupFM wd no)
-        where   wnm = 
-                   head (reverse (ExtendedPrelude.simpleSplit (== '.') str)) 
+        where   wnm =
+                   head (reverse (ExtendedPrelude.simpleSplit (== '.') str))
                 no = ObjectID (read ( drop 1 wnm))
 
 getParentObject :: GUIObject w => w -> IO (Maybe GUIOBJECT)
@@ -298,7 +298,7 @@ defMethods = Methods tkGetWidgetConfig
                      tkSetWidgetConfigs
                      tkCreateWidget
                      tkPack
-		     tkGrid
+                     tkGrid
                      tkDestroyWidget
                      tkBindWidget
                      tkUnbindWidget
@@ -317,7 +317,7 @@ voidMethods = Methods (\_ _ -> [])
 
 
 -- -----------------------------------------------------------------------
--- unparsing of widget (default methods) 
+-- unparsing of widget (default methods)
 -- -----------------------------------------------------------------------
 
 tkCreateWidget :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->

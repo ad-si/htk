@@ -8,15 +8,15 @@ import DeprecatedFiniteMap
 -- Based on the Art of Computer Programming
 -- Chapter 1, 2.2.3.
 data Ord a => TopSortState a = TopSortState {
-   soFar :: [a], 
-   -- Elements so far added to the list.  
+   soFar :: [a],
+   -- Elements so far added to the list.
    maximal :: [a],
    -- All elements with no remaining greater elements.
    -- When this is empty, soFar is the correct solution.
    remaining :: FiniteMap a (Int,[a])
    -- Map giving for each element
    -- (a) successors not yet added to soFar.
-   -- (b) its direct predecessors. 
+   -- (b) its direct predecessors.
    }
 
 topSort :: Ord a => [(a,a)] -> [a]
@@ -39,9 +39,9 @@ ensureNodes :: Ord a => TopSortState a -> [a] -> TopSortState a
 ensureNodes = foldl ensureNode
 
 ensureNode :: Ord a => TopSortState a -> a -> TopSortState a
-ensureNode 
+ensureNode
    (state @ (
-      TopSortState {soFar = soFar,maximal = maximal,remaining = remaining})) 
+      TopSortState {soFar = soFar,maximal = maximal,remaining = remaining}))
    node =
 
    case lookupFM remaining node of
@@ -68,15 +68,15 @@ initialise list =
          emptyFM
          list
       mapEls =  fmToList map
-      maximal = [ key | (key,(nSuccs,_)) <- mapEls, nSuccs ==0 ] 
+      maximal = [ key | (key,(nSuccs,_)) <- mapEls, nSuccs ==0 ]
    in
       TopSortState { soFar = soFar, remaining = map, maximal = maximal }
 
-oneStep :: Ord a => TopSortState a -> Either [a] (TopSortState a)      
+oneStep :: Ord a => TopSortState a -> Either [a] (TopSortState a)
 oneStep(TopSortState { soFar = soFar, remaining = map, maximal = maximal }) =
    case maximal of
       [] ->
-         if isEmptyFM map 
+         if isEmptyFM map
             then Left soFar
             else error "TopSort - cycle in data"
       next:newMaximal ->
@@ -89,20 +89,20 @@ oneStep(TopSortState { soFar = soFar, remaining = map, maximal = maximal }) =
                      let
                         Just (nPredSuccs,predPredecessors) = lookupFM map pred
                         newNPredSuccs = nPredSuccs-1
-                        newMap = addToFM map pred 
+                        newMap = addToFM map pred
                            (newNPredSuccs,predPredecessors)
-                        newMaximal = if newNPredSuccs == 0 
+                        newMaximal = if newNPredSuccs == 0
                            then
                               (pred:maximal)
                            else
                               maximal
                      in
                         (newMaximal,newMap)
-                     )      
+                     )
                   (newMaximal,map)
                   nextPredecessors
             newMap2 = delFromFM newMap next
-         in 
+         in
             Right(TopSortState {
                soFar = newSoFar,maximal = newMaximal2,remaining = newMap2
                })

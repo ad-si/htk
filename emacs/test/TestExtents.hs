@@ -26,7 +26,7 @@ main =
                   emacsEvent s "b1.1"
                   always (putStrLn "b1.1 clicked")
                   ev
-               ) 
+               )
             +> (do
                   emacsEvent s "b1"
                   always (putStrLn "b1 clicked")

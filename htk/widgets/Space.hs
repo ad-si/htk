@@ -33,13 +33,13 @@ data Space = Space Distance Frame
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new space widget and returns a handler.
-newSpace :: Container par => par 
+newSpace :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> Distance 
+   -> Distance
    -- ^ the horizontal or vertical distance (depending on the
    -- space widget\'s orientation).
-   -> [Config Space] 
+   -> [Config Space]
    -- ^ the list of configuration options for this
    -- space widget.
    -> IO Space
@@ -60,7 +60,7 @@ instance Eq Space where
   (Space _ f1) == (Space _ f2) = f1 == f2
 
 -- | Internal.
-instance GUIObject Space where 
+instance GUIObject Space where
   toGUIObject (Space d f) = toGUIObject f
   cname _ = "Space"
 
@@ -90,5 +90,5 @@ instance HasOrientation Space where
     configure f (case or of Horizontal -> [{-fill Vertical,-} width d,
                                            height 0]
                             Vertical -> [{-fill Horizontal,-} height d,
-                                         width 0]) >> 
+                                         width 0]) >>
     return s

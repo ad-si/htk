@@ -1,5 +1,5 @@
 -- | WrapIO.wrapIO turns an IO action into an event (which has no
--- non-trivial guards available). 
+-- non-trivial guards available).
 module WrapIO(
    wrapIO, -- :: IO a -> IO (Event a)
       -- Executes the action and provides an event which will be satisfied
@@ -71,11 +71,11 @@ impatientIO action duration =
          timeOutThread = after duration (sendIO channel ())
       resultAct <- wrapIO (try action)
       forkIO timeOutThread
-      
-      let 
+
+      let
          passOn (Left error) = throw error
          passOn (Right val) = return (Just val)
       sync(
             resultAct >>>= passOn
          +> receive channel >>> return Nothing
-         )   
+         )

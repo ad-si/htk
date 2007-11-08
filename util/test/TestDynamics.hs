@@ -14,7 +14,7 @@ main =
       dynA = toDyn (A(1,1))
       dynB = toDyn (B(True,False))
    in
-      do 
+      do
          (one :: Int) <- coerceIO dynOne
          print one
          (h :: String) <- coerceIO dynH

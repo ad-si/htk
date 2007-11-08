@@ -27,7 +27,7 @@ getAttributesType1 =
          -- Construct a map from strings to types (we will need this for
          -- unparsing the types as they come back from HTk)
          attributeTypeMap :: FiniteMap String AttributeTypeKey
-         attributeTypeMap 
+         attributeTypeMap
             = listToFM (map (\ (key,s) -> (s,key)) attributeTypeKeys)
 
          attributeStringDefault :: String
@@ -39,7 +39,7 @@ getAttributesType1 =
          -- Put the default string at the head of the list
 
          attributeStringList2 :: [String]
-         attributeStringList2 = (attributeStringDefault : 
+         attributeStringList2 = (attributeStringDefault :
             List.delete attributeStringDefault attributeStringList1)
 
          -- Pad the strings so that they all have the same length.  This
@@ -50,8 +50,8 @@ getAttributesType1 =
 
          attributeStringList3 :: [String]
          attributeStringList3 =
-            map 
-               (\ s -> s++replicate (maxLen - length s) ' ') 
+            map
+               (\ s -> s++replicate (maxLen - length s) ' ')
                attributeStringList2
 
          -- Define the option menu for the type
@@ -63,9 +63,9 @@ getAttributesType1 =
          attributeTypeForm =
             fmap
                (\ answer ->
-                  lookupWithDefaultFM 
-                     attributeTypeMap 
-                     (error 
+                  lookupWithDefaultFM
+                     attributeTypeMap
+                     (error
                         "GetAttributesType: wish returned unexpected string")
                      (trimTrailing answer)
                   )
@@ -85,12 +85,12 @@ getAttributesType1 =
 
          -- Form in which empty key strings go to Nothing
          oneAttributeChecked :: Form (Maybe (String,AttributeTypeKey))
-         oneAttributeChecked = 
+         oneAttributeChecked =
             fmap
                (\ ktk@(keyString,typeKey) -> if keyString == "" then Nothing
                   else Just ktk)
                oneAttributeForm
-         
+
          -- All the attributes we ask for in one go.
          allAttributesForm :: Form [Maybe(String,AttributeTypeKey)]
          allAttributesForm = column (replicate 10 oneAttributeChecked)
@@ -98,7 +98,7 @@ getAttributesType1 =
          -- List of all attributes actually set on this form
          condenseAttributesForm :: Form [(String,AttributeTypeKey)]
          condenseAttributesForm = fmap catMaybes allAttributesForm
-         
+
          -- Query box asking whether more attributes are required
          queryMore :: Form Bool
          queryMore = newFormEntry "More Attributes" False
@@ -113,11 +113,11 @@ getAttributesType1 =
             -> WithError ([(String,AttributeTypeKey)],Maybe (Set String))
          checkForm set (list,more) = cF set list more []
             where
-               cF set [] more acc = 
+               cF set [] more acc =
                   hasValue (list,if more then Just set else Nothing)
                cF set ((ktk@(key,_)):rest) more acc =
-                  if elementOf key set 
-                     then 
+                  if elementOf key set
+                     then
                         hasError ("Attribute "++show key++
                            " is multiply defined")
                      else
@@ -125,11 +125,11 @@ getAttributesType1 =
 
           -- Now here, finally, is the function which does the work.
           -- It returns Nothing if the operation was cancelled.
-         getRemainingAttributes 
+         getRemainingAttributes
             :: Set String -> IO (Maybe [(String,AttributeTypeKey)])
          getRemainingAttributes set =
             do
-               formResult <- doForm "Attributes" 
+               formResult <- doForm "Attributes"
                   (mapForm (checkForm set) uncheckedForm)
                case formResult of
                   Nothing -> return Nothing
@@ -142,8 +142,8 @@ getAttributesType1 =
       attributesOpt <- getRemainingAttributes emptySet
       case attributesOpt of
          Nothing -> return Nothing
-         Just list ->  return (Just (mkAttributesType list))     
--}    
+         Just list ->  return (Just (mkAttributesType list))
+-}
 
 
 

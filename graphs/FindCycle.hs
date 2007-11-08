@@ -1,7 +1,7 @@
 -- | The function in this module finds a cycle in a given directed graph, if
--- one exists. 
+-- one exists.
 module FindCycle (
-   findCycle, 
+   findCycle,
       -- :: Ord a => [a] -> (a -> [a]) -> Maybe [a]
       -- List of all nodes, and a successor function.
    ) where
@@ -16,7 +16,7 @@ data DFSOut a =
 -- | Find a cycle in a graph.  We are given a list of nodes to start
 -- from, and a successor function.
 findCycle :: Ord a => [a] -> (a -> [a]) -> Maybe [a]
-findCycle (nodes :: [a]) (sFn :: a -> [a]) = 
+findCycle (nodes :: [a]) (sFn :: a -> [a]) =
    let
       findCycle1 :: [a] -> Set a -> Maybe [a]
       findCycle1 nodes0 visited0 =
@@ -42,10 +42,10 @@ findCycle (nodes :: [a]) (sFn :: a -> [a]) =
                      let
                         succs = sFn this
                         aboveThis1 = addToSet aboveThis0 this
-                     
+
                         doSuccs :: [a] -> Set a -> DFSOut a
-                        doSuccs [] visited 
-                           = NoCycle (addToSet visited this) 
+                        doSuccs [] visited
+                           = NoCycle (addToSet visited this)
                         doSuccs (succ:succs) visited0 =
                            case findCycle2 aboveThis1 visited0 succ of
                               NoCycle visited1 -> doSuccs succs visited1

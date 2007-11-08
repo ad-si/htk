@@ -1,5 +1,5 @@
 -- | This module contains the code for moving the contents of a version from
--- one repository to another.  
+-- one repository to another.
 module CopyVersion(
    copyVersion,
    FromTo(..),
@@ -31,7 +31,7 @@ import VersionGraph
 -- | Denote corresponding elements for the source and destination.
 data FromTo a = FromTo {from :: a,to :: a}
 
-copyVersion :: 
+copyVersion ::
    FromTo VersionGraph
       -- ^ Source and target version graphs.
    -> ObjectVersion
@@ -44,7 +44,7 @@ copyVersion ::
       -- ^ the version of the known committed parents known to both
       -- the source and destination repository.
    -> (ObjectVersion -> IO VersionInfo)
-      -- ^ a map which will goes from an object version in the source 
+      -- ^ a map which will goes from an object version in the source
       -- repository, to the corresponding VersionInfo in the destination graph.
    -> IO SimpleDBCommand
       -- ^ the command to execute to do the copying.  (We do not actually
@@ -56,9 +56,9 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         fromRepository = toVersionGraphRepository fromVersionGraph
         toRepository = toVersionGraphRepository toVersionGraph
 
-        fromVersionGraphClient 
+        fromVersionGraphClient
            = VersionGraph.toVersionGraphClient fromVersionGraph
-        toVersionGraphClient 
+        toVersionGraphClient
            = VersionGraph.toVersionGraphClient toVersionGraph
 
         parentsMap :: FiniteMap ObjectVersion ObjectVersion
@@ -100,11 +100,11 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         -- now we can process the diffs.
 
         mapChanged :: Location -> ChangeData -> IO (Maybe CommitChange)
-        mapChanged location changeData = 
+        mapChanged location changeData =
            case lookupFM wmlMap location of
-              Nothing -> return Nothing 
+              Nothing -> return Nothing
                  -- This location is inaccessible, and so the change can
-                 -- be discarded. 
+                 -- be discarded.
               Just (WrappedMergeLink link) ->
                  case changeData of
                     Right (fromVersion,location1) ->
@@ -114,12 +114,12 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
                           objectSource <- mapLink icsl link
                           return (Just (Left objectSource))
 
-        mapLink :: HasMerging object 
+        mapLink :: HasMerging object
            => ICStringLen -> Link object -> IO ObjectSource
         mapLink icsl (link :: Link object) =
            let
-              copyObject1 
-                 :: Maybe (View -> object -> View -> (ObjectVersion 
+              copyObject1
+                 :: Maybe (View -> object -> View -> (ObjectVersion
                     -> IO VersionInfo) -> IO object)
               copyObject1 = copyObject
            in
@@ -129,7 +129,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
                  Just copyObject2 ->
                     do
                        object0 <- doDecodeIO icsl view0
-                       object1 
+                       object1
                           <- copyObject2 view0 object0 view1 toNewVersionInfo
                        codedValue1 <- doEncodeIO object1 view1
                        objectSource1 <- importICStringLen codedValue1
@@ -139,7 +139,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         <- mapM
            (\ (location,diff) ->
               let
-                 mkCommitChange :: ChangeData 
+                 mkCommitChange :: ChangeData
                     -> IO (Maybe (Location,CommitChange))
                  mkCommitChange changed0 =
                     do
@@ -156,23 +156,23 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
               )
            diffs1
 
-     let         
+     let
         commitChanges1 :: [(Location,CommitChange)]
-        commitChanges1 = catMaybes commitChanges0    
+        commitChanges1 = catMaybes commitChanges0
 
         -- compute redirects for commit.
         toRedirect :: (Location,Diff) -> Maybe (Location,Maybe ObjectVersion)
         toRedirect (_,IsOld) = Nothing
-        toRedirect (location,IsChanged {existsIn = fromVersion}) 
+        toRedirect (location,IsChanged {existsIn = fromVersion})
            = Just (location,Just (mapParent fromVersion))
         toRedirect (location,IsNew _ ) = Just (location,Nothing)
-      
+
         redirects :: [(Location,Maybe ObjectVersion)]
         redirects = mapMaybe toRedirect diffs1
 
 
 
-     (commitChanges2 
+     (commitChanges2
         :: [(Location,Either ICStringLen (ObjectVersion,Location))])
         <- mapM
             (\ (location,newItem) ->
@@ -184,7 +184,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
                   Right locVers -> return (location,Right locVers)
                )
             commitChanges1
-  
+
      -- (6) we can now commit.
      let
         headVersionOpt = case parents of
@@ -196,7 +196,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         versionInformation = case headVersionOpt of
            Nothing -> Version1 version1
            Just headVersion -> Version1Plus version1 headVersion
-     
+
      let
         command = Commit versionInformation redirects commitChanges2 diffs2
 
@@ -215,15 +215,15 @@ getAllWrappedMergeLinks view =
       -- to call mkLinkReAssigner.  Instead we could probably strip down
       -- mkLinkReAssigner, but it doesn't seem worthwhile.
 
-      (allObjectTypeTypes :: [WrappedObjectTypeTypeData]) 
+      (allObjectTypeTypes :: [WrappedObjectTypeTypeData])
          <- getAllObjectTypeTypes
 
       (allTypes :: [(WrappedObjectTypeTypeData,
          [(GlobalKey,[(View,WrappedObjectType)])])])
-         <- mapM 
+         <- mapM
             (\ wrappedObjectTypeTypeData ->
                do
-                  theseTypes <- mergeObjectTypeTypeData 
+                  theseTypes <- mergeObjectTypeTypeData
                      (error "CopyVersion.A") [view] view
                      wrappedObjectTypeTypeData
                   return (wrappedObjectTypeTypeData,theseTypes)
@@ -233,11 +233,11 @@ getAllWrappedMergeLinks view =
 
       linkReAssignerWE <- mkLinkReAssigner [view] allTypes
 
-      linkReAssigner 
+      linkReAssigner
          <- coerceWithErrorStringIO "CopyVersion.B" linkReAssignerWE
 
       let
          wmls :: [WrappedMergeLink]
-         wmls = (map snd) . keysFM . linkMap $ linkReAssigner            
+         wmls = (map snd) . keysFM . linkMap $ linkReAssigner
 
       return wmls

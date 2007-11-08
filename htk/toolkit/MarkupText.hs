@@ -280,7 +280,7 @@ spaces n = MarkupProse [replicate n ' ']
 flipcolour :: ColourDesignator c => c -> c -> [MarkupText] -> MarkupText
 flipcolour c1 c2 = MarkupFlipColour (toColour c1) (toColour c2)
 
--- | The markup flipunderline combinator (underlines this text segment when 
+-- | The markup flipunderline combinator (underlines this text segment when
 -- the mouse is over this segment).
 flipunderline :: [MarkupText] -> MarkupText
 flipunderline = MarkupFlipUnderline
@@ -392,7 +392,7 @@ nu = symbchr 110
 
 -- | Special character.
 omikron :: MarkupText
-omikron = symbchr 111 
+omikron = symbchr 111
 
 -- | Special character.
 pi :: MarkupText
@@ -400,11 +400,11 @@ pi = symbchr 112
 
 -- | Special character.
 theta :: MarkupText
-theta = symbchr 113 
+theta = symbchr 113
 
 -- | Special character.
 vartheta :: MarkupText
-vartheta = symbchr 74 
+vartheta = symbchr 74
 
 -- | Special character.
 rho :: MarkupText
@@ -476,7 +476,7 @@ pphi = symbchr 70
 
 -- | Special character (uppercase).
 ggamma :: MarkupText
-ggamma = symbchr 71 
+ggamma = symbchr 71
 
 -- | Special character (uppercase).
 eeta :: MarkupText
@@ -484,11 +484,11 @@ eeta = symbchr 72
 
 -- | Special character (uppercase).
 iiota :: MarkupText
-iiota = symbchr 73 
+iiota = symbchr 73
 
 -- | Special character (uppercase).
 kkappa :: MarkupText
-kkappa = symbchr 75 
+kkappa = symbchr 75
 
 -- | Special character (uppercase).
 llambda :: MarkupText
@@ -528,7 +528,7 @@ ttau = symbchr 84
 
 -- | Special character (uppercase).
 uupsilon :: MarkupText
-uupsilon = symbchr 85 
+uupsilon = symbchr 85
 
 -- | Special character (uppercase).
 oomega :: MarkupText
@@ -858,7 +858,7 @@ parseMarkupText m f =
         parseMarkupText' ms txt' (tag : tags') wins' (line', char') bold
                          italics current_font
 
-    parseMarkupText' :: [MarkupText] -> String -> [Tag] -> [EmbWindow] -> 
+    parseMarkupText' :: [MarkupText] -> String -> [Tag] -> [EmbWindow] ->
                         Position -> Bool -> Bool -> Font ->
                         IO ((String, [EmbWindow], [Tag]), Position)
     parseMarkupText' (m : ms) txt tags wins (line, char) bold italics
@@ -871,14 +871,14 @@ parseMarkupText m f =
 
         MarkupProse [str] -> parseMarkupText' ms
                                       (txt ++ str) tags wins
-		 		      (line, char + Distance (length str))
-				      bold italics current_font
-        MarkupProse (l:rest) -> parseMarkupText' (MarkupProse rest:ms) 
-	                              (txt++ l++ "\n") tags wins
-	 		              (line+ 1, 0)
-				      bold italics current_font
+                                      (line, char + Distance (length str))
+                                      bold italics current_font
+        MarkupProse (l:rest) -> parseMarkupText' (MarkupProse rest:ms)
+                                      (txt++ l++ "\n") tags wins
+                                      (line+ 1, 0)
+                                      bold italics current_font
         MarkupProse [] -> parseMarkupText' ms txt tags wins
-	 		              (line, char) bold italics current_font
+                                      (line, char) bold italics current_font
 
         MarkupSpecialChar f i ->
           parseMarkupText' (MarkupFont f [prose [chr i]] : ms) txt tags
@@ -916,9 +916,9 @@ parseMarkupText m f =
           simpleProperty ms m' txt tags wins (line, char)
                          bold italics current_font [underlined On]
 
-        MarkupJustify j m' -> 
-	  simpleProperty ms m' txt tags wins (line, char)
-	                 bold italics current_font [justify j] 
+        MarkupJustify j m' ->
+          simpleProperty ms m' txt tags wins (line, char)
+                         bold italics current_font [justify j]
 
         MarkupFont f m' ->
           do

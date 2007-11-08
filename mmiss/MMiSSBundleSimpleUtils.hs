@@ -1,11 +1,11 @@
 -- | This module contains simple utilities for MMiSSBundles, that is to say,
 -- those that we can compile without having compiled any particular repository
--- types like MMiSSObjectType or MMiSSFileType. 
+-- types like MMiSSObjectType or MMiSSFileType.
 module MMiSSBundleSimpleUtils(
    mergeBundles, -- :: [Bundle] -> WithError Bundle
 
    nameFileLoc, -- :: FileLoc -> WithError EntityName
-   nameFileLocOpt, -- :: FileLoc -> WithError (Maybe EntityName) 
+   nameFileLocOpt, -- :: FileLoc -> WithError (Maybe EntityName)
    describeFileLoc, -- :: FileLoc -> String
 
    alwaysNameFileLoc, -- :: FileLoc -> EntityName
@@ -16,8 +16,8 @@ module MMiSSBundleSimpleUtils(
 
    mkUnknownBundleText, -- :: CharType -> String -> BundleText
 
-   mkBundleText, 
-      -- :: (Eq object,Typeable object) 
+   mkBundleText,
+      -- :: (Eq object,Typeable object)
       -- => object -> BundleText
 
    fromBundleTextWE,
@@ -32,7 +32,7 @@ module MMiSSBundleSimpleUtils(
       -- :: BundleNode -> BundleNode
 
    wrapContainingMMiSSPackage,
-      -- :: Maybe EntityName -> EntityFullName -> BundleType -> BundleNodeData 
+      -- :: Maybe EntityName -> EntityFullName -> BundleType -> BundleNodeData
       -- -> WithError BundleNode
 
    bundleTextToString,
@@ -44,26 +44,26 @@ module MMiSSBundleSimpleUtils(
 
    getAllNodes, -- :: Bundle -> [(LocInfo,BundleNode)]
    getAllNodes1, -- :: Bundle -> [(LocInfo,BundleNode)]
-      -- getAllNodes guarantees depth-first-search order; getAllNodes1 
+      -- getAllNodes guarantees depth-first-search order; getAllNodes1
       -- guarantees reverse depth-first-search order.
 
    bundleFoldM,
-      --  :: Monad m 
+      --  :: Monad m
       -- => (ancestorInfo -> BundleNode -> m ancestorInfo)
       -- -> (PackageId -> m ancestorInfo)
       -- -> Bundle
-      -- -> m () 
-      -- Scan all the nodes in a bundle, depth-first.  The ancestorInfo is 
-      -- threaded down. 
+      -- -> m ()
+      -- Scan all the nodes in a bundle, depth-first.  The ancestorInfo is
+      -- threaded down.
 
    bundleNodeFoldM,bundleNodeFoldM1,
-      -- :: Monad m 
+      -- :: Monad m
       -- => (ancestorInfo -> BundleNode -> m ancestorInfo)
       -- -> ancestorInfo
       -- -> BundleNode
-      --  -> m () 
-      -- Scan all the nodes in a BundleNode, depth-first.  The ancestorInfo is 
-      -- threaded down. 
+      --  -> m ()
+      -- Scan all the nodes in a BundleNode, depth-first.  The ancestorInfo is
+      -- threaded down.
       -- The difference between the two is that bundleFoldM1 does not
       -- visit the very top node.
 
@@ -71,7 +71,7 @@ module MMiSSBundleSimpleUtils(
       -- :: Bundle -> PackageId -> EntityFullName -> Maybe BundleNode
       -- look up a node within a bundle.
 
-   getTag, 
+   getTag,
       -- :: BundleNode -> WithError String
       -- get the tag of an Element.
 
@@ -125,8 +125,8 @@ mergeBundles bundles =
       keyedBundleNodes2 <- mergeKeyedBundleNodes (==) packageIdStr
          [] keyedBundleNodes1
       return (Bundle keyedBundleNodes2)
-  
-mergeKeyedBundleNodes :: (key -> key -> Bool) -> (key -> String) -> [String] 
+
+mergeKeyedBundleNodes :: (key -> key -> Bool) -> (key -> String) -> [String]
    -> [(key,BundleNode)] -> WithError [(key,BundleNode)]
    -- The first argument is an equality testing predicate, but has to
    -- be passed explicitly to avoid different mutually recursive contexts.
@@ -135,7 +135,7 @@ mergeKeyedBundleNodes eqFn (describeFn :: key -> String) backtrace inputList =
       fmap1 :: FiniteMap String [(key,BundleNode)]
       fmap1 =
          foldl
-            (\ map0 (kn @ (key,node)) -> 
+            (\ map0 (kn @ (key,node)) ->
                let
                   keyStr = describeFn key
                   entry =
@@ -154,24 +154,24 @@ mergeKeyedBundleNodes eqFn (describeFn :: key -> String) backtrace inputList =
             then
                return k1
             else
-               mergeFailure (describeFn k1 : backtrace) 
+               mergeFailure (describeFn k1 : backtrace)
                   "two elements with same location but different type: "
 
       mergeOne :: [(key,BundleNode)] -> WithError (key,BundleNode)
       mergeOne bundleNodes =
          do
             key <- checkKeyEq bundleNodes
-            bundleNode <- mergeBundleNodesAsOne (describeFn key:backtrace) 
+            bundleNode <- mergeBundleNodesAsOne (describeFn key:backtrace)
                (map snd bundleNodes)
             return (key,bundleNode)
- 
+
       (keyedBundleNodes :: [[(key,BundleNode)]]) = eltsFM fmap1
 
    in
       mapM
          mergeOne
          keyedBundleNodes
-         
+
 
 
 mergeBundleNodesAsOne :: [String] -> [BundleNode] -> WithError BundleNode
@@ -202,11 +202,11 @@ mergeBundleNodesAsOne backtrace bundleNodes =
          doPromotion = any (== mmissPackageType) objectTypes
 
          promotedTypes :: [BundleType]
-         promotedTypes = 
-            if doPromotion 
-               then 
+         promotedTypes =
+            if doPromotion
+               then
                   map
-                     (\ objectType -> 
+                     (\ objectType ->
                         if objectType == mmissFolderType
                            then
                               mmissPackageType
@@ -225,7 +225,7 @@ mergeBundleNodesAsOne backtrace bundleNodes =
          else
             mergeFailure backtrace
                "two elements with same location but different type (2)"
-          
+
       let
          fileLoc1 = FileLoc {
             name = nameOpt1,
@@ -238,18 +238,18 @@ mergeBundleNodesAsOne backtrace bundleNodes =
                (Just name,Just name2)
                   | name /= name2 -> False
                _ -> True
-   
+
       if all isCompatible fileLocs
          then
             done
          else
-            mergeFailure backtrace 
+            mergeFailure backtrace
                "Mysterious name clash encountered during merge"
 
       let
          bundleNodeDatas = map bundleNodeData bundleNodes
 
-      (allObjectContents 
+      (allObjectContents
             :: [([BundleNode],[(Maybe MMiSSVariantSpec,BundleText)])]) <- mapM
          (\ bundleNodeData -> case bundleNodeData of
             Dir dir -> return (dir,[])
@@ -267,7 +267,7 @@ mergeBundleNodesAsOne backtrace bundleNodes =
             do
                let
                   keyedNodes0 :: [(FileLoc,BundleNode)]
-                  keyedNodes0 = 
+                  keyedNodes0 =
                      map
                         (\ bundleNode -> (fileLoc bundleNode,bundleNode))
                         bundleNodes
@@ -286,18 +286,18 @@ mergeBundleNodesAsOne backtrace bundleNodes =
                               addToFM map0 variantSpecOpt text)
                            Just text0 ->
                               if text0 == text
-                                 then 
+                                 then
                                     return map0
                                  else
                                     mergeFailure backtrace
                                        "Object has two incompatible variants"
                         )
                      emptyFM
-                     bundleVariants                  
+                     bundleVariants
                return (Object (fmToList variantMap))
          _ ->
-            mergeFailure backtrace 
-               "Object has both text and directory data"    
+            mergeFailure backtrace
+               "Object has both text and directory data"
 
       let
          bundleNode = BundleNode {
@@ -309,7 +309,7 @@ mergeBundleNodesAsOne backtrace bundleNodes =
 
 mergeFailure :: [String] -> String -> WithError a
 mergeFailure backtrace mess =
-   fail ("Error constructing bundle at " 
+   fail ("Error constructing bundle at "
       ++ unsplitByChar '/' (reverse backtrace)
       ++ ": " ++ mess)
 
@@ -333,7 +333,7 @@ alwaysNameFileLoc fileLoc =
       fromMaybe preambleEntityName nameOpt
 
 nameFileLoc :: FileLoc -> WithError EntityName
-nameFileLoc fileLoc = 
+nameFileLoc fileLoc =
    do
       nameOpt <- nameFileLocOpt fileLoc
       case nameOpt of
@@ -347,7 +347,7 @@ nameFileLocOpt fileLoc =
    in
       case strOpt of
          Nothing -> hasValue Nothing
-         Just str -> 
+         Just str ->
             do
                name <- fromStringWE str
                return (Just name)
@@ -361,9 +361,9 @@ describeFileLoc fileLoc =
       fallBack :: FileLoc -> String
       fallBack fileLoc =
          "Unnamed object with type " ++ describeBundleType (objectType fileLoc)
-          
+
 describeBundleType :: BundleType -> String
-describeBundleType bundleType = 
+describeBundleType bundleType =
    describeBundleTypeEnum (base bundleType)
       ++ d "ext" (ext bundleType) ++ d "extra" (extra bundleType)
    where
@@ -404,7 +404,7 @@ mkUnknownBundleText charType str =
       }
 
 mkBundleText :: (Eq object,Typeable object) => object -> BundleText
-mkBundleText object = 
+mkBundleText object =
    let
       dyn1 = toDyn object
       eqFn1 dyn = case fromDynamic dyn of
@@ -415,21 +415,21 @@ mkBundleText object =
 
 
 fromBundleTextIO :: Typeable object => BundleText -> IO object
-fromBundleTextIO bundleText 
+fromBundleTextIO bundleText
    = coerceImportExportIO (fromBundleTextWE bundleText)
 
 fromBundleTextWE :: Typeable object => BundleText -> WithError object
 fromBundleTextWE bundleText =
    case bundleText of
       BundleDyn {dyn = dyn} -> fromDynamicWE dyn
-      NoText -> fail 
+      NoText -> fail
          "Attempt to import object with no specified text"
       BundleString {} -> fail
          "MMiSS bug: unexpected BundleString in fromBundleTextIO"
 
 bundleTextToString :: BundleText -> String
 bundleTextToString NoText = importExportError "Missing text"
-bundleTextToString BundleDyn {} = importExportError 
+bundleTextToString BundleDyn {} = importExportError
    "MMiSS bug: unexpected BundleDyn in bundleTextToString"
 bundleTextToString (BundleString {contents = icsl,charType = charType}) =
    case charType of
@@ -437,7 +437,7 @@ bundleTextToString (BundleString {contents = icsl,charType = charType}) =
       Unicode ->
          let
             str1 = toString icsl
-         
+
             str2 = fromUTF8WE str1
          in
             coerceImportExport str2
@@ -445,7 +445,7 @@ bundleTextToString (BundleString {contents = icsl,charType = charType}) =
 
 bundleTextToAsciiICSL :: BundleText -> ICStringLen
 bundleTextToAsciiICSL NoText = importExportError "Missing text"
-bundleTextToAsciiICSL BundleDyn {} = importExportError 
+bundleTextToAsciiICSL BundleDyn {} = importExportError
    "MMiSS bug: unexpected BundleDyn in bundleTextToAsciiICSL"
 bundleTextToAsciiICSL (BundleString {contents = icsl,charType = Unicode}) =
    importExportError "Unexpected Unicode in bundle text"
@@ -460,7 +460,7 @@ bundleTextToAsciiICSL (BundleString {contents = icsl,charType = Byte}) =
 -- Make an MMiSSPackageFolder with one element
 mkOneMMiSSPackage :: BundleNode -> BundleNode
 mkOneMMiSSPackage node1 =
-   let 
+   let
       fileLoc1 = FileLoc {
          name = Nothing,
          objectType = mmissPackageType
@@ -471,11 +471,11 @@ mkOneMMiSSPackage node1 =
          bundleNodeData = Dir [node1]
          }
 
--- Given the package path for an object, and the object's type and data 
+-- Given the package path for an object, and the object's type and data
 -- construct the BundleNode for the package with the object
 -- The first argument will be the name of the package, if supplied.
-wrapContainingMMiSSPackage 
-   :: Maybe EntityName -> EntityFullName -> BundleType -> BundleNodeData 
+wrapContainingMMiSSPackage
+   :: Maybe EntityName -> EntityFullName -> BundleType -> BundleNodeData
    -> WithError BundleNode
 wrapContainingMMiSSPackage _ (EntityFullName []) _ _ = fail "Null packagePath!"
 wrapContainingMMiSSPackage packageNameOpt fullName bundleType bundleNodeData0 =
@@ -531,7 +531,7 @@ instance Eq BundleText where
    (==) text1 text2 =
       case (text1,text2) of
          (      BundleString {contents = icsl1,charType = ct1},
-                BundleString {contents = icsl2,charType = ct2}) -> 
+                BundleString {contents = icsl2,charType = ct2}) ->
              (icsl1 == icsl2 && ct1 == ct2)
          (BundleDyn {eqFn = eqFn1},BundleDyn {dyn = dyn2}) ->
              eqFn1 dyn2
@@ -542,13 +542,13 @@ instance Eq BundleText where
 -- Scanning bundles
 -- -------------------------------------------------------------------------
 
--- | Scan all the nodes in a bundle, depth-first.  The ancestorInfo is 
--- threaded down. 
-bundleFoldM :: Monad m 
+-- | Scan all the nodes in a bundle, depth-first.  The ancestorInfo is
+-- threaded down.
+bundleFoldM :: Monad m
    => (ancestorInfo -> BundleNode -> m ancestorInfo)
    -> (PackageId -> m ancestorInfo)
    -> Bundle
-   -> m () 
+   -> m ()
 bundleFoldM visitNode getAncestorInfo (Bundle packageBundleNodes) =
    mapM_
       (\ (packageId,bundleNode) ->
@@ -557,26 +557,26 @@ bundleFoldM visitNode getAncestorInfo (Bundle packageBundleNodes) =
             bundleNodeFoldM visitNode ancestorInfo bundleNode
          )
       packageBundleNodes
-      
--- | Scan all the nodes in a BundleNode, depth-first.  The ancestorInfo is 
--- threaded down. 
-bundleNodeFoldM :: Monad m 
+
+-- | Scan all the nodes in a BundleNode, depth-first.  The ancestorInfo is
+-- threaded down.
+bundleNodeFoldM :: Monad m
    => (ancestorInfo -> BundleNode -> m ancestorInfo)
    -> ancestorInfo
    -> BundleNode
-   -> m () 
+   -> m ()
 bundleNodeFoldM visitNode ancestorInfo0 bundleNode =
    do
       ancestorInfo1 <- visitNode ancestorInfo0 bundleNode
       bundleNodeFoldM1 visitNode ancestorInfo1 bundleNode
 
 -- | Variant of bundleNodeFoldM, where we do not visit the very
--- top node. 
-bundleNodeFoldM1 :: Monad m 
+-- top node.
+bundleNodeFoldM1 :: Monad m
    => (ancestorInfo -> BundleNode -> m ancestorInfo)
    -> ancestorInfo
    -> BundleNode
-   -> m () 
+   -> m ()
 bundleNodeFoldM1 visitNode ancestorInfo0 bundleNode =
    do
       let
@@ -594,7 +594,7 @@ getAllNodes bundle = reverse (getAllNodes1 bundle)
 type ResultList = [(LocInfo,BundleNode)]
 
 getAllNodes1 :: Bundle -> ResultList
-getAllNodes1 bundle = execState (bundleFoldM foldFn toPackageId bundle) [] 
+getAllNodes1 bundle = execState (bundleFoldM foldFn toPackageId bundle) []
    where
       foldFn :: LocInfo -> BundleNode -> ResultMonad LocInfo
       foldFn locInfo0 bundleNode =
@@ -629,7 +629,7 @@ lookupNode :: Bundle -> PackageId -> EntityFullName -> Maybe BundleNode
 lookupNode (Bundle packageBundles) packageId0 entityFullName =
    do
       bundleNode <- findJust
-         (\ (packageId1,bundleNode) -> 
+         (\ (packageId1,bundleNode) ->
             if packageId1 == packageId0
                then
                   Just bundleNode
@@ -651,13 +651,13 @@ lookupNodeInNode bundleNode0 (EntityFullName names0) = case names0 of
                _ -> []
 
          bundleNode1 <- findJust
-            (\ bundleNode1 -> 
+            (\ bundleNode1 ->
                if (strFileLoc . fileLoc $ bundleNode1) == Just (toString name0)
                   then
                      Just bundleNode1
                   else
                      Nothing
-               ) 
+               )
             subNodes
 
          lookupNodeInNode bundleNode1 (EntityFullName names1)
@@ -686,7 +686,7 @@ getTag bundleNode1 =
             )
          variants
       let
-         err mess = fail (describeFileLoc (fileLoc bundleNode1) ++ ": " 
+         err mess = fail (describeFileLoc (fileLoc bundleNode1) ++ ": "
             ++ mess)
 
       case tags of
@@ -697,19 +697,19 @@ getTag bundleNode1 =
                   return tag0
                else
                   err "Conflicting tags found in elements in object"
-                 
+
 -- -----------------------------------------------------------------------
 -- LocInfo contains the information which is threaded down giving the
 -- position of objects within the bundle.
 -- The main differences between LocInfo and MMiSSElementInfo are
 -- that (1) LocInfo doesn't have a label; (2) fields are not Maybe,
--- everything has a packageId, packagePath and label; (3) the package path is 
--- stored in reverse order. 
+-- everything has a packageId, packagePath and label; (3) the package path is
+-- stored in reverse order.
 -- -----------------------------------------------------------------------
 
 data LocInfo = LocInfo {
    packageId :: PackageId,
-   packagePath :: [EntityName], 
+   packagePath :: [EntityName],
       -- lowest directories first.
       -- NB.  The packagePath does not include the very top directory name,
       -- if any.
@@ -718,8 +718,8 @@ data LocInfo = LocInfo {
    isInitial :: Bool,
       -- True only for initialLocInfo.
    variants0 :: MMiSSVariantSpec,
-   insidePackageFolder :: Bool 
-      -- used to work out how to fill in blank extra fields in folders. 
+   insidePackageFolder :: Bool
+      -- used to work out how to fill in blank extra fields in folders.
    }
 
 initialLocInfo :: PackageId -> LocInfo
@@ -768,7 +768,7 @@ toElementInfo :: LocInfo -> ElementInfo
 toElementInfo locInfo =
    ElementInfo {
       packageIdOpt = Just (packageId locInfo),
-      packagePathOpt1 = 
+      packagePathOpt1 =
          Just . EntityFullName . reverse  . packagePath $ locInfo,
       packageNameOpt = packageNameOpt1 locInfo,
       labelOpt = Nothing,
@@ -776,7 +776,7 @@ toElementInfo locInfo =
       }
 
 describeLocInfo :: LocInfo -> String
-describeLocInfo locInfo = 
-   show (packageId locInfo) 
+describeLocInfo locInfo =
+   show (packageId locInfo)
    ++ "#" ++ show (EntityFullName (reverse (packagePath locInfo)))
    ++ ":" ++ show (variants0 locInfo)

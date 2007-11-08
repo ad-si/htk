@@ -1,9 +1,9 @@
 -- |
 -- Description: Defines 'MMiSSObjectType.MMiSSObject'.
--- 
+--
 -- This file contains the *definition* of the MMiSSObject
 -- type, and its instances of HasCodedValue and other trivial types.
--- (Not alas ObjectType, the instance of that will come in 
+-- (Not alas ObjectType, the instance of that will come in
 -- MMiSSObjectTypeInstance.hs).
 module MMiSSObjectType(
    MMiSSObject(..),
@@ -80,7 +80,7 @@ import {-# SOURCE #-} MMiSSPackageFolder
 -- (everything in a Variable).
 -- (3) A cached version of a Variable, which is stored in a VariantObject
 -- as the \"current object\".
--- (everything in an Object). 
+-- (everything in an Object).
 data MMiSSObject = MMiSSObject {
    mmissObjectType :: MMiSSObjectType,
    linkedObject :: LinkedObject,
@@ -101,7 +101,7 @@ data MMiSSObject = MMiSSObject {
 data Variable = Variable {
    element :: Link Element,
       -- For now we adopt the convention that the name of the element as given
-      -- by its label attribute is always the last component of the name of 
+      -- by its label attribute is always the last component of the name of
       -- the MMiSS object
    editLock :: BSem
    } deriving (Typeable)
@@ -131,16 +131,16 @@ instance HasBinary MMiSSObject CodingMonad where
          )
    readBin = mapReadViewIO
       (\ view (mmissObjectType,linkedObject,frozenVariantObject) ->
-         do 
-            variantObject <- unfreezeVariantObject 
+         do
+            variantObject <- unfreezeVariantObject
                (converter view linkedObject) frozenVariantObject
-            mmissObject 
+            mmissObject
                <- createMMiSSObject mmissObjectType linkedObject variantObject
             return mmissObject
         )
 
 -- Also used during merging.
-createMMiSSObject :: MMiSSObjectType -> LinkedObject 
+createMMiSSObject :: MMiSSObjectType -> LinkedObject
    -> VariantObject Variable Cache
    -> IO MMiSSObject
 createMMiSSObject mmissObjectType linkedObject variantObject =
@@ -171,7 +171,7 @@ instance HasBinary Variable CodingMonad where
    writeBin = mapWrite
       (\ (Variable {
          element = element
-         }) 
+         })
       ->
       element
       )
@@ -202,7 +202,7 @@ converter view linkedObject variantSpec variable =
       do
          cacheElement0 <- readLink view (element variable)
 
-         packageFolderAndNameWE 
+         packageFolderAndNameWE
             <- getMMiSSPackageFolderAndName view linkedObject
          (packageFolder,name) <- coerceWithErrorIO packageFolderAndNameWE
 
@@ -224,7 +224,7 @@ converter view linkedObject variantSpec variable =
 
          -- Get the LinkedObject for the containing MMiSSPackageFolder.
          let
-            packageLinkedObject 
+            packageLinkedObject
                = toMMiSSPackageFolderLinkedObject packageFolder
 
          -- Get the links for the element.
@@ -238,7 +238,7 @@ converter view linkedObject variantSpec variable =
             mapM
                (\ (linkType,searchNameStr) ->
                   do
-                     searchName 
+                     searchName
                         <- coerceWithErrorIO (fromStringWE searchNameStr)
                      return (searchName,linkType)
                   )
@@ -249,12 +249,12 @@ converter view linkedObject variantSpec variable =
             cache = Cache {
                cacheElement = cacheElement1,
                cacheLinks = cacheLinks2,
-               cacheEditLock = editLock variable 
+               cacheEditLock = editLock variable
                }
 
          return cache
       )
-            
+
 -- ---------------------------------------------------------------------
 -- The ArcType values for the arcs out of an MMiSSObject.
 -- ---------------------------------------------------------------------
@@ -279,7 +279,7 @@ fileArcType :: ArcType
 fileArcType = fromString "B"
 
 -- ---------------------------------------------------------------------
--- We make ArcData WrappedLink ArcType 
+-- We make ArcData WrappedLink ArcType
 -- instance HasKey, so we can use VariableSetBlocker.newBlock
 -- ---------------------------------------------------------------------
 

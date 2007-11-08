@@ -1,4 +1,4 @@
--- | This module, given a changing source of 'PureGraph's, transforms it into 
+-- | This module, given a changing source of 'PureGraph's, transforms it into
 -- a 'Graph'. -}
 module PureGraphToGraph(
    pureGraphToGraph,
@@ -26,36 +26,36 @@ import PureGraph
 -- ------------------------------------------------------------------------
 
 data State nodeKey nodeInfo arcInfo = State {
-   nameSource :: NameSource, 
+   nameSource :: NameSource,
       -- ^ source of new names
    pureGraph :: PureGraph (nodeKey,Node) (arcInfo,Arc),
       -- ^ current annotated graph
    toNodeInfo :: nodeKey -> nodeInfo
       -- ^ current node info
-   }        
+   }
 
 -- ------------------------------------------------------------------------
 -- Functions
 -- ------------------------------------------------------------------------
 
-pureGraphToGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo) 
+pureGraphToGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
    => SimpleSource (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)
    -> GraphConnection nodeInfo () arcInfo ()
-pureGraphToGraph (simpleSource 
+pureGraphToGraph (simpleSource
       :: SimpleSource (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)) =
    let
-      source1 :: 
-         Source (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo) 
+      source1 ::
+         Source (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)
                 (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)
       source1 = toSource simpleSource
 
-      source2 :: 
+      source2 ::
          Source (State nodeKey nodeInfo arcInfo,
-               CannedGraph nodeInfo () arcInfo ()) 
+               CannedGraph nodeInfo () arcInfo ())
             [Update nodeInfo () arcInfo ()]
       source2 = foldSourceIO getStateFn foldStateFn source1
 
-      source3 :: 
+      source3 ::
          Source (State nodeKey nodeInfo arcInfo,
                CannedGraph nodeInfo () arcInfo ())
             (Update nodeInfo () arcInfo ())
@@ -70,17 +70,17 @@ pureGraphToGraph (simpleSource
                graphConnectionData = GraphConnectionData {
                   graphState = cannedGraph,
                   deRegister = invalidate sink,
-                  graphUpdate = (\ update -> done), 
+                  graphUpdate = (\ update -> done),
                      -- updates from the client are ignored
                   nameSourceBranch = nameSourceBranch
                   }
 
             return graphConnectionData
    in
-      addConnection 
-                  
+      addConnection
 
-getStateFn 
+
+getStateFn
    :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
    => (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)
    -> IO (State nodeKey nodeInfo arcInfo,CannedGraph nodeInfo () arcInfo ())
@@ -89,7 +89,7 @@ getStateFn (pureGraph0,toNodeInfo0) =
       nameSource <- useBranch initialBranch
 
       (pureGraph1,updates0)
-         <- modifyPureGraph nameSource emptyPureGraph pureGraph0 
+         <- modifyPureGraph nameSource emptyPureGraph pureGraph0
             (error "PureGraphToGraph: no old nodes") toNodeInfo0
       let
          state = State {
@@ -104,25 +104,25 @@ getStateFn (pureGraph0,toNodeInfo0) =
 
       return (state,cannedGraph)
 
-foldStateFn 
+foldStateFn
    :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
-   => State nodeKey nodeInfo arcInfo 
+   => State nodeKey nodeInfo arcInfo
    -> (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)
    -> IO (State nodeKey nodeInfo arcInfo,[Update nodeInfo () arcInfo ()])
 foldStateFn state (pureGraph0,toNodeInfo1) =
    do
-      (pureGraph1,updates) 
-         <- modifyPureGraph (nameSource state) (pureGraph state) pureGraph0 
+      (pureGraph1,updates)
+         <- modifyPureGraph (nameSource state) (pureGraph state) pureGraph0
             (toNodeInfo state) toNodeInfo1
       return (state {pureGraph = pureGraph1,toNodeInfo = toNodeInfo1},updates)
-         
 
-modifyPureGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo) 
-   => NameSource 
+
+modifyPureGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
+   => NameSource
       -- ^ How we generate new Node and Arc values
-   -> PureGraph (nodeKey,Node) (arcInfo,Arc) 
+   -> PureGraph (nodeKey,Node) (arcInfo,Arc)
       -- ^ the old graph, annotated with corresponding node and arc values
-   -> PureGraph nodeKey arcInfo 
+   -> PureGraph nodeKey arcInfo
       -- ^ the new graph
    -> (nodeKey -> nodeInfo)
       -- ^ old toNodeInfo function
@@ -131,9 +131,9 @@ modifyPureGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
    -> IO (PureGraph (nodeKey,Node) (arcInfo,Arc),
       [Update nodeInfo () arcInfo ()])
       -- ^ the new annotated graph, and the changes to get to it.
-modifyPureGraph nameSource 
-      (pg @ (PureGraph oldFM0 :: PureGraph (nodeKey,Node) (arcInfo,Arc))) 
-      (PureGraph newFM0 :: PureGraph nodeKey arcInfo) 
+modifyPureGraph nameSource
+      (pg @ (PureGraph oldFM0 :: PureGraph (nodeKey,Node) (arcInfo,Arc)))
+      (PureGraph newFM0 :: PureGraph nodeKey arcInfo)
       (oldToNodeInfo :: nodeKey -> nodeInfo)
       (toNodeInfo :: nodeKey -> nodeInfo) =
    do
@@ -156,7 +156,7 @@ modifyPureGraph nameSource
                               node = fromString nodeStr
                            writeIORef nodeIORef (addToFM fm nodeKey node)
                            return node
- 
+
 
          oldFM0List :: [((nodeKey,Node),
             NodeData (nodeKey,Node) (arcInfo,Arc))]
@@ -167,25 +167,25 @@ modifyPureGraph nameSource
 
          -- type arguments for generalisedMerge
 
-         -- a :: ((nodeKey,Node),NodeData (nodeKey,Node) 
+         -- a :: ((nodeKey,Node),NodeData (nodeKey,Node)
          --       (arcInfo,Arc))
          -- b :: (nodeKey,NodeData nodeKey arcInfo)
          -- c :: [Update nodeInfo () arcInfo ()]
-         toKey1 :: ((nodeKey,Node),NodeData (nodeKey,Node) 
+         toKey1 :: ((nodeKey,Node),NodeData (nodeKey,Node)
             (arcInfo,Arc)) -> nodeKey
          toKey1 = fst . fst
 
          toKey2 :: (nodeKey,NodeData nodeKey arcInfo) -> nodeKey
-         toKey2 = fst 
+         toKey2 = fst
 
          compareFn a b = compare (toKey1 a) (toKey2 b)
 
-         mergeFn :: 
+         mergeFn ::
             Maybe ((nodeKey,Node),
-               NodeData (nodeKey,Node) (arcInfo,Arc)) 
-            -> Maybe (nodeKey,NodeData nodeKey arcInfo) 
+               NodeData (nodeKey,Node) (arcInfo,Arc))
+            -> Maybe (nodeKey,NodeData nodeKey arcInfo)
             -> IO (Maybe ((nodeKey,Node),
-                  NodeData (nodeKey,Node) 
+                  NodeData (nodeKey,Node)
                (arcInfo,Arc)),Maybe [Update nodeInfo () arcInfo ()])
          mergeFn (Just ((nodeKey,node),nodeData)) Nothing =
             -- this node must be deleted
@@ -207,12 +207,12 @@ modifyPureGraph nameSource
                return (Just ((nodeKey,node),
                   NodeData {parents = arcDatas}),
                      Just (update1:updates))
-         mergeFn (Just (nn @(nodeKey1,node),nodeData1)) 
+         mergeFn (Just (nn @(nodeKey1,node),nodeData1))
                (Just (nodeKey2,nodeData2)) =
             -- node needs to be neither added nor deleted, but the NodeData
             -- might have changed and we might need to change the nodeData
             do
-               (arcDatas,updates1) <- modifyArcs (parents nodeData1) 
+               (arcDatas,updates1) <- modifyArcs (parents nodeData1)
                   (parents nodeData2)
                   node nameSource lookupNode
                let
@@ -228,11 +228,11 @@ modifyPureGraph nameSource
 
                return (Just (nn,NodeData {parents = arcDatas}),Just updates)
 
-      (newFM1List,updatess0) 
+      (newFM1List,updatess0)
          <- generalisedMerge oldFM0List newFM0List compareFn mergeFn
 
       -- To make the updates consistent, sort them into the order
-      -- (delete arcs) (delete nodes) (add nodes) (set node labels) (add arcs) 
+      -- (delete arcs) (delete nodes) (add nodes) (set node labels) (add arcs)
       let
          pg1 = PureGraph (listToFM newFM1List)
 
@@ -240,7 +240,7 @@ modifyPureGraph nameSource
          updates0 = concat updatess0
 
          updates1 =
-               [ update | (update @ (DeleteArc _ )) <- updates0 ] 
+               [ update | (update @ (DeleteArc _ )) <- updates0 ]
             ++ [ update | (update @ (DeleteNode _ )) <- updates0 ]
             ++ [ update | (update @ (NewNode _ _ _ )) <- updates0 ]
             ++ [ update | (update @ (NewArc _ _ _ _ _ )) <- updates0 ]
@@ -257,16 +257,16 @@ lookupPureNode (PureGraph fm) nodeKey0 =
       ((nodeKey1,node),_) : _  | nodeKey1 == nodeKey0 -> Just node
       _ -> Nothing
 
-modifyArcs :: (Ord nodeKey,Ord arcInfo) 
-   -- Invariant.  fromArcs should only be generated by modifyArcs or 
+modifyArcs :: (Ord nodeKey,Ord arcInfo)
+   -- Invariant.  fromArcs should only be generated by modifyArcs or
    -- else [].  This means we can assume it is sorted.
 
-   => [ArcData (nodeKey,Node) (arcInfo,Arc)] 
+   => [ArcData (nodeKey,Node) (arcInfo,Arc)]
    -> [ArcData nodeKey arcInfo]
-   -> Node -> NameSource -> (nodeKey -> IO Node) 
+   -> Node -> NameSource -> (nodeKey -> IO Node)
    -> IO ([ArcData (nodeKey,Node) (arcInfo,Arc)],
       [Update nodeInfo () arcInfo ()])
-modifyArcs (fromArcs :: [ArcData (nodeKey,Node) (arcInfo,Arc)]) ontoArcs0 
+modifyArcs (fromArcs :: [ArcData (nodeKey,Node) (arcInfo,Arc)]) ontoArcs0
       sourceNode nameSource lookupNode =
    let
       toKey :: ArcData (nodeKey,Node) (arcInfo,Arc) ->
@@ -280,7 +280,7 @@ modifyArcs (fromArcs :: [ArcData (nodeKey,Node) (arcInfo,Arc)]) ontoArcs0
       ontoArcs1 = sort ontoArcs0
 
       -- (2) define functions for generalisedMerge
-      compareFn :: ArcData (nodeKey,Node) (arcInfo,Arc) 
+      compareFn :: ArcData (nodeKey,Node) (arcInfo,Arc)
          -> ArcData nodeKey arcInfo -> Ordering
       compareFn arc1 arc2 = compare (toKey arc1) arc2
 
@@ -300,13 +300,13 @@ modifyArcs (fromArcs :: [ArcData (nodeKey,Node) (arcInfo,Arc)]) ontoArcs0
             (targetNode :: Node) <- lookupNode (target arcData0)
 
             let
-               arcInfo1 = arcInfo arcData0 
+               arcInfo1 = arcInfo arcData0
 
                arcData1 = ArcData {
                   arcInfo = (arcInfo1,arc),
                   target = (target arcData0,targetNode)
                   }
-            return (Just arcData1,Just 
+            return (Just arcData1,Just
                (NewArc arc theArcType arcInfo1 targetNode sourceNode))
       mergeFn (Just arcData1) (Just _) = return (Just arcData1,Nothing)
    in

@@ -1,11 +1,11 @@
 -- | In this module we develop types for storing node and arc
--- attributes for various DisplayTypes. 
+-- attributes for various DisplayTypes.
 module DisplayParms(
    NodeTypes,
    ArcTypes,
 
    -- These simply return "Nothing" for any display type
-   emptyNodeTypes, 
+   emptyNodeTypes,
    emptyArcTypes,
 
    DisplayTypeFilter(..),
@@ -60,11 +60,11 @@ data DisplayTypeFilter =
 
 
 -- | NodeTypes is a list of display type filters with SimpleNodeAttributes
-newtype NodeTypes value = 
+newtype NodeTypes value =
    NodeTypes [(DisplayTypeFilter,SimpleNodeAttributes value)]
 
 -- | ArcTypes is a list of display type filters with SimpleArcAttributes
-newtype ArcTypes value = 
+newtype ArcTypes value =
    ArcTypes [(DisplayTypeFilter,SimpleArcAttributes value)]
 
 -- -----------------------------------------------------------------------
@@ -74,7 +74,7 @@ newtype ArcTypes value =
 -- | Returns \"Nothing\" for any display type
 emptyNodeTypes :: NodeTypes value
 emptyNodeTypes = NodeTypes []
-   
+
 -- | Returns \"Nothing\" for any display type
 emptyArcTypes :: ArcTypes value
 emptyArcTypes = ArcTypes []
@@ -96,7 +96,7 @@ instance Monad m => HasBinary (EdgePattern value) m where
    readBin = mapRead (\ (ReadShow x) -> x)
 
 instance Monad m => HasBinary (SimpleNodeAttributes value) m where
-   writeBin = mapWrite (\ 
+   writeBin = mapWrite (\
       (SimpleNodeAttributes {shape = shape,nodeColor = nodeColor}) ->
       (shape,nodeColor)
       )
@@ -105,8 +105,8 @@ instance Monad m => HasBinary (SimpleNodeAttributes value) m where
       )
 
 instance Monad m => HasBinary (SimpleArcAttributes value) m where
-   writeBin = mapWrite (\ 
-      (SimpleArcAttributes {edgePattern = edgePattern,arcColor = arcColor}) 
+   writeBin = mapWrite (\
+      (SimpleArcAttributes {edgePattern = edgePattern,arcColor = arcColor})
          ->
       (edgePattern,arcColor)
       )
@@ -139,19 +139,19 @@ instance HasBinary (ArcTypes value) CodingMonad where
 -- -----------------------------------------------------------------------
 
 -- | Add a node rule, taking priority over previous rules.
-addNodeRule :: DisplayTypeFilter -> SimpleNodeAttributes value 
+addNodeRule :: DisplayTypeFilter -> SimpleNodeAttributes value
    -> NodeTypes value -> NodeTypes value
 addNodeRule displayTypeFilter simpleNodeAttributes (NodeTypes l) =
    NodeTypes ((displayTypeFilter,simpleNodeAttributes):l)
 
 -- | Add a arc rule, taking priority over previous rules.
-addArcRule :: DisplayTypeFilter -> SimpleArcAttributes value 
+addArcRule :: DisplayTypeFilter -> SimpleArcAttributes value
    -> ArcTypes value -> ArcTypes value
 addArcRule displayTypeFilter simpleArcAttributes (ArcTypes l) =
    ArcTypes ((displayTypeFilter,simpleArcAttributes):l)
 
 -- | getNodeTypeParms extracts the parameter for a particular display type.
-getNodeTypeParms :: (Typeable value,HasNodeTypeConfigs nodeTypeParms) 
+getNodeTypeParms :: (Typeable value,HasNodeTypeConfigs nodeTypeParms)
    => WrappedDisplayType -> NodeTypes value -> Maybe (nodeTypeParms value)
 getNodeTypeParms wd1 (NodeTypes []) = Nothing
 getNodeTypeParms wd1 (NodeTypes ((f1,atts1):rest)) =
@@ -161,14 +161,14 @@ getNodeTypeParms wd1 (NodeTypes ((f1,atts1):rest)) =
             AllDisplays -> True
             ThisDisplay wd2 -> (wd1 == wd2)
    in
-      if proceed 
+      if proceed
          then
             Just (mkNodeTypeParms atts1)
          else
             getNodeTypeParms wd1 (NodeTypes rest)
 
 -- | getArcTypeParms extracts the parameter for a particular display type.
-getArcTypeParms :: (Typeable value,HasArcTypeConfigs arcTypeParms) 
+getArcTypeParms :: (Typeable value,HasArcTypeConfigs arcTypeParms)
    => WrappedDisplayType -> ArcTypes value -> Maybe (arcTypeParms value)
 getArcTypeParms wd1 (ArcTypes []) = Nothing
 getArcTypeParms wd1 (ArcTypes ((f1,atts1):rest)) =
@@ -178,7 +178,7 @@ getArcTypeParms wd1 (ArcTypes ((f1,atts1):rest)) =
             AllDisplays -> True
             ThisDisplay wd2 -> (wd1 == wd2)
    in
-      if proceed 
+      if proceed
          then
             Just (mkArcTypeParms atts1)
          else
@@ -195,7 +195,7 @@ mkNodeTypeParms simpleNodeAttributes =
    (shape simpleNodeAttributes) $$$?
    (nodeColor simpleNodeAttributes) $$$?
    emptyNodeTypeParms
-     
+
 
 mkArcTypeParms :: (Typeable arcLabel,HasArcTypeConfigs arcTypeParms) =>
    SimpleArcAttributes arcLabel -> arcTypeParms arcLabel
@@ -231,7 +231,7 @@ data SimpleArcAttributes value = SimpleArcAttributes {
 simpleNodeTypesForm :: Form (NodeTypes value)
 simpleNodeTypesForm =
    fmap
-      (\ (color,shape) -> 
+      (\ (color,shape) ->
          addNodeRule
             AllDisplays
             (SimpleNodeAttributes {nodeColor = Just color,shape = Just shape})
@@ -239,21 +239,21 @@ simpleNodeTypesForm =
          )
       (colorForm // shapeForm)
 
--- | Select a colour 
+-- | Select a colour
 -- We steal the following trick from htk\/examples\/toolkit\/Mainsimpleform.hs
-data OurColour = White | Black| Red | Orange | Yellow | Green | Blue | Violet 
+data OurColour = White | Black| Red | Orange | Yellow | Green | Blue | Violet
                deriving (Bounded,Enum,Read,Show)
 
 instance HasConfigRadioButton OurColour where
    configRadioButton colour = HTk.background (show colour)
 
 colorForm :: Form (GraphConfigure.Color value)
-colorForm = 
+colorForm =
    mapForm
       (\ radColour ->
          case radColour of
             NoRadio -> hasError "No colour specified"
-            Radio (col :: OurColour) 
+            Radio (col :: OurColour)
                -> hasValue (convertColour col)
          )
       (newFormEntry EmptyLabel NoRadio)
@@ -263,16 +263,16 @@ convertColour Green = GraphConfigure.Color ("#98ecb2")
 convertColour Blue  = GraphConfigure.Color ("#98ceda")
 convertColour col = GraphConfigure.Color (show col)
 
--- 
+--
 -- Select a shape.  For this we need our own shape type, as we exclude
 -- GraphConfigure's Icon option.
-data OurShape = Box | Circle | Ellipse | Rhombus | Triangle 
+data OurShape = Box | Circle | Ellipse | Rhombus | Triangle
    deriving (Read,Show,Bounded,Enum)
 
 instance HasConfigRadioButton OurShape where
    configRadioButton value = text (show value)
 
-convertShape :: OurShape -> Shape value 
+convertShape :: OurShape -> Shape value
 convertShape Box = GraphConfigure.Box
 convertShape Circle = GraphConfigure.Circle
 convertShape Ellipse = GraphConfigure.Ellipse
@@ -280,7 +280,7 @@ convertShape Rhombus = GraphConfigure.Rhombus
 convertShape Triangle = GraphConfigure.Triangle
 
 shapeForm :: Form (Shape value)
-shapeForm = 
+shapeForm =
    mapForm
       (\ radShape ->
          case radShape of
@@ -305,7 +305,7 @@ readDisplay str =
          -- normalise "" shouldn't happen as "words" doesn't produce an
          -- empty string.
 
-      doInstruction :: (OurColour,OurShape) -> String 
+      doInstruction :: (OurColour,OurShape) -> String
          -> (OurColour,OurShape)
       doInstruction (c,s) word0 =
          let
@@ -339,7 +339,7 @@ defaultNodeTypes = createSimpleNodeTypes White Box
 -- object's nodeTitleSource.
 -- -----------------------------------------------------------------------
 
-valueTitleSource :: ObjectType objectType object 
+valueTitleSource :: ObjectType objectType object
    => View -> ValueTitleSource (Link object)
 valueTitleSource view =
    let
@@ -351,7 +351,7 @@ valueTitleSource view =
       ValueTitleSource getNodeTitleSource
 
 -- -----------------------------------------------------------------------
--- Another function which describes whether the object in question is 
+-- Another function which describes whether the object in question is
 -- dirty or not by making the fontstyle italic when it is dirty.
 -- -----------------------------------------------------------------------
 
@@ -366,7 +366,7 @@ fontStyleSource view =
                isDirtySource = getIsDirtySimpleSource versioned
                fontStyleSource =
                   fmap
-                     (\ isDirty -> if isDirty 
+                     (\ isDirty -> if isDirty
                         then
                            BoldItalicFontStyle
                         else

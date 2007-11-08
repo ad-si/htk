@@ -1,14 +1,14 @@
 -- | A DeleteQueue is a queue where entries can be deleted by an
 -- IO action.  This is a fairly specialised implementation, designed
 -- for event handling.
--- 
+--
 -- Queue entries are either active or invalid.  Once invalid,
 -- removeQueue will not return them, but they still take up (a little) memory.
--- 
+--
 -- addQueue, removeQueue, isEmptyQueue, cleanQueue all take a delete queue
 -- as argument.  We assume that this argument is not used again.
--- 
--- Either removeQueue or isEmptyQueue or cleanQueue should be run 
+--
+-- Either removeQueue or isEmptyQueue or cleanQueue should be run
 -- occasionally, to remove invalid entries.
 module DeleteQueue(
    DeleteQueue,
@@ -16,7 +16,7 @@ module DeleteQueue(
    addQueue, -- :: DeleteQueue v -> v -> IO (DeleteQueue v,IO ())
    -- add an item to the queue, returning the new queue + a new action which
    -- will invalidate that item.
-   removeQueue, 
+   removeQueue,
    -- :: DeleteQueue v -> IO (Maybe (v,DeleteQueue v,DeleteQueue v))
    -- returns the next active element of the queue, and the succeeding
    -- queue.  3rd result is a queue which is identical to the original
@@ -64,8 +64,8 @@ isEmptyQueue deleteQueue@(DeleteQueue queue) =
             cellContents <- inspectCell cell
             case cellContents of
                Nothing -> isEmptyQueue (DeleteQueue queue2)
-               Just _ -> 
-                  return (Just (DeleteQueue (insertAtEndQ queue2 cell))) 
+               Just _ ->
+                  return (Just (DeleteQueue (insertAtEndQ queue2 cell)))
 
 removeQueue :: DeleteQueue v -> IO (Maybe (v,DeleteQueue v,DeleteQueue v))
 removeQueue (DeleteQueue queue) =
@@ -76,7 +76,7 @@ removeQueue (DeleteQueue queue) =
             vOpt <- inspectCell cell
             case vOpt of
                Nothing -> removeQueue (DeleteQueue queue2)
-               Just v -> 
+               Just v ->
                   return (Just(v,DeleteQueue queue2,
                      DeleteQueue(insertAtEndQ queue2 cell)))
 

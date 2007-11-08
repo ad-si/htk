@@ -8,18 +8,18 @@ import Spawn
 main =
   do
      chan <- newRegexChannel
-     let 
+     let
         sendStr str = sync(sendString chan str)
         sendStr1 str = sync(noWait(sendString chan str))
         readLines =
            do
-              line <- getLine 
+              line <- getLine
               sendStr line
               readLines
         puts str = always (putStrLn str)
-        mE str = matchEvent str chan 
+        mE str = matchEvent str chan
         mA = matchAny chan
- 
+
         readFoos =
               (do
                  mE "quit"
@@ -51,7 +51,7 @@ main =
                  puts ("Read "++str)
                  readFoos
                )
-         
+
         readAny =
            do
                do
@@ -59,7 +59,7 @@ main =
                  puts ("Read "++str)
                  readAny
 
-                         
+
      sendStr1 "foo"
      sendStr1 "bar"
      sendStr1 "baz"

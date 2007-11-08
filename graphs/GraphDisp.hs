@@ -1,6 +1,6 @@
 -- |
 -- Description: Basic Interface for Graph Display
--- 
+--
 -- In UniForM we need ways of displaying typed directed graphs.
 -- In the original UniForM, it was only possible to use the DaVinci
 -- encapsulation for displaying directed graphs.  While this is very good,
@@ -13,20 +13,20 @@
 --     folders.
 -- In this module we present the classes that any such \"graph-drawing package\"
 -- is supposed to implement.
--- 
--- This module is in two parts.  
--- 
+--
+-- This module is in two parts.
+--
 -- The first part contains the
 -- \"user-friendly\" versions of the functions.  For these, it is assumed
--- (as will usually be the case) that there is only one 
+-- (as will usually be the case) that there is only one
 -- node\/nodeType\/arc\/arcType around for a particular graph.  The whole lot
 -- is indexed by the GraphAll, which contains ALL the functionality
 -- required for accessing the graphs (apart from configuration options).
 -- For example, the only daVinci-specific thing you should need to use
 -- to write a program which calls daVinci will be the daVinciSort variable.
--- 
--- The second part contains the \"user-hateful\" versions.  All the 
--- user-hateful functions have names ending in \"Prim\". 
+--
+-- The second part contains the \"user-hateful\" versions.  All the
+-- user-hateful functions have names ending in \"Prim\".
 -- Graph display implementations only have to implement the user-hateful
 -- versions.  The user-hateful versions should only be of interest to other
 -- people if the graph display provides more than one implementation of
@@ -34,25 +34,25 @@
 -- disadvantage to the user of using the user-hateful versions of the
 -- functions is that because of all the overloading, you have to put
 -- in lots of explicit types, or else get the most hideous type errors.
--- 
+--
 -- Configuring things like graph titles, shape of node boxes, menus,
 -- and so on should also be implemented, where possible, by graph display
 -- interfaces.  The various options are documented in GraphConfigure.hs.
 -- They should be applied using the Computation.HasConfig interface.
--- 
+--
 -- The types which are supposed in various combinations to be instances
 -- of the classes are as follows:
--- 
+--
 --    graph.  This corresponds to one graph display.
 --    graphConfig.  This is configuration information for a graph.
 --       This might be a window title or size for example.
 --    graphParms.  This is a collection of graphConfig's used to
---       construct a graph.  
--- 
+--       construct a graph.
+--
 -- Nodes and arcs carry values.  Thus all the following carry
 -- a type parameter.  But, for ease of implementation with, for example,
 -- DaVinci, the type parameter is required to be an instance of 'Typeable'.
--- 
+--
 -- *   node.  A value of this type is an actual node in a graph.
 --       (Will be an instance of 'Typeable' via 'Typeable1'.)
 --
@@ -60,7 +60,7 @@
 --       is a Haskell value of type nodetype.  In fact a graph might
 --       conceivably have multiply Haskell types corresponding to node
 --       and nodeType, meaning that nodes, or their UniForM types,
---       will be distinguished additionally by the Haskell type system. 
+--       will be distinguished additionally by the Haskell type system.
 --
 -- *   nodeTypeConfig.  Configuration information for a nodeType.
 --       This might include how a node with this type is to be displayed
@@ -69,29 +69,29 @@
 --
 -- *   nodeTypeParms.  A collection of nodeTypeConfig's used to construct
 --       a nodeType
--- 
+--
 --    Similar constructions for arcs . . .
 --    arc.
 --    arcType.
 --    arcTypeConfig.
 --    arcTypeParms.
--- 
--- 
+--
+--
 -- There are quite a lot of classes.  This is partly because of the need
 -- to have a separate class for each subset of the type variables
 -- which is actually used in the type of a function.
--- 
+--
 -- This file is fairly repetitive, mainly because of the need to
 -- repeat the configuration machinery over and over again.
--- 
+--
 -- The functionality provided in this file is inspired by that
 -- provided by DaVinci.  However we extend it by allowing
 -- nodes to have labels.
--- 
+--
 -- This file should be read in conjunction with "GraphConfigure",
 -- which contains various configuration options to be used for
 -- graph objects.
--- 
+--
 -- Additional Notes
 -- ----------------
 --
@@ -115,11 +115,11 @@ module GraphDisp(
    newGraph,    -- :: Graph ... -> graphParms
       -- The argument to newGraph is just there to provide the types
       -- and isn't looked at.  Each implementation will provide a trivial
-      -- one to start off with; for daVinci it is daVinciSort. 
+      -- one to start off with; for daVinci it is daVinciSort.
                 --    -> IO (Graph ...)
    redraw,      -- :: Graph ... -> IO ()
 
-   getMultipleNodes, 
+   getMultipleNodes,
       -- :: Graph ... ->  (Event (WrappedNode node) -> IO a) -> IO a
 
    GraphParms(emptyGraphParms),
@@ -131,26 +131,26 @@ module GraphDisp(
    getNodeValue, -- :: Graph ... -> node value -> IO value
    setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
       -- WARNING.  setNodeValue should not be used with nodes with
-      -- types which specify ValueTitleSource, as the results are 
+      -- types which specify ValueTitleSource, as the results are
       -- undefined.
    newNodeType,  -- :: Graph ... -> nodeTypeParms value -> IO (nodeType value)
    NodeTypeParms(..),
 
-   newArc,      -- :: Graph ... -> arcType value -> value 
+   newArc,      -- :: Graph ... -> arcType value -> value
                 --    -> node nodeFromValue -> node nodeToValue
                 --    -> IO (arc value)
 
    WrappedNode(..),
    newArcListDrawer,
                 -- :: Graph .. -> node nodeFromValue
-                -- -> ListDrawer (arcType value,value,WrappedNode node) 
+                -- -> ListDrawer (arcType value,value,WrappedNode node)
                 --    (arc value)
 
-   deleteArc,   -- :: Graph ... -> arc value 
+   deleteArc,   -- :: Graph ... -> arc value
                 --    -> IO ()
    setArcValue, -- :: Graph ... -> arc value
                 --    -> value -> IO ()
-   setArcType,  -- :: Graph ... -> arc value -> value -> IO () 
+   setArcType,  -- :: Graph ... -> arc value -> value -> IO ()
       -- WARNING.  For daVinci at least, this function is not currently
       -- implemented
    getArcValue, -- :: Graph ... -> arc value
@@ -161,7 +161,7 @@ module GraphDisp(
    Eq1(..),Ord1(..), -- Classes with nodes and arcs should instance,
       -- allowing comparisongs on them.
 
-   -- * User-Hateful Interface  
+   -- * User-Hateful Interface
    -- | This is only needed
    -- by people wanting to implement new implementations of the interface.
    GraphAll(displaySort),
@@ -207,28 +207,28 @@ import Destructible
 -- get you started.  For example, for daVinci this is called 'daVinciSort'.
 -- However you then need to use it as an argument to 'newGraph' to construct
 -- the actual graph.
-newtype 
-   GraphAll graph graphParms node nodeType nodeTypeParms arc arcType 
-      arcTypeParms 
-   => Graph graph graphParms node nodeType nodeTypeParms arc arcType 
+newtype
+   GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
+      arcTypeParms
+   => Graph graph graphParms node nodeType nodeTypeParms arc arcType
       arcTypeParms
    = Graph graph deriving (Eq,Ord)
 
 
 instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
-   arcTypeParms) 
+   arcTypeParms)
    => Destroyable (Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms) where
    destroy (Graph graph) = destroy graph
 
 instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
-   arcTypeParms) 
+   arcTypeParms)
    => Destructible (Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms) where
    destroyed (Graph graph) = destroyed graph
 
 instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
-   arcTypeParms) 
+   arcTypeParms)
    => HasDelayer (Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms) where
    toDelayer (Graph graph) = toDelayer graph
@@ -236,27 +236,27 @@ instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
 -- | Construct a new graph.  The input value will be something like
 -- "DaVinciGraph"'s value 'daVinciSort'; the resulting graph will be
 -- returned.
-newGraph :: (GraphAll graph graphParms node nodeType nodeTypeParms arc 
-   arcType arcTypeParms) => 
+newGraph :: (GraphAll graph graphParms node nodeType nodeTypeParms arc
+   arcType arcTypeParms) =>
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType
       arcTypeParms) ->
    graphParms
-   -> IO (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
+   -> IO (Graph graph graphParms node nodeType nodeTypeParms arc arcType
          arcTypeParms)
-newGraph 
+newGraph
    (_::(Graph graph graphParms node nodeType nodeTypeParms
-      arc arcType arcTypeParms)) 
+      arc arcType arcTypeParms))
    (graphParms :: graphParms) =
    do
       (graph :: graph) <- newGraphPrim graphParms
-      return (Graph graph :: 
-         Graph graph graphParms node nodeType nodeTypeParms arc arcType 
+      return (Graph graph ::
+         Graph graph graphParms node nodeType nodeTypeParms arc arcType
          arcTypeParms)
 
 -- | Redraw the graph.  This is needed when you want to show updates.
-redraw :: (GraphAll graph graphParms node nodeType nodeTypeParms arc 
+redraw :: (GraphAll graph graphParms node nodeType nodeTypeParms arc
    arcType arcTypeParms) =>
-   (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
+   (Graph graph graphParms node nodeType nodeTypeParms arc arcType
       arcTypeParms)
    -> IO ()
 redraw (Graph graph) = redrawPrim graph
@@ -265,9 +265,9 @@ redraw (Graph graph) = redrawPrim graph
 -- action, supplying it with an event which is activated when the user
 -- double-clicks a node.  This is helpful when you need an interaction
 -- selecting several nodes.
-getMultipleNodes :: (GraphAll graph graphParms node nodeType nodeTypeParms arc 
+getMultipleNodes :: (GraphAll graph graphParms node nodeType nodeTypeParms arc
    arcType arcTypeParms) =>
-   (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
+   (Graph graph graphParms node nodeType nodeTypeParms arc arcType
       arcTypeParms)
    -> (Event (WrappedNode node) -> IO a) -> IO a
 getMultipleNodes (Graph graph) = getMultipleNodesPrim graph
@@ -278,56 +278,56 @@ class GraphParms graphParms where
 -- Nodes
 
 -- | construct a new node.
-newNode :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-              arc arcType arcTypeParms,Typeable value) => 
+newNode :: (GraphAll graph graphParms node nodeType nodeTypeParms
+              arc arcType arcTypeParms,Typeable value) =>
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms)
    -> nodeType value -> value -> IO (node value)
-newNode 
-   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+newNode
+   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms))
-   (nodeType :: nodeType value) 
+   (nodeType :: nodeType value)
    (value :: value) = (newNodePrim graph nodeType value) :: IO (node value)
 
 -- | set a node's type
-setNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-              arc arcType arcTypeParms,Typeable value) => 
+setNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms
+              arc arcType arcTypeParms,Typeable value) =>
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms)
    -> node value -> nodeType value -> IO ()
 setNodeType
-   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms))
-   (node :: node value) 
-   (nodeType :: nodeType value) 
+   (node :: node value)
+   (nodeType :: nodeType value)
       = (setNodeTypePrim graph node nodeType) :: IO ()
 
 
 -- | delete a node
-deleteNode :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                 arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+deleteNode :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                 arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    -> node value -> IO ()
-deleteNode 
-   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+deleteNode
+   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms))
    (node :: node value) = deleteNodePrim graph node
 
-setNodeFocus :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                 arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+setNodeFocus :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                 arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    -> node value -> IO ()
 setNodeFocus
-   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms))
    (node :: node value) = setNodeFocusPrim graph node
 
 
 
 -- | get the value associated with a node
-getNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                   arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+getNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                   arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    -> node value -> IO value
 getNodeValue
@@ -336,9 +336,9 @@ getNodeValue
    (node :: node value) = getNodeValuePrim graph node
 
 -- | set the value associated with a node.
-setNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                   arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+setNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                   arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    -> node value -> value -> IO ()
 setNodeValue
@@ -347,36 +347,36 @@ setNodeValue
    (node :: node value) value = setNodeValuePrim graph node value
 
 -- | construct a node type.
-newNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                  arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
+newNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                  arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms arc arcType
       arcTypeParms)
    -> nodeTypeParms value -> IO (nodeType value)
 newNodeType
    ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms
       arc  arcType arcTypeParms))
-   (nodeTypeParms :: nodeTypeParms value) = 
+   (nodeTypeParms :: nodeTypeParms value) =
       (newNodeTypePrim graph nodeTypeParms) :: IO (nodeType value)
 
 class NodeTypeParms nodeTypeParms where
    emptyNodeTypeParms :: Typeable value =>
       nodeTypeParms value
 
-   coMapNodeTypeParms :: (Typeable value1,Typeable value2) => 
+   coMapNodeTypeParms :: (Typeable value1,Typeable value2) =>
       (value2 -> value1) -> nodeTypeParms value1 -> nodeTypeParms value2
 
 -- Arcs
 
 -- | construct a new arc.
-newArc :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+newArc :: (GraphAll graph graphParms node nodeType nodeTypeParms
              arc arcType arcTypeParms,
-             Typeable value,Typeable nodeFromValue,Typeable nodeToValue) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+             Typeable value,Typeable nodeFromValue,Typeable nodeToValue) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    -> arcType value -> value -> node nodeFromValue -> node nodeToValue
-   -> IO (arc value)  
+   -> IO (arc value)
 newArc
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms 
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    (arcType :: arcType value)
    (value :: value)
@@ -388,69 +388,69 @@ newArc
 -- of drawing ordered sets of out-arcs from that node.
 -- (NB.  At the moment daVinci does not do this properly, but that is
 -- daVinci's fault, not mine.)
-newArcListDrawer :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+newArcListDrawer :: (GraphAll graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms,
       Typeable value,Typeable nodeFromValue)
-  => (Graph graph graphParms node nodeType nodeTypeParms 
+  => (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
   -> node nodeFromValue
   -> ListDrawer (arcType value,value,WrappedNode node) (arc value)
-newArcListDrawer 
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms 
+newArcListDrawer
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    (nodeFrom :: node nodeFromValue) =
-   (newArcListDrawerPrim graph nodeFrom) 
+   (newArcListDrawerPrim graph nodeFrom)
 --      :: (ListDrawer (arcType value,value,WrappedNode node) (arc value))
 
 -- | delete an arc
-deleteArc :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+deleteArc :: (GraphAll graph graphParms node nodeType nodeTypeParms
                 arc arcType arcTypeParms,
-                Typeable value)=> 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+                Typeable value)=>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms) ->  arc value -> IO ()
-deleteArc 
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+deleteArc
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms)
    (arc :: arc value) = deleteArcPrim graph arc
 
 -- | set the value associated with an arc
-setArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                  arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+setArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                  arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms) -> arc value -> value -> IO ()
 setArcValue
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms)
    (arc :: arc value) (value :: value) = setArcValuePrim graph arc value
 
-setArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                  arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+setArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                  arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms) -> arc value -> arcType value -> IO ()
 setArcType
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms)
-   (arc :: arc value) (arcType :: arcType value) 
+   (arc :: arc value) (arcType :: arcType value)
       = setArcTypePrim graph arc arcType
 
 -- | get the value associated with an arc
-getArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                  arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
+getArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms
+                  arc arcType arcTypeParms,Typeable value) =>
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms) -> arc value -> IO value
 getArcValue
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms)
-   (arc :: arc value) = getArcValuePrim graph arc 
+   (arc :: arc value) = getArcValuePrim graph arc
 
 -- | create a new arc type
-newArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+newArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms
                  arc arcType arcTypeParms,Typeable value) =>
-   (Graph graph graphParms node nodeType nodeTypeParms 
+   (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms) ->
    arcTypeParms value -> IO (arcType value)
 newArcType
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms)
    (arcTypeParms :: arcTypeParms value) =
       (newArcTypePrim graph arcTypeParms) :: IO (arcType value)
@@ -463,7 +463,7 @@ class ArcTypeParms arcTypeParms where
    -- is for now undefined.
    invisibleArcTypeParms :: Typeable value => arcTypeParms value
 
-   coMapArcTypeParms :: (Typeable value1,Typeable value2) => 
+   coMapArcTypeParms :: (Typeable value1,Typeable value2) =>
       (value2 -> value1) -> arcTypeParms value1 -> arcTypeParms value2
 
 ------------------------------------------------------------------------
@@ -472,7 +472,7 @@ class ArcTypeParms arcTypeParms where
 
 -- The GraphAll class indicates that a set of types have the complete
 -- graph-displaying functionality we need.
--- 
+--
 class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,SetNodeFocus graph node,
    NodeClass node,Typeable1 node,NodeTypeClass nodeType,
@@ -482,16 +482,16 @@ class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    DeleteArc graph arc,
    ArcClass arc,Typeable1 arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
-   ) => 
-   GraphAll graph graphParms node nodeType nodeTypeParms 
+   ) =>
+   GraphAll graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms where
 
    displaySort :: Graph graph graphParms node nodeType nodeTypeParms
-      arc arcType arcTypeParms 
+      arc arcType arcTypeParms
    -- displaySort is a parameter which can be passed to something
    -- which produces graphs and displays them, to indicate what
    -- types we are using.  The only definition of it is about to
-   -- be given . . .   
+   -- be given . . .
 
 instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,SetNodeFocus graph node,
@@ -502,8 +502,8 @@ instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    DeleteArc graph arc,
    ArcClass arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
-   ) => 
-   GraphAll graph graphParms node nodeType nodeTypeParms 
+   ) =>
+   GraphAll graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms where
 
    displaySort = displaySort
@@ -512,7 +512,7 @@ instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
 -- Graphs
 ------------------------------------------------------------------------
 
-class (Destructible graph,Ord graph,Typeable graph,HasDelayer graph) 
+class (Destructible graph,Ord graph,Typeable graph,HasDelayer graph)
       => GraphClass graph where
    redrawPrim :: graph -> IO ()
    -- done after updates have been added
@@ -521,12 +521,12 @@ class (Destructible graph,Ord graph,Typeable graph,HasDelayer graph)
    -- (For daVinci the situation is that redraw actions currently have to
    -- be forced anyway when attributes are changed.)
 
-class (GraphClass graph,GraphParms graphParms) 
+class (GraphClass graph,GraphParms graphParms)
    => NewGraph graph graphParms where
    newGraphPrim :: graphParms -> IO graph
 
 class GraphConfig graphConfig
--- empty to prevent just anything being usable for the graphConfig 
+-- empty to prevent just anything being usable for the graphConfig
 -- function.
 
 ------------------------------------------------------------------------
@@ -535,9 +535,9 @@ class GraphConfig graphConfig
 
 class (GraphClass graph,NodeClass node,NodeTypeClass nodeType) =>
       NewNode graph node nodeType where
-   newNodePrim :: Typeable value => 
+   newNodePrim :: Typeable value =>
       graph -> nodeType value -> value -> IO (node value)
-   setNodeTypePrim :: Typeable value => 
+   setNodeTypePrim :: Typeable value =>
       graph -> node value -> nodeType value -> IO ()
 
 class (GraphClass graph,NodeClass node) =>
@@ -550,7 +550,7 @@ class (GraphClass graph,NodeClass node) =>
       graph -> node value -> value -> IO ()
 
       -- WARNING.  setNodeValuePrim should not be used with nodes with
-      -- types which specify ValueTitleSource, as the results are 
+      -- types which specify ValueTitleSource, as the results are
       -- undefined.
 
    getMultipleNodesPrim :: graph -> (Event (WrappedNode node) -> IO a) -> IO a
@@ -576,10 +576,10 @@ class Typeable1 nodeType => NodeTypeClass nodeType
 class (GraphClass graph,NodeTypeClass nodeType,NodeTypeParms nodeTypeParms)
    => NewNodeType graph nodeType nodeTypeParms where
    newNodeTypePrim :: Typeable value =>
-      graph -> nodeTypeParms value -> IO (nodeType value)   
+      graph -> nodeTypeParms value -> IO (nodeType value)
 
 class Kind1 nodeTypeConfig => NodeTypeConfig nodeTypeConfig
--- empty to prevent just anything being usable for the nodeTypeConfig 
+-- empty to prevent just anything being usable for the nodeTypeConfig
 -- function.
 
 ------------------------------------------------------------------------
@@ -587,23 +587,23 @@ class Kind1 nodeTypeConfig => NodeTypeConfig nodeTypeConfig
 ------------------------------------------------------------------------
 
 class (GraphClass graph,NodeClass nodeFrom,NodeClass nodeTo,ArcClass arc,
-      ArcTypeClass arcType) 
+      ArcTypeClass arcType)
    => NewArc graph nodeFrom nodeTo arc arcType where
-   newArcPrim :: 
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
-      => graph -> arcType value -> value 
+   newArcPrim ::
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue)
+      => graph -> arcType value -> value
       -> nodeFrom nodeFromValue -> nodeTo nodeToValue
       -> IO (arc value)
    newArcListDrawerPrim ::
       (Typeable value,Typeable nodeFromValue)
-      => graph -> nodeFrom nodeFromValue 
+      => graph -> nodeFrom nodeFromValue
       -> ListDrawer (arcType value,value,WrappedNode nodeTo) (arc value)
 
 class (ArcClass arc,ArcTypeClass arcType) => SetArcType graph arc arcType where
-   setArcTypePrim :: 
-      Typeable value => graph -> arc value -> arcType value -> IO () 
+   setArcTypePrim ::
+      Typeable value => graph -> arc value -> arcType value -> IO ()
 
-data WrappedNode node = forall value . Typeable value 
+data WrappedNode node = forall value . Typeable value
    => WrappedNode (node value)
 
 class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
@@ -617,17 +617,17 @@ class (Typeable1 arcType,Ord1 arcType) => ArcTypeClass arcType where
    -- This is a special arc type which stops the arc being drawn at all.
    invisibleArcType :: Typeable value => arcType value
 
-class (GraphClass graph,ArcTypeClass arcType,ArcTypeParms arcTypeParms) => 
+class (GraphClass graph,ArcTypeClass arcType,ArcTypeParms arcTypeParms) =>
       NewArcType graph arcType arcTypeParms where
    newArcTypePrim :: Typeable value =>
-      graph -> arcTypeParms value -> IO (arcType value)  
+      graph -> arcTypeParms value -> IO (arcType value)
 
 class Kind1 arcTypeConfig => ArcTypeConfig arcTypeConfig
 
 ------------------------------------------------------------------------
--- The Kind* classes are a silly hack so that we 
+-- The Kind* classes are a silly hack so that we
 -- can define empty classes of things which take a fixed number of
--- type parameters.  
+-- type parameters.
 ------------------------------------------------------------------------
 
 class Kind1 takesParm where

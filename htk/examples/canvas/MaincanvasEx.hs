@@ -41,13 +41,13 @@ main =
     finishHTk
 
 putRects cnv = mapM (putRect cnv) [("red", (cm 0.2, cm 4)),
-			           ("green", (cm 2.2, cm 4)),
-		                   ("blue", (cm 4.2, cm 4))]
+                                   ("green", (cm 2.2, cm 4)),
+                                   ("blue", (cm 4.2, cm 4))]
 
 putRect cnv (col, pos) =
   do
     rect <- createRectangle cnv [size(cm 1, cm 1), position pos,
-			         outline "black", filling col]
+                                 outline "black", filling col]
     (move, _) <- bind rect [WishEvent [Button1] Motion]
     let moveRectangle :: Rectangle -> Position -> Event ()
         moveRectangle rect (x0, y0) =

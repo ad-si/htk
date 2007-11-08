@@ -18,14 +18,14 @@ import Network
 
 
 main :: IO ()
-main = 
+main =
 --      user <- textQuery "User?"
 --      password <- textQuery "Password?"
    do
       parseArgumentsRequiring ["couplingPort"]
       port <- getCouplingPort
       serverOpt <- getServer
-      handle <- connectTo (fromMaybe "localhost" serverOpt) 
+      handle <- connectTo (fromMaybe "localhost" serverOpt)
          (PortNumber (fromIntegral port))
       serverOpt <- getServer
       hSetBuffering handle LineBuffering
@@ -61,7 +61,7 @@ display handle =
   do
       block <- readBlock handle
       let
-         (Just (BlockData {blockType = 0,blockText = icsl})) 
+         (Just (BlockData {blockType = 0,blockText = icsl}))
             = lookupBlockData block 0
       putStr (toString icsl)
       hFlush stdout
@@ -72,13 +72,13 @@ sendIn  handle =
    do
       line <- getLine
       let
-         (block,0) = addBlockData emptyBlock 
+         (block,0) = addBlockData emptyBlock
             (BlockData {blockType = 0,blockText = fromString line})
       writeBlock handle block
       hFlush handle
       sendIn handle
 --}
- 
+
 {--
 readString :: Handle -> IO (WithError String)
 readString = hReadLtd (maxLen + 1)
@@ -112,7 +112,7 @@ display handle =
    do
       block <- hGetLine handle
 --      let
---         (Just (BlockData {blockType = 0,blockText = icsl})) 
+--         (Just (BlockData {blockType = 0,blockText = icsl}))
 --            = lookupBlockData block 0
 --      putStr (toString icsl)
       putStrLn block
@@ -124,7 +124,7 @@ sendIn  handle =
    do
       line <- getLine
 --      let
---         (block,0) = addBlockData emptyBlock 
+--         (block,0) = addBlockData emptyBlock
 --            (BlockData {blockType = 0,blockText = fromString line})
 --      writeBlock handle block
       hPutStrLn handle line

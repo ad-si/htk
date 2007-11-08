@@ -1,15 +1,15 @@
--- | This is the module that defines the ObjectTypes and HasMerging 
--- instance of MMiSSObjectType. 
--- 
+-- | This is the module that defines the ObjectTypes and HasMerging
+-- instance of MMiSSObjectType.
+--
 -- (Really this should be two modules; it is one because GHC's rules of
--- separating recursive modules would make any alternative too tricky.) 
+-- separating recursive modules would make any alternative too tricky.)
 module MMiSSObjectTypeInstance(
    unpackWrappedLinkToMMiSSObject,
    newEmptyLinkMMiSSObject,
    wrapMMiSSObjectLink, -- :: Link MMiSSObject -> WrappedLink
    linkToLinkedObjectMMiSSObject,
       -- :: View -> Link MMiSSObject -> IO LinkedObject
-   lookupMMiSSObject, 
+   lookupMMiSSObject,
       -- :: View -> MMiSSPackageFolder -> EntitySearchName
       -- -> IO (WithError (Maybe (Link MMiSSObject)))
    ) where
@@ -94,12 +94,12 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 
          let
 {- currently not used
-            openAction link = 
+            openAction link =
                do
                   object <- readLink view link
                   openBlocker (extraNodes object) blockID
 
-            closeAction link = 
+            closeAction link =
                do
                   object <- readLink view link
                   closeBlocker (extraNodes object) blockID
@@ -142,7 +142,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   editOptions = [
                      Button "Edit Object as LaTeX"
                         (\ link -> editMMiSSObjectLaTeX view link),
-                     Button "Select Variants" 
+                     Button "Select Variants"
                         (\ link -> editObjectAttributes view link),
                      Button "Display Variants"
                         (\ link ->
@@ -159,12 +159,12 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      Button "Check consistency"
                         (\ link -> mmissCheck view link),
                      Button "Present in ActiveMath"
-		        (\ link -> mmiss2AM view link),
+                        (\ link -> mmiss2AM view link),
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
                      Button "Delete" (deleteObject view)
                      ]
-                     ++ permissionsMenu view 
+                     ++ permissionsMenu view
 
                   menu = LocalMenu (Menu Nothing editOptions)
 
@@ -178,8 +178,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 
                            borderSource :: SimpleSource Border
                            borderSource = fmap
-                              (\ isEdited -> 
-                                 if isEdited 
+                              (\ isEdited ->
+                                 if isEdited
                                     then
                                        DoubleBorder
                                     else
@@ -209,20 +209,20 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 
                      objectLinks1 :: VariableList (WrappedLink,ArcType)
                      objectLinks1 = newVariableListFromList objectLinks0
-                     
+
                      fileLinks0 :: SimpleSource [String]
                      fileLinks0 =
                         do
-                           cache <- toVariantObjectCache 
+                           cache <- toVariantObjectCache
                               (variantObject mmissObject)
-                           return (fromWithError1 [] 
+                           return (fromWithError1 []
                               (getFiles (cacheElement cache)))
 
                      fileLinks1 :: SimpleSource [EntityFullName]
                      fileLinks1 = fmap
-                        (\ nameStrs -> 
+                        (\ nameStrs ->
                            mapMaybe
-                              (\ nameStr -> 
+                              (\ nameStr ->
                                  case fromWithError (fromStringWE nameStr) of
                                     Left _ -> Nothing
                                     Right name -> Just name
@@ -231,9 +231,9 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                            )
                         fileLinks0
 
-                     packageFolderLinkWE 
+                     packageFolderLinkWE
                         :: SimpleSource (WithError MMiSSPackageFolder)
-                     packageFolderLinkWE 
+                     packageFolderLinkWE
                         = toMMiSSPackageFolder view mmissObject
 
                      fileLinks2 :: SimpleSource [(WrappedLink,ArcType)]
@@ -257,20 +257,20 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                                              String)]])
                                           <- mapM
                                              (\ fileLink ->
-                                                findMMiSSFilesInRepository 
-                                                   packageLinkedObject 
+                                                findMMiSSFilesInRepository
+                                                   packageLinkedObject
                                                    fileLink
                                                 )
                                              fileLinks
                                        let
                                           allFound1 :: [Link MMiSSFile]
-                                          allFound1 = map 
+                                          allFound1 = map
                                              (\ (link,_,_) -> link)
                                              (concat found)
 
                                           allFound2 :: [(WrappedLink,ArcType)]
-                                          allFound2 = map 
-                                             (\ link -> 
+                                          allFound2 = map
+                                             (\ link ->
                                                 (WrappedLink link,fileArcType))
                                              (uniqOrd allFound1)
 
@@ -286,7 +286,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      objectFileLinks1 = catVariableLists
                         objectLinks1 fileLinks3
 
-                     objectFileLinks2 
+                     objectFileLinks2
                         :: VariableList (ArcData WrappedLink ArcType)
                      objectFileLinks2 = fmap
                         (\ (wrappedLink,arcType) ->
@@ -305,7 +305,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 
                   return allLinks
 
-         return (case getNodeTypeParms wrappedDisplayType 
+         return (case getNodeTypeParms wrappedDisplayType
                (displayParms objectType) of
             Nothing -> Nothing
             Just nodeTypeParms ->
@@ -340,15 +340,15 @@ globalRegistry = System.IO.Unsafe.unsafePerformIO createGlobalRegistry
 
 instance HasMerging MMiSSObject where
 
-   getMergeLinks = 
+   getMergeLinks =
       let
-         fn :: View -> Link MMiSSObject 
+         fn :: View -> Link MMiSSObject
             -> IO (ObjectLinks (MMiSSVariants,CacheContentsMergeKey))
          fn view link =
             do
                object <- readLink view link
                variantObjectObjectLinks
-                  (\ variable -> 
+                  (\ variable ->
                      return (ObjectLinks [
                         (WrappedMergeLink (element variable),Element)])
                      )
@@ -390,7 +390,7 @@ instance HasMerging MMiSSObject where
             -- (2) Merge linked objects
             linkedObject1WE <- attemptLinkedObjectMerge
                linkReAssigner newView newLink
-                  (map 
+                  (map
                      (\ (view,link,folder) -> (view,toLinkedObject folder))
                      vlos1
                      )
@@ -399,13 +399,13 @@ instance HasMerging MMiSSObject where
 
             -- (3) Merge dictionaries
             let
-               -- This is the function passed to 
+               -- This is the function passed to
                -- MMiSSVariantObject.attemptMergeVariantObject.
                reAssign :: View -> Variable -> IO Variable
                reAssign oldView variable =
                   do
                      let
-                        element1 
+                        element1
                            = mapLink linkReAssigner oldView (element variable)
                      editLock1 <- newBSem
                      let
@@ -423,7 +423,7 @@ instance HasMerging MMiSSObject where
             canClone <- case vlosRest of
                [] ->
                   do
-                     linkedsSame <- linkedObjectsSame linkedObject1 
+                     linkedsSame <- linkedObjectsSame linkedObject1
                         (toLinkedObject headObject)
                      if linkedsSame
                         then
@@ -434,8 +434,8 @@ instance HasMerging MMiSSObject where
                               return variantsSame
                          else
                             return False
-               _ -> return False 
-                            
+               _ -> return False
+
 
             if canClone
                then
@@ -443,7 +443,7 @@ instance HasMerging MMiSSObject where
                else
                   do
                      -- (4) Create the object, and put it in the view.
-                     mmissObject1 <- createMMiSSObject 
+                     mmissObject1 <- createMMiSSObject
                         mmissObjectType1 linkedObject1 variantObject1
 
                      setLink newView mmissObject1 newLink
@@ -515,7 +515,7 @@ instance HasBundleNodeData MMiSSObject where
                allObjectVariants
          return (MMiSSBundle.Object variants)
 
-   getBundleNodeDataForVariant = error 
+   getBundleNodeDataForVariant = error
       ("Don't use getBundleNodeDataForVariant for objects; use "
          ++ "exportMMiSSObjectVariant instead, which also handles ExportFiles")
 
@@ -541,9 +541,9 @@ linkToLinkedObjectMMiSSObject view link =
       return (toLinkedObject object)
 
 
-lookupMMiSSObject 
+lookupMMiSSObject
    :: View -> MMiSSPackageFolder -> EntitySearchName
    -> IO (WithError (Maybe (Link MMiSSObject)))
-lookupMMiSSObject view packageFolder searchName 
+lookupMMiSSObject view packageFolder searchName
    = lookupObject view (toLinkedObject packageFolder) searchName
 

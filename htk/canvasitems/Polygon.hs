@@ -31,9 +31,9 @@ newtype Polygon = Polygon GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new polygon item.
-createPolygon :: Canvas 
+createPolygon :: Canvas
    -- ^ the parent canvas.
-   -> [Config Polygon] 
+   -> [Config Polygon]
    -- ^ the list of configuration options for this polygon
    -- item.
    -> IO Polygon
@@ -47,7 +47,7 @@ createPolygon cnv cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Polygon where 
+instance GUIObject Polygon where
   toGUIObject (Polygon w) = w
   cname _ = "Polygon"
 

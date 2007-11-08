@@ -1,17 +1,17 @@
 module GUIValue (
         Generator(..),
 
-        GUIVALUE(..), 
-        GUIValue(..), 
+        GUIVALUE(..),
+        GUIValue(..),
 
         RawData(..),
 
         TkCommand(..),
 
         creadTk,
-	toTkString,
-	escapeString,
-	delimitString,
+        toTkString,
+        escapeString,
+        delimitString,
 
         illegalGUIValue
         ) where
@@ -30,7 +30,7 @@ data Generator = HaskellTk | Tk
 
 
 -- --------------------------------------------------------------------------
---  Value Conversions 
+--  Value Conversions
 -- --------------------------------------------------------------------------
 
 class (Show a, Read a) => GUIValue a where
@@ -40,20 +40,20 @@ class (Show a, Read a) => GUIValue a where
         fromGUIValue                    :: GUIVALUE -> a
         toGUIValue v                     =
                 GUIVALUE HaskellTk (toTkString (show v))
-        maybeGUIValue (GUIVALUE HaskellTk s)     = 
+        maybeGUIValue (GUIVALUE HaskellTk s)     =
                 case [x | (x,t) <- reads (fromTkString s), ("","") <- lex t] of
                         [x] -> Just x
-                        _   -> Nothing  
-        maybeGUIValue (GUIVALUE Tk s)    = 
+                        _   -> Nothing
+        maybeGUIValue (GUIVALUE Tk s)    =
                 case [x | (x,t) <- reads s, ("","") <- lex t] of
                         [x] -> Just x
-                        _   -> Nothing  
+                        _   -> Nothing
 
         fromGUIValue val = case (maybeGUIValue val) of (Just a) -> a
 
 
 creadTk :: GUIValue a => String -> IO a
-creadTk s = 
+creadTk s =
         case maybeGUIValue (GUIVALUE Tk (restoreNL s)) of
 --                Nothing -> return cdefault
                 Nothing ->  do {
@@ -79,7 +79,7 @@ instance GUIValue GUIVALUE where
         cdefault        = GUIVALUE HaskellTk ""
         toGUIValue      = id
         maybeGUIValue   = Just . id
- 
+
 instance Read GUIVALUE where
    readsPrec p b =
      case b of
@@ -97,7 +97,7 @@ instance Show GUIVALUE where
 instance GUIValue () where
         cdefault        = ()
         maybeGUIValue _ = Just ()
- 
+
 
 -- --------------------------------------------------------------------------
 -- Raw Data
@@ -113,7 +113,7 @@ instance Show RawData where
 
 instance GUIValue RawData where
         cdefault = RawData ""
-        
+
 
 -- --------------------------------------------------------------------------
 -- String
@@ -123,7 +123,7 @@ instance GUIValue [Char] where
         cdefault = []
         toGUIValue str = GUIVALUE HaskellTk (toTkString str)
         maybeGUIValue (GUIVALUE HaskellTk str) = Just (read (fromTkString str))
-        maybeGUIValue (GUIVALUE Tk str) =  Just str      
+        maybeGUIValue (GUIVALUE Tk str) =  Just str
                 {- tk delivers raw, unquoted strings - great !! -}
 
 
@@ -163,7 +163,7 @@ instance Show TkCommand where
    showsPrec d (TkCommand s) r =  "{" ++ s ++ "}" ++  r
 
 instance Read TkCommand where
-   readsPrec p b  = [(TkCommand cmd,[])] 
+   readsPrec p b  = [(TkCommand cmd,[])]
         where cmd = take (length b - 2) (drop 1 b)
 
 
@@ -243,7 +243,7 @@ quoteChar ch =
       '[' -> "\\["
       ']' -> "\\]"
       ';' -> "\\;"
-      other -> 
+      other ->
          if isPrint ch
             then
                [ch]

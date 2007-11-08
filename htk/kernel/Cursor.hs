@@ -29,7 +29,7 @@ module Cursor (
   tcross,
   watch,
   xterm
-        
+
 ) where
 
 import GUIValue
@@ -98,7 +98,7 @@ instance CursorDesignator (String,Colour,Colour) where
 -- and background colour.
 instance CursorDesignator ([Char],[Char],Colour,Colour) where
   -- Internal.
-  toCursor (bfile,mfile,fg,bg) = 
+  toCursor (bfile,mfile,fg,bg) =
     toCursor (BCursor bfile (Just mfile) fg (Just bg))
 
 
@@ -108,19 +108,19 @@ instance CursorDesignator ([Char],[Char],Colour,Colour) where
 
 -- | A standard X cursor.
 arrow :: Cursor
-arrow = Cursor "arrow" 
+arrow = Cursor "arrow"
 
 -- | A standard X cursor.
 circle :: Cursor
-circle = Cursor "circle" 
+circle = Cursor "circle"
 
 -- | A standard X cursor.
 clock :: Cursor
-clock = Cursor "clock" 
+clock = Cursor "clock"
 
 -- | A standard X cursor.
 diamondCross :: Cursor
-diamondCross = Cursor "diamondcross" 
+diamondCross = Cursor "diamondcross"
 
 -- | A standard X cursor.
 dot :: Cursor
@@ -128,7 +128,7 @@ dot = Cursor "dot"
 
 -- | A standard X cursor.
 drapedBox :: Cursor
-drapedBox = Cursor "drapedbox" 
+drapedBox = Cursor "drapedbox"
 
 -- | A standard X cursor.
 exchange :: Cursor
@@ -140,35 +140,35 @@ fleur = Cursor "fleur"
 
 -- | A standard X cursor.
 gobbler :: Cursor
-gobbler = Cursor "gobbler" 
+gobbler = Cursor "gobbler"
 
 -- | A standard X cursor.
 gumby :: Cursor
-gumby = Cursor "gumby" 
+gumby = Cursor "gumby"
 
 -- | A standard X cursor.
 hand1 :: Cursor
-hand1 = Cursor "hand1" 
+hand1 = Cursor "hand1"
 
 -- | A standard X cursor.
 hand2 :: Cursor
-hand2 = Cursor "hand2" 
+hand2 = Cursor "hand2"
 
 -- | A standard X cursor.
 pencil :: Cursor
-pencil = Cursor "pencil" 
+pencil = Cursor "pencil"
 
 -- | A standard X cursor.
 plus :: Cursor
-plus = Cursor "plus" 
+plus = Cursor "plus"
 
 -- | A standard X cursor.
 spraycan :: Cursor
-spraycan = Cursor "spraycan" 
+spraycan = Cursor "spraycan"
 
 -- | A standard X cursor.
 tcross :: Cursor
-tcross = Cursor "tcross" 
+tcross = Cursor "tcross"
 
 -- | A standard X cursor.
 watch :: Cursor
@@ -180,7 +180,7 @@ xterm = Cursor "xterm"
 
 
 -- -----------------------------------------------------------------------
--- Parsing/Unparsing 
+-- Parsing/Unparsing
 -- -----------------------------------------------------------------------
 
 -- | Internal.
@@ -212,9 +212,9 @@ instance Show XCursor where
    showsPrec d c r = cshow c ++ r
      where
         cshow (XCursor s Nothing Nothing) = s
-        cshow (XCursor s (Just fg) Nothing) = 
+        cshow (XCursor s (Just fg) Nothing) =
                 "{" ++ s ++ " " ++ show fg ++ "}"
-        cshow (XCursor s (Just fg) (Just bg)) = 
+        cshow (XCursor s (Just fg) (Just bg)) =
                 "{" ++ s ++ " " ++ show fg ++ " " ++ show bg ++ "}"
 
 
@@ -227,8 +227,8 @@ instance Show BCursor where
    -- Internal.
    showsPrec d c r = cshow c ++ r
      where
-        cshow (BCursor fname Nothing fg Nothing) = 
+        cshow (BCursor fname Nothing fg Nothing) =
                 "{@" ++ fname ++ " " ++ show fg ++ "}"
-        cshow (BCursor fname (Just bname) fg (Just bg)) = 
-                "{" ++ fname ++ " " ++ bname ++ " " ++ show fg ++ 
+        cshow (BCursor fname (Just bname) fg (Just bg)) =
+                "{" ++ fname ++ " " ++ bname ++ " " ++ show fg ++
                 " " ++ show bg ++ "}"

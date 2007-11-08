@@ -1,5 +1,5 @@
--- | This module defines the state which is preserved for a user during a 
--- session.  It also defines various utilities for manipulating it. 
+-- | This module defines the state which is preserved for a user during a
+-- session.  It also defines various utilities for manipulating it.
 module MMiSSSessionState(
    MMiSSSessionState(..),
    MMiSSSessionStateValue(..),
@@ -11,7 +11,7 @@ module MMiSSSessionState(
    deleteVersionGraph,
       -- :: MMiSSSessionState -> ServerRef -> IO ()
    setServer,
-      -- :: MMiSSSessionState -> Maybe ServerRef -> VersionGraph 
+      -- :: MMiSSSessionState -> Maybe ServerRef -> VersionGraph
       -- -> IO ServerRef
 
    lookupView,
@@ -19,7 +19,7 @@ module MMiSSSessionState(
    deleteView,
       -- :: MMiSSSessionState -> VersionRef -> IO ()
    setView,
-      -- :: MMiSSSessionState -> Maybe VersionRef -> View 
+      -- :: MMiSSSessionState -> Maybe VersionRef -> View
       -- -> IO VersionRef
 
 
@@ -64,7 +64,7 @@ data MMiSSSessionStateValue = MMiSSSessionStateValue {
 -- --------------------------------------------------------------------------
 
 newSessionState :: IO MMiSSSessionState
-newSessionState = 
+newSessionState =
    do
       mVar <- newMVar initialSessionState
       return (MMiSSSessionState mVar)
@@ -72,7 +72,7 @@ newSessionState =
 
 initialSessionState :: MMiSSSessionStateValue
 initialSessionState = MMiSSSessionStateValue {
-   messages = Messages 
+   messages = Messages
       (Messages_Attrs {
          messagesStatus = Default Messages_status_success
          })
@@ -97,7 +97,7 @@ lookupVersionGraph state serverRef =
 
 deleteVersionGraph :: MMiSSSessionState -> ServerRef -> IO ()
 deleteVersionGraph (MMiSSSessionState mVar) serverRef =
-   modifyMVar_ mVar 
+   modifyMVar_ mVar
       (\ state ->
          do
             let
@@ -110,7 +110,7 @@ deleteVersionGraph (MMiSSSessionState mVar) serverRef =
             return (state {servers = servers1})
          )
 
-setServer :: MMiSSSessionState -> Maybe ServerRef -> VersionGraph 
+setServer :: MMiSSSessionState -> Maybe ServerRef -> VersionGraph
    -> IO ServerRef
 setServer (MMiSSSessionState mVar) serverRefOpt versionGraph =
    modifyMVar mVar
@@ -122,7 +122,7 @@ setServer (MMiSSSessionState mVar) serverRefOpt versionGraph =
                   Nothing ->
                      let
                         (serverRef,serverRefSource1) =
-                           newRefGen 
+                           newRefGen
                               (\ str -> ServerRef {serverRefRef = str})
                               (servers state0)
                               (serverRefSource state0)
@@ -137,7 +137,7 @@ setServer (MMiSSSessionState mVar) serverRefOpt versionGraph =
 
             let
                servers1 = addToFM servers0 serverRef versionGraph
-              
+
                state2 = state1 {servers = servers1}
             return (state2,serverRef)
          )
@@ -156,7 +156,7 @@ lookupView state versionRef =
 
 deleteView :: MMiSSSessionState -> VersionRef -> IO ()
 deleteView (MMiSSSessionState mVar) versionRef =
-   modifyMVar_ mVar 
+   modifyMVar_ mVar
       (\ state ->
          do
             let
@@ -170,7 +170,7 @@ deleteView (MMiSSSessionState mVar) versionRef =
          )
 
 
-setView :: MMiSSSessionState -> Maybe VersionRef -> View 
+setView :: MMiSSSessionState -> Maybe VersionRef -> View
    -> IO VersionRef
 setView (MMiSSSessionState mVar) versionRefOpt view =
    modifyMVar mVar
@@ -182,7 +182,7 @@ setView (MMiSSSessionState mVar) versionRefOpt view =
                   Nothing ->
                      let
                         (versionRef,versionRefSource1) =
-                           newRefGen 
+                           newRefGen
                               (\ str -> VersionRef {versionRefRef = str})
                               (versions state0)
                               (versionRefSource state0)
@@ -198,7 +198,7 @@ setView (MMiSSSessionState mVar) versionRefOpt view =
 
             let
                versions1 = addToFM versions0 versionRef view
-              
+
                state2 = state1 {versions = versions1}
             return (state2,versionRef)
          )
@@ -207,7 +207,7 @@ setView (MMiSSSessionState mVar) versionRefOpt view =
 -- Allocating new references
 -- -------------------------------------------------------------------------
 
-newRefGen :: Ord key => (String -> key) -> FiniteMap key value 
+newRefGen :: Ord key => (String -> key) -> FiniteMap key value
    -> UniqueStringCounter -> (key,UniqueStringCounter)
 newRefGen mkKey map0 counter0 =
    let
@@ -219,7 +219,7 @@ newRefGen mkKey map0 counter0 =
          then
             newRefGen mkKey map0 counter1
          else
-            (key0,counter1) 
+            (key0,counter1)
 
 -- --------------------------------------------------------------------------
 -- Utility functions

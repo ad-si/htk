@@ -30,7 +30,7 @@ module AttributesType(
    readExtraFormItem,
 
    HasAttributesType(..),
-   editObjectAttributes,   
+   editObjectAttributes,
    ) where
 
 import Maybe
@@ -49,7 +49,7 @@ import SimpleForm
 
 import ViewType
 import Link
-import CodedValue 
+import CodedValue
 import BasicObjects
 import ObjectTypes
 
@@ -62,11 +62,11 @@ data AttributesState =
    |  Cancelled -- The user pressed Cancel, so no changes were made
    |  Changed   -- The user pressed Ok, so changes were (or at least may have
                 -- been) made.
- 
+
 -- | An AttributesType gives conditions that a particular set of attributes
 -- needs to satisfy (such as having an attribute with a given name and
 -- a given type).  It also encodes the input method for that attribute.
--- 
+--
 -- AttributesType is an instance of HasCodedValue
 data AttributesType = AttributesType [(AttributeKey,AttributeTypeKey)]
    deriving (Typeable)
@@ -79,16 +79,16 @@ instance Monad m => HasBinary AttributesType m where
 -- constructs a new set of Attributes given the AttributesType and an
 -- optional extra form item.  It returns Nothing if the user presses
 -- Cancel.
--- 
+--
 -- If extraFormItemOpt is Nothing and the attributes type is empty we return
 -- True.
-inputAttributes :: View -> AttributesType -> Maybe (ExtraFormItem x) 
+inputAttributes :: View -> AttributesType -> Maybe (ExtraFormItem x)
    -> IO (Maybe Attributes)
 inputAttributes view attributesType extraFormItemOpt =
    do
       -- the values will go here.
       attributes <- newEmptyAttributes view
-      success <- updateAttributesPrim "New Attributes" attributes 
+      success <- updateAttributesPrim "New Attributes" attributes
          attributesType extraFormItemOpt
       case success of
          Cancelled -> return Nothing
@@ -97,27 +97,27 @@ inputAttributes view attributesType extraFormItemOpt =
 -- | updateAttributes attributes attributesType extraFormItemOpt
 -- puts up a form allowing the user to update the attributes
 -- which should have type attributesType.
--- 
+--
 -- If extraFormItemOpt is Nothing and the attributes type is empty we don\'t
--- put any form up 
-updateAttributes :: Attributes -> AttributesType -> Maybe (ExtraFormItem x) 
+-- put any form up
+updateAttributes :: Attributes -> AttributesType -> Maybe (ExtraFormItem x)
    -> IO AttributesState
-updateAttributes attributes attributesType extraFormItemOpt = 
-   updateAttributesPrim "Update Attributes" attributes attributesType 
+updateAttributes attributes attributesType extraFormItemOpt =
+   updateAttributesPrim "Update Attributes" attributes attributesType
       extraFormItemOpt
 
 -- | updateAttributesPrim is like updateAttributes except it takes
 -- as argument the String to be used as the title window, allowing
 -- it also to be used for inputAttributes
-updateAttributesPrim :: String -> Attributes -> AttributesType 
+updateAttributesPrim :: String -> Attributes -> AttributesType
    -> Maybe (ExtraFormItem x) -> IO AttributesState
-updateAttributesPrim title attributes (AttributesType attributesList) 
+updateAttributesPrim title attributes (AttributesType attributesList)
       extraFormItemOpt =
    do
       let
          -- Make a form item which generates a form returning the
          -- action to set the attribute.
-         mkFormItem :: (AttributeKey,AttributeTypeKey) -> 
+         mkFormItem :: (AttributeKey,AttributeTypeKey) ->
             IO (Form (IO ()))
          mkFormItem (key,typeKey) =
             do
@@ -125,26 +125,26 @@ updateAttributesPrim title attributes (AttributesType attributesList)
                getForm attributes key
 
       -- Form of IO actions which set the attributes
-      (forms1 :: [Form (IO ())]) <- mapM mkFormItem attributesList 
+      (forms1 :: [Form (IO ())]) <- mapM mkFormItem attributesList
 
       let
          -- Form which constructs this, and the extraFormItem if present.
          forms = case extraFormItemOpt of
             Nothing -> forms1
-            Just extraFormItem -> 
-               (extraFormItemToForm extraFormItem) : forms1  
+            Just extraFormItem ->
+               (extraFormItemToForm extraFormItem) : forms1
 
          -- combine two forms generating actions, generating
          -- one that does one action after the other.
          (///) :: Form (IO ()) -> Form (IO ()) -> Form (IO ())
          (///) form1 form2 = fmap (uncurry (>>)) (form1 // form2)
 
-      case forms of 
+      case forms of
          [] -> return NoForm
          _ ->
-            do 
+            do
                let form = foldr1 (///) forms
-               -- Now open the window. 
+               -- Now open the window.
                actOpt <- doForm title form
                case actOpt of
                   Nothing -> return Cancelled
@@ -163,11 +163,11 @@ isEmptyAttributesType (AttributesType []) = True
 isEmptyAttributesType _ = False
 
 -- | Adds a new attribute
-needs :: AttributeValue value => AttributeKey -> value -> AttributesType 
+needs :: AttributeValue value => AttributeKey -> value -> AttributesType
    -> AttributesType
 needs key val (AttributesType list) =
    let
-      typeKey = attributeTypeKey val 
+      typeKey = attributeTypeKey val
    in
       AttributesType ((key,typeKey):list)
 
@@ -197,7 +197,7 @@ mkExtraFormItem form =
       ioRef <- newIORef Nothing
       return (ExtraFormItem form ioRef)
 
--- | Read the value read from an extra form item by mkExtraFormItem.  
+-- | Read the value read from an extra form item by mkExtraFormItem.
 -- This must be used after inputAttributes, but before inputAttributes
 -- is used again on the same ExtraFormItem.
 readExtraFormItem :: ExtraFormItem x -> IO x
@@ -205,7 +205,7 @@ readExtraFormItem (ExtraFormItem _ ioRef) =
    do
       xOpt <- readIORef ioRef
       case xOpt of
-         Nothing -> error 
+         Nothing -> error
             "AttributesType.readExtraFormItem used before inputAttributes"
          Just x -> return x
 
@@ -224,7 +224,7 @@ extraFormItemToForm (ExtraFormItem form ioRef) =
 -- | AttributeTypeKey is needed to uniquely identify attribute types,
 -- so that we can identify the attribute, given its key.  The keys
 -- themselves must all be registered, in the same way as object type types
--- and display types are. 
+-- and display types are.
 newtype AttributeTypeKey = AttributeTypeKey String deriving (Ord,Eq,Typeable)
 
 instance Monad m => HasBinary AttributeTypeKey m where
@@ -235,7 +235,7 @@ instance Monad m => HasBinary AttributeTypeKey m where
 instance Show AttributeTypeKey where
    show (AttributeTypeKey str) = last (splitByChar '.' str)
 
--- | Construct a new attribute key.  The arguments should be 
+-- | Construct a new attribute key.  The arguments should be
 -- [module name] [type name], as for mkTyRep, to guarantee uniqueness.
 mkAttributeTypeKey :: String -> String -> AttributeTypeKey
 mkAttributeTypeKey modName tyName = AttributeTypeKey (modName++('.':tyName))
@@ -269,45 +269,45 @@ instance HasAttributeTypeKey Bool where
 -- The Register of AttributeTypes.
 -- -------------------------------------------------------------------
 
--- | attributeTypeKeyRegistry contains the current stock of registered 
+-- | attributeTypeKeyRegistry contains the current stock of registered
 -- attributes.  The result function takes the previous set of attributes,
 -- if possible, and an AttributeKey and yields a form
 -- which generates the action for updating the attributes to add a value
 -- of this type.
-attributeTypeKeyRegistry :: Registry AttributeTypeKey 
+attributeTypeKeyRegistry :: Registry AttributeTypeKey
    (Attributes -> AttributeKey -> IO (Form (IO ())))
 attributeTypeKeyRegistry = unsafePerformIO newRegistry
 {-# NOINLINE attributeTypeKeyRegistry #-}
 
--- | This must be done for every attribute value type at the start 
+-- | This must be done for every attribute value type at the start
 -- of the program.  The value is not inspected.
 registerAttribute :: AttributeValue value => value -> IO ()
 registerAttribute (val :: value) =
    do
-      let 
+      let
          key = attributeTypeKey val
-      
+
          mkForm :: Attributes -> AttributeKey -> IO (Form (IO ()))
          mkForm attributes attributeKey =
             do
-               (lastValOpt :: Maybe value) 
+               (lastValOpt :: Maybe value)
                   <- getValueOpt attributes (name attributeKey)
                let
-                  valueOptForm = 
+                  valueOptForm =
                      newFormEntry' (descriptor attributeKey) lastValOpt
-                  valueForm = mapForm 
+                  valueForm = mapForm
                      (\ valueOpt -> case valueOpt of
                         Nothing -> hasError ("Field "++
                            descriptor attributeKey++" isn't set")
                         Just x -> hasValue x
-                        )  
+                        )
                      valueOptForm
                   actForm = fmap
                      (\ value -> setValue attributes (name attributeKey) value)
                      valueForm
-               return actForm   
-      setValue attributeTypeKeyRegistry key mkForm 
-        
+               return actForm
+      setValue attributeTypeKeyRegistry key mkForm
+
 -- | Get all AttributeTypeKey\'s + a suitable key for displaying them.
 getAllAttributeTypeKeys :: IO [(AttributeTypeKey,String)]
 getAllAttributeTypeKeys =
@@ -318,7 +318,7 @@ getAllAttributeTypeKeys =
       return (map getPair allKeys)
 
 -- | This is the attribute type which should be used if none other is
--- specified, corresponding to String, in the same format as 
+-- specified, corresponding to String, in the same format as
 -- getAllAttributeTypeKeys
 -- Needless to say this key should have been registered.
 defaultAttributeTypeKey :: (AttributeTypeKey,String)
@@ -332,7 +332,7 @@ defaultAttributeTypeKey =
 -- string.
 getLastPart :: String -> String
 getLastPart [] = []
-getLastPart ('.':rest) = 
+getLastPart ('.':rest) =
    case getLastPart rest of
       [] -> rest
       s -> s
@@ -373,7 +373,7 @@ instance Monad m => HasBinary AttributeKey m where
       })
 
 -- | This makes an attribute key in the common case where we refer
--- to it on a form by its internal name. 
+-- to it on a form by its internal name.
 mkAttributeKey :: String -> AttributeKey
 mkAttributeKey str = AttributeKey {
    name = str,
@@ -383,19 +383,19 @@ mkAttributeKey str = AttributeKey {
 -- | This returns the String by the the attribute key should be accessed.
 fromAttributeKey :: AttributeKey -> String
 fromAttributeKey attributeKey = name attributeKey
-       
+
 -- -------------------------------------------------------------------
 -- The AttributeValue class and some instances.
 -- -------------------------------------------------------------------
 
 --- @doc AttributeValue
--- Class of values which can be attributes.  
-class (HasCodedValue value,HasAttributeTypeKey value) 
+-- Class of values which can be attributes.
+class (HasCodedValue value,HasAttributeTypeKey value)
    => AttributeValue value where
 
    -- | newFormEntry\' is identical to SimpleForm.newFormEntry except
    -- that it takes and returns (Maybe value).
-   newFormEntry' :: FormLabel label => label -> Maybe value 
+   newFormEntry' :: FormLabel label => label -> Maybe value
       -> Form (Maybe value)
 
 -- | Instance 1: instances of FormTextFieldIO, where we simply take over
@@ -412,15 +412,15 @@ instance AttributeValue Bool where
          bool = fromMaybe False boolOpt
       in
          fmap Just (newFormEntry lab bool)
--- | Instance 3 - Radio Buttons.  
+-- | Instance 3 - Radio Buttons.
 instance (HasConfigRadioButton value,Bounded value,Enum value,
-      HasCodedValue value,HasAttributeTypeKey (Radio value)) 
+      HasCodedValue value,HasAttributeTypeKey (Radio value))
       => AttributeValue (Radio value) where
 
    newFormEntry' lab valueOpt =
       let
-         form0 = newFormEntry lab 
-            (case valueOpt of 
+         form0 = newFormEntry lab
+            (case valueOpt of
                Nothing -> NoRadio
                Just value -> value
                )
@@ -430,7 +430,7 @@ instance (HasConfigRadioButton value,Bounded value,Enum value,
                   NoRadio -> Nothing
                   Radio _ -> Just radio
                )
-            form0 
+            form0
 
 -- -------------------------------------------------------------------
 -- The HasAttributesType class and the editObjectAttributes class.
@@ -440,15 +440,15 @@ class HasAttributesType objectType where
    toAttributesType :: objectType -> AttributesType
 
 editObjectAttributes :: (ObjectType objectType object,HasAttributes object,
-   HasAttributesType objectType) 
+   HasAttributesType objectType)
    => View -> Link object -> IO ()
 editObjectAttributes view link =
    do
       versioned <- fetchLink view link
       object <- readObject view versioned
-      let 
+      let
          attributes = readPrimAttributes object
-      success <- updateAttributes attributes (toAttributesType 
+      success <- updateAttributes attributes (toAttributesType
          (getObjectTypePrim object)) Nothing
       case success of
          Changed -> dirtyObject view versioned

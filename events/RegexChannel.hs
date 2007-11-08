@@ -1,13 +1,13 @@
 -- | RegexChannel provides Expect-like pattern matching on
 -- a channel.  Regular expression matching is done by GNU regex,
 -- via RegexString.
--- 
+--
 -- Problems I will admit to:
 -- (1) Since GNU regex is effectively a black box, there is no
 --     indexing - we must check every regex against every string.
---     This is theoretically bad, because there ought to be 
+--     This is theoretically bad, because there ought to be
 --     some way of constructing a finite-state-automaton which
---     selects the right alternative.  
+--     selects the right alternative.
 -- (2) Because of the way GuardedChannels work, we can't
 --     get out the extra information from the matching
 --     (like, the match substrings).  So if we want them,
@@ -17,19 +17,19 @@
 --    most important events at the left in +> expressions.
 --    If this seems feeble, my excuse is that you had to do this
 --    anyway with Einar's expect if you wanted the priorities to
---    work, so the priorities were redundant. 
+--    work, so the priorities were redundant.
 module RegexChannel(
    RegexChannel,  -- channel of Strings
    newRegexChannel, -- :: IO RegexChannel
    sendString, -- :: RegexChannel -> String -> Event ()
    RegularExpression, -- compiled Regular Expression
-   HasRegularExpression(..), 
+   HasRegularExpression(..),
       -- class of things which have these,
       -- includes RegularExpression and String
-   matchEvent, -- :: HasRegularExpression ptn => ptn -> RegexChannel 
+   matchEvent, -- :: HasRegularExpression ptn => ptn -> RegexChannel
       -- -> Event String
    matchAny, -- :: RegexChannel -> Event String
-   matchEvent', -- :: HasRegularExpression ptn => ptn -> RegexChannel 
+   matchEvent', -- :: HasRegularExpression ptn => ptn -> RegexChannel
       -- -> Event MatchResult
    ) where
 
@@ -62,7 +62,7 @@ sendString (RegexChannel matchChannel) str = send matchChannel str
 -- This includes compiled regular expressions themselves and Strings.
 -- This allows the user to speed things up by precompiling regular
 -- expressions.
--- 
+--
 -- The syntax of the regular expressions themselves is summarised in the
 -- comments to the source file util\/RegularExpression.hs
 class HasRegularExpression ptn where
@@ -87,10 +87,10 @@ matchAny = matchEvent ""
 
 
 -- | Makes Event accepting Strings matching a particular pattern, but
--- carrying the actual MatchResult, allowing for example for 
+-- carrying the actual MatchResult, allowing for example for
 -- parts of the String matching parts of the regular expression to
 -- be returned.
-matchEvent' :: HasRegularExpression ptn => ptn -> RegexChannel 
+matchEvent' :: HasRegularExpression ptn => ptn -> RegexChannel
    -> Event MatchResult
 matchEvent' ptn = matchEventPrim' (toRegularExpression ptn)
 {-# INLINE matchEvent' #-}
@@ -98,7 +98,7 @@ matchEvent' ptn = matchEventPrim' (toRegularExpression ptn)
 matchEventPrim' :: RegularExpression -> RegexChannel -> Event MatchResult
 matchEventPrim' regex channel =
    matchEventPrim regex channel >>>=
-      (\ str -> case matchString regex str of 
+      (\ str -> case matchString regex str of
          Just result -> return result)
 
 matchEventPrim :: RegularExpression -> RegexChannel -> Event String

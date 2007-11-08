@@ -1,6 +1,6 @@
 -- | Blockers are used to implement variable set sources which can be
--- turned on and off.  They are indexed by a BlockID. 
-module VariableSetBlocker( 
+-- turned on and off.  They are indexed by a BlockID.
+module VariableSetBlocker(
    Blocker,
    BlockID,
    newBlocker, -- :: HasKey a key => VariableSetSource a -> IO (Blocker a)
@@ -8,17 +8,17 @@ module VariableSetBlocker(
 
    openBlocker, -- :: HasKey a key => Blocker a -> BlockID -> IO ()
    closeBlocker, -- :: HasKey a key => Blocker a -> BlockID -> IO ()
-   blockVariableSet, 
+   blockVariableSet,
       -- :: HasKey a key => Blocker a -> BlockID -> VariableSetSource a
 
 
-   newBlockerWithPreAction 
-      -- :: HasKey a key => VariableSetSource a -> ([a] -> IO ()) 
+   newBlockerWithPreAction
+      -- :: HasKey a key => VariableSetSource a -> ([a] -> IO ())
       -- -> IO (Blocker a)
       --
       -- newBlockerWithPreAction creates a blocker that additionally permits
       -- an action that is performed the very first time the blocker is
-      -- opened.  
+      -- opened.
       -- The arguments to the action are the contents of the variable set
       -- at about the time of the opening.
    ) where
@@ -61,22 +61,22 @@ newBlocker setSource =
             }
       return blocker
 
-newBlockerWithPreAction 
+newBlockerWithPreAction
    :: HasKey a key => VariableSetSource a -> ([a] -> IO ()) -> IO (Blocker a)
 newBlockerWithPreAction setSource0 preAction =
    let
-      action = 
+      action =
          do
             list <- readContents setSource0
             preAction list
       setSource1 = (unsafePerformIO action) `seq` setSource0
    in
       newBlocker setSource1
-             
+
 newBlockID :: IO BlockID
 newBlockID =
    do
-      objectID <- newObject 
+      objectID <- newObject
       return (BlockID objectID)
 
 openBlocker :: HasKey a key => Blocker a -> BlockID -> IO ()
@@ -91,7 +91,7 @@ closeBlocker blocker blockID =
       (_,blockFn) <- getBlockEntry blocker blockID
       blockFn True
 
-blockVariableSet :: HasKey a key 
+blockVariableSet :: HasKey a key
    => Blocker a -> BlockID -> IO (VariableSetSource a)
 blockVariableSet blocker blockID =
    do
@@ -116,25 +116,25 @@ getBlockEntry blocker blockID =
 
 -- | (setSource2,block) \<- blockableVariableSet setSource1
 -- returns a setSource2 which is in one of two states.  In one state it is
--- blocked, and empty.  In the other, it is unblocked, and its contents are 
--- the same as those of setSource1.  Initially it is blocked.  To switch 
--- from one to the other the block function is used.  \"block True\" blocks 
--- the set source; \"block False\" unblocks it.   Blocking if we are already 
+-- blocked, and empty.  In the other, it is unblocked, and its contents are
+-- the same as those of setSource1.  Initially it is blocked.  To switch
+-- from one to the other the block function is used.  \"block True\" blocks
+-- the set source; \"block False\" unblocks it.   Blocking if we are already
 -- blocked, or unblocking if we are already unblocked, is harmless and does
 -- nothing.
--- 
+--
 -- This somewhat baroque function is required for arc sets from folders.
 -- I have wasted a couple of days trying to think of a more elegant way of
 -- doing this ...
-blockableVariableSet :: HasKey a key 
+blockableVariableSet :: HasKey a key
    => VariableSetSource a -> IO (VariableSetSource a,Bool -> IO ())
 blockableVariableSet (setSource1 :: VariableSetSource a) =
    do
-      (mVar :: MVar (Maybe (IO ()))) <- newMVar Nothing 
+      (mVar :: MVar (Maybe (IO ()))) <- newMVar Nothing
          -- If we are not blocked, contains the terminator action.
       set2 <- newEmptyVariableSet -- contains the contents of setSource2
-      parallelX <- newParallelExec 
-         -- used to execute updates to set2.  This helps make sure they 
+      parallelX <- newParallelExec
+         -- used to execute updates to set2.  This helps make sure they
          -- happen in the right order.
       let
          block doBlock = modifyMVar_ mVar (\ terminatorOpt ->
@@ -147,7 +147,7 @@ blockableVariableSet (setSource1 :: VariableSetSource a) =
                               terminator -- stop any more updates.
                               setVariableSet set2 [] -- empty this set.
                            )
-                        return Nothing                        
+                        return Nothing
                   (False,Nothing) -> -- unblock
                      do
                         sinkID <- newSinkID
@@ -159,7 +159,7 @@ blockableVariableSet (setSource1 :: VariableSetSource a) =
                            doUpdate :: VariableSetUpdate a -> IO ()
                            doUpdate update = updateSet set2 update
 
-                        addNewSinkWithInitial setSource1 doContents doUpdate 
+                        addNewSinkWithInitial setSource1 doContents doUpdate
                            sinkID parallelX
                         return (Just (invalidate sinkID))
                   _ -> return terminatorOpt

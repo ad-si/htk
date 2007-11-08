@@ -1,8 +1,8 @@
 -- | This module introduces the functions available to the server to access
--- the database.  
--- 
+-- the database.
+--
 -- NB.  At various points we assume that these functions are only used
--- in a single-threaded way.  The server code should ensure this. 
+-- in a single-threaded way.  The server code should ensure this.
 module SimpleDBServer(
    SimpleDB, -- SimpleDB.  There should be only one of them per program.
    openSimpleDB, -- :: VersionState -> IO SimpleDB
@@ -36,7 +36,7 @@ module SimpleDBServer(
    -- allocated.
    firstVersion, -- :: Version
 
-   querySimpleDB, 
+   querySimpleDB,
       -- :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
    ) where
 

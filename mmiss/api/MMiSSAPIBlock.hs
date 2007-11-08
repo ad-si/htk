@@ -14,7 +14,7 @@ module MMiSSAPIBlock(
    addBlockData, -- :: Block -> BlockData -> (Block,Int)
       -- add one new BlockData and return its index.
    setBlockData, -- :: Block -> Int -> BlockData -> Block
-      -- overwrite a pre-existing index in the Block. 
+      -- overwrite a pre-existing index in the Block.
    dummyBlockData, -- :: BlockData
       -- used as a dummy value when we want to leave a value specified later.
 
@@ -31,7 +31,7 @@ import Data.Word
 import Bytes(Byte)
 import Binary
 import ICStringLen
-import AtomString   
+import AtomString
 
 -- -------------------------------------------------------------------------
 -- Datatypes
@@ -83,7 +83,7 @@ writeBlock handle (Block fm) =
             do
                hWrite handle (blockType blockData)
                hWrite handle (blockText blockData)
-            )  
+            )
          (eltsFM fm)
 
 -- -------------------------------------------------------------------------
@@ -105,7 +105,7 @@ addBlockData (Block fm0) blockData =
 setBlockData :: Block -> Int -> BlockData -> Block
 setBlockData (Block fm0) key blockData =
    case lookupFM fm0 key of
-      Nothing -> 
+      Nothing ->
          error ("MMiSSAPIBlock: Key " ++ show key ++ " does not exist")
       Just _ ->
          let

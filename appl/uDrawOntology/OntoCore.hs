@@ -375,7 +375,7 @@ onExecCommand f sendIO tcCommand =
       Debug.trace ("OntoSide: " ++ cmd) (send (cmd ++ "\n"))
 
 --------------------------------------------
--- called when OntoSide close button was 
+-- called when OntoSide close button was
 -- pressed
 --------------------------------------------
 onCloseOntoSide :: (Closeable frame) => frame -> (IORef.IORef (String -> IO())) -> IO ()
@@ -408,14 +408,14 @@ onEndProcess f exitcode =
 -- called each time the uDraw-process sends
 -- data
 -- We have to check the streamstatus, because
--- when uDraw is going to close, you get 
--- scrabled messages, which we are not 
+-- when uDraw is going to close, you get
+-- scrabled messages, which we are not
 -- interessted in. If we parse them, we get
 -- problems with a memory leak.
 --------------------------------------------
 onReceive :: (Closeable (Frame a)) => Frame a -> OntoSide -> String -> StreamStatus -> IO ()
 onReceive f ontoSide message streamstatus =
-  do  case streamstatus of 
+  do  case streamstatus of
         StreamOk -> do  putStr ("uDraw: " ++ message)
                         send <- IORef.readIORef (sendIO ontoSide)
                         initStrings <- IORef.readIORef (initStringsIO ontoSide)
@@ -593,7 +593,7 @@ onPopupSelectionNode f ontoSide nId (DVTypes.MenuId (fileMenuStr)) =
 -- ToDo: not yet finished
 --------------------------------------------
 onPopupSelectionEdge :: frame -> OntoSide -> DVTypes.EdgeId -> DVTypes.MenuId -> IO ()
-onPopupSelectionEdge f ontoSide eId (DVTypes.MenuId (fileMenuStr)) = 
+onPopupSelectionEdge f ontoSide eId (DVTypes.MenuId (fileMenuStr)) =
   do case fileMenuStr of
       "hideRel" -> do send <- IORef.readIORef (sendIO ontoSide)
                       oldRelations <- IORef.readIORef (currentRelsIO ontoSide)
@@ -828,7 +828,7 @@ resetGUI f ontoSide =
                                           else node
 
 --------------------------------------------
--- Called each time settings from node 
+-- Called each time settings from node
 -- are changed.
 --------------------------------------------
 onNodeSettings :: (Checkable w) => String -> w -> OntoSide -> IO ()
@@ -877,14 +877,14 @@ checkConfig onto config = do
   let OntoConf.Config nodes (OntoConf.Relations rels) packs = config
   let classGraph  = MOnto.getClassGraph onto
   let (rels2, isRelChanged) = checkRelations (Graph.labEdges classGraph) rels False
-  if isRelChanged 
+  if isRelChanged
     then return (Just (OntoConf.Config nodes (OntoConf.Relations rels2) packs))
     else return Nothing
   where
   checkRelations [] rels isRelChanged = (rels, isRelChanged)
   checkRelations ((_,_,relName):rest) rels isRelChanged =
-    if isInRelations relName rels 
-      then checkRelations rest rels (isRelChanged || False) 
+    if isInRelations relName rels
+      then checkRelations rest rels (isRelChanged || False)
       else checkRelations rest ((createEntry relName):rels) True
     where
     isInRelations :: String -> [OntoConf.Relation] -> Bool
@@ -988,7 +988,7 @@ updateGraphAttributes ontoSide = do
   send <- IORef.readIORef (sendIO ontoSide)
   onto <- IORef.readIORef (ontologyIO ontoSide)
   config <- IORef.readIORef (configIO ontoSide)
-  Debug.trace ("OntoSide: " ++ (OGraph.updateGraphAttributes onto config)) 
+  Debug.trace ("OntoSide: " ++ (OGraph.updateGraphAttributes onto config))
                                (send (OGraph.updateGraphAttributes onto config))
   return ()
 
@@ -999,7 +999,7 @@ findNodes :: frame -> OntoSide -> IO ()
 findNodes f ontoSide = do
   send          <- IORef.readIORef (sendIO ontoSide)
   searchString  <- get (tcFind ontoSide) text
-  Debug.trace ("OntoSide: " ++ ("menu(navigation(find(" ++ searchString ++ ",false,false)))")) 
+  Debug.trace ("OntoSide: " ++ ("menu(navigation(find(" ++ searchString ++ ",false,false)))"))
                                (send ("menu(navigation(find(\"" ++ searchString ++ "\",false,false)))\n"))
 
 --------------------------------------------

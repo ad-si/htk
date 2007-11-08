@@ -1,6 +1,6 @@
 module GUIObjectKind (
 
-  ObjectKind(..), 
+  ObjectKind(..),
   CanvasItemKind(..),
   MenuItemKind(..)
 
@@ -32,9 +32,9 @@ data ObjectKind =
   | SEPARATOR
   | ENTRY
   | TEXT GUIVALUE                         -- unpacked lines of text
-  | CANVAS 
+  | CANVAS
   | SCALE
-  | SCROLLBAR     
+  | SCROLLBAR
   | TOPLEVEL
   | TEXTTAG [GUIVALUE]
   | EMBEDDEDTEXTWIN GUIVALUE ObjectName
@@ -53,13 +53,13 @@ data ObjectKind =
   | BOX Orientation Flexibility
   | SUBWIDGET ObjectKind String
 
-data CanvasItemKind = 
+data CanvasItemKind =
     ARC
-  | LINE 
+  | LINE
   | POLYGON
   | RECTANGLE
   | OVAL
-  | BITMAPITEM 
+  | BITMAPITEM
   | IMAGEITEM
   | TEXTITEM
   | CANVASTAG
@@ -95,7 +95,7 @@ instance Show ObjectKind where
        (TEXT _) -> "text"
        CANVAS -> "canvas"
        SCALE -> "scale"
-       SCROLLBAR -> "scrollbar"        
+       SCROLLBAR -> "scrollbar"
        TOPLEVEL -> "toplevel"
        (CANVASITEM ARC _) -> "arc"
        (CANVASITEM LINE _) -> "line"

@@ -10,7 +10,7 @@ import VersionData
 import BDBOps(BDBKey)
 
 lastChange :: SimpleDB -> ObjectVersion -> Location -> IO ObjectVersion
-lastChange simpleDB thisVersion location = 
+lastChange simpleDB thisVersion location =
    do
       let
          getKey :: VersionData -> IO BDBKey

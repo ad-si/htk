@@ -1,30 +1,30 @@
 -- | This module contains the functions for validating a bundle.
--- 
+--
 -- The following things are checked.  For commentting purposes
 -- we also give a name to each check, for example DISTINCT.
--- DISTINCT) PackageId's in a bundle, names (as given by namefileLoc) in a 
---    folder, variants in an object are all distinct. 
+-- DISTINCT) PackageId's in a bundle, names (as given by namefileLoc) in a
+--    folder, variants in an object are all distinct.
 -- DIROBJECT) folders and package folders contain BundleNodeData's with Dir,
 --    other sorts have Object.
 -- TOPSDIRS) All the top-level bundle-nodes have BundleNodeData with Dir.
 -- PREAMBLE1) Each package folder contains at most one preamble.
--- STRUCTURE) package folders contain just preambles, MMiSS objects, MMiSS 
---    files and mmiss sub folders.  MMiSS sub folders contain just MMiSS 
+-- STRUCTURE) package folders contain just preambles, MMiSS objects, MMiSS
+--    files and mmiss sub folders.  MMiSS sub folders contain just MMiSS
 --    objects, MMiSS files and MMiSS sub folders
--- 
+--
 --    MMiSS sub folders, MMiSS objects, MMiSS files and preambles do not occur
 --    except in MMiSS package folders and MMiSS sub folders.
--- VARIANTS) Plain files and preambles do not specify any variants; MMiSS 
+-- VARIANTS) Plain files and preambles do not specify any variants; MMiSS
 --    objects and MMiSS files always do.
--- ENTITYNAME) The name constructed from the FileLoc (with nameFileLoc) 
+-- ENTITYNAME) The name constructed from the FileLoc (with nameFileLoc)
 --    should always be a valid EntityName.
--- NAMES) Everything except preambles or top-level nodes have 
+-- NAMES) Everything except preambles or top-level nodes have
 --    name = Just [something] in their fileLoc.  Preambles don't.
 -- EXT) ext is only set for MMiSS files.  extra is only set for ordinary files
 --    and folders.
 -- EXTEXISTS) for MMiSS files, ext is a file type known to MMiSSFileType.
 -- UNKNOWN) The bundle contains no UnknownType, NoData or NoText elements.
--- DTD) Elements pass the DTD. 
+-- DTD) Elements pass the DTD.
 -- LINKNAMES) Names in links are valid EntityFullNames.
 -- FILENAMES) Files referred to are valid EntityFullNames.
 -- NONEMPTYOBJECTS) Every Object item contains at least one element.
@@ -34,7 +34,7 @@
 --    UTF8 will have been converted to an Element anyway.)
 module MMiSSBundleValidate(
    validateBundle, -- :: Bundle -> WithError ()
-   
+
    validateBundleOut, -- :: Bundle -> IO ()
       -- used, at least during debugging, for validating bundles before they
       -- are transmitted to the user.
@@ -122,10 +122,10 @@ validateBundle0 = checkAllNodes checkUnknown
                      )
                   objects
             (_,Dir _) -> done
-      
+
 -- -----------------------------------------------------------------------
 -- DIROBJECT, STRUCTURE.  Other checks in this folder may assume
--- STRUCTURE has been carried out. 
+-- STRUCTURE has been carried out.
 -- -----------------------------------------------------------------------
 
 validateBundle1 :: Bundle -> WithError ()
@@ -133,7 +133,7 @@ validateBundle1 = checkAllNodes checkStructure
    where
       checkStructure bundleNode0 =
          case bundleNodeData bundleNode0 of
-            Object _ -> 
+            Object _ ->
                if containerType0 == NotContainer
                   then
                      done
@@ -141,7 +141,7 @@ validateBundle1 = checkAllNodes checkStructure
                      err bundleNode0 " a folder, but has object information"
             Dir bundleNodes ->
                do
-                  if containerType0 == NotContainer 
+                  if containerType0 == NotContainer
                      then
                         err bundleNode0 " not a folder, but contains objects"
                      else
@@ -152,12 +152,12 @@ validateBundle1 = checkAllNodes checkStructure
          where
             containerType0 = toContainerType bundleNode0
 
-            checkContain bundleNode1 = 
-               if mayContain bundleNode1 
+            checkContain bundleNode1 =
+               if mayContain bundleNode1
                   then
                      done
                   else
-                     err bundleNode0 (" should not contain " 
+                     err bundleNode0 (" should not contain "
                          ++ describeFileLoc (fileLoc bundleNode1))
 
             mayContain bundleNode1 = case (containerType0,
@@ -174,7 +174,7 @@ validateBundle1 = checkAllNodes checkStructure
                (SubFolder,MMiSSObjectEnum,_) -> True
                (SubFolder,MMiSSFileEnum,_) -> True
                _ -> False
-            
+
 data ContainerType = Folder | SubFolder | PackageFolder | NotContainer
    deriving (Eq)
 
@@ -243,15 +243,15 @@ validateBundle2 = checkAllNodes1 checkNamesExt
             case base objectType1 of
                FolderEnum -> mustHaveName >> mustNotHaveExt >> mustHaveExtra
                FileEnum -> mustHaveName >> mustNotHaveExt >> mustHaveExtra
-               MMiSSFolderEnum -> 
+               MMiSSFolderEnum ->
                   mustHaveName >> mustNotHaveExt >> mustNotHaveExtra
                MMiSSObjectEnum ->
                   mustHaveName >> mustNotHaveExt >> mustNotHaveExtra
-               MMiSSFileEnum -> 
+               MMiSSFileEnum ->
                   mustHaveName >> mustHaveFileExt >> mustNotHaveExtra
-               MMiSSPreambleEnum -> 
+               MMiSSPreambleEnum ->
                   mustNotHaveName >> mustNotHaveExt >> mustNotHaveExtra
-               UnknownType -> done 
+               UnknownType -> done
 
 -- -----------------------------------------------------------------------
 -- TOPDIRS
@@ -259,13 +259,13 @@ validateBundle2 = checkAllNodes1 checkNamesExt
 
 validateBundle3 :: Bundle -> WithError ()
 validateBundle3 (Bundle packageBundles) =
-   checkList 
+   checkList
       (\ (_,bundleNode) -> case bundleNodeData bundleNode of
          Dir _ -> done
          _ -> err bundleNode "is top-level in bundle but not a directory"
          )
       packageBundles
-               
+
 -- -----------------------------------------------------------------------
 -- VARIANTS
 -- -----------------------------------------------------------------------
@@ -287,17 +287,17 @@ validateBundle4 = checkAllNodes checkVariants
             mustHaveVariants = case variants0 of
                _:_:_ -> checkList
                   (\ (variantSpecOpt,_) -> case variantSpecOpt of
-                     Nothing -> err bundleNode1 
+                     Nothing -> err bundleNode1
                         "Object text does not specify any variants"
                         -- this should not occur for MMiSS documents,
                         -- but can occur for MMiSS files.
                      Just _ -> done
-                     )     
+                     )
                   variants0
                _ -> done
             mustNotHaveVariants = checkList
                (\ (variantSpecOpt,_) -> case variantSpecOpt of
-                  Just _ -> err bundleNode1 
+                  Just _ -> err bundleNode1
                      "Object specifies illegal variants"
                   Nothing -> done
                   )
@@ -312,7 +312,7 @@ validateBundle5 (bundle @ (Bundle packageBundles)) =
    do
       case findDuplicate fst packageBundles of
          Just (packageId,_) ->
-            fail ("PackageId " ++ toString packageId 
+            fail ("PackageId " ++ toString packageId
                ++ " occurs multiple times")
          Nothing -> done
       checkAllNodes checkDistinct bundle
@@ -321,15 +321,15 @@ validateBundle5 (bundle @ (Bundle packageBundles)) =
          Object variants0 ->
             case findDuplicate fst variants0 of
                Just (variantOpt,_) ->
-                  err bundleNode1 
+                  err bundleNode1
                      (describeVariants variantOpt ++ " occurs multiple times")
                Nothing -> done
          Dir bundleNodes0 ->
             do
                let
                  (preambles,bundleNodes1) = partition
-                    (\ bundleNode2 
-                       -> (base . objectType . fileLoc $ bundleNode2) 
+                    (\ bundleNode2
+                       -> (base . objectType . fileLoc $ bundleNode2)
                           == MMiSSPreambleEnum
                        )
                     bundleNodes0
@@ -337,18 +337,18 @@ validateBundle5 (bundle @ (Bundle packageBundles)) =
                   ([preamble],MMiSSFolderEnum) -> done
                   ([],_) -> done
                   _ -> err bundleNode1 "Folder has too many preambles"
-               bundleNames <- 
+               bundleNames <-
                     -- everything not a Preamble should have a name, assuming
                     -- NAMES.
                   mapM
-                     (\ bundleNode2 -> 
+                     (\ bundleNode2 ->
                         do
                            let
-                              fileLoc1 = fileLoc bundleNode2 
+                              fileLoc1 = fileLoc bundleNode2
                               nameWE = nameFileLoc fileLoc1
 
                            case fromWithError nameWE of
-                              Left _ -> err bundleNode1 
+                              Left _ -> err bundleNode1
                                  (" subobject " ++ describeFileLoc fileLoc1
                                     ++ " does not have a valid name")
                               Right bundleName -> return bundleName
@@ -356,10 +356,10 @@ validateBundle5 (bundle @ (Bundle packageBundles)) =
                      bundleNodes1
                case findDuplicate id bundleNames of
                   Nothing -> done
-                  Just name -> err bundleNode1 
+                  Just name -> err bundleNode1
                      ("contains multiple elements called " ++ show name)
-         NoData -> done      
-                  
+         NoData -> done
+
 -- -----------------------------------------------------------------------
 -- DTD, LINKNAMES, FILENAMES & CONSISTENTTAGS
 -- -----------------------------------------------------------------------
@@ -378,33 +378,33 @@ validateBundle6 = checkAllNodes checkDTD
                         (\ (variantSpecOpt,bundleText) ->
                            case bundleText of
                               NoText -> done
-                              _ -> 
+                              _ ->
                                  do
                                     element <- fromBundleTextWE bundleText
                                     case validateElement0 element of
                                        [] -> done
                                        errors ->
                                           err bundleNode1
-                                             (  describeVariants 
+                                             (  describeVariants
                                                    variantSpecOpt
                                                 ++ " has errors:\n"
                                                 ++ unlines errors
                                                 )
                                     let
                                        links :: [(LinkType,String)]
-                                       links = mapMaybe 
+                                       links = mapMaybe
                                           classifyLink
                                           (getAllElements1 element)
 
                                     checkList
                                        (\ (_,linkName) ->
-                                          case fromWithError 
+                                          case fromWithError
                                                 (fromStringWE linkName) of
-                                             Right (_ :: EntitySearchName) -> 
+                                             Right (_ :: EntitySearchName) ->
                                                 done
                                              Left mess ->
                                                 err bundleNode1
-                                                   (linkName ++ 
+                                                   (linkName ++
                                                       " is not a proper"
                                                       ++ " link name")
                                           )
@@ -418,26 +418,26 @@ validateBundle6 = checkAllNodes checkDTD
                                           -- the head element)
 
                                     checkList
-                                       (\ file -> 
-                                          case fromWithError 
+                                       (\ file ->
+                                          case fromWithError
                                                 (fromStringWE file) of
                                              Right (_ :: EntityFullName) ->
                                                 done
                                              Left mess ->
                                                 err bundleNode1
-                                                   (file ++ 
+                                                   (file ++
                                                       " is not a proper"
                                                       ++ " file name")
                                           )
                                        files
-                                   
+
                         )
                         textsToCheck
 
                      case fromWithError (getTag bundleNode1) of
                         Left mess -> err bundleNode1 mess
                         Right _ -> done
-            _ -> done        
+            _ -> done
 
 
 -- -----------------------------------------------------------------------
@@ -452,13 +452,13 @@ validateBundle7 = checkAllNodes checkNoUnicode
             (\ (variantOpt,text) ->
                case text of
                   BundleString {charType = Unicode} ->
-                     err bundleNode1 
+                     err bundleNode1
                         (describeVariants variantOpt
                            ++ " has Unicode")
                   _ -> done
                )
             (toVariants bundleNode1)
-         
+
 -- -----------------------------------------------------------------------
 -- Tools for constructing checking functions
 -- -----------------------------------------------------------------------
@@ -482,7 +482,7 @@ checkAllNodes checkBundleNode (Bundle packageBundles) =
 
 -- checkAllNodes1 provides an extra argument which indicates if this
 -- is the head node.
-checkAllNodes1 :: (Bool -> BundleNode -> WithError ()) -> Bundle 
+checkAllNodes1 :: (Bool -> BundleNode -> WithError ()) -> Bundle
    -> WithError ()
 checkAllNodes1 checkBundleNode (Bundle packageBundles) =
    let
@@ -498,7 +498,7 @@ checkAllNodes1 checkBundleNode (Bundle packageBundles) =
                _ -> done
    in
       cNodes True (map snd packageBundles)
-   
+
 
 
 
@@ -532,5 +532,5 @@ describeVariants variantOpt =
                "Variant " ++ show variantSpec
 
 err :: BundleNode -> String -> WithError a
-err node str = fail ("Error for " ++ describeFileLoc (fileLoc node) 
+err node str = fail ("Error for " ++ describeFileLoc (fileLoc node)
    ++ ": " ++ str)

@@ -1,6 +1,6 @@
 -- | This module provides a function for /locking/ and /unlocking/ an event,
 -- so that it is not handled (but delayed).  NB - there is nothing to
--- stop an event being locked several times at once. 
+-- stop an event being locked several times at once.
 module LockEvent(
    EventLock,
    lockEvent,
@@ -55,7 +55,7 @@ theLockEvent (lock@(EventLock channel)) counter =
                GT -> theLockEvent lock (counter - 1)
                EQ -> return ()
                LT -> error "LockEvent: release event applied without a lock"
-      
+
 lockEvent :: EventLock -> Event a -> Event a
 lockEvent lock event =
       event

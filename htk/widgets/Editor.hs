@@ -39,7 +39,7 @@ module Editor (
   SearchDirection(..),
   SearchMode(..),
   SearchSwitch(..),
-  search, 
+  search,
 
   IndexModifiers(..),
   IndexModifier(..),
@@ -83,10 +83,10 @@ newtype Editor = Editor GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new editor widget and returns it as a value.
-newEditor :: Container par => par 
+newEditor :: Container par => par
    -- ^ the parent widget, which has to be a container widget
    -- (an instance of @class Container@).
-   -> [Config Editor] 
+   -> [Config Editor]
    -- ^ the list of configuration options for this editor.
    -> IO Editor
    -- ^ An editor widget.
@@ -104,7 +104,7 @@ newEditor par cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Editor where 
+instance GUIObject Editor where
   -- Internal.
   toGUIObject (Editor w) = w
   -- Internal.
@@ -127,7 +127,7 @@ instance Container Editor
 instance HasBorder Editor
 
 -- | An editor widget has a foreground and background colour.
-instance HasColour Editor where 
+instance HasColour Editor where
   -- Internal.
   legalColourID = hasForeGroundColour
 
@@ -193,9 +193,9 @@ setTextLines tp lns =
 -- -----------------------------------------------------------------------
 
 -- | Deletes the character at the specified index.
-deleteText :: HasIndex Editor i BaseIndex => Editor 
+deleteText :: HasIndex Editor i BaseIndex => Editor
    -- ^ the concerned editor widget.
-   -> i 
+   -> i
    -- ^ the concerned index.
    -> IO ()
    -- ^ None.
@@ -205,13 +205,13 @@ deleteText ed i =
     execMethod ed (\nm -> tkDeleteText nm pos Nothing)
 
 -- | Deletes the text in the specified range.
-deleteTextRange :: (HasIndex Editor i1 BaseIndex, 
+deleteTextRange :: (HasIndex Editor i1 BaseIndex,
    HasIndex Editor i2 BaseIndex) =>
-   Editor 
+   Editor
    -- ^ the start index.
-   -> i1 
+   -> i1
    -- ^ the end index.
-   -> i2 
+   -> i2
    -> IO ()
    -- ^ None.
 deleteTextRange tp start end =
@@ -221,13 +221,13 @@ deleteTextRange tp start end =
     execMethod tp (\nm -> tkDeleteText nm start' (Just end'))
 
 -- | Gets the text in the specified range.
-getTextRange :: (HasIndex Editor i1 BaseIndex, 
+getTextRange :: (HasIndex Editor i1 BaseIndex,
    HasIndex Editor i2 BaseIndex) =>
-   Editor 
+   Editor
    -- ^ the concerned editor widget.
-   -> i1 
+   -> i1
    -- ^ the start index.
-   -> i2 
+   -> i2
    -- ^ the end index.
    -> IO String
    -- ^ The editor\'s text in the specified range.
@@ -239,11 +239,11 @@ getTextRange ed start end =
 
 -- | Inserts the given text at the specified index.
 insertText :: (HasIndex Editor i BaseIndex,GUIValue a) =>
-   Editor 
+   Editor
    -- ^ the concerned editor widget.
-   -> i 
+   -> i
    -- ^ the index to insert the text.
-   -> a 
+   -> a
    -- ^ the text to insert.
    -> IO ()
    -- ^ None.
@@ -254,7 +254,7 @@ insertText ed i txt =
   where val = toGUIValue txt
 
 -- | Inserts a newline character at the end of the editor widget.
-insertNewline   :: Editor 
+insertNewline   :: Editor
    -- ^ the concerned editor widget.
    -> IO ()
    -- ^ None.
@@ -262,13 +262,13 @@ insertNewline ed = execMethod ed (\nm -> tkInsertNewLine nm)
 
 -- | Gets a text line from an editor widget.
 getTextLine     :: HasIndex Editor i BaseIndex =>
-   Editor 
+   Editor
    -- ^ the concerned editor widget.
-   -> i 
+   -> i
    -- ^ an index in the requested text line.
    -> IO String
    -- ^ The requested line of text.
-getTextLine tp i = 
+getTextLine tp i =
   do
     (l,c) <- getIndexPosition tp i
     getTextRange tp (start l) (end l)
@@ -276,9 +276,9 @@ getTextLine tp i =
         end l = ((l+1,0::Distance ),BackwardChars 1)
 
 -- | Appends text at the end of the editor widget.
-appendText :: Editor 
+appendText :: Editor
    -- ^ the concerned editor widget.
-   -> String 
+   -> String
    -- ^ the text to append.
    -> IO ()
    -- ^ None.
@@ -294,9 +294,9 @@ appendText ed str =
 -- -----------------------------------------------------------------------
 
 -- | Writes the contained text to a file.
-writeTextToFile :: Editor 
+writeTextToFile :: Editor
    -- ^ the concerned editor widget.
-   -> FilePath 
+   -> FilePath
    -- ^ the name of the file.
    -> IO ()
    -- ^ None.
@@ -306,9 +306,9 @@ writeTextToFile ed fnm =
     writeFile fnm str
 
 -- | Reads a text from a file and inserts it into the editor pane.
-readTextFromFile :: Editor 
+readTextFromFile :: Editor
    -- ^ the concerned editor widget.
-   -> FilePath 
+   -> FilePath
    -- ^ the name of the file.
    -> IO ()
    -- ^ None.
@@ -362,7 +362,7 @@ instance HasIndex Editor (Distance, Distance) BaseIndex where
 
 -- | A pair of a valid index and a list of index modifiers is a valid index
 -- for an editor widget.
-instance HasIndex Editor i BaseIndex => 
+instance HasIndex Editor i BaseIndex =>
          HasIndex Editor (i,[IndexModifier]) BaseIndex where
   -- Internal.
   getBaseIndex tp (i,ml) =
@@ -373,7 +373,7 @@ instance HasIndex Editor i BaseIndex =>
 
 -- | A pair of a valid index and an index modifier is a valid index for an
 -- editor widget.
-instance HasIndex Editor i BaseIndex => 
+instance HasIndex Editor i BaseIndex =>
          HasIndex Editor (i,IndexModifier) BaseIndex where
   -- Internal.
   getBaseIndex tp (i,m) =
@@ -385,7 +385,7 @@ instance HasIndex Editor i BaseIndex =>
 instance HasIndex Editor i BaseIndex =>
          HasIndex Editor i (Distance,Distance) where
   -- Internal.
-  getBaseIndex = getIndexPosition 
+  getBaseIndex = getIndexPosition
 
 
 -- -----------------------------------------------------------------------
@@ -401,9 +401,9 @@ data IndexModifier =
         | BackwardChars Int
         | ForwardLines Int
         | BackwardLines Int
-        | LineStart 
-        | LineEnd 
-        | WordStart 
+        | LineStart
+        | LineEnd
+        | WordStart
         | WordEnd
 
 -- | Internal.
@@ -430,10 +430,10 @@ instance Show IndexModifiers where
 -- -----------------------------------------------------------------------
 
 -- | Returns the position on the text widget for a given index.
-getIndexPosition :: HasIndex Editor i BaseIndex 
-   => Editor 
+getIndexPosition :: HasIndex Editor i BaseIndex
+   => Editor
    -- ^ the concerned editor widget.
-   -> i 
+   -> i
    -- ^ the concerned index.
    -> IO Position
    -- ^ The requested position.
@@ -448,26 +448,26 @@ getIndexPosition ed i = do {
 compareIndices :: (
    HasIndex Editor i1 BaseIndex,
    HasIndex Editor i2 BaseIndex
-   ) => Editor 
+   ) => Editor
    -- ^ the concerned editor widget.
-   -> String 
-   -- ^ an operation given as a string 
-   -> i1 
+   -> String
+   -- ^ an operation given as a string
+   -> i1
    -- ^ the first index.
-   -> i2 
+   -> i2
    -- ^ the second index.
    -> IO Bool
-   -- ^ @True@ or @False@, depending on 
+   -- ^ @True@ or @False@, depending on
    -- the given operation.
 compareIndices ed op i1 i2 = do
         bi1 <- getBaseIndex ed i1
         bi2 <- getBaseIndex ed i2
         evalMethod ed (\nm -> tkCompare nm op bi1 bi2)
  where  tkCompare :: ObjectName -> String -> BaseIndex -> BaseIndex -> TclScript
-        tkCompare nm op i1 i2 = 
-                [show nm ++ " compare " ++ show i1 ++ op ++ " " ++ " " ++ show i2] 
+        tkCompare nm op i1 i2 =
+                [show nm ++ " compare " ++ show i1 ++ op ++ " " ++ " " ++ show i2]
 
- 
+
 -- -----------------------------------------------------------------------
 -- selection
 -- -----------------------------------------------------------------------
@@ -481,14 +481,14 @@ instance HasSelection Editor where
                 case (start,end) of
                         (Just start,Just end) -> do {
                             start' <- getBaseIndex tp (start::Position);
-                            end' <- getBaseIndex tp (end::Position);    
+                            end' <- getBaseIndex tp (end::Position);
                             execMethod tp (\nm -> tkClearSelection nm start' end')
                             }
                         _ -> done
                 })
 
 -- | An editor widget\'s characters are selectable.
-instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i 
+instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i
   where
         -- Selects the character at the specified index.
         selection inx tp = synchronize tp (do {
@@ -501,8 +501,8 @@ instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i
                 binx <- getBaseIndex tp inx;
                 start <- getSelectionStart tp;
                 end <- getSelectionEnd tp;
-                case (start,end,binx) of 
-                        (Just s,Just e,IndexPos i) -> return ((s <= i) && (i < e)) 
+                case (start,end,binx) of
+                        (Just s,Just e,IndexPos i) -> return ((s <= i) && (i < e))
                         _                          -> return False
                 })
 
@@ -553,7 +553,7 @@ instance HasInsertionCursor Editor
 
 -- | The insertion cursor of an editor widget can be set by a base index.
 instance ( HasIndex Editor i BaseIndex
-        ) => HasInsertionCursorIndexSet Editor i 
+        ) => HasInsertionCursorIndexSet Editor i
   where
         -- Sets the position of the insertion cursor.
         insertionCursor inx tp =  synchronize tp (do {
@@ -574,13 +574,13 @@ instance HasInsertionCursorIndexGet Editor (Distance,Distance) where
 
 -- | Adjusts the view so that the character at the specified position is
 -- visible.
-adjustViewTo :: HasIndex Editor i BaseIndex => Editor 
+adjustViewTo :: HasIndex Editor i BaseIndex => Editor
    -- ^ the concerned editor widget.
-   -> i 
+   -> i
    -- ^ the index to adjust the view to.
    -> IO ()
    -- ^ None.
-adjustViewTo ed i = 
+adjustViewTo ed i =
         synchronize ed (do {
                 inx <- getBaseIndex ed i;
                 execMethod ed (\nm -> tkSee nm inx)
@@ -592,9 +592,9 @@ adjustViewTo ed i =
 -- -----------------------------------------------------------------------
 
 -- | Anchor a scrolling operation.
-scanMark :: HasIndex Editor i BaseIndex => Editor 
+scanMark :: HasIndex Editor i BaseIndex => Editor
    -- ^ the concerned editor widget.
-   -> i 
+   -> i
    -- ^ the concerned index.
    -> IO ()
    -- ^ None.
@@ -604,13 +604,13 @@ scanMark ed i = do {
 }
 
 -- | Scroll based on a new position.
-scanDragTo :: HasIndex Editor i BaseIndex => Editor 
+scanDragTo :: HasIndex Editor i BaseIndex => Editor
    -- ^ the concerned editor widget.
-   -> i 
+   -> i
    -- ^ the concerned index.
    -> IO ()
    -- ^ None.
-scanDragTo ed i = 
+scanDragTo ed i =
         synchronize ed (do {
                 pos <- getIndexPosition ed i;
                 execMethod ed (\nm -> tkScanDragTo nm pos)
@@ -655,11 +655,11 @@ instance Read WrapMode where
 -- | Internal.
 instance Show WrapMode where
    -- Internal.
-   showsPrec d p r = 
-      (case p of 
-         NoWrap -> "none"  
-         CharWrap -> "char"  
-         WordWrap -> "word"  
+   showsPrec d p r =
+      (case p of
+         NoWrap -> "none"
+         CharWrap -> "char"
+         WordWrap -> "word"
         ) ++ r
 
 
@@ -700,10 +700,10 @@ class GUIObject w => HasLineSpacing w where
         getSpaceBelow   :: w -> IO Distance
         getSpaceAbove w = cget w "spacing1"
         spaceAbove d w  = cset w "spacing1" d
-        getSpaceBelow w = cget w "spacing3" 
+        getSpaceBelow w = cget w "spacing3"
         spaceBelow d w  = cset w "spacing3" d
         spaceWrap d w   = cset w "spacing2" d
-        getSpaceWrap w  = cget w "spacing2" 
+        getSpaceWrap w  = cget w "spacing2"
 
 
 -- -----------------------------------------------------------------------
@@ -712,26 +712,26 @@ class GUIObject w => HasLineSpacing w where
 
 -- | The @SearchDirection@ datatype.
 data SearchDirection = Forward | Backward deriving (Eq,Ord,Enum)
- 
+
 -- | Internal.
-instance Show SearchDirection where 
+instance Show SearchDirection where
   -- Internal.
-  showsPrec d p r = 
-      (case p of 
-         Forward -> " -forward"  
-         Backward -> " -backward"  
+  showsPrec d p r =
+      (case p of
+         Forward -> " -forward"
+         Backward -> " -backward"
         ) ++ r
 
 -- | The @SearchMode@ datatype.
 data SearchMode = Exact | Nocase deriving (Eq,Ord,Enum)
 
 -- | Internal.
-instance Show SearchMode where 
+instance Show SearchMode where
   -- Internal.
-  showsPrec d p r = 
-      (case p of 
-         Exact -> " -exact"  
-         Nocase -> " -nocase"  
+  showsPrec d p r =
+      (case p of
+         Exact -> " -exact"
+         Nocase -> " -nocase"
         ) ++ r
 
 -- | The @SearchSwitch@ datatype.
@@ -744,14 +744,14 @@ data SearchSwitch = SearchSwitch {
 -- | Internal.
 instance Show SearchSwitch where
   -- Internal.
-  showsPrec _ (SearchSwitch d m False) r = 
+  showsPrec _ (SearchSwitch d m False) r =
         show d ++ show m ++ r
-  showsPrec _ (SearchSwitch d m True) r = 
+  showsPrec _ (SearchSwitch d m True) r =
         show d ++ show m ++ " -regexp " ++ r
 
 
 -- -----------------------------------------------------------------------
--- Text Methods 
+-- Text Methods
 -- -----------------------------------------------------------------------
 
 textMethods = defMethods {
@@ -765,16 +765,16 @@ textMethods = defMethods {
 -- -----------------------------------------------------------------------
 
 -- | Searches for text inside an editor widget.
-search :: HasIndex Editor i BaseIndex => 
-   Editor 
+search :: HasIndex Editor i BaseIndex =>
+   Editor
    -- ^ the concerned editor widget.
-   -> SearchSwitch 
+   -> SearchSwitch
    -- ^ the search switch.
-   -> String 
+   -> String
    -- ^ the searched text or regular expression.
-   -> i 
+   -> i
    -- ^ the start index.
-   -> IO (Maybe BaseIndex) 
+   -> IO (Maybe BaseIndex)
    -- ^ The index of the first match (if successful).
 search ed switch ptn inx = do {
         binx <- getBaseIndex ed inx;
@@ -785,7 +785,7 @@ search ed switch ptn inx = do {
         }
 
 tkSearch :: ObjectName -> SearchSwitch -> String -> BaseIndex -> TclScript
-tkSearch nm switch ptn inx = 
+tkSearch nm switch ptn inx =
         [show nm ++ " search " ++ show switch ++ " " ++ ptn ++ " " ++ show inx]
 
 
@@ -795,8 +795,8 @@ tkSearch nm switch ptn inx =
 
 tkCreateText :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
                 [ConfigOption] -> TclScript
-tkCreateText pnm kind@(TEXT lns) name oid confs = 
-  tkDeclVar ("sv" ++ show oid) (show name) ++ 
+tkCreateText pnm kind@(TEXT lns) name oid confs =
+  tkDeclVar ("sv" ++ show oid) (show name) ++
   (createCmd defMethods) pnm kind name oid confs
 {-# INLINE tkCreateText #-}
 
@@ -805,21 +805,21 @@ tkCleanupText oid _ = tkUndeclVar ("sv" ++ show oid)
 {-# INLINE tkCleanupText #-}
 
 tkDeleteText :: ObjectName -> BaseIndex -> Maybe BaseIndex -> TclScript
-tkDeleteText name pl Nothing = 
+tkDeleteText name pl Nothing =
         [show name ++ " delete " ++ ishow pl]
-tkDeleteText name pl1 (Just pl2) = 
+tkDeleteText name pl1 (Just pl2) =
         [show name ++ " delete " ++ ishow pl1 ++ " " ++ ishow pl2]
 {-# INLINE tkDeleteText #-}
 
 tkGetText :: ObjectName -> BaseIndex -> Maybe BaseIndex -> TclScript
-tkGetText name pl Nothing = 
+tkGetText name pl Nothing =
         [show name ++ " get " ++ ishow pl]
-tkGetText name pl1 (Just pl2) = 
+tkGetText name pl1 (Just pl2) =
         [show name ++ " get " ++ ishow pl1 ++ " " ++ ishow pl2]
 {-# INLINE tkGetText #-}
 
 tkInsertText :: ObjectName -> BaseIndex -> GUIVALUE -> TclScript
-tkInsertText name pl val = 
+tkInsertText name pl val =
   [show name ++ " insert " ++ ishow pl ++ " " ++ show val ++ " "]
 {-# INLINE tkInsertText #-}
 
@@ -852,13 +852,13 @@ tkGetInsertMark wn = [show wn ++ "  index insert"]
 {-# INLINE tkGetInsertMark #-}
 
 tkSelection :: ObjectName -> BaseIndex -> TclScript
-tkSelection wn i @ (IndexPos (x,y)) = [show wn ++ " tag add sel " ++ 
+tkSelection wn i @ (IndexPos (x,y)) = [show wn ++ " tag add sel " ++
         ishow i ++ " " ++ show (IndexPos(x,(y + 1)))]
 tkSelection wn _ = [show wn ++ " tag add sel end end"]
 {-# INLINE tkSelection #-}
 
 tkSelectionRange :: ObjectName -> BaseIndex ->  BaseIndex -> TclScript
-tkSelectionRange wn start end = [show wn ++ " tag add sel " ++ 
+tkSelectionRange wn start end = [show wn ++ " tag add sel " ++
         ishow start ++ " " ++ ishow end]
 {-# INLINE tkSelectionRange #-}
 

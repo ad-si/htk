@@ -32,9 +32,9 @@ newtype Rectangle = Rectangle GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new rectangle item.
-createRectangle :: Canvas 
+createRectangle :: Canvas
    -- ^ the parent canvas.
-   -> [Config Rectangle] 
+   -> [Config Rectangle]
    -- ^ the list of configuration options for this rectangle
    -- item.
    -> IO Rectangle
@@ -48,7 +48,7 @@ createRectangle cnv cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject Rectangle where 
+instance GUIObject Rectangle where
   toGUIObject (Rectangle w) = w
   cname _ = "Rectangle"
 

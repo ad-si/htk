@@ -34,17 +34,17 @@ newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
--- | Constructs a new embedded window inside an editor widget and returns 
+-- | Constructs a new embedded window inside an editor widget and returns
 -- a handler.
 createEmbeddedTextWin :: (HasIndex Editor i BaseIndex, Widget w) =>
-   Editor 
+   Editor
    -- ^ the parent editor widget.
-   -> i 
+   -> i
    -- ^ the editor\'s index to place the embedded window.
-   -> w 
+   -> w
    -- ^ the contained widget.
    ->
-   [Config EmbeddedTextWin] 
+   [Config EmbeddedTextWin]
    -- ^ the list of configuration options for this embedded
    -- text window.
    -> IO EmbeddedTextWin
@@ -66,7 +66,7 @@ createEmbeddedTextWin ed i w cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject EmbeddedTextWin where 
+instance GUIObject EmbeddedTextWin where
   toGUIObject (EmbeddedTextWin w) = w
   cname _ = "EmbeddedTextWin"
 
@@ -116,7 +116,7 @@ instance HasIndex Editor EmbeddedTextWin BaseIndex where
 -- Text Item Methods
 -- -----------------------------------------------------------------------
 
-winMethods = 
+winMethods =
   Methods tkGetTextWinConfig
           tkSetTextWinConfigs
           tkCreateTextWin
@@ -133,14 +133,14 @@ winMethods =
 -- -----------------------------------------------------------------------
 
 tkGetTextWinConfig :: ObjectName -> ConfigID -> TclScript
-tkGetTextWinConfig (TextPaneItemName name qual) cid =   
+tkGetTextWinConfig (TextPaneItemName name qual) cid =
         [(show name) ++ " window cget " ++ (show qual) ++ " -" ++ cid]
 tkGetTextWinConfig _ _ = []   -- ich bin unschuldig, war so bei Einar!
                               -- TD (ludi), geht überhaupt ??
 {-# INLINE tkGetTextWinConfig #-}
 
 tkSetTextWinConfigs :: ObjectName -> [ConfigOption] -> TclScript
-tkSetTextWinConfigs (TextPaneItemName name qual) args = 
+tkSetTextWinConfigs (TextPaneItemName name qual) args =
   [show name ++ " window configure " ++ show qual ++ " " ++
    showConfigs args]
 tkSetTextWinConfigs _ _ = []
@@ -154,5 +154,5 @@ tkCreateTextWin _ (EMBEDDEDTEXTWIN pos wid) (TextPaneItemName name qual) _
 {-# INLINE tkCreateTextWin #-}
 
 tkWinIndex :: ObjectName -> ObjectName -> TclScript
-tkWinIndex pnm wnm = [show pnm ++ " index " ++ show wnm] 
+tkWinIndex pnm wnm = [show pnm ++ " index " ++ show wnm]
 {-# INLINE tkWinIndex #-}

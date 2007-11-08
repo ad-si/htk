@@ -1,5 +1,5 @@
 -- | This module contains the basic functions for writing and reading an object
--- from the repository. 
+-- from the repository.
 module MMiSSReadObject(
    simpleReadFromMMiSSObject,
    readMMiSSObject,
@@ -42,27 +42,27 @@ simpleReadFromMMiSSObject view objectLink variantSearch =
       object <- readLink view objectLink
       cacheOpt <- lookupVariantObjectCache (variantObject object) variantSearch
       case cacheOpt of
-         Nothing -> 
+         Nothing ->
             do
                title <- getFullName view object
                return (hasError ("No matching variant found for "++title))
-         Just cache 
+         Just cache
             -> return (hasValue (cache,object))
 
--- | Retrieve an object, expanding includes to a certain depth.  We also 
+-- | Retrieve an object, expanding includes to a certain depth.  We also
 -- get links to all preambles and ExportFiles.
--- 
+--
 -- If allowNotFound is set, not found messages cause us to put up a warning
 -- window, otherwise they will be fatal.
--- 
+--
 -- If the VariantSearch is given we use that, otherwise we take the object\'s
 -- current one.
 readMMiSSObject :: View -> Link MMiSSObject -> Maybe MMiSSVariantSearch
-   -> IntPlus -> Bool 
+   -> IntPlus -> Bool
    -> IO (WithError (Element,[MMiSSPackageFolder],ExportFiles))
 readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
    addFallOutWE (\ break ->
-      do 
+      do
          if depth0 < 1
             then
                break ("Depth given as "++show depth0
@@ -78,28 +78,28 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
 
          let
             -- getElement is the first function to be passed to
-            -- MMiSSReAssemble.reAssembleNoRecursion.  
+            -- MMiSSReAssemble.reAssembleNoRecursion.
 
-            -- The MMiSSPackageFolder is the folder to look from.  
+            -- The MMiSSPackageFolder is the folder to look from.
             -- The EntitySearchName specifies what to look for.
             -- The IntPlus is the depth to go down.
 
             -- We use the hackWithError mechanism to deal with not-found cases,
             -- and split the function into two, to avoid the indentation depth
             -- becoming unbearable.
-            getElement :: EntitySearchName -> MMiSSVariantSearch 
+            getElement :: EntitySearchName -> MMiSSVariantSearch
                -> (MMiSSPackageFolder,IntPlus)
                -> IO (WithError (Maybe (Element,(MMiSSPackageFolder,IntPlus))))
             getElement entitySearchName variantSearch searchData =
                do
-                  weData 
+                  weData
                      <- getElement0 entitySearchName variantSearch searchData
                   hackWithError Nothing allowNotFound weData
 
-            getElement0 :: EntitySearchName -> MMiSSVariantSearch 
+            getElement0 :: EntitySearchName -> MMiSSVariantSearch
                -> (MMiSSPackageFolder,IntPlus)
                -> IO (WithError (Maybe (Element,(MMiSSPackageFolder,IntPlus))))
-            getElement0 entitySearchName variantSearch (_,0) 
+            getElement0 entitySearchName variantSearch (_,0)
                = return (hasValue Nothing)
             getElement0 entitySearchName variantSearch (packageFolder0,depth) =
                addFallOutWE (\ break ->
@@ -107,7 +107,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                      let
                         hackBreak = break . hackMess
 
-                     linkOptWE <- lookupMMiSSObject view packageFolder0 
+                     linkOptWE <- lookupMMiSSObject view packageFolder0
                         entitySearchName
 
                      link <- case fromWithError linkOptWE of
@@ -115,36 +115,36 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                         Right Nothing -> hackBreak ("Object "
                            ++ toString entitySearchName ++ " does not exist")
                         Left mess -> break mess
-                          
-                     objectDataWE 
+
+                     objectDataWE
                         <- simpleReadFromMMiSSObject view link variantSearch
 
                      (cache,object)
                         <- coerceWithErrorOrBreakIO hackBreak objectDataWE
 
                      packageFolder1WE <- getMMiSSPackageFolder view
-                        (toLinkedObject object) 
-                     packageFolder1 
+                        (toLinkedObject object)
+                     packageFolder1
                         <- coerceWithErrorOrBreakIO break packageFolder1WE
 
-                     modifyMVar_ packageFoldersMVar 
-                        (\ packageFolders 
+                     modifyMVar_ packageFoldersMVar
+                        (\ packageFolders
                            -> return (packageFolder1 : packageFolders)
                            )
 
                      let
                         element0 = cacheElement cache
 
-                     element1 <- setPackageIdFromFolder 
+                     element1 <- setPackageIdFromFolder
                         view (Just packageFolder0) packageFolder1 element0
 
                      return (Just (element1,(packageFolder1,depth - 1)))
                   )
 
 
-            -- doFile is the second function to be passed to 
+            -- doFile is the second function to be passed to
             -- reAssembleNoRecursion.
-            doFile :: MMiSSVariantSearch -> (MMiSSPackageFolder,IntPlus) 
+            doFile :: MMiSSVariantSearch -> (MMiSSPackageFolder,IntPlus)
                -> EntityFullName -> IO ()
             doFile variantSearch0 (packageFolder0,_) file =
                modifyMVar_ exportFilesMVar
@@ -158,7 +158,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          packageFolderWE <- getMMiSSPackageFolder view (toLinkedObject object)
          packageFolder <- coerceWithErrorOrBreakIO break packageFolderWE
 
-         objectNameOpt <- readContents (getLinkedObjectTitleOpt 
+         objectNameOpt <- readContents (getLinkedObjectTitleOpt
             (toLinkedObject object))
          objectName <- case objectNameOpt of
             Nothing -> break "Attempt to read deleted object?"
@@ -178,7 +178,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          -- The top element in element0 won't have a packageId if it
          -- came from packageFolder, but we put one in anyway, even though
          -- that may well be unnecessary.
- 
+
 
          packageIdOpt <- coerceWithErrorOrBreakIO break (getPackageId element0)
 
@@ -199,18 +199,18 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          exportFiles <- takeMVar exportFilesMVar
          return (element1,packageFolders,exportFiles)
       )
-         
+
 -- | hackWithError allows us to use the break mechanism to pass back non-fatal
 -- error messages by passing back apparently fatal ones but prefixed with a
 -- special null character.
--- 
+--
 -- If the Bool is False this \*disables\* this mechanism, simply removing the
 -- null character.
 hackWithError :: a -> Bool -> WithError a -> IO (WithError a)
 hackWithError a enable aWE = case fromWithError aWE of
    Right _ -> return aWE
    Left ('\0':mess) ->
-      if enable 
+      if enable
          then
             do
                warningMess mess
@@ -222,8 +222,8 @@ hackWithError a enable aWE = case fromWithError aWE of
 hackMess :: String -> String
 hackMess = ( '\0' :)
 
-setPackageIdFromFolder 
-   :: View -> Maybe MMiSSPackageFolder -> MMiSSPackageFolder -> Element 
+setPackageIdFromFolder
+   :: View -> Maybe MMiSSPackageFolder -> MMiSSPackageFolder -> Element
    -> IO Element
 setPackageIdFromFolder view parentPackageFolderOpt thisPackageFolder element0 =
    if parentPackageFolderOpt == Just thisPackageFolder
@@ -231,6 +231,6 @@ setPackageIdFromFolder view parentPackageFolderOpt thisPackageFolder element0 =
          return element0
       else
          do
-            thisPackageId 
+            thisPackageId
                <- mkPackageId view (toLinkedObject thisPackageFolder)
             return (setPackageId element0 thisPackageId)

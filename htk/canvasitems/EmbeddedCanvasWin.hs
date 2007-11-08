@@ -5,7 +5,7 @@ module EmbeddedCanvasWin (
   module CanvasItem,
 
   EmbeddedCanvasWin,
-  createEmbeddedCanvasWin 
+  createEmbeddedCanvasWin
 
 ) where
 
@@ -34,16 +34,16 @@ newtype EmbeddedCanvasWin = EmbeddedCanvasWin GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 -- | Constructs a new embedded canvas window.
-createEmbeddedCanvasWin :: Widget w => Canvas 
+createEmbeddedCanvasWin :: Widget w => Canvas
    -- ^ the parent canvas.
-   -> w 
+   -> w
    -- ^ the child widget.
    ->
-   [Config EmbeddedCanvasWin] 
+   [Config EmbeddedCanvasWin]
    -- ^ the list of configuration options for this embedded
    -- canvas window.
    ->
-   IO EmbeddedCanvasWin 
+   IO EmbeddedCanvasWin
    -- ^ An embedded canvas window.
 createEmbeddedCanvasWin cnv wid cnf =
   do
@@ -62,7 +62,7 @@ createEmbeddedCanvasWin cnv wid cnf =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
-instance GUIObject EmbeddedCanvasWin where 
+instance GUIObject EmbeddedCanvasWin where
   toGUIObject (EmbeddedCanvasWin w) = w
   cname _         = "EmbeddedCanvasWin"
 

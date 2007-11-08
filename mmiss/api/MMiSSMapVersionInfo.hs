@@ -1,5 +1,5 @@
--- | This module contains the functions we need for mapping to and from 
--- MMiSSRequest.VersionInfo and VersionInfo.VersionInfo 
+-- | This module contains the functions we need for mapping to and from
+-- MMiSSRequest.VersionInfo and VersionInfo.VersionInfo
 module MMiSSMapVersionInfo(
    fromOurVersionInfo,
    toOurUserInfo,
@@ -28,14 +28,14 @@ import MMiSSRequest
 fromOurVersionInfo :: VersionInfo.VersionInfo -> MMiSSRequest.VersionInfo
 fromOurVersionInfo versionInfo0 =
    let
-      versionInfoIsPresent1 = 
+      versionInfoIsPresent1 =
          if VersionInfo.isPresent versionInfo0
             then
                Default VersionInfo_isPresent_present
             else
                NonDefault VersionInfo_isPresent_absent
    in
-      VersionInfo 
+      VersionInfo
          (VersionInfo_Attrs {
             versionInfoIsPresent = versionInfoIsPresent1})
          (fromOurUserInfo (VersionInfo.user versionInfo0))
@@ -52,30 +52,30 @@ fromOurUserInfo user0 =
          UserInfo_Attrs {
             userInfoLabel = Just (VersionInfo.label user0),
             userInfoContents = Just (VersionInfo.contents user0),
-            userInfoVersion 
+            userInfoVersion
                = Just (toString (VersionInfo.version user0)),
-            userInfoParents 
+            userInfoParents
                = Just (unsplitByChar0 ' '
                   (map toString (VersionInfo.parents user0)))
                }
    in
-      UserInfo userInfoAttrs (Just (fromOurVersionAttributes 
+      UserInfo userInfoAttrs (Just (fromOurVersionAttributes
          (VersionInfo.versionAttributes user0)))
 
 -- The first UserInfo is used to fill in unspecified values.
 -- seq'ing the return result will force evaluation of anything
 -- that might cause an error provoked by this function.
-toOurUserInfo :: VersionInfo.UserInfo -> MMiSSRequest.UserInfo 
-   -> VersionInfo.UserInfo 
+toOurUserInfo :: VersionInfo.UserInfo -> MMiSSRequest.UserInfo
+   -> VersionInfo.UserInfo
 toOurUserInfo defaultUser (UserInfo userInfoAttrs0 attributesOpt0) =
    let
-      label1 = fromMaybe (VersionInfo.label defaultUser) 
+      label1 = fromMaybe (VersionInfo.label defaultUser)
          (userInfoLabel userInfoAttrs0)
 
-      contents1 = fromMaybe (VersionInfo.contents defaultUser) 
+      contents1 = fromMaybe (VersionInfo.contents defaultUser)
          (userInfoContents userInfoAttrs0)
 
-      version1 = 
+      version1 =
          fromMaybe (VersionInfo.version defaultUser)
             (fmap
                sToV
@@ -88,13 +88,13 @@ toOurUserInfo defaultUser (UserInfo userInfoAttrs0 attributesOpt0) =
                (\ parentStr ->
                   let
                      parentStrs = filter (/= "") (splitByChar ' ' parentStr)
-                  in 
+                  in
                      map sToV parentStrs
                   )
                (userInfoParents userInfoAttrs0)
                )
 
-      versionAttributes1 = fromMaybe 
+      versionAttributes1 = fromMaybe
          (VersionInfo.versionAttributes defaultUser)
          (do
             attributes0 <- attributesOpt0
@@ -120,7 +120,7 @@ toOurUserInfo defaultUser (UserInfo userInfoAttrs0 attributesOpt0) =
 -- Converting to and from our VersionAttributes
 -- -----------------------------------------------------------------------
 
-fromOurVersionAttributes 
+fromOurVersionAttributes
    :: VersionInfo.VersionAttributes -> MMiSSRequest.Attributes
 fromOurVersionAttributes va =
    let
@@ -134,7 +134,7 @@ fromOurVersionAttributes va =
    in
       Attributes attributes
 
-toOurVersionAttributes 
+toOurVersionAttributes
    :: MMiSSRequest.Attributes -> VersionInfo.VersionAttributes
 toOurVersionAttributes (Attributes attributes) =
    let
@@ -154,7 +154,7 @@ fromOurServerInfo server0 =
    ServerInfo {
       serverInfoServerId = VersionInfo.serverId server0,
       serverInfoSerialNo = show (VersionInfo.serialNo server0),
-      serverInfoTimeStamp 
+      serverInfoTimeStamp
          = clockTimeToString (VersionInfo.timeStamp server0),
       serverInfoUserId = VersionInfo.userId server0
       }
