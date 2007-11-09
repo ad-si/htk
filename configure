@@ -5124,8 +5124,8 @@ fi
 
       GMAKESHORT=`basename $GMAKE`
 
-      echo To compile UniForM type \"${GMAKESHORT} packages\" or \"${GMAKESHORT} cabal\"
-      echo If you also want the test programs do \"${GMAKESHORT} all\" instead of \"${GMAKESHORT} packages\"
+      echo To compile UniForM type \"${GMAKESHORT} cabal\"
+      # only cabal works for ghc-6.8.1 currently
    fi
 fi
 
