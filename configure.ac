@@ -299,15 +299,6 @@ DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$UDG --uni-daVinciIcons:$TOP
 s+"+\\\\"+g'`
 AC_SUBST(DEFAULTOPTIONS)
 
-# test for HaXml package
-HAXMLVERSION=`$GHCPKG field HaXml version`
-if test "$HAXMLVERSION" = "version: 1.13.2"; then
-   echo $HAXMLVERSION of HaXml found
-else
-   echo Without HaXml-1.13.2 you cannot compile UniForM.
-   GOAHEAD=NO
-fi  
-
 # Find all files Makefile.in
 MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #

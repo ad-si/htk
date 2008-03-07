@@ -7,11 +7,11 @@ homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Server for the uniform workbench
 description:    server
-exposed-modules: HostsPorts, ServiceClass, Server, EchoService, CallServer,
-   Notification, MultiServer, Crypt, PasswordFile, MultiPlexer, LogFile, Hosts,
-   HostsList, GroupFile
+exposed-modules: HostsPorts, ServiceClass, Server, EchoService,
+   MultiServer, Crypt, PasswordFile, MultiPlexer, LogFile,
+   GroupFile
 include-dirs: ../includes
 c-sources: dipperstein_crypt.c
-build-depends: base >=3, directory, haskell98, network, parsec, HaXml,
+build-depends: base >=3, directory, haskell98, network, parsec,
   uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk
 ghc-options: -O -fglasgow-exts -fno-mono-pat-binds

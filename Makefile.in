@@ -13,7 +13,7 @@ ifeq "@BUILDAMOUNT@" "50"
 else
 ifeq "@BUILDAMOUNT@" "70"
    # Just HetCATs stuff
-   SUBDIRS = util events reactor posixutil htk HaXml server graphs davinci
+   SUBDIRS = util events reactor posixutil htk server graphs davinci
 else
 ifeq "@BUILDAMOUNT@" "100"
    # All MMiSS stuff
