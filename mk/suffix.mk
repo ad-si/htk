@@ -39,16 +39,16 @@
 #
 # Other options which aren't used here (but in var.mk) and which
 # can be useful:
-#  
+#
 #    EXTRA_HC_OPTIONS any other options for GHC
-#    
+#
 # These variables should be set before suffix.mk is read.
 # The following targets are provided:
 #
 # There is another more detailed list of targets in uni/MAKE.TARGETS.
-# 
+#
 # boot     does set
-# depend   sets up dependencies between Haskell files 
+# depend   sets up dependencies between Haskell files
 #             (which may need to be done before anything else)
 # libhere  makes the library file in this directory
 # lib      makes the library files in this and all subdirectories
@@ -66,8 +66,8 @@
 # We also define trivial targets doc and dochere.  The subdirectory
 # Makefiles should implement appropriate dependencies for dochere, if any!!
 # These dependencies should make the documentation
-# 
-# Likewise we define www, wwwtest and wwwhere.  
+#
+# Likewise we define www, wwwtest and wwwhere.
 # gmake www should copy all the Web pages over onto the web-site.  The location
 #    of the web-site should be specified in the variable WWWPREFIX; if it
 #    is empty gmake www will complain.  The individual Makefiles should
@@ -162,7 +162,7 @@ ghci :
 	$(HC) $(TESTFLAGS)  --interactive -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
 
 # ghcihere starts up GHC and loads the packages this directory depends on,
-# but not the package in this directory. 
+# but not the package in this directory.
 ghcihere:
 	$(HC) $(HCFLAGS)  --interactive -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
 
@@ -250,7 +250,11 @@ endif
 endif
 
 
-SETUP = runhaskell $(GHCTOP)/Setup.hs
+SETUP = $(GHCTOP)/Setup
+
+$(SETUP) : $(SETUP).hs
+	$(HC) --make -o $@ $<
+
 CABALGHCPKG = --with-hc-pkg=$(TOP)/mk/cabal-ghc-pkg
 
 CABAL = $(SETUP) configure -O $(CABALGHCPKG) \
@@ -261,7 +265,7 @@ CABAL = $(SETUP) configure -O $(CABALGHCPKG) \
     ./register.sh
 
 CABALFILE = $(wildcard *.cabal)
-cabalhere : 
+cabalhere : $(SETUP)
 	if [ -n "$(CABALFILE)" ]; then $(CABAL) ; fi
 
 cabal : cabalhere
@@ -293,10 +297,10 @@ packagesquick : packageherequick
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) packagesquick && ) echo Finished make packagesquick
 
 
-prepareexportshere : 
+prepareexportshere :
 ifneq "$(PACKAGE)" ""
 	$(GHCPKG) --config-file $(PACKAGECONF).export --remove-package $(PACKAGE) ; echo ""
-	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;$(SED) -e 's+PACKAGELIB+$(PACKAGELIB)+g;s+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --force --add-package 
+	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;$(SED) -e 's+PACKAGELIB+$(PACKAGELIB)+g;s+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --force --add-package
 endif
 
 prepareexports : prepareexportshere
@@ -320,7 +324,7 @@ displayhshere :
 	@PWD=`pwd`;echo $(LIBSRCS)
 
 displaysrcs : displaysrcshere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displaysrcs && ) echo 
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displaysrcs && ) echo
 
 displayhs : displayhshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displayhs && ) echo
@@ -334,18 +338,18 @@ objsemacs : objsemacshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) objsemacs && ) echo
 
 doc : dochere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) doc && ) echo 
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) doc && ) echo
 
 dochere :
 
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -rs $@ $^
 
-$(TESTPROGS) : test% :  Test%.o 
+$(TESTPROGS) : test% :  Test%.o
 	$(RM) $@
 	$(HC) -o $@ $(HCFLAGS) $< $(LINKFLAGS) $(THISPACKAGE)
 
-$(MAINPROGS) : % :  Main%.o 
+$(MAINPROGS) : % :  Main%.o
 	$(RM) $@
 	$(HC) -o $@ $(HCFLAGS) $< $(LINKFLAGS) $(THISPACKAGE)
 
@@ -403,10 +407,10 @@ www :
 	$(if $(WWWPREFIX),$(MAKE) wwwtest;chmod -R a+rX $(WWWPREFIX),echo WWWPREFIX must be set to make www)
 
 wwwtest : wwwhere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) wwwtest && ) echo 
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) wwwtest && ) echo
 
 # rename Makefile in current directory
-makefilequick : 
+makefilequick :
 	$(TOP)/config.status --file=Makefile
 
 
@@ -455,7 +459,7 @@ ifneq "$(strip $(LIBOBJS))" ""
 	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`; \
            $(foreach src,$(LIBSRCS), \
 	      mkdir -p `dirname $(TOP)/www/$$SUFFIX/sources/$(src)` && \
-	      cp -f $(src) $(TOP)/www/$$SUFFIX/sources/$(src) &&) echo 
+	      cp -f $(src) $(TOP)/www/$$SUFFIX/sources/$(src) &&) echo
 endif
 
 
@@ -465,7 +469,7 @@ preparehaddock : preparehaddockhere
 
 preparehaddockhere : $(HADDOCKSRCS)
 
-mkHaddock = $(TOP)/mk/RemoveSplices <$(1) | grep -v '{-\# SOURCE \#-}' >$(2) 
+mkHaddock = $(TOP)/mk/RemoveSplices <$(1) | grep -v '{-\# SOURCE \#-}' >$(2)
 
 $(HADDOCKSRCS) : haddock/%.hs : %.hs
 	$(MKDIR) -p `dirname $@`
