@@ -1640,8 +1640,13 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
          putMVar pendingChangesMVar []
          case pendingChanges of
             [] -> done
-            _ ->
-               doInContext (sortPendingChanges pendingChanges) context
+            _ -> do
+              let splitN n l = let
+                    (ft, rt) = splitAt n l
+                    (sd, rt2) = splitAt (div n 2) rt
+                    in if null rt2 then [ft ++ sd] else ft : splitN n rt
+              mapM_ (\ p -> doInContext (sortPendingChanges p)
+                     context) $ reverse $ splitN 20 $ pendingChanges
          -- Delete registry entries for all now-irrelevant node and edge
          -- entries.
          -- NB.  This will miss deleting entries for edges which are
