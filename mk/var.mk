@@ -1,5 +1,5 @@
 # Variable Section
-# 
+#
 -include $(TOP)/mk/local.mk  # If available, include local variable changes
 # (This file is not included in the standard CVS distribution and
 # is intended to contain directives for debugging.)
@@ -30,14 +30,13 @@ endif
 
 HCSHORTFLAGS = \
    $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) -fno-mono-pat-binds \
-   -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances \
-   -fwarn-unused-imports -fwarn-missing-signatures -fwarn-unused-binds \
-   -fwarn-deprecations -recomp -fth \
+   -fglasgow-exts -fallow-overlapping-instances \
+   -fallow-undecidable-instances -Wall -fth \
    -package-conf $(PACKAGECONF) $($*_HC_OPTIONS)
 
 PACKAGESARGS = $(PACKAGES:%=-package %)
 
-HCFLAGS = $(HCSHORTFLAGS) $(PACKAGESARGS) 
+HCFLAGS = $(HCSHORTFLAGS) $(PACKAGESARGS)
 
 THISPACKAGE = $(if $(PACKAGE),-package $(PACKAGE))
 
