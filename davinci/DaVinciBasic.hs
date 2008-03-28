@@ -50,8 +50,9 @@ module DaVinciBasic(
 
    ) where
 
-import Maybe
-import IO
+import Data.Maybe
+import Data.List (isPrefixOf)
+import System.IO.Error as IO
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
@@ -571,9 +572,10 @@ getNextAnswer :: ChildProcess -> IO DaVinciAnswer
 getNextAnswer childProcess =
    do
       line <- readMsg childProcess
-      if (line == "program error: \"hd []\"")
+      if isPrefixOf "program error:" line
          then
             do
+               putStrLn line
                putStrLn "************ DAvINCI BUG IGNORED ***************"
                getNextAnswer childProcess
          else
