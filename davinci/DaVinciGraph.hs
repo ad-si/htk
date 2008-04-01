@@ -20,14 +20,14 @@ module DaVinciGraph(
    getDaVinciGraphContext -- :: DaVinciGraph -> Context
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Data.IORef
 import DeprecatedSet
 import DeprecatedFiniteMap
 import Control.Concurrent
 import qualified Data.Dynamic
-import qualified List
+import qualified Data.List as List
 
 import Sources
 import Sink
@@ -1645,8 +1645,15 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
                     (ft, rt) = splitAt n l
                     (sd, rt2) = splitAt (div n 2) rt
                     in if null rt2 then [ft ++ sd] else ft : splitN n rt
-              mapM_ (\ p -> doInContext (sortPendingChanges p)
-                     context) $ reverse $ splitN 20 $ pendingChanges
+                  isDelete u = case u of
+                    NU (DeleteNode _) -> True
+                    EU (DeleteEdge _) -> True
+                    _ -> False
+                  splitUp = List.groupBy (\ u1 u2 ->
+                      isDelete u1 == isDelete u2)
+              mapM_ (\ p -> doInContext (sortPendingChanges p) context)
+                        $ reverse $ concatMap splitUp
+                        $ splitN 20 pendingChanges
          -- Delete registry entries for all now-irrelevant node and edge
          -- entries.
          -- NB.  This will miss deleting entries for edges which are
