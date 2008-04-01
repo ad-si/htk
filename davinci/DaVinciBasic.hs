@@ -67,7 +67,7 @@ import FileNames
 import Registry
 import UniqueString
 import Thread
-import ExtendedPrelude(mapOrd,mapEq)
+import ExtendedPrelude (mapOrd, mapEq)
 
 import Spawn
 import Events
@@ -102,7 +102,6 @@ data DaVinci = DaVinci {
 
    version :: Maybe String -- For daVinci versions before 3.0 Nothing,
       -- Afterwards, should be the version of daVinci.
-
    }
 
 daVinci :: DaVinci
@@ -356,7 +355,7 @@ doInContextVeryGeneral daVinciCmd contextOpt =
       -- us having to do too much precomputation during the
       -- locked period.)
       let
-         cmdString = (show daVinciCmd) ++ "\n"
+         cmdString = shows daVinciCmd "\n"
          cIdOpt = (fmap contextId) contextOpt
 
          DaVinci {
