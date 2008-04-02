@@ -7,7 +7,7 @@
 module DaVinciGraph(
    daVinciSort, -- Magic type parameter indicating we want to use daVinci.
 
-   DaVinciGraph,
+   DaVinciGraph (pendingChangesLock),
    DaVinciGraphParms,
 
    DaVinciNode,
