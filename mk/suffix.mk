@@ -257,7 +257,7 @@ $(SETUP) : $(SETUP).hs
 
 CABALGHCPKG = --with-hc-pkg=$(TOP)/mk/cabal-ghc-pkg
 
-CABAL = $(SETUP) configure -O $(CABALGHCPKG) \
+CABAL = $(SETUP) configure -p -O $(CABALGHCPKG) \
         -w $(GHCTOP)/mk/cabal-ghc --prefix=$(TOP) --user; \
     $(SETUP) build; \
     $(SETUP) copy; \
