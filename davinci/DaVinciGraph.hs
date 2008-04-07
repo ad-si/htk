@@ -1630,6 +1630,25 @@ sortPendingChanges1 pendingChanges =
       in
          DaVinciTypes.Graph(Update nodeUpdates edgeUpdates3)
 
+removeNullifyingChanges :: [MixedUpdate]  -> [MixedUpdate]
+removeNullifyingChanges [] = []
+removeNullifyingChanges (update:r) = case update of
+  NU (DeleteNode nid) -> case findN nid of
+    (r,[]) -> update:removeNullifyingChanges r
+    (h,_:t) -> removeNullifyingChanges $ h ++ t
+  EU (DeleteEdge eid) -> case findE eid of
+    (r,[]) -> update:removeNullifyingChanges r
+    (h,_:t) -> removeNullifyingChanges $ h ++ t
+  -- EU (NewEdgeBehind eid _ _ _ _ _) ->
+  _ -> update:removeNullifyingChanges r
+  where
+    findN i = span (\ mu -> case mu of
+                              NU (NewNode nid' _ _) -> i /= nid'
+                              _ -> True) r
+    findE i = span (\ mu -> case mu of
+                              EU (NewEdge eid' _ _ _ _) -> i /= eid'
+                              _ -> True) r
+
 flushPendingChanges :: DaVinciGraph -> IO ()
 flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
       edges = edges,pendingChangesMVar = pendingChangesMVar,
@@ -1640,20 +1659,8 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
          putMVar pendingChangesMVar []
          case pendingChanges of
             [] -> done
-            _ -> do
-              let splitN n l = let
-                    (ft, rt) = splitAt n l
-                    (sd, rt2) = splitAt (div n 2) rt
-                    in if null rt2 then [ft ++ sd] else ft : splitN n rt
-                  isDelete u = case u of
-                    NU (DeleteNode _) -> True
-                    EU (DeleteEdge _) -> True
-                    _ -> False
-                  splitUp = List.groupBy (\ u1 u2 ->
-                      isDelete u1 == isDelete u2)
-              mapM_ (\ p -> doInContext (sortPendingChanges p) context)
-                        $ reverse $ concatMap splitUp
-                        $ splitN 20 pendingChanges
+            p -> doInContext (sortPendingChanges $ removeNullifyingChanges p)
+                             context
          -- Delete registry entries for all now-irrelevant node and edge
          -- entries.
          -- NB.  This will miss deleting entries for edges which are
