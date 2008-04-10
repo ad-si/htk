@@ -1657,10 +1657,17 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
       do
          pendingChanges <- takeMVar pendingChangesMVar
          putMVar pendingChangesMVar []
-         case pendingChanges of
+         case removeNullifyingChanges pendingChanges of
             [] -> done
-            p -> doInContext (sortPendingChanges $ removeNullifyingChanges p)
-                             context
+            ps -> do
+              let isDelete u = case u of
+                    NU (DeleteNode _) -> True
+                    EU (DeleteEdge _) -> True
+                    _ -> False
+                  splitUp = List.groupBy (\ u1 u2 ->
+                      isDelete u1 == isDelete u2)
+              mapM_ (\ p -> doInContext (sortPendingChanges p) context)
+                    $ reverse $ splitUp ps
          -- Delete registry entries for all now-irrelevant node and edge
          -- entries.
          -- NB.  This will miss deleting entries for edges which are
