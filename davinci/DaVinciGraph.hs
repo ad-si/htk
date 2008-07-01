@@ -917,7 +917,7 @@ instance SetNodeFocus DaVinciGraph DaVinciNode where
             Just (NodeData nodeDataData) ->
                do
                   doInContext (Special (FocusNodeAnimated nodeId)) context
-                  return (Nothing,())
+                  return (nodeDataOpt,())
             )
 
 
