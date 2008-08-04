@@ -1,7 +1,7 @@
 PACKAGE = uni-util
 
 # We are using ghc6.t or later
-PACKAGES = uni-options template-haskell mtl network regex-compat
+PACKAGES = uni-options template-haskell mtl network regex-compat haskell98
 
 SRCS       = \
   DeprecatedFiniteMap.hs DeprecatedSet.hs Huffman.hs \
