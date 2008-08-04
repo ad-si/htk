@@ -3,6 +3,8 @@
 module VersionState(
    VersionState,
 
+   thisServerId, -- :: VersionState -> String
+
    mkVersionState, -- :: Bool -> IO VersionState
       -- The Bool should be True for an internal server, False otherwise.
    addVersionInfo,
