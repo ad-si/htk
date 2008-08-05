@@ -11,9 +11,6 @@
 module Main (main) where
 
 import HTk
-import Random(randomRIO)
-import Control.Concurrent(threadDelay)
-import System
 
 
 lightBrown = (224, 186, 145)::(Int, Int, Int)
@@ -32,6 +29,7 @@ horizEndPoint   totalLines linesLeft = (cm totalLines, cm linesLeft)
 vertStartPoint  linesLeft            = (cm linesLeft,  lineStart)
 vertEndPoint    totalLines linesLeft = (cm linesLeft,  cm totalLines)
 
+canvasSize :: Double -> Config Canvas
 canvasSize boardSize = size (cm (boardSize + 1), cm (boardSize + 1))
 
 -- |Figure out whose turn it is.  This returns the value from this tk
@@ -85,8 +83,8 @@ makeBoard main uBoardSize newClicked toggleFunc =
                                 makeBoard main uBoardSize newClicked toggleFunc
                                 return()
                                ))
-   where
-   drawStone (x, y) cnv fill =
+
+drawStone (x, y) cnv fill =
        do
        stone <- createOval cnv [fill, size (stoneSize, stoneSize),
                                 position (x - (stoneSize `div` 2),

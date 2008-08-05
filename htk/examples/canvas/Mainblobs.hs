@@ -6,9 +6,6 @@ import HTk
 import Random(randomRIO)
 import Control.Concurrent(threadDelay)
 
-toInt :: Distance -> Int
-toInt = fromInteger . toInteger
-
 randomColour :: IO (Int, Int, Int)
 randomColour =
   do
@@ -29,30 +26,37 @@ nextColour (r, g, b) =
 main :: IO ()
 main =
   do
-    main <- initHTk [text "Pretty Blobs"]
-    cnv <- newCanvas main [size (cm 15, cm 15),
+    wmain <- initHTk [text "Pretty Blobs"]
+    cnv <- newCanvas wmain [size (cm 15, cm 15),
                            background "black"]
     pack cnv []
 
     (press, _) <- bind cnv [WishEvent [] (ButtonPress (Just 1))]
     spawnEvent (forever (do
-                           (x, y) <- press >>>= \i-> return (x i, y i)
+                           (nx, ny) <- press >>>= \i-> return (x i, y i)
                            always (do
                                      col <- randomColour
-                                     c <- colourDot cnv x y col
-                                     spawn (sparkle c (x,y) col 0 255))))
+                                     c <- colourDot cnv nx ny col
+                                     spawn (sparkle c (nx, ny) col 0 255))))
     finishHTk
 
-   where colourDot cnv x y col = createOval cnv [filling col, size (2, 2),
-                                                 position (x - 1, y - 1)]
-         sparkle p (x,y) col cnt fade =
+
+colourDot :: Canvas -> Distance -> Distance -> (Int, Int, Int) -> IO Oval
+colourDot cnv nx ny col = createOval cnv [filling col, size (2, 2),
+                                                 position (nx - 1, ny - 1)]
+
+sparkle :: Oval -> (Distance, Distance) -> (Int, Int, Int) -> Distance
+        -> Int -> IO ()
+sparkle p dp@(nx, ny) col cnt fade =
            if cnt >= 750 then do destroy p  -- doesn't remove image ?!?
            else do
                   p # filling (col)
                   p # size (cnt `div` 5,  cnt `div` 5)
-                  p # position (x- cnt `div` 10, y- cnt `div` 10)
-                  col <- nextColour col >>= return . fadeColour fade
+                  p # position (nx - cnt `div` 10, ny - cnt `div` 10)
+                  ncol <- nextColour col >>= return . fadeColour fade
                   threadDelay 20
-                  sparkle p (x, y) col (cnt+10)
+                  sparkle p dp ncol (cnt + 10)
                           (if cnt >= 500 then fade - 10 else fade)
-         fadeColour f (r, g, b) = (min r f, min g f, min b f)
+
+fadeColour :: Int -> (Int, Int, Int) -> (Int, Int, Int)
+fadeColour f (r, g, b) = (min r f, min g f, min b f)
