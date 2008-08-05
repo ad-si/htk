@@ -12,8 +12,10 @@ module Main (main) where
 
 import HTk
 
+lightBrown :: (Int, Int, Int)
+lightBrown = (224, 186, 145)
 
-lightBrown = (224, 186, 145)::(Int, Int, Int)
+stoneSize :: Distance
 stoneSize = 30
 
 blackFill = filling "black"
