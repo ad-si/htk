@@ -2,21 +2,21 @@
 
 echo "delete old folders"
 
-rm -r Appl
-rm -r Database
-rm -r UDrawGraph
-rm -r Emacs
-rm -r Events
-rm -r Graph
-rm -r Htk 
-rm -r Imports
-rm -r MMiss
-rm -r Posixutil
-rm -r Reactor
-rm -r Server
-rm -r Simpledb
-rm -r Types
-rm -r Util
+rm -r -f -f Appl
+rm -r -f Database
+rm -r -f UDrawGraph
+rm -r -f Emacs
+rm -r -f Events
+rm -r -f Graph
+rm -r -f Htk 
+rm -r -f Imports
+rm -r -f MMiss
+rm -r -f Posixutil
+rm -r -f Reactor
+rm -r -f Server
+rm -r -f Simpledb
+rm -r -f Types
+rm -r -f Util
 
 echo "rename folders"
 
