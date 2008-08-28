@@ -58,7 +58,7 @@ unitSet = singleton
 elementOf :: Ord a => a -> Set a -> Bool
 elementOf = member
 
--- | Obsolete equivalent of 'null'.
+-- | Obsolete equivalent of 'Data.Set.null'.
 isEmptySet :: Set a -> Bool
 isEmptySet = Data.Set.null
 
@@ -74,7 +74,7 @@ unionManySets = unions
 minusSet :: Ord a => Set a -> Set a -> Set a
 minusSet = difference
 
--- | Obsolete equivalent of 'map'.
+-- | Obsolete equivalent of 'Data.Set.map'.
 mapSet :: (Ord a, Ord b) => (b -> a) -> Set b -> Set a
 mapSet = Data.Set.map
 
