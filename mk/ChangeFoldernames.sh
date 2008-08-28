@@ -1,6 +1,24 @@
 #! /bin/sh
 
-echo "Ordner umbennen"
+echo "delete old folders"
+
+rm -r Appl
+rm -r Database
+rm -r UDrawGraph
+rm -r Emacs
+rm -r Events
+rm -r Graph
+rm -r Htk 
+rm -r Imports
+rm -r MMiss
+rm -r Posixutil
+rm -r Reactor
+rm -r Server
+rm -r Simpledb
+rm -r Types
+rm -r Util
+
+echo "rename folders"
 
 mv appl/ Appl
 mv database/ Database
