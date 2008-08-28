@@ -35,9 +35,9 @@ tkDoNothing _ _ _ _ _ = []
 -- is a way in Htk of creating widgets as subwidgets by instanciating the
 -- @class CanBeSubwidget@.
 
-class Widget w => CanBeSubwidget w  where
 -- | Use createAsSubwidget instead of the normal constructor new[WidgetName].
-  createAsSubwidget :: GUIOBJECT
-  -- ^ The only parameter is a reference to the mega widget the subwidget
+class Widget w => CanBeSubwidget w  where
+  createAsSubwidget :: GUIOBJECT -> IO w
+  -- The only parameter is a reference to the mega widget the subwidget
   -- is part of.
-                    -> IO w
+
