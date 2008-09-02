@@ -17,11 +17,11 @@ change()
 		sed "s/module $Name/module $Name_hierarchic/" -i $Path
 		#replacing the name of the module in the other files
 		sed "s/import $Name$/import $Name_hierarchic as $Name/" -i */*.hs
-		sed "s/import $Name[ ]/import $Name_hierarchic as $Name/" -i */*.hs
+		#sed "s/import $Name[ ]/import $Name_hierarchic as $Name/" -i */*.hs
 		sed "s/import $Name$/import $Name_hierarchic as $Name/" -i */*/*.hs
-		sed "s/import $Name[ ]/import $Name_hierarchic as $Name/" -i */*/*.hs
+		#sed "s/import $Name[ ]/import $Name_hierarchic as $Name/" -i */*/*.hs
 		sed "s/import $Name$/import $Name_hierarchic as $Name/" -i */*/*/*.hs
-		sed "s/import $Name[ ]/import $Name_hierarchic as $Name/" -i */*/*/*.hs
+		#sed "s/import $Name[ ]/import $Name_hierarchic as $Name/" -i */*/*/*.hs
 		#sed "s/import qualified  $Name$/import qualified $Name_hierarchic as $Name/" -i */*.hs
 		#sed "s/import qualified  $Name[ ]/import qualified $Name_hierarchic as $Name/" -i */*.hs
 		#sed "s/import qualified  $Name$/import qualified $Name_hierarchic as $Name/" -i */*/*.hs
@@ -66,5 +66,10 @@ sed "s/import Computation(done)/import Util.Computation(done)/" -i */*.hs
 sed "s/import Debug(debug)/import Util.Debug(debug)/" -i */*.hs
 sed "s/import ExtendedPrelude(HasMapIO(..))/import Util.ExtendedPrelude(HasMapIO(..))/" -i */*.hs
 sed "s/import BinaryInstances()/import Util.BinaryInstances()/" -i */*.hs
+sed "s/import qualified DeprecatedFiniteMap/import qualified Util.DeprecatedFiniteMap as DeprecatedFiniteMap/" -i */*.hs
+sed "s/import ExtendedPrelude(newFallOut,mkBreakFn)/import Util.ExtendedPrelude(newFallOut,mkBreakFn)/" -i */*.hs
+sed "s/import Object(ObjectID)/import Util.Object(ObjectID)/" -i */*.hs
+sed "s/import Computation (done)/import Util.Computation (done)/" -i */*.hs
+
 
 rm temp
