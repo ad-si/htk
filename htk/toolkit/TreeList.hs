@@ -998,8 +998,8 @@ unmarkSelectedObject tl =
       _ -> done
 
 -- True for a selected object
-isSelected :: CItem c => TreeList c -> TREELISTOBJECT c -> IO Bool
-isSelected tl obj =
+isSelectedTreeList :: CItem c => TreeList c -> TREELISTOBJECT c -> IO Bool
+isSelectedTreeList tl obj =
   do
     sel <- getRef (selected_object tl)
     case sel of
@@ -1067,7 +1067,7 @@ mkTreeListObject tl val isnode isopen cnf =
           +> (do
                 ev_inf <- leaveTxt
                 always (do
-                          b <- TreeList.isSelected tl obj
+                          b <- isSelectedTreeList tl obj
                           if b then done else txt # bg "white" >>
                                               txt # fg "black" >> done
                           sendEv tl (Focused (Nothing, ev_inf)))
@@ -1075,7 +1075,7 @@ mkTreeListObject tl val isnode isopen cnf =
           +> (do
                 ev_inf <- enterTxt
                 always (do
-                          b <- TreeList.isSelected tl obj
+                          b <- isSelected tl obj
                           if b then done else txt # bg "grey" >>
                                               txt # fg "white" >> done
                           sendEv tl (Focused
@@ -1189,7 +1189,7 @@ exportTreeListState tl =
         exportTreeListState' tl (StateEntry obj open intendation _ :
                                  ents) =
           do
-            sel <- TreeList.isSelected tl obj
+            sel <- isSelected tl obj
             rest <- exportTreeListState' tl ents
             return (TreeListExportItem
                       { obj_val = val obj,
