@@ -1075,7 +1075,7 @@ mkTreeListObject tl val isnode isopen cnf =
           +> (do
                 ev_inf <- enterTxt
                 always (do
-                          b <- isSelected tl obj
+                          b <- isSelectedTreeList tl obj
                           if b then done else txt # bg "grey" >>
                                               txt # fg "white" >> done
                           sendEv tl (Focused
@@ -1189,7 +1189,7 @@ exportTreeListState tl =
         exportTreeListState' tl (StateEntry obj open intendation _ :
                                  ents) =
           do
-            sel <- isSelected tl obj
+            sel <- isSelectedTreeList tl obj
             rest <- exportTreeListState' tl ents
             return (TreeListExportItem
                       { obj_val = val obj,
