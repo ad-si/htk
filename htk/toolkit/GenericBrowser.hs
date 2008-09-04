@@ -19,7 +19,8 @@ import ReferenceVariables
 import HTk
 import Core
 import TreeList
-import Notepad
+import qualified Notepad (NotepadEvent(Dropped, Doubleclick, Rightclick))
+import Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import CItem
 
 -- | Browsed data needs to instantiate the class @CItem@.
@@ -114,7 +115,7 @@ newGenericBrowser par rootobjs cnf =
                                             tlObjectSelected gb mobj
                                           TreeList.Focused (mobj, _) ->
                                             tlObjectFocused gb mobj
-                                          _ -> done)) +>
+                                        )) +>
                             (do ev <- np_ev
                                 always (case ev of
                                           Notepad.Dropped
@@ -193,7 +194,7 @@ npItemsDropped :: GBObject o => GenericBrowser o ->
 npItemsDropped gb (npobj, npobjs) =
   do obj <- getItemValue npobj
      objs <- mapM getItemValue npobjs
-     sendEv gb (GenericBrowser.Dropped (obj, objs))
+     sendEv gb (Dropped (obj, objs))
 
 -- Notepad selection event handler.
 npItemSelected :: GBObject o => GenericBrowser o -> NotepadItem o -> IO ()
@@ -210,14 +211,14 @@ npItemDeselected gb npobj = do obj <- getItemValue npobj
 npItemDoubleclick :: GBObject o => GenericBrowser o -> NotepadItem o ->
                                    IO ()
 npItemDoubleclick gb npobj = do obj <- getItemValue npobj
-                                sendEv gb (GenericBrowser.Doubleclick obj)
+                                sendEv gb (Doubleclick obj)
 
 -- Notepad rightclick event handler.
 npItemsRightclick :: GBObject o => GenericBrowser o -> [NotepadItem o] ->
                                    IO ()
 npItemsRightclick gb npobjs = do objs <- mapM getItemValue npobjs
                                  sendEv gb
-                                   (GenericBrowser.Rightclick objs)
+                                   (Rightclick objs)
 
 
 -- -----------------------------------------------------------------------
