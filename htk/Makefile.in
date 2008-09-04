@@ -1,6 +1,6 @@
 SUBDIRS = \
    kernel containers components devices tix menuitems widgets \
-   canvasitems textitems toplevel toolkit htk \
+   canvasitems textitems toplevel toolkit oldHtkWrapper \
    test examples
 
 include @TOP@/mk/boilerplate.mk
