@@ -34,7 +34,8 @@ module GenGUI (
 import HTk
 import ScrollBox
 import TreeList
-import Notepad
+import qualified Notepad (NotepadEvent(Dropped, Doubleclick, Rightclick))
+import Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import ReferenceVariables
 import Name
 import Core
@@ -426,7 +427,7 @@ newGenGUI mstate showLeavesInTree =
                                  Focused mobjninf ->
                                    tlObjectFocused gui clipboard_mov
                                                    mobjninf
-                                 _ -> done)) +>
+                                 )) +>
                          (do
                             ev_inf <- enter_ed
                             always
@@ -619,7 +620,7 @@ npDropEvent gui (npitem, npitems) =
       Just ch -> do
                    item <- getItemValue npitem
                    items <- mapM getItemValue npitems
-                   syncNoWait (send ch (GenGUI.Dropped (item, items)))
+                   syncNoWait (send ch (Dropped (item, items)))
       _ -> done
 
 -- | Notepad double click event handler.
@@ -630,7 +631,7 @@ npDoubleClick gui npitem =
     case mch of
       Just ch -> do
                    item <- getItemValue npitem
-                   syncNoWait (send ch (GenGUI.Doubleclick item))
+                   syncNoWait (send ch (Doubleclick item))
       _ -> done
 
 -- | Notepad right click event handler.
@@ -641,7 +642,7 @@ npRightClick gui npitems =
     case mch of
       Just ch -> do
                    items <- mapM getItemValue npitems
-                   syncNoWait (send ch (GenGUI.Rightclick items))
+                   syncNoWait (send ch (Rightclick items))
       _ -> done
 
 
