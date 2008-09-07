@@ -7,8 +7,8 @@ homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Posix utilities for the uniform workbench
 description:    posix utilities
-exposed-modules: CopyFile, ProcessClasses, ChildProcess,
-  Expect, SafeSystem, BlockSigPIPE
+exposed-modules: Posixutil.CopyFile, Posixutil.ProcessClasses, Posixutil.ChildProcess,
+  Posixutil.Expect, Posixutil.SafeSystem, Posixutil.BlockSigPIPE
 include-dirs: ../includes
 build-depends:
         base >=3,

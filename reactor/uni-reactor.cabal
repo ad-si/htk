@@ -7,7 +7,7 @@ homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Reactors for the uniform workbench
 description:    uni reactor
-exposed-modules: Lock, BSem, MSem, ReferenceVariables, InfoBus,
-  LockEvent, WithDir
+exposed-modules: Reactor.Lock, Reactor.BSem, Reactor.MSem, Reactor.ReferenceVariables, Reactor.InfoBus,
+  Reactor.LockEvent, Reactor.WithDir
 build-depends: base, haskell98, uni-util, uni-events
 ghc-options: -O
