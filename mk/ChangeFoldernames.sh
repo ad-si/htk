@@ -1,51 +1,46 @@
-#! /bin/bash -x
+#! /bin/sh
 
 echo "delete old folders"
 
-rm -r -f appl/Appl
-rm -r -f database/Database
-rm -r -f davinci/UDrawGraph
-rm -r -f emacs/Emacs
-rm -r -f events/Events
-rm -r -f graphs/Graphs
-rm -r -f htk/Htk
-rm -r -f imports/Imports
-rm -r -f mmiss/MMiSS
-rm -r -f posixutil/Posixutil
-rm -r -f reactor/Reactor
-rm -r -f server/Server
-rm -r -f simpledb/Simpledb
-rm -r -f types/Types
-rm -r -f util/Util
+rm -r -f -f Appl
+rm -r -f Database
+rm -r -f UDrawGraph
+rm -r -f Emacs
+rm -r -f Events
+rm -r -f Graphs
+rm -r -f Htk 
+rm -r -f Imports
+rm -r -f MMiSS
+rm -r -f Posixutil
+rm -r -f Reactor
+rm -r -f Server
+rm -r -f Simpledb
+rm -r -f Types
+rm -r -f Util
 
 echo "rename folders"
 
-mkDirAndCopy ()
-{
-mkdir $1; cp *.hs $1
-}
-
-(cd  appl; mkDirAndCopy Appl)
-(cd  database; mkDirAndCopy Database)
-(cd  davinci; mkDirAndCopy UDrawGraph)
-(cd  emacs; mkDirAndCopy Emacs)
-(cd  events; mkDirAndCopy Events)
-(cd  graphs; mkDirAndCopy Graphs)
-(cd  htk; mkDirAndCopy Htk)
-(cd  imports; mkDirAndCopy Imports)
-(cd  mmiss; mkDirAndCopy MMiSS)
-(cd  posixutil; mkDirAndCopy Posixutil)
-(cd  reactor; mkDirAndCopy Reactor)
-(cd  server; mkDirAndCopy Server)
-(cd  simpledb; mkDirAndCopy  Simpledb)
-(cd  types; mkDirAndCopy Types)
-(cd  util; mkDirAndCopy Util)
+mv appl/ Appl
+mv database/ Database
+mv davinci/ UDrawGraph
+mv emacs/ Emacs
+mv events/ Events
+mv graphs/ Graphs
+mv htk/ Htk 
+mv imports/ Imports
+mv mmiss/ MMiSS
+mv posixutil/ Posixutil
+mv reactor/ Reactor
+mv server/ Server
+mv simpledb/  Simpledb
+mv types/ Types
+mv util/ Util
 
 #Util und Graphs Test groß und umbennen (nicht main und test).
 #subfolders to uppercase
 #DaVinci in files remove
 #
-cd appl/Appl
+cd Appl
 mv ontologytool/ Ontologytool/
 mv uDrawOntology/ UDrawOntology/
 	cd UDrawOntology
@@ -130,27 +125,47 @@ cd ..
 #mv share/doc/uni-util-1.1/ share/doc/uni-util-1.1/
 cd MMiSS
 for file in *.hs
-do
+do	
 	echo $file > temp
-	oldmodule_name=`sed -e "s/.hs.*//" temp`
+	oldmodule_name=`sed -e "s/[.]hs.*//" temp`
 	newfilename=`sed -e "s/MMiSS//" temp`
-	newmodule_name=`sed -e "s/.hs.*//" temp`
-	#temporary saving of the file
+	newmodule_name=`sed -e "s/[.]hs.*//" -e "s/MMiSS//" temp`
+	echo $oldmodule_name "is renamed to" $newmodule_name "(File" $newfilename")"
 	mv $file $newfilename
-	sed "s/$oldmodule_name/$newmodule_name/" -i */*/*.hs
-	sed "s/$oldmodule_name/$newmodule_name/" -i */*.hs
+	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*.hs
+	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*/*.hs
 done
+rm temp
 
 cd Api
 for file in *.hs
-do
+do	
 	echo $file > temp
+	oldmodule_name=`sed -e "s/[.]hs.*//" temp`
 	newfilename=`sed -e "s/MMiSS//" temp`
-	#temporary saving of the file
+	newmodule_name=`sed -e "s/[.]hs.*//" -e "s/MMiSS//" temp`
+	echo $oldmodule_name "is renamed to" $newmodule_name "(File" $newfilename")"
 	mv $file $newfilename
+	sed "s/$oldmodule_name/$newmodule_name/" -i ../../*/*.hs
+	sed "s/$oldmodule_name/$newmodule_name/" -i ../../*/*/*.hs
 done
-
+rm temp
 cd ..
+cd ..
+
+cd UDrawGraph
+for file in *.hs
+do	
+	echo $file > temp
+	oldmodule_name=`sed -e "s/[.]hs.*//" temp`
+	newfilename=`sed -e "s/DaVinci/UDrawGraph/" temp`
+	newmodule_name=`sed -e "s/DaVinci/UDrawGraph/" -e "s/[.]hs.*//" temp`
+	echo $oldmodule_name "is renamed to" $newmodule_name "(File" $newfilename")"
+	mv $file $newfilename
+	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*.hs
+	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*/*.hs
+done
+rm temp
 cd ..
 
 sed "s/module MMiSS/module /" -i */*/*.hs
@@ -158,4 +173,4 @@ sed "s/module MMiSS/module /" -i */*.hs
 sed "s/import MMiSS/import /" -i */*/*.hs
 sed "s/import MMiSS/import /" -i */*.hs
 
-rm temp
+
