@@ -33,7 +33,8 @@ module InputForm (
 where
 
 import Core
-import HTk
+import qualified HTk (font)
+import HTk hiding (font)
 import DialogWin
 import SpinButton
 import ScrollBox

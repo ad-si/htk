@@ -31,9 +31,11 @@ module GenGUI (
 
 ) where
 
-import HTk
+import HTk hiding (font)
+import qualified HTk (font)
 import ScrollBox
-import TreeList
+import qualified TreeList (obj_val, TreeListEvent(Selected), selected)
+import TreeList hiding (obj_val, TreeListEvent(Selected), selected)
 import qualified Notepad (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import ReferenceVariables
@@ -365,7 +367,7 @@ newGenGUI mstate showLeavesInTree =
                             ev <- np_ev
                             always
                               (case ev of
-                                 Notepad.Selected c ->
+                                 Selected c ->
                                    npItemSelected gui (c, True)
                                  Deselected c ->
                                    npItemSelected gui (c, False)
@@ -375,7 +377,7 @@ newGenGUI mstate showLeavesInTree =
                                    npDoubleClick gui inf
                                  Notepad.Rightclick inf ->
                                    npRightClick gui inf
-                                 Notepad.ReleaseMovement ev_inf ->
+                                 ReleaseMovement ev_inf ->
                                    synchronize (notepad gui)
                                      (do
                                         ((x1, y1), items1) <-

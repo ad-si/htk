@@ -19,7 +19,8 @@ import MenuCascade
 import MenuSeparator
 import MenuCommand
 
-import MenuType
+import MenuType hiding (MenuPrim(Menu))
+import qualified MenuType (MenuPrim(Menu))
 
 
 -- ----------------------------------------------------------------------
@@ -30,7 +31,7 @@ import MenuType
 -- The value identifies the buttons in the menu so the client
 -- can tell which was clicked.
 -- The String is a title which is given to menu cascades.
-newtype HTkMenu value = HTkMenu (MenuPrim String value)
+newtype HTkMenu value = HTkMenu (MenuType.MenuPrim String value)
 
 -- ----------------------------------------------------------------------
 -- compileHTkMenu
@@ -51,7 +52,7 @@ compileHTkMenu parent htkMenu =
       return (menuButton,choose clickEvents)
 
 -- | normalise decomposes the menu into a title plus a list of submenus.
-normalise :: HTkMenu value -> (String,[MenuPrim String value])
+normalise :: HTkMenu value -> (String,[MenuType.MenuPrim String value])
 normalise (HTkMenu menuPrim) =
    case menuPrim of
       MenuType.Menu title subMenus -> (title,subMenus)
@@ -66,7 +67,7 @@ tearoff = False
 
 -- | Compiles the menu and inserts it into the parent (which is itself a menu),
 -- returning the event click operation
-compileMenuPrim :: Menu -> MenuPrim String value -> IO (Event value)
+compileMenuPrim :: Menu -> MenuType.MenuPrim String value -> IO (Event value)
 compileMenuPrim parent menuPrim =
    case menuPrim of
       Button string value ->

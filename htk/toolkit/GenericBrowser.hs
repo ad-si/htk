@@ -18,7 +18,8 @@ import ReferenceVariables
 
 import HTk
 import Core
-import TreeList
+import qualified TreeList (TreeListEvent(Selected, Focused))
+import TreeList hiding (TreeListEvent(Selected, Focused))
 import qualified Notepad (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import CItem
@@ -122,9 +123,9 @@ newGenericBrowser par rootobjs cnf =
                                             (npobj, npobjs) ->
                                             npItemsDropped gb
                                               (npobj, npobjs)
-                                          Notepad.Selected npobj ->
+                                          Selected npobj ->
                                             npItemSelected gb npobj
-                                          Notepad.Deselected npobj ->
+                                          Deselected npobj ->
                                             npItemDeselected gb npobj
                                           Notepad.Doubleclick npobj ->
                                             npItemDoubleclick gb npobj

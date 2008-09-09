@@ -32,7 +32,8 @@ import Messages
 import ExtendedPrelude (newFallOut,mkBreakFn)
 
 import Core
-import HTk
+import qualified HTk (font)
+import HTk hiding (font)
 import Space
 import SelectBox
 import ModalDialog

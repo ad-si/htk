@@ -6,13 +6,13 @@ module MarkupText (
 
 -- combinators
   prose,
-  MarkupText.font,
+  font,
   newline,
   bold,
-  MarkupText.underline,
+  underline,
   italics,
   spaces,
-  MarkupText.offset,
+  offset,
   colour,
   bgcolour,
   flipcolour,
@@ -46,7 +46,7 @@ module MarkupText (
   mu,
   nu,
   omikron,
-  MarkupText.pi,
+  pi,
   theta,
   vartheta,
   rho,
@@ -88,12 +88,12 @@ module MarkupText (
   forallbig,
   eexists,
   existsone,
-  MarkupText.not,
-  MarkupText.and,
+  not,
+  and,
   bigand,
-  MarkupText.or,
+  or,
   times,
-  MarkupText.sum,
+  sum,
   prod,
   comp,
   bullet,
@@ -144,6 +144,8 @@ module MarkupText (
 ) where
 
 import Char
+import Prelude hiding (pi, not, and, or, sum)
+import qualified Prelude (not)
 
 import Control.Concurrent(threadDelay)
 import System.IO.Unsafe
@@ -152,11 +154,13 @@ import Object
 
 import ReferenceVariables
 
-import HTk
+import HTk hiding (font, underline, offset)
 import GUIObject
-import Configuration
+import Configuration hiding (font, underline)
+import qualified Configuration (font, underline)
 import Editor
-import TextTag
+import TextTag hiding (offset)
+import qualified TextTag (offset)
 import Font
 import Editor
 import Object

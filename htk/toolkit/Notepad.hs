@@ -50,7 +50,7 @@ import HTk
 import CanvasItemAux
 import ScrollBox
 import Name
-import Examples(watch)
+import qualified Examples (watch)
 import Core
 import CItem
 

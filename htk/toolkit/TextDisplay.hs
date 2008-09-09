@@ -26,7 +26,7 @@ createTextDisplayExt :: String
 createTextDisplayExt title txt conf unpost =
   do win <- createToplevel [text title]
      b   <- newFrame win  [relief Groove, borderwidth (cm 0.05)]
-     t   <- newLabel b [text title, HTk.font (Helvetica, Roman, 18::Int)]
+     t   <- newLabel b [text title, font (Helvetica, Roman, 18::Int)]
      q   <- newButton b [text "Close", width 12]
      (sb, ed) <- newScrollBox b (\p-> newEditor p (state Normal:conf)) []
      pack b [Side AtTop, Expand On, Fill Both]
