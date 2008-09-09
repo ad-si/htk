@@ -4,7 +4,7 @@ createDir ()
 {
 cd $1
 mkdir -p $2
-mv *.hs $2
+cp *.hs $2
 cd ..
 }
 
@@ -26,7 +26,7 @@ createDir util/ Util
 createSubDir ()
 {
 rm -rf $1/$3
-mv $2 $1/$3
+cp -r $2 $1/$3
 }
 
 cd htk
