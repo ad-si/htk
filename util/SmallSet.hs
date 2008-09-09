@@ -58,7 +58,7 @@ emptySmallSet = SmallSet []
 
 addSmallSet :: Ord elt => elt -> SmallSet elt -> SmallSet elt
 addSmallSet elt (SmallSet eltList) =
-   SmallSet (ExtendedPrelude.insertOrdGt elt eltList)
+   SmallSet (insertOrdGt elt eltList)
 
 addSmallSetList :: Ord elt => [elt] -> SmallSet elt -> SmallSet elt
 addSmallSetList eltList smallSet =
