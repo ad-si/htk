@@ -1,176 +1,53 @@
 #! /bin/sh
 
-echo "delete old folders"
+createDir ()
+{
+cd $1
+mkdir -p $2
+mv *.hs $2
+cd ..
+}
 
-rm -r -f -f Appl
-rm -r -f Database
-rm -r -f UDrawGraph
-rm -r -f Emacs
-rm -r -f Events
-rm -r -f Graphs
-rm -r -f Htk 
-rm -r -f Imports
-rm -r -f MMiSS
-rm -r -f Posixutil
-rm -r -f Reactor
-rm -r -f Server
-rm -r -f Simpledb
-rm -r -f Types
-rm -r -f Util
+mkdir -p appl/Appl
+createDir davinci/ UDrawGraph
+createDir emacs/ Emacs
+createDir events/ Events
+createDir graphs/ Graphs
+mkdir -p htk/Htk
+createDir imports/ Imports
+createDir mmiss/ MMiSS
+createDir posixutil/ Posixutil
+createDir reactor/ Reactor
+createDir server/ Server
+createDir simpledb/  Simpledb
+createDir types/ Types
+createDir util/ Util
 
-echo "rename folders"
+createSubDir ()
+{
+rm -rf $1/$3
+mv $2 $1/$3
+}
 
-mv appl/ Appl
-mv database/ Database
-mv davinci/ UDrawGraph
-mv emacs/ Emacs
-mv events/ Events
-mv graphs/ Graphs
-mv htk/ Htk 
-mv imports/ Imports
-mv mmiss/ MMiSS
-mv posixutil/ Posixutil
-mv reactor/ Reactor
-mv server/ Server
-mv simpledb/  Simpledb
-mv types/ Types
-mv util/ Util
-
-#Util und Graphs Test groß und umbennen (nicht main und test).
-#subfolders to uppercase
-#DaVinci in files remove
-#
-cd Appl
-mv ontologytool/ Ontologytool/
-mv uDrawOntology/ UDrawOntology/
-	cd UDrawOntology
-	mv doc/ Doc/
-	mv resource/ Resource/
-	mv samples/ Samples/
-	cd ..
+cd htk
+createSubDir Htk canvasitems/ Canvasitems/
+createSubDir Htk components/ Components/
+createSubDir Htk containers/ Containers/
+createSubDir Htk devices/ Devices/
+createSubDir Htk kernel/ Kernel/
+createSubDir Htk menuitems/ Menuitems/
+createSubDir Htk textitems/ Textitems/
+createSubDir Htk tix/ Tix/
+createSubDir Htk toolkit/ Toolkit/
+createSubDir Htk toplevel/ Toplevel/
+createSubDir Htk widgets/ Widgets/
 cd ..
 
-cd Database
-mv icons/ Icons/
-mv images/ Images/
+cd appl
+createSubDir Appl ontologytool/ Ontologytool/
 cd ..
 
-#mv Emacs/test/
-#mv Events/test/
-
-cd Graphs
-mv test/ Test/
+cd mmiss
+createSubDir MMiSS api/ Api/
+createSubDir MMiSS parser/ Parser/
 cd ..
-
-cd Htk
-mv canvasitems/ Canvasitems/
-mv components/ Components/
-mv containers/ Containers/
-mv devices/ Devices/
-mv examples/ Examples/
-mv htk/ Htk/
-mv kernel/ Kernel/
-mv menuitems/ Menuitems/
-mv packer/ Packer/
-mv resources/ Resources/
-#mv Htk/test/
-mv textitems/ Textitems/
-mv tix/ Tix/
-mv toolkit/ Toolkit/
-mv toplevel/ Toplevel/
-mv widgets/ Widgets/
-	cd Examples
-	mv canvas/ Canvas/
-	mv gengui/ Gengui/
-	mv images/ Images/
-	mv intro/ Intro/
-	mv simple/ Simple/
-	mv tix/ Tix/
-	mv toolkit/ Toolkit/
-	cd ..
-cd ..
-
-#mv Imports/test/
-
-cd MMiSS
-mv api/ Api/
-mv checker/ Checker/
-mv coupling/ Coupling/
-mv mmisslatex/ MMiSSlatex/
-mv parser/ Parser/
-mv scripts/ Scripts/
-	cd Api
-	mv dummyserver/ Dummyserver/
-	cd ..
-cd ..
-
-#mv MMiss/test/ MMiss/test/
-#mv Posixutil/test/
-#mv Server/test/
-#mv share/doc/ share/doc/
-#mv Simpledb/test/
-#mv Types/test/
-#mv UDrawGraph/test/
-cd Util
-mv test/ Test/
-cd ..
-#mv Appl/ontologytool/test/
-
-
-#mv MMiss/api/test/ MMiss/api/test/
-#mv MMiSS/Checker/src/ MMiSS/Checker/src/
-#mv MMiss/coupling/test/
-#mv MMiss/parser/test/
-#mv MMiss/test/files/
-#mv share/doc/uni-util-1.1/ share/doc/uni-util-1.1/
-cd MMiSS
-for file in *.hs
-do	
-	echo $file > temp
-	oldmodule_name=`sed -e "s/[.]hs.*//" temp`
-	newfilename=`sed -e "s/MMiSS//" temp`
-	newmodule_name=`sed -e "s/[.]hs.*//" -e "s/MMiSS//" temp`
-	echo $oldmodule_name "is renamed to" $newmodule_name "(File" $newfilename")"
-	mv $file $newfilename
-	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*.hs
-	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*/*.hs
-done
-rm temp
-
-cd Api
-for file in *.hs
-do	
-	echo $file > temp
-	oldmodule_name=`sed -e "s/[.]hs.*//" temp`
-	newfilename=`sed -e "s/MMiSS//" temp`
-	newmodule_name=`sed -e "s/[.]hs.*//" -e "s/MMiSS//" temp`
-	echo $oldmodule_name "is renamed to" $newmodule_name "(File" $newfilename")"
-	mv $file $newfilename
-	sed "s/$oldmodule_name/$newmodule_name/" -i ../../*/*.hs
-	sed "s/$oldmodule_name/$newmodule_name/" -i ../../*/*/*.hs
-done
-rm temp
-cd ..
-cd ..
-
-cd UDrawGraph
-for file in *.hs
-do	
-	echo $file > temp
-	oldmodule_name=`sed -e "s/[.]hs.*//" temp`
-	newfilename=`sed -e "s/DaVinci/UDrawGraph/" temp`
-	newmodule_name=`sed -e "s/DaVinci/UDrawGraph/" -e "s/[.]hs.*//" temp`
-	echo $oldmodule_name "is renamed to" $newmodule_name "(File" $newfilename")"
-	mv $file $newfilename
-	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*.hs
-	sed "s/$oldmodule_name/$newmodule_name/" -i ../*/*/*.hs
-done
-rm temp
-cd ..
-
-sed "s/module MMiSS/module /" -i */*/*.hs
-sed "s/module MMiSS/module /" -i */*.hs
-sed "s/import MMiSS/import /" -i */*/*.hs
-sed "s/import MMiSS/import /" -i */*.hs
-
-
