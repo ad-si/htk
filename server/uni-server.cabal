@@ -7,9 +7,9 @@ homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Server for the uniform workbench
 description:    server
-exposed-modules: Server.HostsPorts, Server.ServiceClass, Server.Server, Server.EchoService,
-   Server.MultiServer, Server.Crypt, Server.PasswordFile, Server.MultiPlexer, Server.LogFile,
-   Server.GroupFile
+exposed-modules: Server.HostsPorts, Server.ServiceClass, Server.Server,
+   Server.EchoService, Server.MultiServer, Server.Crypt, Server.PasswordFile,
+   Server.MultiPlexer, Server.LogFile, Server.GroupFile
 include-dirs: ../includes
 c-sources: dipperstein_crypt.c
 build-depends: base >=3, directory, haskell98, network, parsec,

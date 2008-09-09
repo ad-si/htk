@@ -147,6 +147,6 @@ fromMultiServerKey (MultiServerKey str) = str
 newMultiServerKey :: MultiServer -> IO MultiServerKey
 newMultiServerKey _ =
    do
-      i1 <- Object.newInt -- this forces uniqueness
+      i1 <- newInt -- this forces uniqueness
       (i2 :: Int) <- randomIO
       return (MultiServerKey (show i1 ++ "." ++ show i2))
