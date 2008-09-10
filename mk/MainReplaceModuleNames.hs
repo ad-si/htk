@@ -25,13 +25,15 @@ tokenize st input = case input of
 process :: Map.Map String String -> String -> String
 process m str = unlines $
   map (\ l -> case tokenize Other l of
-         ts@("" : "import" : _ : "qualified" : _ : _ : _ : "as" : _) ->
-             concatMap (\ s -> Map.findWithDefault s s m) ts
+         "" : "import" : _ : "qualified" : _ : modname : _ : "as" : r ->
+             case Map.lookup modname m of
+               Nothing -> l
+               Just qv -> "import qualified " ++ qv ++ " as" ++ concat r
          "" : "import" : _ : "qualified" : _ : modname : r ->
              case Map.lookup modname m of
                Nothing -> l
-               Just qv -> "import qualified " ++ qv ++ " as " ++ modname ++
-                          concat r
+               Just qv ->
+                 "import qualified " ++ qv ++ " as " ++ modname ++ concat r
          "" : "import" : _ : modname : r ->
              case Map.lookup modname m of
                Nothing -> l
@@ -40,7 +42,7 @@ process m str = unlines $
              case Map.lookup modname m of
                Nothing -> l
                Just qv -> bs ++ "module " ++ qv ++ concat r
-         _ -> l
+         _ -> l -- concatMap (\ s -> Map.findWithDefault s s m) ts
       ) $ lines str
 
 processM :: String -> IO ()
