@@ -5,7 +5,7 @@ AC_INIT(mk/suffix.mk)
 #
 # Is this configure script being run in a binary release or not?
 if test -r "not.a.binary.release"; then
-   echo Configuring for building from source 
+   echo Configuring for building from source
    BINARY=NO
 else
    echo Configuring a binary release
@@ -53,7 +53,7 @@ AC_ARG_ENABLE(
    )
 
 AC_SUBST(BUILDAMOUNT)
-   
+
 # Set GOAHEAD to NO prevent modifying Makefiles and so on.
 GOAHEAD=YES
 #
@@ -62,7 +62,7 @@ TOP=`pwd`
 echo ""
 echo "The top of the UniForM build tree is: $TOP"
 AC_SUBST(TOP)
-# 
+#
 #
 # Are we running Windows or Unix?
 case `uname` in
@@ -171,7 +171,7 @@ else
    echo No HTML documents or Haddock files found for GHC.
    echo This will mean ./runhaddock.sh cannot insert links within
    echo Haddocked versions of our modules to GHC modules.
-fi 
+fi
 
 AC_SUBST(GHCHTML)
 
@@ -207,7 +207,7 @@ DAVINCI=$UDG
 AC_SUBST(DAVINCI)
 
 #
-# 
+#
 # Check for gnu tar and for zip
 AC_PATH_PROGS(TAR,gtar tar)
 if test -z "$TAR"; then
@@ -264,7 +264,7 @@ AC_PATH_PROGS(LATEX,latex)
 AC_PATH_PROGS(XDVI,xdvi)
 AC_PATH_PROGS(ACROREAD,acroread)
 AC_PATH_PROGS(LP,lp)
-# 
+#
 # Find the current installation of MMiSSLaTeX
 AC_ARG_WITH(
    MMiSS-LaTeX,
@@ -277,19 +277,19 @@ AC_ARG_WITH(
    )
 MISSLATEX=$MMISSLATEXDIR/bin/misslatex
 if test -r "$MISSLATEX"; then
-   echo Using MMiSS LaTeX found at $MISSLATEX 
+   echo Using MMiSS LaTeX found at $MISSLATEX
 else
    MISSLATEX="$TOP/mmiss/scripts/notfound MMiSS-LaTeX "
 fi
 AC_SUBST(MISSLATEX)
 
-# Check for mkdtemp in stdlib (used by mmiss/test/MainTempDir.c).  We can get 
+# Check for mkdtemp in stdlib (used by mmiss/test/MainTempDir.c).  We can get
 # along without it, and have to on Solaris.
 AC_CHECK_FUNCS(mkdtemp,HAVE_MKDTEMP=1,HAVE_MKDTEMP=0)
 AC_SUBST(HAVE_MKDTEMP)
 
 #
-# Construct the default options, used by 
+# Construct the default options, used by
 # util/default_options.c
 # The format of these is described in util/WBFiles.hs.  We make a feeble
 # and incomplete attempt to escape any funny characters so we can
@@ -309,11 +309,12 @@ if test "$GOAHEAD" = YES; then
       # happen if the format changes.
       rm -rf mk/Main.hi
       $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
+      $GHC --make mk/MainReplaceModuleNames.hs -o mk/ReplaceModuleNames
    fi
 
    FIXFILENAMES=$PWD/mk/FixFileNames
 
-   # Find out what GHC thinks this directory is (this will not necessarily be 
+   # Find out what GHC thinks this directory is (this will not necessarily be
    # the same as TOP on Windows).  This string is escaped.
    GHCTOP=`echo '#PWD' | $FIXFILENAMES`
    echo GHC calls this directory $GHCTOP
@@ -331,35 +332,36 @@ if test "$GOAHEAD" = YES; then
    # don't.
    SCRIPTS1=`for i in $SCRIPTS;do if test -e $i.in ; then echo $i; fi;done`
 
-   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk includes/uni-config.h" 
+   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk includes/uni-config.h"
 
 
    AC_OUTPUT($MAKEFILES $SCRIPTS1 $OTHERFILES)
    chmod +x $SCRIPTS1
 
    if test "$BINARY" = NO
-   then   
+   then
       echo Setting up packages and export packages file as empty
       # The echo prints []; the funny things bracketted by @ signs are
       # "Quadrigraphs" which express this so.  Normal square brackets
       # won't work since they have a special meaning for autoconf.
       echo @<:@@:>@ >uni-package.conf
       echo @<:@@:>@ >uni-package.conf.export
-      mk/FixFileNames <uni-package.options | $GHCPKG --package-conf=uni-package.conf register -      
+      mk/FixFileNames <uni-package.options | $GHCPKG --package-conf=uni-package.conf register -
 
       GHCPKGOPTS=--force
-      
+
       $GHCPKG $GHCPKGOPTS --package-conf=uni-package.conf.export register - <uni-package.options
       if test -n "$BDBDIR"; then
-         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf register - 
-         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf.export register - 
+         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf register -
+         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf.export register -
       fi
+      echo creating hierarchical and renamed sources
+      mk/ChangeFoldernames.sh
 
       GMAKESHORT=`basename $GMAKE`
 
-      echo To compile UniForM type \"${GMAKESHORT} cabal\"
+      echo To compile UniForM type \"${GMAKESHORT} packages\"
+      echo or \"${GMAKESHORT} cabal\" for hierarchical modules.
       # only cabal works for ghc-6.8.1 currently
    fi
 fi
-
-
