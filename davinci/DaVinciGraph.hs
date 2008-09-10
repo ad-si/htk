@@ -48,8 +48,10 @@ import Destructible
 
 import BSem
 
-import GraphDisp
-import GraphConfigure
+import qualified GraphDisp (Graph)
+import GraphDisp hiding (Graph)
+import qualified GraphConfigure as GConf (MenuPrim(Menu), Orientation(..))
+import GraphConfigure hiding (MenuPrim(Menu), Orientation(..))
 
 import DaVinciTypes
 import DaVinciBasic
@@ -59,7 +61,7 @@ import DaVinciBasic
 -- How you refer to everything
 ------------------------------------------------------------------------
 
-daVinciSort :: Graph DaVinciGraph
+daVinciSort :: GraphDisp.Graph DaVinciGraph
    DaVinciGraphParms DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
    DaVinciArc DaVinciArcType DaVinciArcTypeParms
 daVinciSort = displaySort
@@ -129,7 +131,7 @@ data DaVinciGraphParms = DaVinciGraphParms {
    configActionWrapper :: IO () -> IO (),
    graphTitleSource :: Maybe (SimpleSource GraphTitle),
    delayerOpt :: Maybe Delayer,
-   configOrientation :: Maybe GraphConfigure.Orientation
+   configOrientation :: Maybe GConf.Orientation
    }
 
 instance Eq DaVinciGraph where
@@ -182,7 +184,7 @@ redrawThread (daVinciGraph @ DaVinciGraph{
                flushPendingChanges daVinciGraph
                if doImprove
                   then
-                     doInContext (DaVinciTypes.Menu(Layout(ImproveAll)))
+                     doInContext (Menu(Layout(ImproveAll)))
                         context
                   else
                      done
@@ -373,16 +375,16 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                               setTitle currentTitle
                      return (addSink,invalidate sink)
          let
-            setOrientation :: GraphConfigure.Orientation -> IO ()
+            setOrientation :: GConf.Orientation -> IO ()
             setOrientation orientation0 =
                let
                   orientation1 = case orientation0 of
-                     GraphConfigure.TopDown -> DaVinciTypes.TopDown
-                     GraphConfigure.BottomUp -> DaVinciTypes.BottomUp
-                     GraphConfigure.LeftRight -> DaVinciTypes.LeftRight
-                     GraphConfigure.RightLeft -> DaVinciTypes.RightLeft
+                     GConf.TopDown -> TopDown
+                     GConf.BottomUp -> BottomUp
+                     GConf.LeftRight -> LeftRight
+                     GConf.RightLeft -> RightLeft
                in
-                  doInContext (DaVinciTypes.Menu (Layout (
+                  doInContext (Menu (Layout (
                         Orientation orientation1)))
                      context
 
@@ -449,7 +451,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          doInContext (DVSet(GapHeight 40)) context
          if surveyView
             then
-               doInContext (DaVinciTypes.Menu(View(OpenSurveyView))) context
+               doInContext (Menu(View(OpenSurveyView))) context
             else
                done
 
@@ -475,7 +477,7 @@ initialFileMenuActions :: FiniteMap FileMenuOption (DaVinciGraph -> IO ())
 initialFileMenuActions = listToFM [
    (PrintMenuOption,
       (\ graph -> doInContext
-         (DaVinciTypes.Menu (File (Print Nothing))) (context graph))
+         (Menu (File (Print Nothing))) (context graph))
       ),
    (CloseMenuOption,
       (\ graph ->
@@ -559,7 +561,7 @@ instance HasConfig (FileMenuOption,(Maybe (DaVinciGraph -> IO ())))
          daVinciGraphParms {configFileMenuActions = configFileMenuActions1}
 
 
-instance HasConfig Orientation DaVinciGraphParms where
+instance HasConfig GConf.Orientation DaVinciGraphParms where
    configUsed _ _  = True
    ($$) orientation daVinciGraphParms =
       daVinciGraphParms {configOrientation = Just orientation}
@@ -794,11 +796,11 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
                   synchronize (pendingChangesLock graph) (
                      do
                         doInContext
-                           (DaVinciTypes.Graph (ChangeType
+                           (Graph (ChangeType
                               [NodeType nodeId (nodeType nodeType1)]))
                            (context graph)
                         doInContext
-                           (DaVinciTypes.Graph (ChangeAttr [
+                           (Graph (ChangeAttr [
                               Node nodeId attributes]))
                            (context graph)
                      )
@@ -1074,7 +1076,7 @@ instance HasModifyValue NodeArcsHidden DaVinciGraph DaVinciNode where
    modify (NodeArcsHidden hide) daVinciGraph (DaVinciNode nodeId) =
       do
          flushPendingChanges daVinciGraph
-         doInContext (DaVinciTypes.Menu (
+         doInContext (Menu (
             Abstraction ((if hide then HideEdges else ShowEdges) [nodeId])
             )) (context daVinciGraph)
          case daVinciVersion of
@@ -1082,7 +1084,7 @@ instance HasModifyValue NodeArcsHidden DaVinciGraph DaVinciNode where
             Nothing ->
                -- work around daVinci 2 bug which causes edge hiding to be
                -- delayed
-               doInContext (DaVinciTypes.Graph (ChangeAttr ([Node nodeId []])))
+               doInContext (Graph (ChangeAttr ([Node nodeId []])))
                   (context daVinciGraph)
 
 instance HasModifyValue Attribute DaVinciGraph DaVinciNode where
@@ -1090,7 +1092,7 @@ instance HasModifyValue Attribute DaVinciGraph DaVinciNode where
       do
          flushPendingChanges daVinciGraph
          doInContext
-            (DaVinciTypes.Graph (ChangeAttr [Node nodeId [attribute]]))
+            (Graph (ChangeAttr [Node nodeId [attribute]]))
             (context daVinciGraph)
 
 instance HasModifyValue (String,String) DaVinciGraph DaVinciNode where
@@ -1463,11 +1465,11 @@ encodeLocalMenu :: Typeable value => LocalMenu value -> DaVinciGraph
 -- returning (a) a registry mapping MenuId's to actions;
 -- (b) the [MenuEntry] to be passed to daVinci.
 encodeLocalMenu
-      (LocalMenu (menuPrim0 :: MenuPrim (Maybe String) (value -> IO ())))
+      (LocalMenu (menuPrim0 :: GConf.MenuPrim (Maybe String) (value -> IO ())))
       (DaVinciGraph {context = context}) =
    do
       registry <- newRegistry
-      (menuPrim1 :: MenuPrim (Maybe String) MenuId) <-
+      (menuPrim1 :: GConf.MenuPrim (Maybe String) MenuId) <-
          mapMMenuPrim
             (\ valueToAct ->
                do
@@ -1476,7 +1478,7 @@ encodeLocalMenu
                   return menuId
                )
             menuPrim0
-      (menuPrim2 :: MenuPrim (Maybe String,MenuId) MenuId) <-
+      (menuPrim2 :: GConf.MenuPrim (Maybe String,MenuId) MenuId) <-
          mapMMenuPrim'
             (\ stringOpt ->
                do
@@ -1495,18 +1497,20 @@ getMenuIds (first:rest) = theseIds ++ getMenuIds rest
          MenuEntry menuId _ -> [menuId]
          MenuEntryMne menuId _ _ _ _ -> [menuId]
          SubmenuEntry menuId _ menuEntries -> menuId : getMenuIds menuEntries
-         SubmenuEntryMne menuId _ menuEntries _ -> menuId : getMenuIds menuEntries
+         SubmenuEntryMne menuId _ menuEntries _ ->
+             menuId : getMenuIds menuEntries
          BlankMenuEntry -> []
          _ -> error "DaVinciGraph: (Sub)MenuEntryDisabled not yet handled."
 
 encodeGlobalMenu :: GlobalMenu -> DaVinciGraph -> IO [MenuEntry]
 -- This constructs a global menu.  The menuId actions are written
 -- directly into the graphs globalMenuActions registry.
-encodeGlobalMenu (GlobalMenu (menuPrim0 :: MenuPrim (Maybe String) (IO ())))
+encodeGlobalMenu (GlobalMenu
+                  (menuPrim0 :: GConf.MenuPrim (Maybe String) (IO ())))
       (DaVinciGraph {context = context,globalMenuActions = globalMenuActions})
        =
    do
-      (menuPrim1 :: MenuPrim (Maybe String) MenuId) <-
+      (menuPrim1 :: GConf.MenuPrim (Maybe String) MenuId) <-
          mapMMenuPrim
             (\ action ->
                do
@@ -1515,7 +1519,7 @@ encodeGlobalMenu (GlobalMenu (menuPrim0 :: MenuPrim (Maybe String) (IO ())))
                   return menuId
                )
             menuPrim0
-      (menuPrim2 :: MenuPrim (Maybe String,MenuId) MenuId) <-
+      (menuPrim2 :: GConf.MenuPrim (Maybe String,MenuId) MenuId) <-
          mapMMenuPrim'
             (\ stringOpt ->
                do
@@ -1525,25 +1529,27 @@ encodeGlobalMenu (GlobalMenu (menuPrim0 :: MenuPrim (Maybe String) (IO ())))
             menuPrim1
       return (encodeDaVinciMenu menuPrim2)
 
-encodeDaVinciMenu :: MenuPrim (Maybe String,MenuId) MenuId -> [MenuEntry]
+encodeDaVinciMenu :: GConf.MenuPrim (Maybe String,MenuId) MenuId -> [MenuEntry]
 -- Used for encoding all menus.  The MenuId in the first argument is
 -- used as all submenus need to have a unique menuId, even though
 -- daVinci can't send that as an event.
 encodeDaVinciMenu menuHead =
    case menuHead of
-      GraphConfigure.Menu (Nothing,_) menuPrims ->
+      GConf.Menu (Nothing,_) menuPrims ->
          encodeMenuList menuPrims
-      GraphConfigure.Menu (Just label,menuId) menuPrims ->
+      GConf.Menu (Just label,menuId) menuPrims ->
          [SubmenuEntry menuId (MenuLabel label) (encodeMenuList menuPrims)]
       single -> [encodeMenuItem single]
 
    where
-      encodeMenuList :: [MenuPrim (Maybe String,MenuId) MenuId] -> [MenuEntry]
+      encodeMenuList :: [GConf.MenuPrim (Maybe String,MenuId) MenuId]
+                     -> [MenuEntry]
       encodeMenuList menuPrims = fmap encodeMenuItem menuPrims
 
-      encodeMenuItem :: MenuPrim (Maybe String,MenuId) MenuId  -> MenuEntry
+      encodeMenuItem :: GConf.MenuPrim (Maybe String,MenuId) MenuId
+                     -> MenuEntry
       encodeMenuItem (Button label menuId) = MenuEntry menuId (MenuLabel label)
-      encodeMenuItem (GraphConfigure.Menu (labelOpt,menuId) menuItems) =
+      encodeMenuItem (GConf.Menu (labelOpt,menuId) menuItems) =
          SubmenuEntry menuId (MenuLabel (fromMaybe "" labelOpt))
             (encodeMenuList menuItems)
       encodeMenuItem Blank = BlankMenuEntry
@@ -1575,7 +1581,7 @@ sortPendingChanges pendingChanges =
    if isJust daVinciVersion
       then
          -- daVinci has version at least 3.0, and so multi_update works.
-         DaVinciTypes.Graph(UpdateMixed (reverse pendingChanges))
+         Graph(UpdateMixed (reverse pendingChanges))
       else
          sortPendingChanges1 pendingChanges
 
@@ -1628,7 +1634,7 @@ sortPendingChanges1 pendingChanges =
             )
          (reverse edgeUpdates2)
       in
-         DaVinciTypes.Graph(Update nodeUpdates edgeUpdates3)
+         Graph(Update nodeUpdates edgeUpdates3)
 
 removeNullifyingChanges :: [MixedUpdate]  -> [MixedUpdate]
 removeNullifyingChanges [] = []
@@ -1816,5 +1822,3 @@ getValueHere =
          getValueSafe "DaVinciGraph getValue"
       else
          getValue
-
-

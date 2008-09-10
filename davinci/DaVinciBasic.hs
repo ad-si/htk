@@ -62,7 +62,7 @@ import System.Environment
 
 import Object
 import WBFiles
-import Computation
+import qualified Computation (try, propagate)
 import FileNames
 import Registry
 import UniqueString
@@ -119,16 +119,16 @@ newDaVinci :: IO DaVinci
 newDaVinci =
    do
       daVinciPath <- getDaVinciPath
-      daVinciIconsOpt <- WBFiles.getDaVinciIcons
+      daVinciIconsOpt <- getDaVinciIcons
       daVinciIcons <-
          case daVinciIconsOpt of
             Nothing ->
                do
-                  top <- WBFiles.getTOP
-                  return (FileNames.trimDir top ++ "/database/icons")
+                  top <- getTOP
+                  return (trimDir top ++ "/database/icons")
             Just daVinciIcons -> return daVinciIcons
 
-      env <- System.Environment.getEnvironment
+      env <- getEnvironment
       let
          configs = [
             environment (("DAVINCI_ICONDIR",daVinciIcons):env),
