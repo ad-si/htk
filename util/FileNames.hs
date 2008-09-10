@@ -42,7 +42,7 @@ module FileNames(
 
 import CompileFlags
 
-
+#ifndef __HADDOCK__
 $(
    if isWindows
       then
@@ -56,6 +56,8 @@ $(
             recordSep = "\n"
          |]
    )
+#endif
+
 fileSep :: Char
 recordSep :: String
 

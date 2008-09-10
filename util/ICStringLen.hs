@@ -67,6 +67,7 @@ newtype UTF8 bytes = UTF8 bytes
 -- Extracting a ForeignPtr's components.
 -- -------------------------------------------------------------------
 
+#ifndef __HADDOCK__
 $(
    if ghcShortVersion <= 601
       then
@@ -95,7 +96,7 @@ $(
             newForeignPtr0 = $(dynName "newForeignPtr")
          |]
    )
-
+#endif
 -- ------------------------------------------------------------------
 -- Creation and reading
 -- ------------------------------------------------------------------

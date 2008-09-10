@@ -1,6 +1,6 @@
 # This package *used* to be where we put Posix-dependent modules.  The
 # Posix-dependency has now been removed.
-# 
+#
 PACKAGE = uni-posixutil
 PACKAGES = uni-events haskell98
 
@@ -11,6 +11,8 @@ SRCS = CopyFile.hs ProcessClasses.hs ChildProcess.hs \
 SRCSC = MainrunCommand.c Mainlog.c
 
 SUBDIRS = test
+
+DOCPP=YES
 
 EXTRAEXPORTS = runCommand$(EXESUFFIX) log$(EXESUFFIX) daVinci.debug.in wish.debug.in
 

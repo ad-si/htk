@@ -884,6 +884,7 @@ printToErr message =
 -- Windows handling
 ------------------------------------------------------------------------
 
+#ifndef __HADDOCK__
 $(
    if  isWindows
       then
@@ -895,5 +896,6 @@ $(
            getWindowsTick = error "getWindowsTick does not exist"
         |]
   )
+#endif
 getWindowsTick :: IO Int
 

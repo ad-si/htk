@@ -60,6 +60,7 @@ debugFile = unsafePerformIO openDebugFile
 debugFile :: Maybe Handle
 {-# NOINLINE debugFile #-}
 
+#ifndef __HADDOCK__
 $(
 
    if isDebug
@@ -98,6 +99,7 @@ $(
             {-# inline debugAct #-}
          |]
    )
+#endif
 
 -- | show something to log file if debugging is turned on.
 debug :: Show a => a -> IO()

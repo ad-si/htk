@@ -20,3 +20,4 @@ build-depends:
         uni-util,
         uni-events
 ghc-options: -O -fglasgow-exts -fth
+extensions: CPP

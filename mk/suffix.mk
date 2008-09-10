@@ -259,6 +259,7 @@ $(SETUP) : $(SETUP).hs
 
 CABAL = $(SETUP) configure -p -O --prefix=$(TOP) --user; \
     $(SETUP) build; \
+    $(SETUP) haddock; \
     $(SETUP) install
 
 CABALFILE = $(wildcard *.cabal)

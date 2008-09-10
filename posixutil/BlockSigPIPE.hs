@@ -14,7 +14,7 @@ import Computation
 import CompileFlags
 import TemplateHaskellHelps
 
-
+#ifndef __HADDOCK__
 $(
    if isWindows
       then
@@ -30,6 +30,6 @@ $(
                   done
          |]
    )
-
+#endif
 blockSigPIPE :: IO ()
 

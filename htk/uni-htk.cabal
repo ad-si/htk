@@ -6,7 +6,7 @@ author:         uniform@informatik.uni-bremen.de
 homepage:       http://www.informatik.uni-bremen.de/htk/
 category:       GUI
 synopsis:       Graphical User Interface for Haskell Programs
-description:    GUI toolkit based on Tcl/Tk
+description:    GUI toolkit based on Tcl\/Tk
 exposed-modules: Htk.Kernel.BaseClasses, Htk.Kernel.ButtonWidget,
   Htk.Kernel.CallWish, Htk.Kernel.Colour, Htk.Kernel.Configuration,
   Htk.Kernel.Core, Htk.Kernel.Cursor, Htk.Kernel.EventInfo, Htk.Kernel.Font,
