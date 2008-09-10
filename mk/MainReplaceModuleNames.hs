@@ -46,10 +46,11 @@ process m str = unlines $
       ) $ lines str
 
 processM :: String -> IO ()
-processM file = do
+processM file = catch (do
   str <- readFile file
   putStrLn $ "processing: " ++ file ++ " (" ++ show (length str) ++ " chars)"
-  writeFile file $ process transMap str
+  writeFile file $ process transMap str)
+    (const $ putStrLn $ "unprocessed: " ++ file)
 
 main :: IO ()
 main = getArgs >>= mapM_ processM
