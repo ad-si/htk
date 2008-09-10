@@ -18,7 +18,7 @@ import Events
 import Destructible
 import Channels
 
-import GraphDisp
+import GraphDisp hiding (redraw)
 import GraphConfigure
 
 -- ---------------------------------------------------------------------------
@@ -237,7 +237,7 @@ listDrawer =
          newPos = newPos,
          setPos = setPos,
          delPos = delPos,
-         VariableList.redraw = done
+         redraw = done
          }
 
 instance DeleteArc EmptyGraph EmptyArc where

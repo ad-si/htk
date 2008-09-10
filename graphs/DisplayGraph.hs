@@ -23,8 +23,12 @@ import Events
 import Channels
 import Destructible
 
-import GraphDisp
-import Graph
+import qualified GraphDisp
+    (Graph, newGraph, newNode, newNodeType, newArc, newArcType)
+import GraphDisp hiding
+    (Graph, newGraph, newNode, newNodeType, newArc, newArcType)
+import qualified Graph (Graph)
+import Graph hiding (Graph)
 
 #ifdef DEBUG
 #define getRegistryValue (getRegistryValueSafe (__FILE__ ++ show (__LINE__)))

@@ -52,7 +52,7 @@ type DisplayableCannedGraph =
 
 
 newGraphEditor ::
-   (GraphConfigure.GraphAllConfig dispGraph graphParms
+   (GraphAllConfig dispGraph graphParms
       node nodeType nodeTypeParms arc arcType arcTypeParms,
     HasConfigValue Shape nodeTypeParms,
 

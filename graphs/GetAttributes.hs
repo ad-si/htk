@@ -16,7 +16,8 @@ import Control.Exception
 
 import Computation (done)
 import Dynamics
-import Registry
+import Registry hiding (getValue)
+import qualified Registry (getValue)
 import Messages
 
 import HTk hiding (Icon)
@@ -58,7 +59,7 @@ getNodeTypeAttributes =
             Ellipse -> return GraphConfigure.Ellipse
             Rhombus -> return GraphConfigure.Rhombus
             Triangle -> return GraphConfigure.Triangle
-            GetAttributes.Icon ->
+            Icon ->
                do
                   fname <- getSingleString "Icon filename"
                   return (GraphConfigure.Icon fname)
@@ -72,7 +73,7 @@ getNodeTypeAttributes1 =
       let def = PreAttributes {shapeSort=Box,nodeTypeTitle'=""}
       (iw, form) <- createInputWin "Node Type Attributes"
                                 (\p-> newInputForm p (Just def) []) []
-      newEnumField form [Box .. GetAttributes.Icon] [
+      newEnumField form [Box .. Icon] [
          -- text "Node Shape",
          selector shapeSort,
          modifier (\ old newShape -> old {shapeSort = newShape})
