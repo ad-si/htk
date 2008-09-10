@@ -304,11 +304,8 @@ MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
    if test "$BINARY" = NO; then
-      echo Compiling MainFixFileNames
-      # We need to remove the interface file as otherwise strange things
-      # happen if the format changes.
-      rm -rf mk/Main.hi
-      $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
+      echo Compiling MainFixFileNames and MainReplaceModuleNames
+      $GHC --make mk/MainFixFileNames.hs -o mk/FixFileNames
       $GHC --make mk/MainReplaceModuleNames.hs -o mk/ReplaceModuleNames
    fi
 
@@ -362,6 +359,5 @@ if test "$GOAHEAD" = YES; then
 
       echo To compile UniForM type \"${GMAKESHORT} packages\"
       echo or \"${GMAKESHORT} cabal\" for hierarchical modules.
-      # only cabal works for ghc-6.8.1 currently
    fi
 fi
