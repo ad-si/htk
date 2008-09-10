@@ -255,14 +255,11 @@ SETUP = $(GHCTOP)/Setup
 $(SETUP) : $(SETUP).hs
 	$(HC) --make -o $@ $<
 
-CABALGHCPKG = --with-hc-pkg=$(TOP)/mk/cabal-ghc-pkg
+# Cabal-1.4.0.1 only works with --package-db
 
-CABAL = $(SETUP) configure -p -O $(CABALGHCPKG) \
-        -w $(GHCTOP)/mk/cabal-ghc --prefix=$(TOP) --user; \
+CABAL = $(SETUP) configure -p -O --prefix=$(TOP) --user; \
     $(SETUP) build; \
-    $(SETUP) copy; \
-    $(SETUP) register --gen-script; \
-    ./register.sh
+    $(SETUP) install
 
 CABALFILE = $(wildcard *.cabal)
 cabalhere : $(SETUP)
