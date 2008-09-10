@@ -51,3 +51,13 @@ cd mmiss
 createSubDir MMiSS api/ Api/
 createSubDir MMiSS parser/ Parser/
 cd ..
+
+cd davinci/UDrawGraph
+for file in DaVinci*.hs
+do
+   echo $file > temp
+   newfile=`sed -e "s/DaVinci//" temp`
+   cp -f $file $newfile
+   rm -f $file temp
+done
+cd ../..
