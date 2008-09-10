@@ -205,13 +205,14 @@ module WBFiles (
 
    ) where
 
-import Char
+import Data.Char
 import CompileFlags
-import IO
-import List
-import Monad
-import qualified System
-import System(exitWith,ExitCode(..))
+import System.IO
+import System.IO.Error
+import Data.List
+import Control.Monad
+import qualified System.Environment as System
+import System.Exit(exitWith,ExitCode(..))
 
 import Control.Concurrent
 import DeprecatedFiniteMap
