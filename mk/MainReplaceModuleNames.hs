@@ -27,20 +27,20 @@ process m str = unlines $
   map (\ l -> case tokenize Other l of
          ts@("" : "import" : _ : "qualified" : _ : _ : _ : "as" : _) ->
              concatMap (\ s -> Map.findWithDefault s s m) ts
-         ts@("" : "import" : _ : "qualified" : _ : modname : r) ->
+         "" : "import" : _ : "qualified" : _ : modname : r ->
              case Map.lookup modname m of
                Nothing -> l
                Just qv -> "import qualified " ++ qv ++ " as " ++ modname ++
                           concat r
-         ts@("" : "import" : _ : modname : r) ->
+         "" : "import" : _ : modname : r ->
              case Map.lookup modname m of
                Nothing -> l
                Just qv -> "import " ++ qv ++ concat r
-         ts@(bs : "module" : _ : modname : r) ->
+         bs : "module" : _ : modname : r ->
              case Map.lookup modname m of
                Nothing -> l
                Just qv -> bs ++ "module " ++ qv ++ concat r
-         ts -> l -- concatMap (\ s -> Map.findWithDefault s s m) ts
+         _ -> l
       ) $ lines str
 
 processM :: String -> IO ()
