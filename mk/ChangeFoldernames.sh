@@ -14,7 +14,7 @@ createDir davinci UDrawGraph
 createDir emacs Emacs
 createDir events Events
 createDir graphs Graphs
-mkdir -p htk/Htk
+mkdir -p htk/HTk
 createDir imports Imports
 createDir mmiss MMiSS
 createDir posixutil Posixutil
@@ -32,17 +32,17 @@ cp -r $2 $1/$3
 }
 
 cd htk
-createSubDir Htk canvasitems Canvasitems
-createSubDir Htk components Components
-createSubDir Htk containers Containers
-createSubDir Htk devices Devices
-createSubDir Htk kernel Kernel
-createSubDir Htk menuitems Menuitems
-createSubDir Htk textitems Textitems
-createSubDir Htk tix Tix
-createSubDir Htk toolkit Toolkit
-createSubDir Htk toplevel Toplevel
-createSubDir Htk widgets Widgets
+createSubDir HTk canvasitems Canvasitems
+createSubDir HTk components Components
+createSubDir HTk containers Containers
+createSubDir HTk devices Devices
+createSubDir HTk kernel Kernel
+createSubDir HTk menuitems Menuitems
+createSubDir HTk textitems Textitems
+createSubDir HTk tix Tix
+createSubDir HTk toolkit Toolkit
+createSubDir HTk toplevel Toplevel
+createSubDir HTk widgets Widgets
 cd ..
 
 cd appl
