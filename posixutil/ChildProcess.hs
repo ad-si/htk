@@ -82,7 +82,7 @@ import ProcessClasses
 data PosixProcess =
    PosixProcess {
       args            :: [String],
-      env             :: Maybe [(String, String)],
+      ppenv           :: Maybe [(String, String)],
       lmode           :: Bool, -- line mode
       includestderr   :: Bool, -- include stderr
       cresponse       :: Maybe (String,String),
@@ -94,7 +94,7 @@ defaultPosixProcess :: PosixProcess
 defaultPosixProcess =
    PosixProcess {
       args = [],
-      env = Nothing,
+      ppenv = Nothing,
       lmode = True,
       includestderr = True,
       cresponse = Nothing,
@@ -117,7 +117,7 @@ appendArguments args' parms = return parms{args = (args parms) ++ args'}
 
 -- | Set the process' environment.
 environment :: [(String,String)] -> Config PosixProcess
-environment env' parms = return parms{env = Just env'}
+environment env' parms = return parms{ppenv = Just env'}
 
 -- if 'True', we send stderr to the childprocesses
 -- out channel (of which there is only one).  Otherwise we
@@ -184,7 +184,7 @@ newChildProcess filePath configurations =
 
       -- run the process.
       (processIn,processOut,processErr,processHandle) <- runInteractiveProcess
-         filePath (args parms) Nothing (env parms)
+         filePath (args parms) Nothing (ppenv parms)
 
       childObjectID <- newObject
 
