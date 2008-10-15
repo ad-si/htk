@@ -1,5 +1,6 @@
 name:           uni-graphs
 version:        1.1
+build-type:     Simple
 license:        LGPL
 license-file:   ../LIZENZ.txt
 author:         uniform@informatik.uni-bremen.de
@@ -9,14 +10,13 @@ synopsis:       Graphs
 description:    Graphs toolkit
 exposed-modules: Graphs.GraphDisp, Graphs.GraphConfigure, Graphs.NewNames,
  Graphs.Graph, Graphs.SimpleGraph, Graphs.GetAttributes, Graphs.DisplayGraph,
- Graphs.GraphEditor, Graphs.GraphEditorService, Graphs.GraphConnection,
+ Graphs.GraphEditor, Graphs.GraphConnection,
  Graphs.RemoveAncestors, Graphs.GraphOps, Graphs.TopSort,
  Graphs.FindCommonParents, Graphs.FindCycle, Graphs.GetAncestors,
  Graphs.EmptyGraphSort, Graphs.PureGraph, Graphs.PureGraphPrune,
  Graphs.PureGraphToGraph, Graphs.VersionDag, Graphs.PureGraphMakeConsistent
-build-depends: base, haskell98, mtl, uni-util, uni-events, uni-reactor,
-  uni-server, uni-htk
-ghc-options: -O -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
-extensions: CPP
+build-depends: base, haskell98, mtl, uni-util, uni-events, uni-reactor, uni-htk
+ghc-options: -O -fglasgow-exts
+extensions: CPP, OverlappingInstances, UndecidableInstances
 
 
