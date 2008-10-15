@@ -1,7 +1,7 @@
 SUBDIRS = \
    kernel containers components devices tix menuitems widgets \
    canvasitems textitems toplevel toolkit oldHtkWrapper \
-   resources packer test examples
+   test examples
 
 include @TOP@/mk/boilerplate.mk
 
