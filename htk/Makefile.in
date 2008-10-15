@@ -4,8 +4,3 @@ SUBDIRS = \
    test examples
 
 include @TOP@/mk/boilerplate.mk
-
-
-
-
-
