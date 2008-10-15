@@ -1,32 +1,39 @@
 name:           uni-util
 version:        1.1
+build-type:     Simple
 license:        LGPL
 license-file:   ../LIZENZ.txt
 author:         uniform@informatik.uni-bremen.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Utilities for the uniform workbench
-description:    uni utilities
+description:
+ This package contains various miscellaneous utilities which belong nowhere in
+ particular in the Workbench.  Highlights include "Util.Computation",
+ "Util.ExtendedPrelude", "Util.Sources" and "Util.BinaryAll".
+
 exposed-modules:
-  Util.DeprecatedFiniteMap, Util.DeprecatedSet, Util.Huffman, 
-  Util.TemplateHaskellHelps, Util.CompileFlags, 
-  Util.Queue, Util.ExtendedPrelude, Util.Computation, Util.Dynamics, 
-  Util.WBFiles, Util.Object, Util.Debug, Util.Maybes, Util.LineShow, Util.Cache, Util.FileNames, 
-  Util.IOExtras, Util.QuickReadShow, Util.AtomString, Util.SmallSet, Util.Registry, 
-  Util.RegularExpression, Util.DelSet, Util.Thread, Util.UniqueString, Util.UniqueFile, 
-  Util.TempFile, Util.Sink, Util.VariableSet, Util.VariableMap, 
-  Util.CommandStringSub, Util.WaitOnN, Util.FileSystem, Util.CacheTable, 
-  Util.DeepSeq, Util.NameMangle, Util.KeyedChanges, 
-  Util.Sources, Util.Broadcaster, Util.ReferenceCount, Util.Delayer, Util.VariableList, 
-  Util.Myers, Util.VariableSetBlocker, Util.IntPlus, Util.UnionFind, 
-  Util.ICStringLen, Util.VisitedSet, Util.StrError, Util.HostName, 
-  Util.Bytes, Util.Binary, Util.BinaryUtils, Util.BinaryInstances, Util.BinaryExtras, 
-  Util.BinaryAll, Util.StringSkip, Util.ThreadDict, Util.TSem, Util.Store, Util.Messages, 
+  Util.DeprecatedFiniteMap, Util.DeprecatedSet, Util.Huffman,
+  Util.TemplateHaskellHelps, Util.CompileFlags, Util.Queue,
+  Util.ExtendedPrelude, Util.Computation, Util.Dynamics, Util.WBFiles,
+  Util.Object, Util.Debug, Util.Maybes, Util.LineShow, Util.Cache,
+  Util.FileNames, Util.IOExtras, Util.QuickReadShow, Util.AtomString,
+  Util.SmallSet, Util.Registry, Util.RegularExpression, Util.DelSet,
+  Util.Thread, Util.UniqueString, Util.UniqueFile, Util.TempFile, Util.Sink,
+  Util.VariableSet, Util.VariableMap, Util.CommandStringSub, Util.WaitOnN,
+  Util.FileSystem, Util.CacheTable, Util.DeepSeq, Util.NameMangle,
+  Util.KeyedChanges, Util.Sources, Util.Broadcaster, Util.ReferenceCount,
+  Util.Delayer, Util.VariableList, Util.Myers, Util.VariableSetBlocker,
+  Util.IntPlus, Util.UnionFind, Util.ICStringLen, Util.VisitedSet,
+  Util.StrError, Util.HostName, Util.Bytes, Util.Binary, Util.BinaryUtils,
+  Util.BinaryInstances, Util.BinaryExtras, Util.BinaryAll, Util.StringSkip,
+  Util.ThreadDict, Util.TSem, Util.Store, Util.Messages,
   Util.ClockTimeToString, Util.UTF8, Util.VSem
+
 include-dirs: ../includes
 c-sources: new_object.c, default_options.c, copy_file.c
 build-depends: base >= 3, haskell98, parsec, template-haskell, mtl, network,
   regex-compat, containers, packedstring, array, old-time
-ghc-options: -fglasgow-exts -fth -fallow-undecidable-instances 
-  -fno-mono-pat-binds -fallow-overlapping-instances -O
-extensions: CPP
+ghc-options: -fglasgow-exts
+extensions: CPP, TemplateHaskell, NoMonoPatBinds, OverlappingInstances,
+  UndecidableInstances
