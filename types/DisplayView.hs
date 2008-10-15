@@ -350,7 +350,7 @@ displayView
                      nodeTypes'
                      (error "DisplayView: unmatched node type tag")
                      nodeTypeRep
-               graphNode <- GraphDisp.newNode graph nodeType link
+               graphNode <- newNode graph nodeType link
                let
                   nodeArg = WrappedNode graphNode
 
@@ -406,7 +406,7 @@ displayView
                   deleteNode1 =
                      do
                         invalidate sink
-                        GraphDisp.deleteNode graph graphNode
+                        deleteNode graph graphNode
 
                   nodeData :: NodeData WrappedLink (WrappedNode node) ArcType
                      (WrappedArc arc)

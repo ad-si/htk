@@ -1,0 +1,33 @@
+name:           uni-types
+version:        1.1
+build-type:     Simple
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       repository access
+description:
+  This module implements the repository, so everything that isn't
+  MMiSS-specific.  In particular, the "ObjectTypes" modules defines the
+  general class that objects need to instance to be put in the repository.
+  "Files" and "Folders" are two such instances.  "LinkManager" maintains the
+  folder structure.
+
+exposed-modules:
+ Types.LinkDrawer, Types.VersionDB, Types.ViewType, Types.CodedValue,
+ Types.Link, Types.BasicObjects, Types.DisplayTypes, Types.ObjectTypes,
+ Types.View, Types.AttributesType, Types.DisplayParms, Types.GlobalRegistry,
+ Types.Folders, Types.DisplayView, Types.Files, Types.VersionGraph,
+ Types.Initialisation, Types.CallEditor, Types.CreateObjectMenu,
+ Types.Registrations, Types.GetAttributesType, Types.GlobalMenus,
+ Types.SpecialNodeActions, Types.LinkManager, Types.MergeTypes, Types.Merging,
+ Types.MergeReAssign, Types.MergePrune, Types.VersionGraphClient,
+ Types.LocalMenus, Types.CopyVersion, Types.VersionGraphList,
+ Types.CopyVersionInfos, Types.CopyVersions, Types.ToggleAdminStatus,
+ Types.ManagePermissions, Types.NoAccessObject, Types.MergeComputeParents
+
+build-depends: base, haskell98, parsec, mtl, uni-util, uni-events, uni-reactor,
+  uni-posixutil, uni-htk, uni-graphs, uni-server, uni-simpledb, uni-imports
+ghc-options: -fglasgow-exts
+extensions: OverlappingInstances, UndecidableInstances

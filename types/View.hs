@@ -70,7 +70,7 @@ import Destructible
 import VersionInfo
 
 import VersionDB
-import {-# SOURCE #-} VersionGraphClient
+import VersionGraphClient
 import ViewType
 import CodedValue
 import DisplayTypes

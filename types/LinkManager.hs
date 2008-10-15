@@ -229,7 +229,7 @@ module LinkManager(
 
    attemptLinkedObjectMerge,
       -- :: ObjectType objectType object
-      -- => MergeTypes.LinkReAssigner -> View ->
+      -- => LinkReAssigner -> View ->
       -- Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
       -- Merge several versions of a LinkedObject.  To be used in conjunction
       -- with getLinkedObjectMergeLinks.
@@ -1322,7 +1322,7 @@ getLinkedObjectMergeLinks =
 
 -- | The Link object gives the link where the LinkedObject is to be.
 attemptLinkedObjectMerge :: ObjectType objectType object
-   => MergeTypes.LinkReAssigner -> View ->
+   => LinkReAssigner -> View ->
    Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
 attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
    = addFallOutWE (\ break ->

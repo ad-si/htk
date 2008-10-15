@@ -6,13 +6,8 @@ import {-# SOURCE #-} LinkManager
 
 data NoAccessObject
 
-createNoAccessObject :: 
-   ViewType.View 
-   -> ObjectTypes.WrappedLink 
-   -> IO NoAccessObject
+createNoAccessObject :: View -> WrappedLink -> IO NoAccessObject
 
-isNoAccessLink ::
-   ObjectTypes.WrappedLink
-   -> Bool
+isNoAccessLink :: WrappedLink -> Bool
 
-noAccessObjectToLinkedObject :: NoAccessObject -> LinkManager.LinkedObject
+noAccessObjectToLinkedObject :: NoAccessObject -> LinkedObject

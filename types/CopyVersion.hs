@@ -57,9 +57,9 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         toRepository = toVersionGraphRepository toVersionGraph
 
         fromVersionGraphClient
-           = VersionGraph.toVersionGraphClient fromVersionGraph
-        toVersionGraphClient
-           = VersionGraph.toVersionGraphClient toVersionGraph
+           = toVersionGraphClient fromVersionGraph
+        toMyVersionGraphClient
+           = toVersionGraphClient toVersionGraph
 
         parentsMap :: FiniteMap ObjectVersion ObjectVersion
         parentsMap = listToFM (map
@@ -80,7 +80,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
          <- getDiffs fromRepository fromVersion (map from parents)
 
      -- (3) construct view for new version.
-     view1 <- createView toRepository toVersionGraphClient toVersionInfo
+     view1 <- createView toRepository toMyVersionGraphClient toVersionInfo
 
      -- (4) Turn diffs1 into object versions.
 

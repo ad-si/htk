@@ -11,7 +11,7 @@ module GlobalMenus(
 import Maybe
 
 import HTk
-import MenuType
+import MenuType as Menu
 import HTkMenu
 
 import GraphDisp
@@ -64,7 +64,7 @@ newObjectTypeMenu view =
          menuItems = catMaybes (map menuItem wrappedObjectTypeTypes)
 
          menu :: MenuPrim (Maybe String) (IO ())
-         menu = MenuType.Menu (Just "Create Object Type")
+         menu = Menu.Menu (Just "Create Object Type")
             (map (\ (label,action) -> Button label action) menuItems)
 
          globalMenu :: GlobalMenu
@@ -87,7 +87,7 @@ newDisplayTypeMenu view =
          menuItems = catMaybes (map menuItem wrappedDisplayTypeTypes)
 
          menu :: MenuPrim (Maybe String) (IO ())
-         menu = MenuType.Menu (Just "Create Display Type")
+         menu = Menu.Menu (Just "Create Display Type")
             (map (\ (label,action) -> Button label action) menuItems)
 
          globalMenu :: GlobalMenu
@@ -102,7 +102,7 @@ openDisplayType ::
    => (Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    -> View
-   -> IO (Maybe (DisplayView.DisplayedView graph graphParms node nodeType
+   -> IO (Maybe (DisplayedView graph graphParms node nodeType
       nodeTypeParms arc arcType arcTypeParms))
 openDisplayType graphSort view =
    do
@@ -123,7 +123,7 @@ openDisplayType graphSort view =
          displayTypeMenuItems = catMaybes displayTypeMenuItemsOpt
 
          -- (3) construct an HTkMenu item
-         menu = HTkMenu (MenuType.Menu "Select DisplayType"
+         menu = HTkMenu (Menu.Menu "Select DisplayType"
             (map (\ (str,action) -> Button str action) displayTypeMenuItems))
 
       -- (4) query it

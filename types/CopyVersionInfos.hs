@@ -197,7 +197,7 @@ lookupServerInfo (ServerInfoDict map) = lookupFM map
 mkServerInfoDict :: VersionGraphClient -> IO ServerInfoDict
 mkServerInfoDict versionGraphClient =
    do
-      versionInfo1s <- VersionGraphClient.getVersionInfos versionGraphClient
+      versionInfo1s <- getVersionInfos versionGraphClient
       let
          -- eliminate all versions with a View attached.
          versionInfos :: [VersionInfo]

@@ -233,7 +233,7 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
       -- a link to an object of this type in the supplied linked object, and
       -- inserts it in the folder, returning True if successful.
 
-   toLinkedObjectOpt :: object -> Maybe LinkManager.LinkedObject
+   toLinkedObjectOpt :: object -> Maybe LinkedObject
       -- ^ Extract the object's 'LinkedObject', if any.
 
    nodeTitlePrim :: object -> String

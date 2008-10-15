@@ -245,7 +245,7 @@ data OurColour = White | Black| Red | Orange | Yellow | Green | Blue | Violet
                deriving (Bounded,Enum,Read,Show)
 
 instance HasConfigRadioButton OurColour where
-   configRadioButton colour = HTk.background (show colour)
+   configRadioButton colour = background (show colour)
 
 colorForm :: Form (GraphConfigure.Color value)
 colorForm =

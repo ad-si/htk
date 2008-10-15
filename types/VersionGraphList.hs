@@ -25,7 +25,7 @@ import Messages
 import Events
 import Destructible
 
-import GraphDisp
+import GraphDisp as Disp
 import GraphConfigure
 
 import HostsPorts
@@ -52,7 +52,7 @@ currentVersionGraphs = unsafePerformIO newRegistry
 addVersionGraph ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
+   => (Disp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
    -> Maybe HostPort -> IO ()
 addVersionGraph displaySort hostPortOpt =
@@ -69,7 +69,7 @@ addVersionGraph displaySort hostPortOpt =
                   do
                      versionState <- mkVersionState True
                      repository
-                        <- Initialisation.openRepositoryInternal versionState
+                        <- openRepositoryInternal versionState
                      versionGraph <- newVersionGraphInternal
                         displaySort repository versionState
                      forkIO (
@@ -86,7 +86,7 @@ addVersionGraph displaySort hostPortOpt =
                         let
                            ?server = hostPort
                         in
-                           tryConnect (Initialisation.openRepository)
+                           tryConnect openRepository
                         )
                      case repositoryOrCancelOrError of
                         Left excep ->

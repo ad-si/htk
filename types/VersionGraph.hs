@@ -53,7 +53,7 @@ import HTk hiding (Arc,Menu)
 
 import Graph
 import DisplayGraph
-import GraphDisp
+import GraphDisp as Disp
 import GraphConfigure
 
 import VersionInfo
@@ -101,7 +101,7 @@ newVersionGraph ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms,
    ?server :: HostPort)
-   => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
+   => (Disp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
    -> Repository -> IO VersionGraph
 newVersionGraph displaySort repository =
@@ -112,7 +112,7 @@ newVersionGraph displaySort repository =
 newVersionGraphInternal ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
+   => (Disp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
    -> Repository -> VersionState -> IO VersionGraph
 newVersionGraphInternal displaySort repository versionState =
@@ -124,12 +124,12 @@ newVersionGraphInternal displaySort repository versionState =
 newVersionGraph1 ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
-   => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
+   => (Disp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
    -> Repository -> VersionGraphClient -> String -> Bool -> IO VersionGraph
 newVersionGraph1
       (displaySort
-         :: GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
+         :: Disp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) repository graphClient title isInternal =
    do
       -- graph which is connected to the server and will (via displayGraph)

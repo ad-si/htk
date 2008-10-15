@@ -30,8 +30,6 @@ import VersionGraphList
 import CopyVersion
 import CopyVersionInfos
 
-
-
 data HowToSelect =
       All
    |  ByFilter
@@ -81,8 +79,7 @@ copyVersions versionGraphFrom =
                Cancel -> return []
                All ->
                   do
-                     versionInfos <- VersionGraphClient.getVersionInfos
-                        versionGraphClientFrom
+                     versionInfos <- getVersionInfos versionGraphClientFrom
                      return (map (version . user . toVersionInfo) versionInfos)
                ByFilter ->
                   do
@@ -92,8 +89,7 @@ copyVersions versionGraphFrom =
                         Just filter ->
                            do
                               versionInfos0
-                                 <- VersionGraphClient.getVersionInfos
-                                    versionGraphClientFrom
+                                 <- getVersionInfos versionGraphClientFrom
                               let
                                  versionInfos1
                                     = map toVersionInfo versionInfos0

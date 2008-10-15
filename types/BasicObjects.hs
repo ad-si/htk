@@ -34,7 +34,7 @@ module BasicObjects(
 
    getMergeLinksSimpleFile, -- :: SimpleFile -> ObjectLinks ()
    attemptMergeSimpleFile,
-      -- :: MergeTypes.LinkReAssigner -> View -> SimpleFile -> SimpleFile
+      -- :: LinkReAssigner -> View -> SimpleFile -> SimpleFile
 
    ) where
 
@@ -225,7 +225,7 @@ getMergeLinksSimpleFile :: SimpleFile -> ObjectLinks ()
 getMergeLinksSimpleFile _ = ObjectLinks []
 
 -- | Change the link inside a SimpleFile
-attemptMergeSimpleFile :: MergeTypes.LinkReAssigner -> View -> SimpleFile
+attemptMergeSimpleFile :: LinkReAssigner -> View -> SimpleFile
    -> SimpleFile
 attemptMergeSimpleFile linkReAssigner view simpleFile = simpleFile
 

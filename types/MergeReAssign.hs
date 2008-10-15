@@ -30,8 +30,7 @@ import Sources(readContents)
 
 import VisitedSet
 import Thread
-import UnionFind
-
+import UnionFind as Union
 
 import MergeTypes
 import ObjectTypes
@@ -187,7 +186,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                            (error "MergeReassign.1") (toKey nd)
                            )
                         nds
-                  mapM_ (\ uf1 -> UnionFind.union uf uf1) ufs
+                  mapM_ (\ uf1 -> Union.union uf uf1) ufs
                )
             identifications0
 

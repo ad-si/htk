@@ -6,5 +6,4 @@ import {-# SOURCE #-} LinkManager
 
 data Folder
 
-getImportsState :: ViewType.View 
-   -> IO (Imports.ImportsState LinkManager.LinkedObject)
+getImportsState :: View -> IO (ImportsState LinkedObject)
