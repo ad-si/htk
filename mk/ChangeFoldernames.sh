@@ -76,6 +76,10 @@ cp -f SimpleDB.hs Interface.hs
 renameHierFile SimpleDB
 cd ../..
 
+cd emacs/Emacs
+renameHierFile Emacs
+cd ../..
+
 cd mmiss/MMiSS
 renameHierFile MMiSS
 cd Api

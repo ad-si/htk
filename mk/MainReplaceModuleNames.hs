@@ -60,17 +60,21 @@ main = getArgs >>= mapM_ processM
 transMap :: Map.Map String String
 transMap = Map.fromList $ map ( \ str ->
   case splitOn '.' str of
-    s@(f : _) -> let l = last s in
-       if f == "MMiSS" && isPrefixOf "MMiSS" l then
-           (l, intercalate "." $ init s ++ [drop 5 l])
-       else if f == "UDrawGraph" && isPrefixOf "DaVinci" l then
-           (l, intercalate "." $ init s ++ [drop 7 l])
-       else if f == "SimpleDB" then if l == "SimpleDB" then
-           (l, intercalate "." $ init s ++ ["Interface"])
-           else if isPrefixOf "SimpleDB" l then
-               (l, intercalate "." $ init s ++ [drop 8 l])
-                else (l, str)
-       else (l, str)
+    s@(f : _) -> let
+      l = last s
+      checkPrefix2 tag1 tag2 = if f == tag1 && isPrefixOf tag2 l then
+        Just $ drop (length tag2) l else Nothing
+      checkPrefix tag = checkPrefix2 tag tag
+      in (l, intercalate "." $ init s ++
+        [case checkPrefix2 "UDrawGraph" "DaVinci" of
+          Just n -> n
+          Nothing -> case checkPrefix "SimpleDB" of
+            Just n -> if null n then "Interface" else n
+            Nothing -> case checkPrefix "Emacs" of
+              Just n -> n
+              Nothing -> case checkPrefix "MMiSS" of
+                Just n -> n
+                Nothing -> l])
     _ -> error "transMap") newmodules
 
 splitOn :: Eq a => a -- ^ seperator
