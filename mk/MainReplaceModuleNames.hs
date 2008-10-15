@@ -22,22 +22,24 @@ tokenize st input = case input of
           then (c : w) : text       -- weiter sammeln
           else "" : (c : w) : text  -- neues Wort anfangen
 
+handleImport :: Map.Map String String -> [String] -> String
+handleImport m s = case s of
+    "qualified" : _ : md : r -> "qualified " ++ case Map.lookup md m of
+        Nothing -> md ++ concat r
+        Just qv -> qv ++ " as " ++ case r of
+            _ : "as" : _ : t -> concat t
+            _ -> md ++ concat r
+    md : r -> Map.findWithDefault md md m  ++ concat r
+    _ -> concat s
+
 process :: Map.Map String String -> String -> String
 process m str = unlines $
   map (\ l -> case tokenize Other l of
-         "" : "import" : _ : "qualified" : _ : modname : _ : "as" : r ->
-             case Map.lookup modname m of
-               Nothing -> l
-               Just qv -> "import qualified " ++ qv ++ " as" ++ concat r
-         "" : "import" : _ : "qualified" : _ : modname : r ->
-             case Map.lookup modname m of
-               Nothing -> l
-               Just qv ->
-                 "import qualified " ++ qv ++ " as " ++ modname ++ concat r
-         "" : "import" : _ : modname : r ->
-             case Map.lookup modname m of
-               Nothing -> l
-               Just qv -> "import " ++ qv ++ concat r
+         "" : "import" : r1 -> "import " ++ case r1 of
+           " {-# " : "SOURCE" : " #-} " : r2 ->
+               "{-# SOURCE #-} " ++ handleImport m r2
+           _ : r2 -> handleImport m r2
+           _ -> concat r1
          bs : "module" : _ : modname : r ->
              case Map.lookup modname m of
                Nothing -> l
@@ -63,6 +65,11 @@ transMap = Map.fromList $ map ( \ str ->
            (l, intercalate "." $ init s ++ [drop 5 l])
        else if f == "UDrawGraph" && isPrefixOf "DaVinci" l then
            (l, intercalate "." $ init s ++ [drop 7 l])
+       else if f == "SimpleDB" then if l == "SimpleDB" then
+           (l, intercalate "." $ init s ++ ["Interface"])
+           else if isPrefixOf "SimpleDB" l then
+               (l, intercalate "." $ init s ++ [drop 8 l])
+                else (l, str)
        else (l, str)
     _ -> error "transMap") newmodules
 
@@ -349,35 +356,35 @@ newmodules =
  , "Server.Server"
  , "Server.ServiceClass"
  , "Server.ZLib"
- , "Simpledb.BDBExtras"
- , "Simpledb.BDBOps"
- , "Simpledb.Commit"
- , "Simpledb.ExaminePermissions"
- , "Simpledb.FlushSimpleDB"
- , "Simpledb.GetDiffs"
- , "Simpledb.LastChange"
- , "Simpledb.LocationAllocation"
- , "Simpledb.ModifyUserInfo"
- , "Simpledb.ObjectSource"
- , "Simpledb.ObjectVersion"
- , "Simpledb.OpenSimpleDB"
- , "Simpledb.Permissions"
- , "Simpledb.PrimitiveLocation"
- , "Simpledb.QuerySimpleDB"
- , "Simpledb.Retrieve"
- , "Simpledb.SecurityManagement"
- , "Simpledb.ServerErrors"
- , "Simpledb.SetGetSecurityData"
- , "Simpledb.SimpleDB"
- , "Simpledb.SimpleDBServer"
- , "Simpledb.SimpleDBService"
- , "Simpledb.SimpleDBTypes"
- , "Simpledb.VersionAllocation"
- , "Simpledb.VersionData"
- , "Simpledb.VersionInfo"
- , "Simpledb.VersionInfoFilter"
- , "Simpledb.VersionInfoService"
- , "Simpledb.VersionState"
+ , "SimpleDB.BDBExtras"
+ , "SimpleDB.BDBOps"
+ , "SimpleDB.Commit"
+ , "SimpleDB.ExaminePermissions"
+ , "SimpleDB.FlushSimpleDB"
+ , "SimpleDB.GetDiffs"
+ , "SimpleDB.LastChange"
+ , "SimpleDB.LocationAllocation"
+ , "SimpleDB.ModifyUserInfo"
+ , "SimpleDB.ObjectSource"
+ , "SimpleDB.ObjectVersion"
+ , "SimpleDB.OpenSimpleDB"
+ , "SimpleDB.Permissions"
+ , "SimpleDB.PrimitiveLocation"
+ , "SimpleDB.QuerySimpleDB"
+ , "SimpleDB.Retrieve"
+ , "SimpleDB.SecurityManagement"
+ , "SimpleDB.ServerErrors"
+ , "SimpleDB.SetGetSecurityData"
+ , "SimpleDB.SimpleDB"
+ , "SimpleDB.SimpleDBServer"
+ , "SimpleDB.SimpleDBService"
+ , "SimpleDB.SimpleDBTypes"
+ , "SimpleDB.VersionAllocation"
+ , "SimpleDB.VersionData"
+ , "SimpleDB.VersionInfo"
+ , "SimpleDB.VersionInfoFilter"
+ , "SimpleDB.VersionInfoService"
+ , "SimpleDB.VersionState"
  , "Types.AttributesType"
  , "Types.BasicObjects"
  , "Types.CallEditor"

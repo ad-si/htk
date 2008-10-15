@@ -6,6 +6,7 @@ echo creating $1/$2 and copying sources
 cd $1
 mkdir -p $2
 cp *.hs $2
+cp *.hs-boot $2
 cd ..
 }
 
@@ -20,7 +21,7 @@ createDir mmiss MMiSS
 createDir posixutil Posixutil
 createDir reactor Reactor
 createDir server Server
-createDir simpledb  Simpledb
+createDir simpledb SimpleDB
 createDir types Types
 createDir util Util
 
@@ -70,6 +71,11 @@ cd davinci/UDrawGraph
 renameHierFile DaVinci
 cd ../..
 
+cd simpledb/SimpleDB
+cp -f SimpleDB.hs Interface.hs
+renameHierFile SimpleDB
+cd ../..
+
 cd mmiss/MMiSS
 renameHierFile MMiSS
 cd Api
@@ -77,4 +83,5 @@ renameHierFile MMiSS
 cd ../../..
 
 mk/ReplaceModuleNames */[A-Z]*/*.hs
+mk/ReplaceModuleNames */[A-Z]*/*.hs-boot
 mk/ReplaceModuleNames */[A-Z]*/[A-Z]*/*.hs
