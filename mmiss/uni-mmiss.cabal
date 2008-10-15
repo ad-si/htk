@@ -1,0 +1,15 @@
+name:           uni-mmiss
+version:        1.1
+build-type:     Simple
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       mmiss
+exposed-modules:
+  MMiSS.LaTeX.ParserCore, MMiSS.LaTeX.Preamble, MMiSS.LaTeX.Parser
+build-depends: base, haskell98, parsec, pretty, uni-util, uni-emacs,
+  uni-imports, uni-types, HaXml >= 1.13.2 && < 1.14
+ghc-options: -fglasgow-exts
+extensions: OverlappingInstances, UndecidableInstances

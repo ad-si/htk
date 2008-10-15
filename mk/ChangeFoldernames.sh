@@ -5,8 +5,7 @@ createDir ()
 echo creating $1/$2 and copying sources
 cd $1
 mkdir -p $2
-cp *.hs $2
-cp *.hs-boot $2
+cp *.hs* $2
 cd ..
 }
 
@@ -51,14 +50,14 @@ createSubDir Appl ontologytool Ontologytool
 cd ..
 
 cd mmiss
+createSubDir MMiSS parser LaTeX
 createSubDir MMiSS api Api
-createSubDir MMiSS parser Parser
 cd ..
 
 renameHierFile ()
 {
 echo renaming $1 files
-for file in $1*.hs
+for file in $1*.hs*
 do
    echo $file > temp
    newfile=`sed -e "s/$1//" temp`
@@ -82,7 +81,9 @@ cd ../..
 
 cd mmiss/MMiSS
 renameHierFile MMiSS
-cd Api
+cd LaTeX
+renameHierFile LaTeX
+cd ../Api
 renameHierFile MMiSS
 cd ../../..
 

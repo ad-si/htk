@@ -72,9 +72,11 @@ transMap = Map.fromList $ map ( \ str ->
             Just n -> if null n then "Interface" else n
             Nothing -> case checkPrefix "Emacs" of
               Just n -> n
-              Nothing -> case checkPrefix "MMiSS" of
+              Nothing -> case checkPrefix2 "MMiSS" "LaTeX" of
                 Just n -> n
-                Nothing -> l])
+                Nothing -> case checkPrefix "MMiSS" of
+                  Just n -> n
+                  Nothing -> l])
     _ -> error "transMap") newmodules
 
 splitOn :: Eq a => a -- ^ seperator
@@ -327,10 +329,10 @@ newmodules =
  , "MMiSS.MMiSSVariant"
  , "MMiSS.MMiSSVariantObject"
  , "MMiSS.MMiSSXmlBasics"
- , "MMiSS.Parser.LaTeXParser"
- , "MMiSS.Parser.LaTeXParserCore"
- , "MMiSS.Parser.LaTeXPreamble"
- , "MMiSS.Parser.OntoParser"
+ , "MMiSS.LaTeX.LaTeXParser"
+ , "MMiSS.LaTeX.LaTeXParserCore"
+ , "MMiSS.LaTeX.LaTeXPreamble"
+ , "MMiSS.LaTeX.OntoParser"
  , "Posixutil.BlockSigPIPE"
  , "Posixutil.ChildProcess"
  , "Posixutil.CopyFile"

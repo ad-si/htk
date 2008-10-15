@@ -9,7 +9,6 @@ module LaTeXPreamble (
    extractPreamble,  -- :: FileSystem -> FilePath -> [Frag] -> Bool -> WithError(Maybe MMiSSLatexPreamble, Frag)
    mergePreambles,   -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String])
 
-   importCommands, -- :: MMiSSLatexPreamble -> Maybe ImportCommands
    insertCommandInFront, -- :: MMiSSLatexPreamble -> String -> MMiSSLatexPreamble
    mmissNoParsingPragma -- :: String
   )
@@ -88,7 +87,7 @@ instance Eq MMiSSLatexPreamble where
       (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyImports texfilename) ->
          (latexPreamble,importCommands,ontologyImports,texfilename))
 
-instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
+instance Monad m => HasBinary MMiSSLatexPreamble m where
    writeBin = mapWrite
       (\ (MMiSSLatexPreamble latexPreamble importCommands ontologyImports texfilename) ->
          (latexPreamble,importCommands,ontologyImports,texfilename))
@@ -114,7 +113,7 @@ instance Eq LaTeXPreambleCmds where
          (documentClass,packages,string))
 --}
 
-instance Monad m => CodedValue.HasBinary LaTeXPreamble m where
+instance Monad m => HasBinary LaTeXPreamble m where
    writeBin = mapWrite
       (\ (Preamble documentClass packages latexPreambleCmds) ->
          (documentClass,packages,latexPreambleCmds))
@@ -137,11 +136,11 @@ fromPackedLatexPreambleCmd v =
     Choice1 str -> Cmd str
     Choice2 (fpath,contentString,cmdStr,contentType) -> (FileRef fpath contentString cmdStr contentType)
 
-instance Monad m => CodedValue.HasBinary LaTeXPreambleCmd m where
+instance Monad m => HasBinary LaTeXPreambleCmd m where
   writeBin = mapWrite toPackedLatexPreambleCmd
   readBin = mapRead fromPackedLatexPreambleCmd
 
-instance  Monad m => CodedValue.HasBinary ContentType m where
+instance  Monad m => HasBinary ContentType m where
   writeBin = mapWrite fromEnum
   readBin = mapRead toEnum
 
@@ -153,7 +152,7 @@ instance Eq Package where
    (==) = mapEq
       (\ (Package options packageName versionData) -> (options,packageName,versionData))
 
-instance Monad m => CodedValue.HasBinary Package m where
+instance Monad m => HasBinary Package m where
    writeBin = mapWrite
       (\ (Package options packageName versionData) -> (options,packageName,versionData))
    readBin = mapRead
