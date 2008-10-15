@@ -206,8 +206,7 @@ instance Show VersionAttributes where
 getVersionInteger :: ObjectVersion -> Integer
 getVersionInteger (ObjectVersion i) = i
 {-# DEPRECATED getVersionInteger
-   "Please don't use getVersionInteger unless you really have to, since\
-   \  it ignores the tree structure of versions." #-}
+   "because it ignores the tree structure of versions" #-}
 
 -- ----------------------------------------------------------------------
 -- Instances of HasBinary

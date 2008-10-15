@@ -31,10 +31,10 @@ commit :: SimpleDB -> User -> VersionInformation
    -> [(Location,ChangeData)]
    -> [(Location,Location)]
    -> IO (Maybe ObjectVersion)
-commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
+commit simpleDB usr versionInformation redirects0 changeData0 parentChanges =
    do
       permissions <- getGlobalPermissions simpleDB
-      verifyGlobalAccess user permissions WriteActivity
+      verifyGlobalAccess usr permissions WriteActivity
       txn <- beginTransaction
 
       (versionOpt :: Maybe ObjectVersion)
@@ -70,11 +70,11 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
 
             (parentOpt1,thisVersion1) <- case versionInformation of
                UserInfo1 userInfo -> wrap userInfo
-               VersionInfo1 versionInfo -> wrap (VersionInfo.user versionInfo)
+               VersionInfo1 versionInfo -> wrap (user versionInfo)
                Version1 objectVersion ->
                   do
                      versionInfo <- getVersionInfo objectVersion
-                     wrap (VersionInfo.user versionInfo)
+                     wrap (user versionInfo)
                Version1Plus objectVersion parentVersion ->
                   do
                      -- Check if VersionInfo is known (even though
@@ -105,7 +105,7 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                            Just version -> return (Left version)
                            Nothing ->
                               do
-                                 location1 <- getNextLocation simpleDB user
+                                 location1 <- getNextLocation simpleDB usr
                                  return (Right (toPrimitiveLocation location1))
                         return (location,redirect')
                      )
@@ -128,7 +128,7 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
             let
                verifyLocation :: Location -> Activity -> IO ()
                verifyLocation location activity =
-                  verifyMultiAccess simpleDB user thisVersion1
+                  verifyMultiAccess simpleDB usr thisVersion1
                      (Just (thisVersionData,location)) [activity]
 
             mapM_
@@ -136,7 +136,7 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                   case item of
                      Left _ -> verifyLocation location WriteActivity
                      Right (oldVersion,oldLocation) ->
-                        verifyAccess simpleDB user oldVersion
+                        verifyAccess simpleDB usr oldVersion
                            (Just oldLocation) ReadActivity
                   )
                objectChanges1
@@ -144,7 +144,7 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
             mapM_
                (\ (location,redirect) ->
                   case redirect of
-                     Left oldVersion -> verifyAccess simpleDB user oldVersion
+                     Left oldVersion -> verifyAccess simpleDB usr oldVersion
                         (Just location) ReadActivity
                      Right _ -> done
                   )
@@ -160,7 +160,7 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                         pLocation = retrievePrimitiveLocation1
                            (redirects thisVersionData) object
 
-                     isOpen <- isOpenLocation simpleDB user pLocation
+                     isOpen <- isOpenLocation simpleDB usr pLocation
                      if isOpen
                         then
                            done
@@ -186,10 +186,10 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                         )
                      parentChanges
 
-            closeLocations simpleDB user (usedLocations1 ++ usedLocations2)
+            closeLocations simpleDB usr (usedLocations1 ++ usedLocations2)
 
             versionOpt
-               <- modifyUserInfo1 simpleDB user versionInformation txn True
+               <- modifyUserInfo1 simpleDB usr versionInformation txn True
             if not (isJust versionOpt)
                then
                   commitVersionData

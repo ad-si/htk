@@ -10,7 +10,7 @@ import GroupFile
 
 import Permissions
 import VersionInfo
-import {-# SOURCE #-} VersionState
+import VersionState
 
 examinePermissions :: VersionState -> GroupFile -> String
    -> ObjectVersion -> Activity -> Permissions -> IO (Maybe Bool)
@@ -36,7 +36,7 @@ examinePermission versionState groupFile userId version activity
 
       userIsIn = case domain permission of
          Nothing -> True
-         Just (GroupFile.User userId0) -> userId0 == userId
+         Just (User userId0) -> userId0 == userId
          Just (Group group) -> userIsInGroup groupFile userId group
    in
       if activityIsIn && userIsIn
@@ -80,7 +80,7 @@ examineGlobalPermissions groupFile userId activity (permission:permissions) =
 
       userIsIn = case domain permission of
          Nothing -> True
-         Just (GroupFile.User userId0) -> userId0 == userId
+         Just (User userId0) -> userId0 == userId
          Just (Group group) -> userIsInGroup groupFile userId group
    in
       if activityIsIn && userIsIn

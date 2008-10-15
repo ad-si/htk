@@ -1,0 +1,29 @@
+name:           uni-simpledb
+version:        1.1
+build-type:     Simple
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       data base support for uniform
+description:    access to an installed Berkeley DB
+exposed-modules: SimpleDB.BDBOps, SimpleDB.ServerErrors,
+ SimpleDB.ObjectVersion,
+ SimpleDB.VersionInfo, SimpleDB.VersionInfoService,
+ SimpleDB.Permissions, SimpleDB.ExaminePermissions,
+ SimpleDB.Types, SimpleDB.BDBExtras,
+ SimpleDB.PrimitiveLocation, SimpleDB.VersionData,
+ SimpleDB.SecurityManagement, SimpleDB.OpenSimpleDB,
+ SimpleDB.QuerySimpleDB, SimpleDB.LocationAllocation,
+ SimpleDB.VersionAllocation, SimpleDB.FlushSimpleDB,
+ SimpleDB.VersionState, SimpleDB.ModifyUserInfo, SimpleDB.LastChange,
+ SimpleDB.GetDiffs, SimpleDB.SetGetSecurityData, SimpleDB.Retrieve,
+ SimpleDB.Commit, SimpleDB.Server, SimpleDB.Service,
+ SimpleDB.Interface, SimpleDB.ObjectSource, SimpleDB.VersionInfoFilter
+include-dirs: ../includes
+c-sources: bdbclient.c bdbcommon.c
+build-depends: base, haskell98, parsec, mtl, uni-util, uni-events,
+  uni-posixutil, uni-reactor, uni-htk, uni-server, uni-graphs
+ghc-options: -fglasgow-exts
+extensions: CPP, OverlappingInstances, UndecidableInstances

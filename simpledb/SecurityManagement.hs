@@ -110,7 +110,7 @@ verifyMultiAccess1 simpleDB groupFile user objectVersion vLocationOpt
       (activity : activities1) ->
          do
             access0 <-
-               verifyAccess0 simpleDB groupFile (PasswordFile.userId user)
+               verifyAccess0 simpleDB groupFile (userId user)
                   objectVersion vLocationOpt activity
             if access0
                then
@@ -187,7 +187,7 @@ verifyGlobalMultiAccess1 groupFile user permissions activities =
          do
             let
                grantedOpt = examineGlobalPermissions groupFile
-                  (PasswordFile.userId user) activity permissions
+                  (userId user) activity permissions
                granted = fromMaybe True grantedOpt
             if granted
                then

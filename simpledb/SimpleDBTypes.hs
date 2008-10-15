@@ -30,7 +30,7 @@ import Permissions
 import VersionInfo
 import BDBOps
 import ServerErrors
-import {-# SOURCE #-} VersionState
+import VersionState
 
 -- -------------------------------------------------------------------
 -- The query types.

@@ -121,7 +121,7 @@ updateVersionData fm thisObjectVersion frozenVersion =
             case parentVersionDataOpt of
                Just versionData ->
                   (objectDictionary versionData,redirects versionData,
-                     SimpleDBTypes.parentsMap versionData)
+                     parentsMap versionData)
                Nothing -> (emptyFM,emptyFM,emptyFM)
 
          addRedirect ::
