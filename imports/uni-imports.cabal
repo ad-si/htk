@@ -1,0 +1,20 @@
+name:           uni-imports
+version:        1.1
+build-type:     Simple
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       imports
+
+exposed-modules:
+  Imports.EntityNames, Imports.ErrorManagement, Imports.ErrorReporting,
+  Imports.Aliases, Imports.FolderStructure, Imports.Environment,
+  Imports.Imports
+
+build-depends: base, haskell98, parsec, uni-util, uni-reactor, uni-htk,
+  uni-graphs
+
+ghc-options: -fglasgow-exts
+extensions: OverlappingInstances, UndecidableInstances
