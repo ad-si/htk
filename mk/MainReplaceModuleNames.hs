@@ -340,7 +340,6 @@ newmodules =
  , "MMiSS.LaTeX.LaTeXParser"
  , "MMiSS.LaTeX.LaTeXParserCore"
  , "MMiSS.LaTeX.LaTeXPreamble"
- , "MMiSS.LaTeX.OntoParser"
  , "Posixutil.BlockSigPIPE"
  , "Posixutil.ChildProcess"
  , "Posixutil.CopyFile"
