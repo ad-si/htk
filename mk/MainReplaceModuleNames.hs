@@ -67,20 +67,23 @@ transMap = Map.fromList $ map ( \ str ->
     s@(f : _) -> let
       l = last s
       checkPrefix2 tag1 tag2 = if f == tag1 && isPrefixOf tag2 l then
-        Just $ drop (length tag2) l else Nothing
+        let r = drop (length tag2) l in
+        Just $ if null r then "Interface" else r else Nothing
       checkPrefix tag = checkPrefix2 tag tag
-      in (l, intercalate "." $ init s ++
+      in (l, concat $ intersperse "." $ init s ++
         [case checkPrefix2 "UDrawGraph" "DaVinci" of
           Just n -> n
           Nothing -> case checkPrefix "SimpleDB" of
-            Just n -> if null n then "Interface" else n
+            Just n -> n
             Nothing -> case checkPrefix "Emacs" of
               Just n -> n
               Nothing -> case checkPrefix2 "MMiSS" "LaTeX" of
                 Just n -> n
-                Nothing -> case checkPrefix "MMiSS" of
+                Nothing -> case checkPrefix2 "MMiSS" "MMiSSAPI" of
                   Just n -> n
-                  Nothing -> l])
+                  Nothing -> case checkPrefix "MMiSS" of
+                    Just n -> n
+                    Nothing -> l])
     _ -> error "transMap") newmodules
 
 splitOn :: Eq a => a -- ^ seperator
@@ -258,19 +261,19 @@ newmodules =
  , "Imports.ErrorReporting"
  , "Imports.FolderStructure"
  , "Imports.Imports"
- , "MMiSS.Api.MMiSSAPI"
- , "MMiSS.Api.MMiSSAPIBasics"
- , "MMiSS.Api.MMiSSAPIBlock"
- , "MMiSS.Api.MMiSSCallServer"
- , "MMiSS.Api.MMiSSCheckOutCommit"
- , "MMiSS.Api.MMiSSDoXml"
- , "MMiSS.Api.MMiSSGetPut"
- , "MMiSS.Api.MMiSSMapVersionInfo"
- , "MMiSS.Api.MMiSSMessages"
- , "MMiSS.Api.MMiSSRequest"
- , "MMiSS.Api.MMiSSSecurityOps"
- , "MMiSS.Api.MMiSSSessionState"
- , "MMiSS.Api.MMiSSToFromBundle"
+ , "MMiSS.API.MMiSSAPI"
+ , "MMiSS.API.MMiSSAPIBasics"
+ , "MMiSS.API.MMiSSAPIBlock"
+ , "MMiSS.API.MMiSSCallServer"
+ , "MMiSS.API.MMiSSCheckOutCommit"
+ , "MMiSS.API.MMiSSDoXml"
+ , "MMiSS.API.MMiSSGetPut"
+ , "MMiSS.API.MMiSSMapVersionInfo"
+ , "MMiSS.API.MMiSSMessages"
+ , "MMiSS.API.MMiSSRequest"
+ , "MMiSS.API.MMiSSSecurityOps"
+ , "MMiSS.API.MMiSSSessionState"
+ , "MMiSS.API.MMiSSToFromBundle"
  , "MMiSS.MMiSSActiveMath"
  , "MMiSS.MMiSSAttributes"
  , "MMiSS.MMiSSBundle"
@@ -333,6 +336,7 @@ newmodules =
  , "MMiSS.MMiSSVariant"
  , "MMiSS.MMiSSVariantObject"
  , "MMiSS.MMiSSXmlBasics"
+ , "MMiSS.XmlExtras"
  , "MMiSS.LaTeX.LaTeXParser"
  , "MMiSS.LaTeX.LaTeXParserCore"
  , "MMiSS.LaTeX.LaTeXPreamble"
