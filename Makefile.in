@@ -18,7 +18,7 @@ else
 ifeq "@BUILDAMOUNT@" "100"
    # All MMiSS stuff
    SUBDIRS = util events reactor posixutil htk HaXml server graphs \
-          davinci simpledb imports types emacs mmiss/parser mmiss 
+          davinci simpledb imports types emacs mmiss/parser mmiss appl
 else
    echo !!!! Makefile bug: unexpected value @BUILDAMOUNT@ - please fix !!!!
 endif
