@@ -27,8 +27,8 @@ createDir util Util
 createSubDir ()
 {
 echo creating $1/$3 and copying sources
-rm -rf $1/$3
-cp -r $2 $1/$3
+mkdir -p $1/$3
+cp -f $2/*.hs* $1/$3
 }
 
 cd htk
