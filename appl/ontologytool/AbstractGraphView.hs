@@ -12,7 +12,7 @@ module AbstractGraphView where
 
 import DaVinciGraph
 
-import GraphDisp
+import GraphDisp as Disp
 import GraphConfigure
 
 import Destructible
@@ -166,7 +166,7 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
                                emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
       (nodetypenames,nodetypeparams1) = unzip (("ABSTRACT",abstractNodetypeparams):nodetypeparams)
       (edgetypenames,edgetypeparams1) = unzip edgetypeparams
-  graph <- GraphDisp.newGraph graphtool graphParms
+  graph <- Disp.newGraph graphtool graphParms
   ontoGr <- return(I.empty)
   relViewSpecList <- return([])
   nodetypes <- sequence (map (newNodeType graph) nodetypeparams1)
@@ -201,7 +201,7 @@ delallgraphs gv = do
     destroy_all [] _ = return ()
     destroy_all ((gid,_):gs) ev_cnt = do
          writeIORef gv (gs,ev_cnt)
-         Result _ _ <- AbstractGraphView.delgraph gid gv
+         Result _ _ <- delgraph gid gv
          (_,ev_cnt') <- readIORef gv
          destroy_all gs ev_cnt'
 

@@ -1,0 +1,17 @@
+name:           uni-appl
+version:        1.1
+build-type:     Simple
+license:        LGPL
+license-file:   ../LIZENZ.txt
+author:         uniform@informatik.uni-bremen.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
+category:       Uniform
+synopsis:       mmiss ontology application
+exposed-modules:
+  Appl.Ontologytool.AbstractGraphView, Appl.Ontologytool.MMiSSOntology,
+  Appl.Ontologytool.MMiSSOntologyGraph, Appl.Ontologytool.OntoParser
+build-depends: base, haskell98, containers, parsec, pretty, mtl, fgl, uni-util,
+  uni-events, uni-reactor, uni-posixutil, uni-htk, uni-graphs, uni-uDrawGraph,
+  HaXml >= 1.13.2 && < 1.14
+ghc-options: -fglasgow-exts
+extensions: OverlappingInstances, UndecidableInstances
