@@ -7,5 +7,6 @@ XHCDIRS= $(HTKDIRS)
 
 EXTRA_HC_OPTIONS = -ignore-package uni-mmiss -ignore-package uni-mmiss-parser
 
-include @TOP@/mk/boilerplate.mk
+SUBDIRS = test
 
+include @TOP@/mk/boilerplate.mk
