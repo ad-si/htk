@@ -6,15 +6,15 @@
 -- the ExportOpts required for the \<getObject\> element,
 -- and for converting to and from 'MMiSSVariantSpec' s.
 module MMiSSToFromBundle(
-   toBundle, -- :: Block -> MMiSSRequest.Bundle -> WithError MMiSSBundle.Bundle
-   fromBundle, -- :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Bundle
+   toBundle, -- :: Block -> Request.Bundle -> WithError Bundle.Bundle
+   fromBundle, -- :: Bundle.Bundle -> BlockM Request.Bundle
 
-   toExportOpts, -- :: MMiSSRequest.GetObject_Attrs -> MMiSSBundle.ExportOpts
+   toExportOpts, -- :: Request.GetObject_Attrs -> Bundle.ExportOpts
 
-   toPackageId, -- :: MMiSSRequest.PackageId -> LaTeXParser.PackageId
+   toPackageId, -- :: Request.PackageId -> LaTeXParser.PackageId
 
-   fromVariants, -- :: MMiSSRequest.Variants -> WithError MMiSSVariantSpec
-   toVariants, -- :: MMiSSVariantSpec -> MMiSSRequest.Variants
+   fromVariants, -- :: Request.Variants -> WithError MMiSSVariantSpec
+   toVariants, -- :: MMiSSVariantSpec -> Request.Variants
    ) where
 
 import Control.Monad.State
@@ -31,9 +31,9 @@ import MMiSSVariant
 
 import qualified LaTeXParser(PackageId(..))
 
-import MMiSSRequest
+import MMiSSRequest as Request
 import MMiSSFormat
-import MMiSSBundle
+import MMiSSBundle as Bundle
 import MMiSSBundleUtils
 import MMiSSAPIBlock
 
@@ -42,55 +42,55 @@ import MMiSSAPIBlock
 -- ---------------------------------------------------------------------------
 
 -- The BlockM monad is used to thread block accesses when we are converting
--- a bundle to an MMiSSRequest.Files.
+-- a bundle to an Request.Files.
 type BlockM = State Block
 
 -- ---------------------------------------------------------------------------
 -- Converting to and from Bundle's.
 -- ---------------------------------------------------------------------------
 
-toBundle :: Block -> MMiSSRequest.Bundle -> WithError MMiSSBundle.Bundle
-toBundle block (MMiSSRequest.Bundle (l0 :: [Bundle_])) =
+toBundle :: Block -> Request.Bundle -> WithError Bundle.Bundle
+toBundle block (Request.Bundle (l0 :: [Bundle_])) =
    do
-      (l1 :: [(MMiSSBundle.PackageId,BundleNode)]) <- mapM
+      (l1 :: [(Bundle.PackageId,BundleNode)]) <- mapM
          (\ (Bundle_ packageId file) ->
             do
                bundleNode <- toBundleNode block file
-               return (MMiSSBundle.PackageId (packageIdId packageId),
+               return (Bundle.PackageId (packageIdId packageId),
                   bundleNode)
             )
          l0
-      return (MMiSSBundle.Bundle l1)
+      return (Bundle.Bundle l1)
 
 
-fromBundle :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Bundle
-fromBundle (MMiSSBundle.Bundle (l0 :: [(MMiSSBundle.PackageId,BundleNode)])) =
+fromBundle :: Bundle.Bundle -> BlockM Request.Bundle
+fromBundle (Bundle.Bundle (l0 :: [(Bundle.PackageId,BundleNode)])) =
    do
       (l1 :: [Bundle_]) <- mapM
          (\ (packageId,bundleNode) ->
             do
                file <- fromBundleNode bundleNode
                return (Bundle_
-                  (MMiSSRequest.PackageId (packageIdStr packageId))
+                  (Request.PackageId (packageIdStr packageId))
                   file
                   )
             )
          l0
-      return (MMiSSRequest.Bundle l1)
+      return (Request.Bundle l1)
 
 
 -- ---------------------------------------------------------------------------
 -- Converting to and from lists of BundleNode's.
 -- ---------------------------------------------------------------------------
 
-toBundleNodes :: Block -> MMiSSRequest.Files
-   -> WithError [MMiSSBundle.BundleNode]
+toBundleNodes :: Block -> Request.Files
+   -> WithError [Bundle.BundleNode]
 toBundleNodes block (Files files) =
    do
       (nodes :: [BundleNode]) <- mapM (toBundleNode block) files
       return nodes
 
-fromBundleNodes :: [MMiSSBundle.BundleNode] -> BlockM MMiSSRequest.Files
+fromBundleNodes :: [Bundle.BundleNode] -> BlockM Request.Files
 fromBundleNodes (bundleNodes :: [BundleNode]) =
    do
       files <- mapM fromBundleNode bundleNodes
@@ -100,8 +100,8 @@ fromBundleNodes (bundleNodes :: [BundleNode]) =
 -- Converting to and from BundleNode
 -- ---------------------------------------------------------------------------
 
-toBundleNode :: Block -> MMiSSRequest.File
-   -> WithError (MMiSSBundle.BundleNode)
+toBundleNode :: Block -> Request.File
+   -> WithError (Bundle.BundleNode)
 toBundleNode block (File fileLoc0 oneOfOpt) =
    case oneOfOpt of
       Nothing -> return (mkBundleNode NoData)
@@ -135,7 +135,7 @@ toBundleNode block (File fileLoc0 oneOfOpt) =
          bundleNodeData = bundleNodeData1
          }
 
-fromBundleNode :: MMiSSBundle.BundleNode -> BlockM MMiSSRequest.File
+fromBundleNode :: Bundle.BundleNode -> BlockM Request.File
 fromBundleNode (BundleNode {
       fileLoc = fileLoc0,bundleNodeData = bundleNodeData0}) =
    case bundleNodeData0 of
@@ -165,7 +165,7 @@ fromBundleNode (BundleNode {
 -- Converting to and from MMiSSVariantSpec
 -- ---------------------------------------------------------------------------
 
-fromVariants :: MMiSSRequest.Variants -> WithError MMiSSVariantSpec
+fromVariants :: Request.Variants -> WithError MMiSSVariantSpec
 fromVariants (Variants variants) =
    do
       let
@@ -174,7 +174,7 @@ fromVariants (Variants variants) =
             variants
       toMMiSSVariantSpec strs
 
-toVariants :: MMiSSVariantSpec -> MMiSSRequest.Variants
+toVariants :: MMiSSVariantSpec -> Request.Variants
 toVariants variantSpec =
    let
       strs = fromMMiSSVariantSpec variantSpec
@@ -191,8 +191,8 @@ toVariants variantSpec =
 -- it's an Element.
 -- ---------------------------------------------------------------------------
 
-toBundleText :: Block -> Maybe MMiSSRequest.FileContents
-   -> WithError MMiSSBundle.BundleText
+toBundleText :: Block -> Maybe Request.FileContents
+   -> WithError Bundle.BundleText
 toBundleText block ftOpt =
    case ftOpt of
       Just ft ->
@@ -219,8 +219,8 @@ toBundleText block ftOpt =
             dbnStr = fileContentsDataBlock ft
       Nothing -> return NoText
 
-fromBundleText :: MMiSSBundle.BundleText
-   -> BlockM (Maybe MMiSSRequest.FileContents)
+fromBundleText :: Bundle.BundleText
+   -> BlockM (Maybe Request.FileContents)
 fromBundleText bt = case bundleToICSL bt of
    Nothing -> return Nothing
    Just (icsl,ct) ->
@@ -246,12 +246,12 @@ blockType1 = 1
 -- Converting to and from CharType
 -- ---------------------------------------------------------------------------
 
-toCharType :: MMiSSRequest.FileContents_charType -> MMiSSBundle.CharType
+toCharType :: Request.FileContents_charType -> Bundle.CharType
 toCharType ct = case ct of
    FileContents_charType_byte    -> Byte
    FileContents_charType_unicode -> Unicode
 
-fromCharType :: MMiSSBundle.CharType -> MMiSSRequest.FileContents_charType
+fromCharType :: Bundle.CharType -> Request.FileContents_charType
 fromCharType ct = case ct of
    Byte    -> FileContents_charType_byte
    Unicode -> FileContents_charType_unicode
@@ -260,14 +260,14 @@ fromCharType ct = case ct of
 -- Converting to and from FileLocs
 -- ---------------------------------------------------------------------------
 
-toFileLoc :: MMiSSRequest.FileLocation -> MMiSSBundle.FileLoc
+toFileLoc :: Request.FileLocation -> Bundle.FileLoc
 toFileLoc (FileLocation (onOpt) ot) =
    FileLoc {
       name = fmap (\ (ObjectName s) -> s) onOpt,
       objectType = toBundleType ot
       }
 
-fromFileLoc :: MMiSSBundle.FileLoc -> MMiSSRequest.FileLocation
+fromFileLoc :: Bundle.FileLoc -> Request.FileLocation
 fromFileLoc (FileLoc {name = nOpt,objectType = objectType}) =
    FileLocation
       (fmap ObjectName nOpt)
@@ -277,7 +277,7 @@ fromFileLoc (FileLoc {name = nOpt,objectType = objectType}) =
 -- Converting to and from BundleTypes
 -- ---------------------------------------------------------------------------
 
-toBundleType :: MMiSSRequest.ObjectType -> MMiSSBundle.BundleType
+toBundleType :: Request.ObjectType -> Bundle.BundleType
 toBundleType ot =
    BundleType {
       base = toBundleTypeEnum (objectTypeBaseType ot),
@@ -285,7 +285,7 @@ toBundleType ot =
       extra = objectTypeExtraType ot
       }
 
-fromBundleType :: MMiSSBundle.BundleType -> MMiSSRequest.ObjectType
+fromBundleType :: Bundle.BundleType -> Request.ObjectType
 fromBundleType bt =
    ObjectType {
       objectTypeBaseType = fromBundleTypeEnum (base bt),
@@ -297,8 +297,8 @@ fromBundleType bt =
 -- Converting to and from BundleTypeEnums
 -- ---------------------------------------------------------------------------
 
-toBundleTypeEnum :: MMiSSRequest.ObjectType_baseType ->
-   MMiSSBundle.BundleTypeEnum
+toBundleTypeEnum :: Request.ObjectType_baseType ->
+   Bundle.BundleTypeEnum
 toBundleTypeEnum bt = case bt of
    ObjectType_baseType_folder -> FolderEnum
    ObjectType_baseType_plainFile -> FileEnum
@@ -307,8 +307,8 @@ toBundleTypeEnum bt = case bt of
    ObjectType_baseType_mmissFile -> MMiSSFileEnum
    ObjectType_baseType_mmissPreamble -> MMiSSPreambleEnum
 
-fromBundleTypeEnum :: MMiSSBundle.BundleTypeEnum
-   -> MMiSSRequest.ObjectType_baseType
+fromBundleTypeEnum :: Bundle.BundleTypeEnum
+   -> Request.ObjectType_baseType
 fromBundleTypeEnum bte = case bte of
    FolderEnum        -> ObjectType_baseType_folder
    FileEnum          -> ObjectType_baseType_plainFile
@@ -321,7 +321,7 @@ fromBundleTypeEnum bte = case bte of
 -- ExportOpts stuff
 -- ---------------------------------------------------------------------------
 
-toExportOpts :: MMiSSRequest.GetObject_Attrs -> MMiSSBundle.ExportOpts
+toExportOpts :: Request.GetObject_Attrs -> Bundle.ExportOpts
 toExportOpts attrs =
    let
       what0 = fromDefaultable (getObjectWhat attrs)
@@ -349,6 +349,6 @@ toExportOpts attrs =
 -- Converting PackageId's
 -- ---------------------------------------------------------------------------
 
-toPackageId :: MMiSSRequest.PackageId -> LaTeXParser.PackageId
+toPackageId :: Request.PackageId -> LaTeXParser.PackageId
 toPackageId packageId
-   = LaTeXParser.PackageId (MMiSSRequest.packageIdId packageId)
+   = LaTeXParser.PackageId (Request.packageIdId packageId)

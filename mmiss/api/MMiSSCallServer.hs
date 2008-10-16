@@ -19,7 +19,7 @@ import qualified VersionDB
 import VersionGraph
 import VersionGraphClient
 
-import MMiSSRequest
+import MMiSSRequest as Request
 import MMiSSSessionState
 import MMiSSMapVersionInfo
 
@@ -89,13 +89,13 @@ listVersions state (ListVersions serverRef) =
          graphClient :: VersionGraphClient
          graphClient = toVersionGraphClient versionGraph
 
-      (versionInfos1 :: [VersionGraphClient.VersionInfo1])
+      (versionInfos1 :: [VersionInfo1])
          <- getVersionInfos graphClient
       let
          versionInfos2 :: [VersionInfo.VersionInfo]
          versionInfos2 = map toVersionInfo versionInfos1
 
-         versionInfos3 :: [MMiSSRequest.VersionInfo]
+         versionInfos3 :: [Request.VersionInfo]
          versionInfos3 = map fromOurVersionInfo versionInfos2
 
       return (ListVersionsResponse versionInfos3)

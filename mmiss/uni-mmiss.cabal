@@ -27,7 +27,11 @@ exposed-modules:
   MMiSS.BundleNodeWrite, MMiSS.BundleNodeWriteObject, MMiSS.BundleWrite,
   MMiSS.EditLocks, MMiSS.BundleNodeEditLocks, MMiSS.UpdateVariantObject,
   MMiSS.XmlBasics, MMiSS.GetVariantAttributes, MMiSS.OntologyStore,
-  MMiSS.OntologyParser
+  MMiSS.OntologyParser, MMiSS.XmlExtras, MMiSS.API.Interface,
+  MMiSS.API.Request, MMiSS.API.Basics, MMiSS.API.SessionState,
+  MMiSS.API.Block, MMiSS.API.MapVersionInfo, MMiSS.API.ToFromBundle,
+  MMiSS.API.CallServer, MMiSS.API.CheckOutCommit, MMiSS.API.GetPut,
+  MMiSS.API.Messages, MMiSS.API.DoXml, MMiSS.API.SecurityOps
 build-depends: base, haskell98, containers, parsec, pretty, mtl, fgl, uni-util,
   uni-events, uni-reactor, uni-posixutil, uni-htk, uni-graphs, uni-server,
   uni-simpledb, uni-imports, uni-types, uni-emacs, HaXml >= 1.13.2 && < 1.14

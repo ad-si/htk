@@ -349,7 +349,7 @@ listVersions1' (Server {versionGraph = versionGraph}) =
          graphClient = toVersionGraphClient versionGraph
 
       (versionInfo1s :: [VersionInfo1])
-         <- VersionGraphClient.getVersionInfos graphClient
+         <- getVersionInfos graphClient
 
       let
          versionInfos :: [VersionInfo]

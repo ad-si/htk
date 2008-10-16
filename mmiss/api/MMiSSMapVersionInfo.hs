@@ -19,13 +19,13 @@ import qualified VersionInfo
 
 import MMiSSImportExportErrors
 
-import MMiSSRequest
+import MMiSSRequest as Request
 
 -- -----------------------------------------------------------------------
 -- Converting from our VersionInfo's.
 -- -----------------------------------------------------------------------
 
-fromOurVersionInfo :: VersionInfo.VersionInfo -> MMiSSRequest.VersionInfo
+fromOurVersionInfo :: VersionInfo.VersionInfo -> Request.VersionInfo
 fromOurVersionInfo versionInfo0 =
    let
       versionInfoIsPresent1 =
@@ -45,7 +45,7 @@ fromOurVersionInfo versionInfo0 =
 -- Converting to and from our UserInfo's.
 -- -----------------------------------------------------------------------
 
-fromOurUserInfo :: VersionInfo.UserInfo -> MMiSSRequest.UserInfo
+fromOurUserInfo :: VersionInfo.UserInfo -> Request.UserInfo
 fromOurUserInfo user0 =
    let
       userInfoAttrs =
@@ -65,7 +65,7 @@ fromOurUserInfo user0 =
 -- The first UserInfo is used to fill in unspecified values.
 -- seq'ing the return result will force evaluation of anything
 -- that might cause an error provoked by this function.
-toOurUserInfo :: VersionInfo.UserInfo -> MMiSSRequest.UserInfo
+toOurUserInfo :: VersionInfo.UserInfo -> Request.UserInfo
    -> VersionInfo.UserInfo
 toOurUserInfo defaultUser (UserInfo userInfoAttrs0 attributesOpt0) =
    let
@@ -121,7 +121,7 @@ toOurUserInfo defaultUser (UserInfo userInfoAttrs0 attributesOpt0) =
 -- -----------------------------------------------------------------------
 
 fromOurVersionAttributes
-   :: VersionInfo.VersionAttributes -> MMiSSRequest.Attributes
+   :: VersionInfo.VersionAttributes -> Request.Attributes
 fromOurVersionAttributes va =
    let
       kvs :: [(String,String)]
@@ -135,7 +135,7 @@ fromOurVersionAttributes va =
       Attributes attributes
 
 toOurVersionAttributes
-   :: MMiSSRequest.Attributes -> VersionInfo.VersionAttributes
+   :: Request.Attributes -> VersionInfo.VersionAttributes
 toOurVersionAttributes (Attributes attributes) =
    let
       kvs :: [(String,String)]
@@ -149,7 +149,7 @@ toOurVersionAttributes (Attributes attributes) =
 -- Converting from our ServerInfo's.
 -- -----------------------------------------------------------------------
 
-fromOurServerInfo :: VersionInfo.ServerInfo -> MMiSSRequest.ServerInfo
+fromOurServerInfo :: VersionInfo.ServerInfo -> Request.ServerInfo
 fromOurServerInfo server0 =
    ServerInfo {
       serverInfoServerId = VersionInfo.serverId server0,
