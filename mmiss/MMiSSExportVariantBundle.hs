@@ -30,7 +30,7 @@ import MMiSSBundleUtils
 import MMiSSBundleSimpleUtils
 import MMiSSBundleValidate
 
-import {-# SOURCE #-} MMiSSExportFiles
+import MMiSSExportFiles
 import MMiSSPackageFolder
 
 -- --------------------------------------------------------------------------

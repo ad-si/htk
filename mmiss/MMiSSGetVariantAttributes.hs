@@ -21,7 +21,7 @@ import DeprecatedSet
 import Computation
 import ExtendedPrelude
 
-import SimpleForm
+import SimpleForm as Form
 
 -- | Get a list of variant attributes.
 getVariantAttributes :: IO (Maybe [(String,Maybe String)])
@@ -72,7 +72,7 @@ editRemainingAttributes n keysSoFar remainingDefaults0 =
                   (Just key,Nothing) -> return (Just (key,Nothing))
                   (Just key,Just value) -> return (Just (key,Just value))
                   )
-               (keyForm keyDefault SimpleForm.\\ valueForm valueDefault)
+               (keyForm keyDefault Form.\\ valueForm valueDefault)
 
          remainingDefaults1 = List.filter
             (\ (key,value) -> not (elementOf key keysSoFar))

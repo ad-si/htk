@@ -8,8 +8,29 @@ homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       mmiss
 exposed-modules:
-  MMiSS.LaTeX.ParserCore, MMiSS.LaTeX.Preamble, MMiSS.LaTeX.Parser
-build-depends: base, haskell98, parsec, pretty, uni-util, uni-emacs,
-  uni-imports, uni-types, HaXml >= 1.13.2 && < 1.14
+  MMiSS.LaTeX.ParserCore, MMiSS.LaTeX.Preamble, MMiSS.LaTeX.Parser,
+  MMiSS.DTDAssumptions, MMiSS.InsertionPoint, MMiSS.Attributes, MMiSS.Variant,
+  MMiSS.VariantObject, MMiSS.Display, MMiSS.DTD, MMiSS.ObjectTypeType,
+  MMiSS.ObjectType, MMiSS.Preamble, MMiSS.Format, MMiSS.EditXml,
+  MMiSS.EditFormatConverter, MMiSS.EmacsEdit, MMiSS.ObjectTypeInstance,
+  MMiSS.ObjectExtract, MMiSS.ExportLaTeX, MMiSS.Print, MMiSS.EditAttributes,
+  MMiSS.ReadObject, MMiSS.ReAssemble, MMiSS.RunCommand, MMiSS.LaTeX,
+  MMiSS.PackageFolder, MMiSS.Registrations, MMiSS.Initialise, MMiSS.Files,
+  MMiSS.FileType, MMiSS.ExportFiles, MMiSS.Check, MMiSS.ActiveMath,
+  MMiSS.Check_DTD, MMiSS.Bundle, MMiSS.ImportExportBundle, MMiSS.SubFolder,
+  MMiSS.ImportExportErrors, MMiSS.SplitLink, MMiSS.ExportEntireBundle,
+  MMiSS.BundleUtils, MMiSS.ExportVariantBundle, MMiSS.BundleConvert,
+  MMiSS.BundleSimpleUtils, MMiSS.BundleTypes, MMiSS.ElementInstances,
+  MMiSS.FileSystemExamples, MMiSS.ElementInfo, MMiSS.BundleFillIn,
+  MMiSS.BundleDissect, MMiSS.BundleValidate, MMiSS.BundleReadFiles,
+  MMiSS.BundleNodeWriteClass, MMiSS.BundleNodeCheckTypes,
+  MMiSS.BundleNodeWrite, MMiSS.BundleNodeWriteObject, MMiSS.BundleWrite,
+  MMiSS.EditLocks, MMiSS.BundleNodeEditLocks, MMiSS.UpdateVariantObject,
+  MMiSS.XmlBasics, MMiSS.GetVariantAttributes, MMiSS.OntologyStore,
+  MMiSS.OntologyParser
+build-depends: base, haskell98, containers, parsec, pretty, mtl, fgl, uni-util,
+  uni-events, uni-reactor, uni-posixutil, uni-htk, uni-graphs, uni-server,
+  uni-simpledb, uni-imports, uni-types, uni-emacs, HaXml >= 1.13.2 && < 1.14
+data-files: MMiSS.dtd, Files.xml
 ghc-options: -fglasgow-exts
 extensions: OverlappingInstances, UndecidableInstances

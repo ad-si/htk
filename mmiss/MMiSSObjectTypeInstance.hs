@@ -60,7 +60,7 @@ import MMiSSCheck
 import MMiSSActiveMath
 import MMiSSEditFormatConverter(exportElement1)
 import MMiSSFileType
-import MMiSSBundle
+import MMiSSBundle as Bundle
 import MMiSSPackageFolder
 import MMiSSImportExportErrors
 import MMiSSElementInfo
@@ -513,7 +513,7 @@ instance HasBundleNodeData MMiSSObject where
                      return (Just variantSpec,bundleText)
                   )
                allObjectVariants
-         return (MMiSSBundle.Object variants)
+         return (Bundle.Object variants)
 
    getBundleNodeDataForVariant = error
       ("Don't use getBundleNodeDataForVariant for objects; use "

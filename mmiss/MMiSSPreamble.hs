@@ -60,7 +60,7 @@ import EmacsContent
 import LaTeXPreamble
 
 import MMiSSImportExportErrors
-import MMiSSBundle
+import MMiSSBundle as Bundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSOntologyStore
@@ -353,7 +353,7 @@ instance HasBundleNodeWrite MMiSSPreamble where
    bundleNodeWrite view bundleNode preambleLink =
       do
          let
-            MMiSSBundle.Object [(_,preambleText)] = bundleNodeData bundleNode
+            Bundle.Object [(_,preambleText)] = bundleNodeData bundleNode
 
          preamble <- coerceWithErrorOrBreakIO importExportError
                (fromBundleTextWE preambleText)

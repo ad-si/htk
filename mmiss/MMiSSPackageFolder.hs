@@ -15,7 +15,7 @@ module MMiSSPackageFolder(
       -- :: HasLinkedObject object => View -> object
       -- -> IO (WithError (MMiSSPackageFolder,EntityFullName))
    toMMiSSPackageFolderLinkedObject,
-     -- :: MMiSSPackageFolder -> LinkManager.LinkedObject
+     -- :: MMiSSPackageFolder -> LinkedObject
 
    lookupMMiSSObject,
       -- :: View -> MMiSSPackageFolder -> EntitySearchName
@@ -111,7 +111,7 @@ import MMiSSFileSystemExamples
 import MMiSSObjectType hiding (linkedObject)
 import MMiSSPreamble
 import MMiSSImportExportErrors
-import MMiSSBundle
+import MMiSSBundle as Bundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
@@ -190,8 +190,7 @@ toMMiSSPreambleLink :: MMiSSPackageFolder -> Link MMiSSPreamble
 toMMiSSPreambleLink = preambleLink
 
 
-toMMiSSPackageFolderLinkedObject
-   :: MMiSSPackageFolder -> LinkManager.LinkedObject
+toMMiSSPackageFolderLinkedObject :: MMiSSPackageFolder -> LinkedObject
 toMMiSSPackageFolderLinkedObject = linkedObject
 
 toMMiSSPackageFolder :: HasLinkedObject object => View -> object
@@ -693,14 +692,14 @@ guessName (Bundle packageBundles) packageId =
 
 guessNodeName :: BundleNode -> WithError EntityName
 guessNodeName bundleNode = case bundleNodeData bundleNode of
-   MMiSSBundle.Object _ ->
+   Bundle.Object _ ->
       do
          nameOpt <- nameFileLocOpt (fileLoc bundleNode)
          case nameOpt of
             Nothing -> fail
                "Element has no name, and I don't know where to put it"
             Just name -> return name
-   MMiSSBundle.Dir nodes ->
+   Bundle.Dir nodes ->
       let
          nodesNotPreambles =
             filter

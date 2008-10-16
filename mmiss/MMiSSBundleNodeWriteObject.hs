@@ -43,7 +43,7 @@ instance HasBundleNodeWrite MMiSSObject where
                   linkedObject <- coerceImportExportIO linkedObjectWE
 
                   variantObject <- newEmptyVariantObject1
-                     (MMiSSObjectType.converter view linkedObject)
+                     (converter view linkedObject)
 
                   object <- createMMiSSObject objectType linkedObject
                      variantObject

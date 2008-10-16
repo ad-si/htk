@@ -22,23 +22,26 @@ tokenize st input = case input of
           then (c : w) : text       -- weiter sammeln
           else "" : (c : w) : text  -- neues Wort anfangen
 
-handleImport :: Map.Map String String -> [String] -> String
-handleImport m s = case s of
+handleImport :: Bool -> Map.Map String String -> [String] -> String
+handleImport b m s = case s of
     "qualified" : _ : md : r -> "qualified " ++ case Map.lookup md m of
         Nothing -> md ++ concat r
         Just qv -> qv ++ " as " ++ case r of
             _ : "as" : _ : t -> concat t
             _ -> md ++ concat r
-    md : r -> Map.findWithDefault md md m  ++ concat r
+    md : r -> (case Map.lookup md m of
+         Just qv -> if b then qv ++ " as " ++ md else qv
+         Nothing -> md) ++ concat r
     _ -> concat s
 
-process :: Map.Map String String -> String -> String
-process m str = unlines $
+-- if True import using as
+process :: Bool -> Map.Map String String -> String -> String
+process b m str = unlines $
   map (\ l -> case tokenize Other l of
          "" : "import" : r1 -> "import " ++ case r1 of
            " {-# " : "SOURCE" : " #-} " : r2 ->
-               "{-# SOURCE #-} " ++ handleImport m r2
-           _ : r2 -> handleImport m r2
+               "{-# SOURCE #-} " ++ handleImport b m r2
+           _ : r2 -> handleImport b m r2
            _ -> concat r1
          bs : "module" : _ : modname : r ->
              case Map.lookup modname m of
@@ -51,7 +54,8 @@ processM :: String -> IO ()
 processM file = catch (do
   str <- readFile file
   putStrLn $ "processing: " ++ file ++ " (" ++ show (length str) ++ " chars)"
-  writeFile file $ process transMap str)
+  writeFile file $ process (isPrefixOf "mmiss" file
+                            && isSuffixOf ".hs-boot" file) transMap str)
     (const $ putStrLn $ "unprocessed: " ++ file)
 
 main :: IO ()

@@ -8,8 +8,8 @@ import Computation
 import AtomString
 
 import View
-import Files
-import Folders
+import Files as Files
+import Folders as Folders
 import LinkManager
 import ObjectTypes
 import AttributesType
@@ -17,8 +17,8 @@ import AttributesType
 import MMiSSInsertionPoint
 import MMiSSBundle
 import MMiSSSplitLink
-import MMiSSObjectTypeType
-import MMiSSFileType
+import MMiSSObjectTypeType as ObjectType
+import MMiSSFileType as FileType
 import MMiSSBundleSimpleUtils
 
 -- -------------------------------------------------------------------------
@@ -76,14 +76,14 @@ checkBundleNodeTypes1 view (Just linkedObject) bundleNode =
                (MMiSSObjectC _,xmlTagKeyStr,MMiSSObjectEnum,_) ->
                   let
                      xmlTag = coerceWithError (getTag bundleNode)
-                     xmlTagKey2 = MMiSSObjectTypeType.constructKey xmlTag
+                     xmlTagKey2 = ObjectType.constructKey xmlTag
                      xmlTagKeyStr2 = toString xmlTagKey2
                   in
                      xmlTagKeyStr == xmlTagKeyStr2
                (MMiSSFileC _,extKeyStr,MMiSSFileEnum,_) ->
                   let
                      Just ext2 = ext . objectType . fileLoc $ bundleNode
-                     extKey2 = MMiSSFileType.constructKey ext2
+                     extKey2 = FileType.constructKey ext2
                      extKeyStr2 = toString extKey2
                   in
                      extKeyStr == extKeyStr2

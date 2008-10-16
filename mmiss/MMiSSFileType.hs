@@ -389,7 +389,7 @@ toMMiSSFilesState (FileTypes (fileType : fileTypes1)) =
                filesState0 {
                   fileTypes = fileTypes1
                   }
-         FileTypes_Menu (menu @ (MMiSSFiles.Menu attrs _)) ->
+         FileTypes_Menu (menu @ (Menu attrs _)) ->
             let
                menus0 = menus filesState0
                menus1 = addToFM menus0 (menuId attrs) menu
@@ -719,7 +719,7 @@ getFilesNodeDisplayData view displayType mmissFileType
 
          mkMenu :: String -> MenuPrim (Maybe String) (Link MMiSSFile -> IO ())
          mkMenu menuId = case lookupFM (menus mmissFilesState) menuId of
-            Just (MMiSSFiles.Menu menuAttrs subMenus) ->
+            Just (Menu menuAttrs subMenus) ->
                MenuType.Menu (menuTitle menuAttrs) (map mkSubMenu subMenus)
 
          mkSubMenu :: Menu_
