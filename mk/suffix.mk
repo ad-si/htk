@@ -146,7 +146,7 @@ LIBMODULENAMESCOMMAS = $(LIBMODULENAMESCOMMAS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : dependhere depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere copyhaddocksources haddockgenindex slow slowhere cabal cabalhere
+.PHONY : dependhere depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere copyhaddocksources haddockgenindex slow slowhere cabal cabalhere testcabal testcabalhere
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -165,6 +165,9 @@ ghci :
 # but not the package in this directory.
 ghcihere:
 	$(HC) $(HCFLAGS)  --interactive -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
+
+testcabal : testcabalhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) testcabal && ) echo Finished make testcabal
 
 test : testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
@@ -234,6 +237,23 @@ ifeq "$(strip $(LIBOBJS))" ""
 else
    libhere : $(LIB)
 endif
+
+TESTPROGNAMES = $(patsubst test%,%,$(TESTPROGS))
+
+testcabalhere :
+	@for i in $(MAINPROGS); \
+         do if [ -f Main$$i.hs ]; then \
+            cp -f Main$$i.hs $$i.hs; \
+            $(TOP)/mk/ReplaceModuleNames $$i.hs; echo $$i; \
+	    LD_LIBRARY_PATH=$$BDBDIR/lib:$$LD_LIBRARY_PATH \
+            $(HC) $(HCSHORTFLAGS) -optl-l -optldb --make $$i.hs; fi; done
+	@for i in $(TESTPROGNAMES); \
+         do if [ -f Test$$i.hs ]; then \
+            cp -f Test$$i.hs $$i.hs; \
+            $(TOP)/mk/ReplaceModuleNames $$i.hs; echo $$i; \
+	    LD_LIBRARY_PATH=$$BDBDIR/lib:$$LD_LIBRARY_PATH \
+	    $(HC) $(HCSHORTFLAGS) -optl-l -optldb --make $$i.hs -o test$$i; \
+            fi; done
 
 testhere : $(TESTPROGS)
 
