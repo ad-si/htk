@@ -50,7 +50,7 @@ createSubDir Appl ontologytool Ontologytool
 cd ..
 
 cd mmiss
-cp -f ../HaXml/XmlExtras.hs .
+cp -f ../HaXml/XmlExtras.hs MMiSS
 createSubDir MMiSS parser LaTeX
 createSubDir MMiSS api API
 cd ..
@@ -91,6 +91,5 @@ renameHierFile MMiSSAPI
 renameHierFile MMiSS
 cd ../../..
 
-mk/ReplaceModuleNames */[A-Z]*/*.hs
-mk/ReplaceModuleNames */[A-Z]*/*.hs-boot
+mk/ReplaceModuleNames */[A-Z]*/*.hs*
 mk/ReplaceModuleNames */[A-Z]*/[A-Z]*/*.hs
