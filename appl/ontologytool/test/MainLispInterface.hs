@@ -14,7 +14,7 @@ import IO
 import DaVinciGraph
 import GraphDisp
 import GraphConfigure
-import AbstractGraphView
+import AbstractGraphView as AGV
 import Data.IORef
 
 
@@ -174,7 +174,7 @@ make_edgeComp x =
 
 makegraph1 cid [AP title,LP menus,LP nodetypes,LP edgetypes,LP comptable] gv = do
   (gs,ev_cnt) <- readIORef gv
-  Result gid err <- AbstractGraphView.makegraph title  -- ... graphs'...
+  Result gid err <- AGV.makegraph title  -- ... graphs'...
                      (map (GlobalMenu . (make_menu (global_action ev_cnt))) menus)
                      (map (make_nodeType ev_cnt) nodetypes)
                      (map (make_edgeType ev_cnt) edgetypes)
@@ -192,18 +192,18 @@ makegraph cid args graph =
         (\e -> cmd_fails cid "makegraph: illegal argument format") -- graph)
 
 delgraph gid _ graphs =
-    AbstractGraphView.delgraph gid graphs
+    AGV.delgraph gid graphs
 
 
 addnode gid [AP nodetype, AP name] graphs =
-  AbstractGraphView.addnode gid nodetype name graphs
+  AGV.addnode gid nodetype name graphs
 addnode _ _ graphs = do
   return_fail graphs "addnode: illegal argument format"
 
 
 delnode gid [AP node] graphs =
   case try_to_read node :: Maybe Int of
-    Just n' -> AbstractGraphView.delnode gid n' graphs
+    Just n' -> AGV.delnode gid n' graphs
     Nothing ->  return_fail graphs ("delnode: illegal node: "++node)
 delnode _ _ graphs = do
   return_fail graphs "delnode: illegal argument format"
@@ -213,7 +213,7 @@ addlink gid [AP edgetype, AP name, AP src, AP tar] graphs =
   case (try_to_read src,
         try_to_read tar) of
     (Just src_node, Just tar_node) ->
-       AbstractGraphView.addlink gid edgetype name src_node tar_node graphs
+       AGV.addlink gid edgetype name src_node tar_node graphs
     (Nothing,_) -> return_fail graphs ("addlink: illegal source node id: "++src)
     (_,Nothing) -> return_fail graphs ("addlink: illegal target node id: "++tar)
 addlink _ _ graphs = do
@@ -223,52 +223,52 @@ addlink _ _ graphs = do
 dellink gid [AP edge] graphs =
   case try_to_read edge :: Maybe Int of
     Just e ->
-       AbstractGraphView.dellink gid e graphs
+       AGV.dellink gid e graphs
     Nothing -> return_fail graphs ("dellink: illegal edge: "++edge)
 dellink _ _ graphs = do
   return_fail graphs "dellink: illegal argument format"
 
 
 redisplay gid _ graphs =
-  AbstractGraphView.redisplay gid graphs
+  AGV.redisplay gid graphs
 
 unAPInt (AP x) = try_to_read x :: Maybe Int
 unAPInt _ = Nothing
 
 hidenodes gid [LP nodes] graphs =
   case sequence (map unAPInt nodes) of
-    Just nodes' -> AbstractGraphView.hidenodes gid nodes' graphs
+    Just nodes' -> AGV.hidenodes gid nodes' graphs
     Nothing -> return_fail graphs "hidenodes: illegal argument format"
 hidenodes _ _ graphs = do
   return_fail graphs "hidenodes: illegal argument format"
 
 abstractnodes gid [LP nodes] graphs =
   case sequence (map unAPInt nodes) of
-    Just nodes' -> AbstractGraphView.abstractnodes gid nodes' graphs
+    Just nodes' -> AGV.abstractnodes gid nodes' graphs
     Nothing -> return_fail graphs "abstractnodes: illegal argument format"
 abstractnodes _ _ graphs = do
   return_fail graphs "abstractnodes: illegal argument format"
 
 hideedges gid [LP edges] graphs =
   case sequence (map unAPInt edges) of
-    Just edges' -> AbstractGraphView.hideedges gid edges' graphs
+    Just edges' -> AGV.hideedges gid edges' graphs
     Nothing -> return_fail graphs "hideedges: illegal argument format"
 hideedges _ _ graphs = do
   return_fail graphs "hideedges: illegal argument format"
 
 hideedgetype gid [AP edgetype] graphs =
-  AbstractGraphView.hideedgetype gid edgetype graphs
+  AGV.hideedgetype gid edgetype graphs
 hideedgetype _ _ graphs =
   return_fail graphs "hideedgetype: illegal argument format"
 
 hidenodetype gid [AP nodetype] graphs =
-  AbstractGraphView.hidenodetype gid nodetype graphs
+  AGV.hidenodetype gid nodetype graphs
 hidenodetype _ _ graphs =
   return_fail graphs "hidenodetype: illegal argument format"
 
 showIt gid [AP ev_id] graphs =
   case try_to_read ev_id :: Maybe Int of
-    Just ev_id' -> AbstractGraphView.showIt gid ev_id' graphs
+    Just ev_id' -> AGV.showIt gid ev_id' graphs
     Nothing ->  return_fail graphs ("showIt: illegal event id: "++ev_id)
 showIt _ _ graphs = do
   return_fail graphs "showIt: illegal argument format"
