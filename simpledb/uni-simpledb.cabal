@@ -27,3 +27,4 @@ build-depends: base, haskell98, parsec, mtl, uni-util, uni-events,
   uni-posixutil, uni-reactor, uni-htk, uni-server, uni-graphs
 ghc-options: -fglasgow-exts
 extensions: CPP, OverlappingInstances, UndecidableInstances
+extra-libraries: db

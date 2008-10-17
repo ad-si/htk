@@ -246,13 +246,13 @@ testcabalhere :
             cp -f Main$$i.hs $$i.hs; \
             $(TOP)/mk/ReplaceModuleNames $$i.hs; echo $$i; \
 	    LD_LIBRARY_PATH=$$BDBDIR/lib:$$LD_LIBRARY_PATH \
-            $(HC) $(HCSHORTFLAGS) -optl-l -optldb --make $$i.hs; fi; done
+            $(HC) $(HCSHORTFLAGS) --make $$i.hs; fi; done
 	@for i in $(TESTPROGNAMES); \
          do if [ -f Test$$i.hs ]; then \
             cp -f Test$$i.hs $$i.hs; \
             $(TOP)/mk/ReplaceModuleNames $$i.hs; echo $$i; \
 	    LD_LIBRARY_PATH=$$BDBDIR/lib:$$LD_LIBRARY_PATH \
-	    $(HC) $(HCSHORTFLAGS) -optl-l -optldb --make $$i.hs -o test$$i; \
+	    $(HC) $(HCSHORTFLAGS) --make $$i.hs -o test$$i; \
             fi; done
 
 testhere : $(TESTPROGS)
