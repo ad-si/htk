@@ -187,8 +187,15 @@ slow : slowhere
 slowhere : dependhere
 	$(MAKE) -r libhere packageherequick
 
-clean: cleanprogs
-	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.hi-boot" -o -name "*.o" -o -name "*.a" -o -name ".depend" \)`
+HIERDIR = davinci/UDrawGraph emacs/Emacs events/Events graphs/Graphs htk/HTk \
+  imports/Imports mmiss/MMiSS posixutil/Posixutil reactor/Reactor \
+  server/Server simpledb/SimpleDB types/Types util/Util appl/Appl
+
+cleandirs:
+	$(RM) -rf $(HIERDIR) Setup
+
+clean: cleanprogs cleandirs
+	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.hi-boot" -o -name "*.o" -o -name "*.a" -o -name ".depend" -o -name dist \)`
 
 cleanprogs:
 	$(RM) -rf $(TESTPROGS) $(MAINPROGS)
