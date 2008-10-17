@@ -238,10 +238,12 @@ else
    libhere : $(LIB)
 endif
 
-TESTPROGNAMES = $(patsubst test%,%,$(TESTPROGS))
+UNSUPPORTED = DaVinci DaVinciDouble GraphEditorRemote
+TESTPROGNAMES = $(filter-out $(UNSUPPORTED),$(patsubst test%,%,$(TESTPROGS)))
+MAINPROGNAMES = $(filter-out Depend,$(MAINPROGS))
 
 testcabalhere :
-	@for i in $(MAINPROGS); \
+	@for i in $(MAINPROGNAMES); \
          do if [ -f Main$$i.hs ]; then \
             cp -f Main$$i.hs $$i.hs; \
             $(TOP)/mk/ReplaceModuleNames $$i.hs; echo $$i; \
