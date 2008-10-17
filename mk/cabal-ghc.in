@@ -1,2 +1,0 @@
-#!/bin/sh
-@GHC@ -package-conf @GHCTOP@/uni-package.conf $*
