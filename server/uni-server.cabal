@@ -13,7 +13,7 @@ exposed-modules:
  Server.CallServer, Server.Notification, Server.MultiServer, Server.Crypt,
  Server.PasswordFile, Server.MultiPlexer, Server.LogFile, Server.Hosts,
  Server.HostsList, Server.GroupFile
-include-dirs: ../includes
+include-dirs: include
 c-sources: dipperstein_crypt.c
 build-depends: base >=3, directory, haskell98, network, parsec,
   uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk,

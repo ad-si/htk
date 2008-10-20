@@ -21,7 +21,7 @@ exposed-modules: SimpleDB.BDBOps, SimpleDB.ServerErrors,
  SimpleDB.GetDiffs, SimpleDB.SetGetSecurityData, SimpleDB.Retrieve,
  SimpleDB.Commit, SimpleDB.Server, SimpleDB.Service,
  SimpleDB.Interface, SimpleDB.ObjectSource, SimpleDB.VersionInfoFilter
-include-dirs: ../includes
+include-dirs: include
 c-sources: bdbclient.c bdbcommon.c
 build-depends: base, haskell98, parsec, mtl, uni-util, uni-events,
   uni-posixutil, uni-reactor, uni-htk, uni-server, uni-graphs

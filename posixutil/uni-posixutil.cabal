@@ -9,7 +9,6 @@ synopsis:       Posix utilities for the uniform workbench
 description:    posix utilities
 exposed-modules: Posixutil.CopyFile, Posixutil.ProcessClasses, Posixutil.ChildProcess,
   Posixutil.Expect, Posixutil.SafeSystem, Posixutil.BlockSigPIPE
-include-dirs: ../includes
 build-depends:
         base >=3,
         directory,

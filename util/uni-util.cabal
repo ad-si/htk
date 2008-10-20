@@ -30,8 +30,8 @@ exposed-modules:
   Util.ThreadDict, Util.TSem, Util.Store, Util.Messages,
   Util.ClockTimeToString, Util.UTF8, Util.VSem
 
-include-dirs: ../includes
-c-sources: new_object.c, default_options.c, copy_file.c
+include-dirs: include
+c-sources: new_object.c, default_options.c
 build-depends: base >= 3, haskell98, parsec, template-haskell, mtl, network,
   regex-compat, containers, packedstring, array, old-time
 ghc-options: -fglasgow-exts

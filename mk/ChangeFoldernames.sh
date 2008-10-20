@@ -93,3 +93,13 @@ cd ../../..
 
 mk/ReplaceModuleNames */[A-Z]*/*.hs*
 mk/ReplaceModuleNames */[A-Z]*/[A-Z]*/*.hs
+
+mkdir -p util/include
+cp -f includes/uni-config.h includes/default_options.h includes/new_object.h \
+  util/include
+
+mkdir -p server/include
+cp -f includes/dipperstein_crypt.h server/include
+
+mkdir -p simpledb/include
+cp -f includes/bdbclient.h includes/bdbcommon.h simpledb/include
