@@ -286,7 +286,7 @@ $(SETUP) : $(SETUP).hs
 
 # Cabal-1.4.0.1 only works with --package-db
 
-CABAL = $(SETUP) configure -p -O --prefix=$(TOP) --user; \
+CABAL = $(SETUP) configure -O --prefix=$(TOP) --user; \
     $(SETUP) build; \
     $(SETUP) haddock; \
     $(SETUP) install
