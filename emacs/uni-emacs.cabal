@@ -10,8 +10,8 @@ synopsis:       emacs
 exposed-modules: Emacs.Basic, Emacs.Commands, Emacs.SExp, Emacs.Content,
   Emacs.Extents, Emacs.Edit
 
-build-depends: base, haskell98, parsec, uni-util, uni-events, uni-reactor,
-  uni-posixutil, uni-htk, uni-server
+build-depends: base >=3 && < 4, haskell98, parsec, uni-util, uni-events,
+  uni-reactor, uni-posixutil, uni-htk, uni-server
 data-files: sendmess.el mmisstex.el extents.el allmmiss.el
 ghc-options: -fglasgow-exts
 extensions: OverlappingInstances, UndecidableInstances

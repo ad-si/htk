@@ -26,6 +26,6 @@ exposed-modules: Events.Toggle,
              Events.MatchChannel,
              Events.RegexChannel,
              Events.Synchronized
-build-depends: base, haskell98, uni-util
-ghc-options: -O -fglasgow-exts -fallow-undecidable-instances
-
+build-depends: base >=3 && < 4, haskell98, uni-util
+ghc-options: -fglasgow-exts
+extensions: UndecidableInstances

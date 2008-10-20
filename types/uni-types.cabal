@@ -27,7 +27,8 @@ exposed-modules:
  Types.CopyVersionInfos, Types.CopyVersions, Types.ToggleAdminStatus,
  Types.ManagePermissions, Types.NoAccessObject, Types.MergeComputeParents
 
-build-depends: base, haskell98, parsec, mtl, uni-util, uni-events, uni-reactor,
-  uni-posixutil, uni-htk, uni-graphs, uni-server, uni-simpledb, uni-imports
+build-depends: base >=3 && < 4, haskell98, parsec, mtl, uni-util, uni-events,
+  uni-reactor, uni-posixutil, uni-htk, uni-graphs, uni-server, uni-simpledb,
+  uni-imports
 ghc-options: -fglasgow-exts
 extensions: OverlappingInstances, UndecidableInstances

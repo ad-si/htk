@@ -1,5 +1,6 @@
 name:           uni-reactor
 version:        1.1
+build-type:     Simple
 license:        LGPL
 license-file:   ../LIZENZ.txt
 author:         uniform@informatik.uni-bremen.de
@@ -9,5 +10,4 @@ synopsis:       Reactors for the uniform workbench
 description:    uni reactor
 exposed-modules: Reactor.Lock, Reactor.BSem, Reactor.MSem, Reactor.ReferenceVariables, Reactor.InfoBus,
   Reactor.LockEvent, Reactor.WithDir
-build-depends: base, haskell98, uni-util, uni-events
-ghc-options: -O
+build-depends: base >=3 && < 4, haskell98, uni-util, uni-events

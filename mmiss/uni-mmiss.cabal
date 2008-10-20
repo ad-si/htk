@@ -32,9 +32,10 @@ exposed-modules:
   MMiSS.API.Block, MMiSS.API.MapVersionInfo, MMiSS.API.ToFromBundle,
   MMiSS.API.CallServer, MMiSS.API.CheckOutCommit, MMiSS.API.GetPut,
   MMiSS.API.Messages, MMiSS.API.DoXml, MMiSS.API.SecurityOps
-build-depends: base, haskell98, containers, parsec, pretty, mtl, fgl, uni-util,
-  uni-events, uni-reactor, uni-posixutil, uni-htk, uni-graphs, uni-server,
-  uni-simpledb, uni-imports, uni-types, uni-emacs, HaXml >= 1.13.2 && < 1.14
+build-depends: base >=3 && < 4, haskell98, containers, parsec, pretty, mtl,
+  fgl, uni-util, uni-events, uni-reactor, uni-posixutil, uni-htk, uni-graphs,
+  uni-server, uni-simpledb, uni-imports, uni-types, uni-emacs,
+  HaXml >= 1.13.2 && < 1.14
 data-files: MMiSS.dtd, Files.xml
 ghc-options: -fglasgow-exts
 extensions: OverlappingInstances, UndecidableInstances

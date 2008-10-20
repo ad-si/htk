@@ -15,8 +15,7 @@ exposed-modules: Graphs.GraphDisp, Graphs.GraphConfigure, Graphs.NewNames,
  Graphs.FindCommonParents, Graphs.FindCycle, Graphs.GetAncestors,
  Graphs.EmptyGraphSort, Graphs.PureGraph, Graphs.PureGraphPrune,
  Graphs.PureGraphToGraph, Graphs.VersionDag, Graphs.PureGraphMakeConsistent
-build-depends: base, haskell98, mtl, uni-util, uni-events, uni-reactor, uni-htk
-ghc-options: -O -fglasgow-exts
+build-depends: base >=3 && < 4, haskell98, mtl, uni-util, uni-events,
+  uni-reactor, uni-htk
+ghc-options: -fglasgow-exts
 extensions: CPP, OverlappingInstances, UndecidableInstances
-
-

@@ -1,5 +1,6 @@
 name:           uni-posixutil
 version:        1.1
+build-type:     Simple
 license:        LGPL
 license-file:   ../LIZENZ.txt
 author:         uniform@informatik.uni-bremen.de
@@ -10,7 +11,7 @@ description:    posix utilities
 exposed-modules: Posixutil.CopyFile, Posixutil.ProcessClasses, Posixutil.ChildProcess,
   Posixutil.Expect, Posixutil.SafeSystem, Posixutil.BlockSigPIPE
 build-depends:
-        base >=3,
+        base >=3 && < 4,
         directory,
         process,
         unix,
@@ -18,5 +19,5 @@ build-depends:
         template-haskell,
         uni-util,
         uni-events
-ghc-options: -O -fglasgow-exts -fth
-extensions: CPP
+ghc-options: -fglasgow-exts
+extensions: CPP,TemplateHaskell

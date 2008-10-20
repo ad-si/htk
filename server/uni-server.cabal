@@ -15,8 +15,8 @@ exposed-modules:
  Server.HostsList, Server.GroupFile
 include-dirs: include
 c-sources: dipperstein_crypt.c
-build-depends: base >=3, directory, haskell98, network, parsec,
+build-depends: base >=3 && < 4, directory, haskell98, network, parsec,
   uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk,
   HaXml >= 1.13.2 && < 1.14
-ghc-options: -O -fglasgow-exts
+ghc-options: -fglasgow-exts
 extensions: NoMonoPatBinds
