@@ -34,7 +34,7 @@ include-dirs: include
 c-sources: new_object.c, default_options.c
 
 build-depends: base >= 3 && < 4, haskell98, parsec, template-haskell, mtl,
-  network, regex-compat, containers, packedstring, array, old-time
+  network, regex-compat, containers, packedstring, array, old-time, ghc-prim
 ghc-options: -fglasgow-exts
 extensions: CPP, TemplateHaskell, NoMonoPatBinds, OverlappingInstances,
   UndecidableInstances
