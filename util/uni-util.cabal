@@ -7,12 +7,16 @@ author:         uniform@informatik.uni-bremen.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Utilities for the uniform workbench
+cabal-version: >= 1.2
 description:
  This package contains various miscellaneous utilities which belong nowhere in
  particular in the Workbench.  Highlights include "Util.Computation",
  "Util.ExtendedPrelude", "Util.Sources" and "Util.BinaryAll".
 
-exposed-modules:
+flag base4
+
+library
+ exposed-modules:
   Util.DeprecatedFiniteMap, Util.DeprecatedSet, Util.Huffman,
   Util.TemplateHaskellHelps, Util.CompileFlags, Util.Queue,
   Util.ExtendedPrelude, Util.Computation, Util.Dynamics, Util.WBFiles,
@@ -30,11 +34,15 @@ exposed-modules:
   Util.ThreadDict, Util.TSem, Util.Store, Util.Messages,
   Util.ClockTimeToString, Util.UTF8, Util.VSem
 
-include-dirs: include
-c-sources: new_object.c, default_options.c
+ include-dirs: include
+ c-sources: new_object.c, default_options.c
 
-build-depends: base >= 3 && < 4, haskell98, parsec, template-haskell, mtl,
-  network, regex-compat, containers, packedstring, array, old-time, ghc-prim
-ghc-options: -fglasgow-exts
-extensions: CPP, TemplateHaskell, NoMonoPatBinds, OverlappingInstances,
+ build-depends: base >= 3 && < 4, haskell98, parsec, template-haskell, mtl,
+  network, regex-compat, containers, packedstring, array, old-time
+
+ if flag(base4)
+   build-depends: ghc-prim
+
+ ghc-options: -fglasgow-exts
+ extensions: CPP, TemplateHaskell, NoMonoPatBinds, OverlappingInstances,
   UndecidableInstances
