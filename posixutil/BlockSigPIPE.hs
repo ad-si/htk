@@ -6,30 +6,17 @@ module BlockSigPIPE(
    ) where
 
 import Language.Haskell.TH
-import System.Posix.Signals
--- this module still seems to exist on Windows, though without doing
--- anything useful.
 
 import Computation
 import CompileFlags
-import TemplateHaskellHelps
 
-#ifndef __HADDOCK__
-$(
-   if isWindows
-      then
-         [d|
-            blockSigPIPE = done
-         |]
-      else
-         [d|
-            blockSigPIPE =
-               do
-                  $(dynName "installHandler") $(dynName "sigPIPE")
-                     $(conE . mkName $ "Ignore") Nothing
-                  done
-         |]
-   )
+#ifndef BUILD_WINDOWS
+import System.Posix.Signals
 #endif
-blockSigPIPE :: IO ()
 
+blockSigPIPE :: IO ()
+blockSigPIPE = do
+#ifndef BUILD_WINDOWS
+  installHandler sigPIPE Ignore Nothing
+#endif
+  done

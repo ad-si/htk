@@ -7,17 +7,29 @@ author:         uniform@informatik.uni-bremen.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Posix utilities for the uniform workbench
+cabal-version:  >= 1.2
 description:    posix utilities
-exposed-modules: Posixutil.CopyFile, Posixutil.ProcessClasses, Posixutil.ChildProcess,
-  Posixutil.Expect, Posixutil.SafeSystem, Posixutil.BlockSigPIPE
-build-depends:
+library
+  exposed-modules:
+    Posixutil.CopyFile,
+    Posixutil.ProcessClasses,
+    Posixutil.ChildProcess,
+    Posixutil.Expect,
+    Posixutil.SafeSystem,
+    Posixutil.BlockSigPIPE
+  build-depends:
         base >=3 && < 4,
         directory,
         process,
-        unix,
         haskell98,
         template-haskell,
         uni-util,
         uni-events
-ghc-options: -fglasgow-exts
-extensions: CPP,TemplateHaskell
+
+  if os(windows)
+     CPP-Options: -DBUILD_WINDOWS
+  else
+     Build-Depends: unix
+
+  ghc-options: -fglasgow-exts
+  extensions: CPP
