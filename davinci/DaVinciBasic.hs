@@ -47,6 +47,8 @@ module DaVinciBasic(
       -- it will be the string returned by the (new) "special(version)"
       -- commands
 
+   exitDaVinci, -- exit function because normal do in context end up in
+      -- infinite blocking thread
 
    ) where
 
@@ -316,6 +318,12 @@ instance Destroyable Context where
 
 instance Destructible Context where
    destroyed context = receive (destructChannel context)
+
+-- exit function because normal do in context end up in infinite blocking thread
+exitDaVinci :: Context -> IO ()
+exitDaVinci (context@ Context {contextId = contextId}) = do
+  putMVar (responseMVar daVinci) (contextId,Ok)
+  doInContext (Menu(File(Exit))) context
 
 doInContext :: DaVinciCmd -> Context -> IO ()
 doInContext daVinciCmd context =
