@@ -1,5 +1,5 @@
 name:           uni-util
-version:        2.0
+version:        2.1.0.0
 build-type:     Simple
 license:        LGPL
 license-file:   ../LIZENZ.txt
@@ -22,7 +22,7 @@ library
   Util.ExtendedPrelude, Util.Computation, Util.Dynamics, Util.WBFiles,
   Util.Object, Util.Debug, Util.Maybes, Util.LineShow, Util.Cache,
   Util.FileNames, Util.IOExtras, Util.QuickReadShow, Util.AtomString,
-  Util.SmallSet, Util.Registry, Util.RegularExpression, Util.DelSet,
+  Util.SmallSet, Util.Registry, Util.DelSet,
   Util.Thread, Util.UniqueString, Util.UniqueFile, Util.TempFile, Util.Sink,
   Util.VariableSet, Util.VariableMap, Util.CommandStringSub, Util.WaitOnN,
   Util.FileSystem, Util.CacheTable, Util.DeepSeq, Util.NameMangle,
@@ -38,7 +38,7 @@ library
  c-sources: new_object.c, default_options.c
 
  build-depends: base >= 3 && < 4, haskell98, parsec, template-haskell, mtl,
-  network, regex-compat, containers, packedstring, array, old-time
+  network, containers, packedstring, array, old-time
 
  if flag(base4)
    build-depends: ghc-prim
