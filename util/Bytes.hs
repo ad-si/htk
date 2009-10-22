@@ -1,13 +1,6 @@
 -- | This defines primitive byte operations, to be used with binary conversion.
 -- For the present we use the FFI.  There are probably lots of better ways.
 
-#if (__GLASGOW_HASKELL__ == 602)
-{- Sigh.  We need to work around the ghc6.02 hGetBuf bug.
-   Actually we don't probably need to for ghc6.02.1, but at the moment I can't
-   be bothered to distinguish the two versions. -}
-#define FIX_hGetBuf 1
-#endif
-
 module Bytes(
    Byte,
       -- this type is expected to be an instance of Eq, Ord, Num, Bits,
@@ -83,18 +76,8 @@ import Foreign.Ptr
 
 -- Other GHC imports.
 import Data.Bits(Bits)
-#ifdef FIX_hGetBuf
-import GHC.Handle
-import GHC.IO hiding (hGetBuf)
-import GHC.IOBase
-import GHC.Base
-import Foreign
-import Foreign.C
-import GHC.Ptr
-import Control.Monad
-#else
-import GHC.IO(hPutBuf,hGetBuf)
-#endif
+
+import System.IO
 
 import System.IO.Error
 import Control.Exception(Exception(IOException),throw)
