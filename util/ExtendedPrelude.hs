@@ -664,7 +664,7 @@ class EqIO v => OrdIO v where
 -- ------------------------------------------------------------------------
 
 
--- ¦ Remove duplicate elements from a list.
+-- | Remove duplicate elements from a list.
 uniqOrd :: Ord a => [a] -> [a]
 uniqOrd = setToList . mkSet
 
@@ -700,7 +700,7 @@ uniqOrdByKeyOrder (getKey :: a -> b) =
    in
       u emptySet
 
--- ¦ Like uniqOrd, except that we specify the output order of the list.
+-- | Like uniqOrd, except that we specify the output order of the list.
 -- The resulting list is that obtained by deleting all duplicate elements
 -- in the list, except the first, for example [1,2,3,2,1,4] will go to
 -- [1,2,3,4].
