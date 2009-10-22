@@ -134,9 +134,8 @@ winMethods =
 
 tkGetTextWinConfig :: ObjectName -> ConfigID -> TclScript
 tkGetTextWinConfig (TextPaneItemName name qual) cid =
-        [(show name) ++ " window cget " ++ (show qual) ++ " -" ++ cid]
-tkGetTextWinConfig _ _ = []   -- ich bin unschuldig, war so bei Einar!
-                              -- TD (ludi), geht überhaupt ??
+        [show name ++ " window cget " ++ show qual ++ " -" ++ cid]
+tkGetTextWinConfig _ _ = []   -- unclear case
 {-# INLINE tkGetTextWinConfig #-}
 
 tkSetTextWinConfigs :: ObjectName -> [ConfigOption] -> TclScript
