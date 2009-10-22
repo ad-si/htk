@@ -59,7 +59,7 @@ import System.Process
 import Control.Concurrent
 import Control.Concurrent.Chan
 import qualified Control.Exception as Exception
-import GHC.IO(hPutBuf)
+import System.IO(hPutBuf)
 
 
 import Computation
