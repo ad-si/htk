@@ -122,18 +122,12 @@ newDaVinci =
    do
       daVinciPath <- getDaVinciPath
       daVinciIconsOpt <- getDaVinciIcons
-      daVinciIcons <-
-         case daVinciIconsOpt of
-            Nothing ->
-               do
-                  top <- getTOP
-                  return (trimDir top ++ "/database/icons")
-            Just daVinciIcons -> return daVinciIcons
-
       env <- getEnvironment
       let
          configs = [
-            environment (("DAVINCI_ICONDIR",daVinciIcons):env),
+            environment $ maybe id
+                 (\ daVinciIcons -> (("DAVINCI_ICONDIR", daVinciIcons) :))
+                 daVinciIconsOpt env,
             arguments ["-pipe"],
             standarderrors False,
             challengeResponse challengeResponsePair,
