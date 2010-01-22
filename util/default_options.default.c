@@ -5,5 +5,5 @@
    blank. */
 #include "default_options.h"
 
-const char default_options[] = 
-"--uni-wish:wish --uni-cvs:cvs --uni-daVinci:daVinci";
+const char default_options[] =
+"--uni-wish:wish --uni-daVinci:uDrawGraph";
