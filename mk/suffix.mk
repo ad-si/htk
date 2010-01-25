@@ -288,7 +288,12 @@ $(SETUP) : $(SETUP).hs
 
 # Cabal-1.4.0.1 only works with --package-db
 
-CABAL = $(SETUP) configure -O --prefix=$(TOP) --user; \
+GHCDIR = $(shell $(HC) --print-libdir | sed -e 's+/lib/.*++g')
+
+echoghcdir :
+	echo $(GHCDIR)
+
+CABAL = $(SETUP) configure -O -p --prefix=$(GHCDIR) --global; \
     $(SETUP) build; \
     $(SETUP) haddock; \
     $(SETUP) install
