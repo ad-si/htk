@@ -11,10 +11,8 @@ cabal-version:  >= 1.2
 description:    posix utilities
 library
   exposed-modules:
-    Posixutil.CopyFile,
     Posixutil.ProcessClasses,
     Posixutil.ChildProcess,
-    Posixutil.SafeSystem,
     Posixutil.BlockSigPIPE
   build-depends:
         base >=3 && < 4,
