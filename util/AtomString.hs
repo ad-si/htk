@@ -34,7 +34,7 @@ module AtomString(
 import Control.Concurrent
 import DeprecatedFiniteMap
 import System.IO.Unsafe
-import Data.PackedString
+import qualified Data.ByteString.Char8 as BS
 import Control.Exception
 import Text.ParserCombinators.Parsec
 
@@ -45,7 +45,7 @@ import DeepSeq
 import Computation
 import BinaryAll
 
-data AtomSource = AtomSource (MVar (FiniteMap PackedString AtomString))
+data AtomSource = AtomSource (MVar (FiniteMap BS.ByteString AtomString))
    -- where AtomStrings come from
    -- Here the key for an element is itself.
 
@@ -61,11 +61,11 @@ theAtomSource = unsafePerformIO emptyAtomSource
 {-# NOINLINE theAtomSource #-}
 -- avoid GHC bug with Linux optimisation which can clone MVars.
 
-newtype AtomString = AtomString PackedString deriving (Ord,Eq,Typeable)
+newtype AtomString = AtomString BS.ByteString deriving (Ord,Eq,Typeable)
 -- in fact Eq could be unsafePtrEq
 
 firstAtomString :: AtomString
-firstAtomString = AtomString (packString "")
+firstAtomString = AtomString (BS.pack "")
 
 ------------------------------------------------------------------------
 -- StringClass
@@ -135,7 +135,7 @@ mkAtom :: String -> IO AtomString
 mkAtom str =
    do
       let
-         packed = packString str
+         packed = BS.pack str
          AtomSource mVar = theAtomSource
 
       map <- takeMVar mVar
@@ -151,7 +151,7 @@ mkAtom str =
 
 readAtom :: AtomString -> IO String
 readAtom (AtomString packedString) =
-   return(unpackPS packedString)
+   return(BS.unpack packedString)
 
 ------------------------------------------------------------------------
 -- How to make a fromStringWE given a Parsec parser.

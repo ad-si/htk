@@ -38,7 +38,7 @@ library
  c-sources: new_object.c, default_options.c
 
  build-depends: base >= 3 && < 4, haskell98, parsec, template-haskell, mtl,
-  network, containers, packedstring, array, old-time
+  network, containers, bytestring, array, old-time
 
  if flag(base4)
    build-depends: ghc-prim
