@@ -29,8 +29,7 @@ import Util.ExtendedPrelude
 import Util.Messages
 
 import Util.Registry
-
-import Posixutil.CopyFile
+import Util.DeepSeq
 
 import HTk.Toolkit.SimpleForm
 
@@ -196,9 +195,9 @@ getHostsRegistry :: IO (Registry HostKey HostData)
 getHostsRegistry =
    do
       hosts <- getHosts
-      hostsString <- copyFileToString hosts
+      hostsString <- readFile hosts
       let
-         Just (Hosts hostList) = readXml hostsString
+         Just (Hosts hostList) = readXml $!! hostsString
       let
          err s = error ("In " ++ hosts ++ ": " ++ s)
 

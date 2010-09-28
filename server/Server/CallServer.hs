@@ -40,7 +40,7 @@ module Server.CallServer(
 
    ) where
 
-import IO
+import System.IO
 
 import System.IO.Unsafe
 

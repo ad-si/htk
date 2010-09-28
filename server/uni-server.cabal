@@ -1,5 +1,5 @@
 name:           uni-server
-version:        2.0
+version:        2.1.0.0
 build-type:     Simple
 license:        LGPL
 license-file:   ../LIZENZ.txt
@@ -19,4 +19,4 @@ build-depends: base >=3 && < 4, directory, haskell98, network, parsec,
   uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk,
   HaXml >= 1.13.2 && < 1.14
 ghc-options: -fglasgow-exts
-extensions: NoMonoPatBinds
+extensions: NoMonoPatBinds, RecursiveDo

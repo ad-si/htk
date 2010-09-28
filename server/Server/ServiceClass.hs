@@ -9,13 +9,13 @@ module Server.ServiceClass(
    BackupDelay(..)
    ) where
 
-import Directory
+import System.Directory
 
 import Util.WBFiles
-import Posixutil.CopyFile
 import Util.BinaryAll
 
 import Util.Thread
+import Util.DeepSeq
 
 import Server.PasswordFile
 
@@ -97,8 +97,8 @@ class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,Ha
             if exists
                then
                   do
-                     contents <- copyFileToString filePath
-                     return (Just contents)
+                     c <- readFile filePath
+                     c `deepSeq` return (Just c)
                else
                   return Nothing
          initialStateFromString service contentsOpt
@@ -107,7 +107,7 @@ class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,Ha
       do
          contents <- backupToString service state
          filePath <- getBackupFile service
-         copyStringToFile contents filePath
+         writeFile filePath contents
 
    -- This is the function we actually use on connect.
    sendOnConnectWrapped :: (inType,outType,stateType) -> User -> stateType
