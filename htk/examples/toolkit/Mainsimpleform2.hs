@@ -1,11 +1,11 @@
 {- Test of doFormList -}
 module Main where
 
-import Computation
+import Util.Computation
 
-import Events
+import Events.Events
 
-import SimpleForm
+import HTk.Toolkit.SimpleForm
 
 main =
    do

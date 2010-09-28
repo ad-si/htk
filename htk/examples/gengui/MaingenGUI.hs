@@ -3,12 +3,12 @@ module Main (main) where
 
 import System.IO.Unsafe
 
-import HTk
-import GenGUI
-import Name
-import ReferenceVariables
+import HTk.Toplevel.HTk
+import HTk.Toolkit.GenGUI
+import HTk.Toolkit.Name
+import Reactor.ReferenceVariables
 import System
-import DialogWin
+import HTk.Toolkit.DialogWin
 
 foldref :: Ref (Maybe (Item Obj))
 foldref = unsafePerformIO (newRef Nothing)

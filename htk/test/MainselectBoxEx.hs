@@ -1,8 +1,8 @@
 
 module Main (main) where
 
-import HTk
-import SelectBox
+import HTk.Toplevel.HTk
+import HTk.Toolkit.SelectBox
 
 main:: IO ()
 main =

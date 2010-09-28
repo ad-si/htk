@@ -1,21 +1,21 @@
 module Main where
 
 import System.IO.Unsafe
-import DeprecatedFiniteMap
+import Util.DeprecatedFiniteMap
 
 import Monad
 import Maybe
 
-import Broadcaster
-import AtomString
-import Sources
-import ExtendedPrelude
-import Sink
-import Delayer
+import Util.Broadcaster
+import Util.AtomString
+import Util.Sources
+import Util.ExtendedPrelude
+import Util.Sink
+import Util.Delayer
 
-import EntityNames
-import FolderStructure
-import Imports
+import Imports.EntityNames
+import Imports.FolderStructure
+import Imports.Imports
 
 
 -- -----------------------------------------------------------------------

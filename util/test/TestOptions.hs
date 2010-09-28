@@ -1,7 +1,7 @@
 {- Test WBFiles.hs -}
 module Main(main) where
 
-import WBFiles
+import Util.WBFiles
 
 
 testGet :: Show a => String -> IO a -> IO ()

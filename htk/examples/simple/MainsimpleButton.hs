@@ -5,11 +5,11 @@
    -}
 module Main where
 
-import Computation
+import Util.Computation
 
-import Events
+import Events.Events
 
-import HTk
+import HTk.Toplevel.HTk
 
 main =
    do

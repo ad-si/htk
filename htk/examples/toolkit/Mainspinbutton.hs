@@ -1,10 +1,10 @@
 
 module Main (main) where
 
-import HTk
-import SpinButton
-import ReferenceVariables
-import LabelFrame
+import HTk.Toplevel.HTk
+import HTk.Toolkit.SpinButton
+import Reactor.ReferenceVariables
+import HTk.Tix.LabelFrame
 
 main :: IO ()
 main =

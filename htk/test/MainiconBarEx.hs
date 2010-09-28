@@ -1,8 +1,8 @@
 
 module Main (main) where
 
-import HTk
-import IconBar
+import HTk.Toplevel.HTk
+import HTk.Toolkit.IconBar
 
 main:: IO ()
 main =

@@ -1,8 +1,8 @@
 
 module Main (main) where
 
-import HTk
-import LogWin
+import HTk.Toplevel.HTk
+import HTk.Toolkit.LogWin
 
 main :: IO ()
 main =

@@ -1,10 +1,10 @@
 
 module Main (main) where
 
-import ReferenceVariables
+import Reactor.ReferenceVariables
 
-import HTk
-import FileDialog
+import HTk.Toplevel.HTk
+import HTk.Toolkit.FileDialog
 import System
 
 exportPS :: Canvas -> IO ()

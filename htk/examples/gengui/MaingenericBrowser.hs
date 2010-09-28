@@ -5,11 +5,11 @@ import Directory
 
 import System.IO.Unsafe
 
-import HTk
-import Name
-import CItem
-import ReferenceVariables
-import GenericBrowser
+import HTk.Toplevel.HTk
+import HTk.Toolkit.Name
+import HTk.Toolkit.CItem
+import Reactor.ReferenceVariables
+import HTk.Toolkit.GenericBrowser
 import Char(toLower)
 
 

@@ -2,7 +2,7 @@
 module Main(main,fact,fact1,fact2,fact3) where
 
 
-import Huffman
+import Util.Huffman
 
 fact :: Integer -> Integer
 fact n =

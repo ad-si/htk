@@ -1,9 +1,9 @@
 
 module Main (main) where
 
-import HTk
-import TreeList
-import Name
+import HTk.Toplevel.HTk
+import HTk.Toolkit.TreeList
+import HTk.Toolkit.Name
 
 data MyObj = MyObj String String (IO Image)
 

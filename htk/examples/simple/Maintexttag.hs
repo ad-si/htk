@@ -1,8 +1,8 @@
 
 module Main (main) where
 
-import HTk
-import ReferenceVariables
+import HTk.Toplevel.HTk
+import Reactor.ReferenceVariables
 
 main :: IO ()
 main =

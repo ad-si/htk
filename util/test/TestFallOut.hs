@@ -1,7 +1,7 @@
 {- Test ExtendedPrelude.addFallOut -}
 module Main(main) where
 
-import ExtendedPrelude
+import Util.ExtendedPrelude
 
 main =
    do

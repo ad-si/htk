@@ -1,10 +1,10 @@
 
 module Main (main) where
 
-import HTk
-import FileDialog
+import HTk.Toplevel.HTk
+import HTk.Toolkit.FileDialog
 import System
-import ReferenceVariables
+import Reactor.ReferenceVariables
 
 main :: IO ()
 main =

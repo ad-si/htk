@@ -1,5 +1,5 @@
 module Main (main) where
-import HTk
+import HTk.Toplevel.HTk
 
 main :: IO ()
 main =

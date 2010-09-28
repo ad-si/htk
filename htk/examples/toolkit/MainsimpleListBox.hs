@@ -5,14 +5,14 @@ module Main where
 
 import Control.Concurrent
 
-import Computation
+import Util.Computation
 
-import Events
+import Events.Events
 
-import Focus
-import DialogWin
-import SimpleListBox
-import HTk
+import HTk.Components.Focus
+import HTk.Toolkit.DialogWin
+import HTk.Toolkit.SimpleListBox
+import HTk.Toplevel.HTk
 
 handleSelections :: SimpleListBox String -> Event [SimpleListBoxItem String]
    -> Event ()

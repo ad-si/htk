@@ -8,8 +8,8 @@ import Monad (foldM)
 
 import System.IO.Unsafe
 
-import HTk hiding (State)
-import DialogWin (createAlertWin,createMessageWin)
+import HTk.Toplevel.HTk hiding (State)
+import HTk.Toolkit.DialogWin (createAlertWin,createMessageWin)
 
 -- The state of a single field.
 data State = Cleared Int

@@ -1,10 +1,10 @@
 
 module Main (main) where
 
-import HTk
-import Notepad
-import Name
-import ReferenceVariables
+import HTk.Toplevel.HTk
+import HTk.Toolkit.Notepad
+import HTk.Toolkit.Name
+import Reactor.ReferenceVariables
 import System.IO.Unsafe
 
 idref :: Ref Int

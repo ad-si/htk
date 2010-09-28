@@ -3,7 +3,7 @@
 module Main(main) where
 
 
-import Object
+import Util.Object
 
 main :: IO ()
 main =

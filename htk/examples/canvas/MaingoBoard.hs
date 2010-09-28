@@ -10,7 +10,7 @@
 
 module Main (main) where
 
-import HTk
+import HTk.Toplevel.HTk
 
 lightBrown :: (Int, Int, Int)
 lightBrown = (224, 186, 145)

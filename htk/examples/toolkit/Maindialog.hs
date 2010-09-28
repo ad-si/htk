@@ -1,13 +1,13 @@
 
 module Main(main) where
 
-import HTk
-import ModalDialog
-import DialogWin
-import MarkupText
-import InputWin
-import InputForm
-import TextDisplay
+import HTk.Toplevel.HTk
+import HTk.Toolkit.ModalDialog
+import HTk.Toolkit.DialogWin
+import HTk.Toolkit.MarkupText
+import HTk.Toolkit.InputWin
+import HTk.Toolkit.InputForm
+import HTk.Toolkit.TextDisplay
 
 data Test = Test {ent1 :: String, ent2 :: String, enu1 :: Int, ent3 :: Int, chck1 :: Bool} deriving Show
 

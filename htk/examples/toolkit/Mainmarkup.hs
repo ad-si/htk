@@ -1,8 +1,8 @@
 
 module Main(main) where
 
-import HTk
-import MarkupText
+import HTk.Toplevel.HTk
+import HTk.Toolkit.MarkupText
 
 main :: IO ()
 main =

@@ -2,7 +2,7 @@
 
 module Main (main) where
 
-import HTk
+import HTk.Toplevel.HTk
 import Random(randomRIO)
 import Control.Concurrent(threadDelay)
 

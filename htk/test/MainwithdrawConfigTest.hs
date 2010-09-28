@@ -1,5 +1,5 @@
 
-import HTk
+import HTk.Toplevel.HTk
 
 main :: IO ()
 main =

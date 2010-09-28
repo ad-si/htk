@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Dynamics
-import Debug(debug)
+import Util.Dynamics
+import Util.Debug(debug)
 
 data A = A (Int,Int) deriving (Show,Typeable)
 data B = B (Bool,Bool) deriving (Show,Typeable)

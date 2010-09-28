@@ -1,6 +1,6 @@
 module Main(main) where
 
-import Dynamics
+import Util.Dynamics
 
 data Folder = Folder {
    a :: Int

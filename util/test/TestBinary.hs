@@ -3,9 +3,9 @@ module Main where
 
 import Data.Word
 
-import Bytes
-import Binary
-import BinaryInstances
+import Util.Bytes
+import Util.Binary
+import Util.BinaryInstances
 
 main =
    do

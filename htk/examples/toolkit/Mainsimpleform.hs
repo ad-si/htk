@@ -4,14 +4,14 @@ module Main(main) where
 
 import Char
 
-import qualified Configuration
+import qualified HTk.Kernel.Configuration as Configuration
 
-import Computation
+import Util.Computation
 
-import HTk(withdrawWish)
-import SimpleForm
-import MenuType
-import HTkMenu
+import HTk.Toplevel.HTk(withdrawWish)
+import HTk.Toolkit.SimpleForm
+import HTk.Toolkit.MenuType
+import HTk.Toolkit.HTkMenu
 
 data Colour = Red | Orange | Yellow | Green | Blue | Violet
 -- Indigo not a valid colour name!

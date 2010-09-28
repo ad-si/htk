@@ -1,14 +1,14 @@
 {- A simple menu example, using the HTkMenu interface -}
 module Main(main) where
 
-import Computation
+import Util.Computation
 
-import Events
-import Destructible
+import Events.Events
+import Events.Destructible
 
-import HTk hiding (Menu)
-import MenuType
-import HTkMenu
+import HTk.Toplevel.HTk hiding (Menu)
+import HTk.Toolkit.MenuType
+import HTk.Toolkit.HTkMenu
 
 main :: IO ()
 main =

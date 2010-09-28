@@ -1,11 +1,11 @@
 
 module Main (main) where
 
-import HTk
-import TreeList
+import HTk.Toplevel.HTk
+import HTk.Toolkit.TreeList
 import Directory
 import System
-import Name
+import HTk.Toolkit.Name
 import Control.Concurrent(threadDelay)
 
 hidden :: FilePath -> Bool

@@ -1,11 +1,11 @@
 
 module Main (main) where
 
-import HTk
-import Notepad
-import ScrollBox
-import Name
-import ReferenceVariables
+import HTk.Toplevel.HTk
+import HTk.Toolkit.Notepad
+import HTk.Toolkit.ScrollBox
+import HTk.Toolkit.Name
+import Reactor.ReferenceVariables
 
 type Id = Int
 

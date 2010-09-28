@@ -1,7 +1,7 @@
 
 module Main (main) where
 
-import HTk
+import HTk.Toplevel.HTk
 import Random(randomRIO)
 
 randomColour :: IO (Int, Int, Int)

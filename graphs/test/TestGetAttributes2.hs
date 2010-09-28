@@ -5,11 +5,11 @@
    I'm getting rather a lot of now . . . -}
 module Main(main) where
 
-import Registry
+import Util.Registry
 
 import System.Mem
 
-import GetAttributes
+import Graphs.GetAttributes
 
 main :: IO ()
 main =

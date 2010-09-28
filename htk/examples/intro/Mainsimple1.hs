@@ -1,6 +1,6 @@
 module Main where
 
-import HTk
+import HTk.Toplevel.HTk
 import Random
 
 main:: IO ()

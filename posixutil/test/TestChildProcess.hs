@@ -2,7 +2,7 @@ module Main where
 
 import Control.Concurrent
 
-import ChildProcess
+import Posixutil.ChildProcess
 
 runProg :: String -> IO ()
 runProg progName =

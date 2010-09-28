@@ -1,11 +1,11 @@
 {- TestGetAttributes tests GetAttributes.hs -}
 module Main(main) where
 
-import Registry
+import Util.Registry
 
-import InfoBus
+import Reactor.InfoBus
 
-import GetAttributes
+import Graphs.GetAttributes
 
 main =
    do
