@@ -192,7 +192,7 @@ HIERDIR = davinci/UDrawGraph emacs/Emacs events/Events graphs/Graphs htk/HTk \
   server/Server simpledb/SimpleDB types/Types util/Util appl/Appl
 
 cleandirs:
-	$(RM) -rf $(HIERDIR) Setup
+	$(RM) Setup
 
 clean: cleanprogs cleandirs
 	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.hi-boot" -o -name "*.o" -o -name "*.a" -o -name ".depend" -o -name dist \)`
