@@ -304,9 +304,8 @@ MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
    if test "$BINARY" = NO; then
-      echo Compiling MainFixFileNames and MainReplaceModuleNames
+      echo Compiling MainFixFileNames
       $GHC --make mk/MainFixFileNames.hs -o mk/FixFileNames
-      $GHC --make mk/MainReplaceModuleNames.hs -o mk/ReplaceModuleNames
    fi
 
    FIXFILENAMES=$PWD/mk/FixFileNames
@@ -352,12 +351,7 @@ if test "$GOAHEAD" = YES; then
          ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf register -
          ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf.export register -
       fi
-      echo creating hierarchical and renamed sources
-      mk/ChangeFoldernames.sh
-
       GMAKESHORT=`basename $GMAKE`
-
-      echo To compile UniForM type \"${GMAKESHORT} packages\"
-      echo or \"${GMAKESHORT} cabal\" for hierarchical modules.
+      echo type \"${GMAKESHORT} cabal\" to build the packages
    fi
 fi
