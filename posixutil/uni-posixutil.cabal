@@ -1,5 +1,5 @@
 name:           uni-posixutil
-version:        2.1.0.0
+version:        2.2.0.0
 build-type:     Simple
 license:        LGPL
 license-file:   ../LIZENZ.txt
@@ -11,6 +11,8 @@ cabal-version:  >= 1.2
 description:    posix utilities
 library
   exposed-modules:
+    Posixutil.CopyFile,
+    Posixutil.SafeSystem,
     Posixutil.ProcessClasses,
     Posixutil.ChildProcess,
     Posixutil.BlockSigPIPE

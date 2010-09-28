@@ -14,7 +14,8 @@ module Posixutil.CopyFile(
    copyFileToICStringLen,
    ) where
 
-import qualified IO
+import System.IO as IO
+import System.IO.Error as IO
 import qualified System.IO.Error as IOErr
 
 import GHC.IO
@@ -121,8 +122,8 @@ copyFileToStringCheck filePath =
 copyFileToCStringLen :: FilePath -> IO CStringLen
 copyFileToCStringLen file =
    do
-      (ptr,len) <- slurpFile file
-      return (castPtr ptr,len)
+      str <- readFile file
+      newCStringLen $!! str
 
 copyFileToICStringLenCheck :: FilePath -> IO (WithError ICStringLen)
 copyFileToICStringLenCheck filePath =
