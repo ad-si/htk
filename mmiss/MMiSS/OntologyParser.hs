@@ -2,7 +2,7 @@
     in LaTeX-Files (oder anderen Textfiles) zur Verfügung.
 --}
 
-module MMiSSOntologyParser (
+module MMiSS.OntologyParser (
 
   parseMMiSSOntologyFile  -- SourceName -> IO(WithError MMiSSOntology)
   {-- Main function that takes a filename as argument and parses that file
@@ -13,8 +13,8 @@ module MMiSSOntologyParser (
 
 where
 
-import MMiSSOntologyStore
-import Computation hiding (try)
+import MMiSS.OntologyStore
+import Util.Computation hiding (try)
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Error
 import Data.Maybe

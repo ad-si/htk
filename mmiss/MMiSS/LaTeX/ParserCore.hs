@@ -1,4 +1,4 @@
-module LaTeXParserCore (
+module MMiSS.LaTeX.ParserCore (
    Frag(..),
    Params(..),
    SingleParam(..),
@@ -50,7 +50,7 @@ module LaTeXParserCore (
 )
  where
 
--- module LaTeXParserCore where
+-- module MMiSS.LaTeX.ParserCore where
 
 import List
 import Char
@@ -58,10 +58,10 @@ import Monad
 
 import Text.ParserCombinators.Parsec
 
-import Computation hiding (try)
+import Util.Computation hiding (try)
 -- import ExtendedPrelude(unsplitByChar,mapEq)
 -- import EmacsContent
-import EntityNames
+import Imports.EntityNames
 -- import AtomString
 -- import CodedValue
 -- import QuickReadShow

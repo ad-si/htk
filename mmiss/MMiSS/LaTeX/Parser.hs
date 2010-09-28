@@ -1,4 +1,4 @@
-module LaTeXParser (
+module MMiSS.LaTeX.Parser (
    -- new interface.  For now, just a make-weight bolted on top of the old one.
 
    PackageId(..),
@@ -67,7 +67,7 @@ module LaTeXParser (
    )
  where
 
--- module LaTeXParser where
+-- module MMiSS.LaTeX.Parser where
 
 -- import IO(FilePath)
 
@@ -81,13 +81,13 @@ import Text.XML.HaXml.Combinators hiding (find)
 import Text.XML.HaXml.Pretty(element)
 import Text.PrettyPrint(render)
 
-import LaTeXParserCore
-import LaTeXPreamble
-import Computation hiding (try)
-import EmacsContent
-import AtomString
-import FileNames
-import QuickReadShow
+import MMiSS.LaTeX.ParserCore
+import MMiSS.LaTeX.Preamble
+import Util.Computation hiding (try)
+import Emacs.Content
+import Util.AtomString
+import Util.FileNames
+import Util.QuickReadShow
 -- import EmacsEdit(TypedName)
 
 -- ---------------------------------------------------------------------------

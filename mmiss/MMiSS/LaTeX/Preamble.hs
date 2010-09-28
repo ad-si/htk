@@ -1,4 +1,4 @@
-module LaTeXPreamble (
+module MMiSS.LaTeX.Preamble (
 
    MMiSSLatexPreamble(..),
    MMiSSExtraPreambleData(..),
@@ -17,17 +17,17 @@ where
 
 import Text.ParserCombinators.Parsec
 
-import ExtendedPrelude(mapEq)
+import Util.ExtendedPrelude(mapEq)
 import List
-import Computation hiding (try)
-import Dynamics
-import AtomString
-import BinaryAll(Choice5(..))
+import Util.Computation hiding (try)
+import Util.Dynamics
+import Util.AtomString
+import Util.BinaryAll(Choice5(..))
 
-import LaTeXParserCore
-import EntityNames
-import CodedValue
-import FileNames
+import MMiSS.LaTeX.ParserCore
+import Imports.EntityNames
+import Types.CodedValue
+import Util.FileNames
 
 
 data FileSystem = FileSystem {

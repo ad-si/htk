@@ -14,7 +14,7 @@ The module defines a data type \tt{MMISSOntology} which stores all information c
    todo: add a new edge type for equivalence which should be visited only once
 --}
 
-module MMiSSOntologyStore (
+module MMiSS.OntologyStore (
   MMiSSOntology,
   MMiSSOntologyFlat,
   RelationProperty(..),
@@ -165,10 +165,10 @@ module MMiSSOntologyStore (
 
 where
 
-import Computation hiding (try)
-import ExtendedPrelude(mapEq)
-import CodedValue
-import BinaryInstances
+import Util.Computation hiding (try)
+import Util.ExtendedPrelude(mapEq)
+import Types.CodedValue
+import Util.BinaryInstances
 
 import qualified Data.Map as Map
 import Data.Graph.Inductive

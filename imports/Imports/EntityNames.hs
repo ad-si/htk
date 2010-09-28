@@ -1,6 +1,6 @@
 -- | This module defines the types EntityNames (and so on), as used by
 -- the LinkManager.
-module EntityNames(
+module Imports.EntityNames(
    EntityName(..),
       -- a name identifying a single item in a folder
    EntityFullName(..),
@@ -61,15 +61,15 @@ import List
 
 import Text.ParserCombinators.Parsec
 
-import Maybes
-import AtomString
-import ExtendedPrelude
-import DeepSeq
-import Dynamics
-import Computation
-import BinaryAll
+import Util.Maybes
+import Util.AtomString
+import Util.ExtendedPrelude
+import Util.DeepSeq
+import Util.Dynamics
+import Util.Computation
+import Util.BinaryAll
 
-import SimpleForm
+import HTk.Toolkit.SimpleForm
 
 -- ----------------------------------------------------------------------
 -- The types.

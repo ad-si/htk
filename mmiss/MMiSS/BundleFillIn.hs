@@ -7,28 +7,28 @@
 --    (2) fills in FolderEnum extra fields when these are Nothing by
 --        guessing at a plain Folder or an MMiSS SubFolder (depending on
 --        whether we are inside a package or not).
-module MMiSSBundleFillIn(
+module MMiSS.BundleFillIn(
    fillInBundle, -- :: Maybe EntityName -> Bundle -> IO Bundle
    ) where
 
 import Maybe
 import IO
 
-import Computation
-import AtomString
+import Util.Computation
+import Util.AtomString
 
-import EntityNames
+import Imports.EntityNames
 
-import LaTeXPreamble
+import MMiSS.LaTeX.Preamble
 
-import MMiSSFormat
-import MMiSSBundle
-import MMiSSBundleSimpleUtils
-import MMiSSBundleConvert
-import MMiSSBundleTypes
-import MMiSSImportExportErrors
-import MMiSSFileSystemExamples
-import MMiSSVariant
+import MMiSS.Format
+import MMiSS.Bundle
+import MMiSS.BundleSimpleUtils
+import MMiSS.BundleConvert
+import MMiSS.BundleTypes
+import MMiSS.ImportExportErrors
+import MMiSS.FileSystemExamples
+import MMiSS.Variant
 
 
 -- -----------------------------------------------------------------------

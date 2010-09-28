@@ -5,7 +5,7 @@
 -- We also require that instances of 'HasCodedValue' instance 'Typeable'.
 -- This makes it easier to track down the type with the problem when
 -- things go wrong.
-module CodedValue(
+module Types.CodedValue(
    HasCodedValue,
    CodedValue,
    CodingMonad, -- instance of MonadIO
@@ -49,14 +49,14 @@ import Control.Exception
 import Control.Monad.State
 import Control.Monad.Trans
 
-import BinaryAll
-import Dynamics
-import ICStringLen
-import ExtendedPrelude
+import Util.BinaryAll
+import Util.Dynamics
+import Util.ICStringLen
+import Util.ExtendedPrelude
 
-import ServerErrors
+import SimpleDB.ServerErrors
 
-import ViewType
+import Types.ViewType
 
 -- --------------------------------------------------------------------------
 -- The HasCodedValue class, now a synonym for several existing classes.
