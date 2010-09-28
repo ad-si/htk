@@ -1,9 +1,9 @@
 {- TestRegexChannel tests regex channels.  -}
 module Main(main) where
 
-import Events
-import RegexChannel
-import Spawn
+import Events.Events
+import Events.RegexChannel
+import Events.Spawn
 
 main =
   do

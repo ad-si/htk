@@ -2,7 +2,7 @@
 module Main(main) where
 
 import DrawDepend
-import DaVinciGraph
+import UDrawGraph.Graph
 
 main :: IO ()
 main = drawDepend daVinciSort

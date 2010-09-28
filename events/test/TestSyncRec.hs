@@ -1,15 +1,15 @@
 -- Test for sync/rec on the same channel.
 module Main(main) where
 
-import Computation (done)
-import Events
-import GuardedEvents
-import Channels
-import NullGuard
-import EqGuard
-import RegexChannel
+import Util.Computation (done)
+import Events.Events
+import Events.GuardedEvents
+import Events.Channels
+import Events.NullGuard
+import Events.EqGuard
+import Events.RegexChannel
 
-import Spawn
+import Events.Spawn
 
 main =
    do

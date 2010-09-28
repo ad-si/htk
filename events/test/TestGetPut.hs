@@ -7,14 +7,14 @@ import CPUTime
 
 import Control.Concurrent.MVar
 
-import Computation
+import Util.Computation
 
-import Events
-import GuardedEvents
-import Channels
-import NullGuard
-import EqGuard
-import RegexChannel
+import Events.Events
+import Events.GuardedEvents
+import Events.Channels
+import Events.NullGuard
+import Events.EqGuard
+import Events.RegexChannel
 
 main :: IO ()
 main =

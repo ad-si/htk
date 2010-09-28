@@ -1,10 +1,10 @@
 module Main(main) where
 
-import Events
-import Destructible
+import Events.Events
+import Events.Destructible
 
-import EmacsBasic
-import Extents
+import Emacs.Basic
+import Emacs.Extents
 
 main :: IO ()
 main =

@@ -3,8 +3,8 @@
    -}
 module Main(main) where
 
-import Object
-import Events
+import Util.Object
+import Events.Events
 
 beforeAfter :: IO () -> IO ()
 beforeAfter action =

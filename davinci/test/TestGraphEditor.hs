@@ -3,14 +3,14 @@ module Main(main) where
 
 
 
-import GraphEditor
-import Graph
-import DaVinciGraph
-import SimpleGraph
-import Destructible(destroyed)
-import InfoBus
-import Events
-import WBFiles
+import Graphs.GraphEditor
+import Graphs.Graph
+import UDrawGraph.Graph
+import Graphs.SimpleGraph
+import Events.Destructible(destroyed)
+import Reactor.InfoBus
+import Events.Events
+import Util.WBFiles
 
 main :: IO ()
 main =

@@ -2,14 +2,14 @@
    name is expected to be the (only) argument. -}
 module Main(main) where
 
-import WBFiles
+import Util.WBFiles
 
-import InfoBus(shutdown)
+import Reactor.InfoBus(shutdown)
 
-import HostsPorts
+import Server.HostsPorts
 
-import GraphEditorRemote
-import DaVinciGraph
+import Graphs.GraphEditorRemote
+import UDrawGraph.Graph
 
 main :: IO ()
 main =

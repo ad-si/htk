@@ -2,9 +2,9 @@
 module Main(main) where
 
 import GraphDispTest
-import DaVinciGraph
-import InfoBus(shutdown)
-import WBFiles(parseArguments)
+import UDrawGraph.Graph
+import Reactor.InfoBus(shutdown)
+import Util.WBFiles(parseArguments)
 
 main :: IO ()
 main =

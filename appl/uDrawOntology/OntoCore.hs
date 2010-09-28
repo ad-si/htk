@@ -13,13 +13,13 @@ import Graphics.UI.WX
 import Graphics.UI.WXCore
 
 import qualified IO
-import qualified Thread
+import qualified Util.Thread as Thread
 import qualified System
 import qualified List
 import qualified Char
 
 import qualified Data.Map                   as Map
-import qualified Computation                as Comp
+import qualified Util.Computation as Comp
 import qualified System.Environment         as SysEnv
 import qualified System.Directory           as SysDir
 import qualified Data.IORef                 as IORef
@@ -28,7 +28,7 @@ import qualified Debug.Trace                as Debug
 import qualified MMiSS.OntoParser           as OntoParser
 import qualified MMiSS.MMiSSOntology        as MOnto
 import qualified MMiSS.OntologyGraph        as OGraph
-import qualified DaVinciTypes               as DVTypes
+import qualified UDrawGraph.Types as DVTypes
 import qualified UDraw.Util                 as UUtil
 import qualified Text.XML.HaXml.Xml2Haskell as HaXml.Xml2Haskell
 import qualified UDraw.OntoSideConfig       as OntoConf

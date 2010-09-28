@@ -3,13 +3,13 @@ module Main(main) where
 
 import Control.Concurrent
 
-import WBFiles(parseArguments)
+import Util.WBFiles(parseArguments)
 
-import InfoBus(shutdown)
+import Reactor.InfoBus(shutdown)
 
 import GraphDispTest
 
-import DaVinciGraph
+import UDrawGraph.Graph
 
 main :: IO ()
 main =
