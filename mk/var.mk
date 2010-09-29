@@ -32,7 +32,7 @@ HCSHORTFLAGS = \
    $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) -fno-mono-pat-binds \
    -fglasgow-exts -fallow-overlapping-instances \
    -fallow-undecidable-instances -Wall -fth \
-   -package-conf $(PACKAGECONF) $($*_HC_OPTIONS)
+   $($*_HC_OPTIONS)
 
 PACKAGESARGS = $(PACKAGES:%=-package %)
 

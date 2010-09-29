@@ -556,8 +556,6 @@ PACKAGE_URL=
 ac_unique_file="mk/suffix.mk"
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-GHCTOP
-DEFAULTOPTIONS
 HAVE_MKDTEMP
 OBJEXT
 EXEEXT
@@ -565,6 +563,7 @@ ac_ct_CC
 CPPFLAGS
 LDFLAGS
 CFLAGS
+CC
 MISSLATEX
 LP
 ACROREAD
@@ -577,16 +576,12 @@ MKDIR
 LN
 CP
 GFIND
-HADDOCK
 ZIP
 TAR
 DAVINCI
 UDG
-daVinci
 uDrawGraph
 WISH
-GHCHTML
-GHCPKG
 GhcShortVersion
 GhcPatchLevel
 GhcMinVersion
@@ -594,12 +589,7 @@ GhcMajVersion
 GhcVersion
 GHC
 GMAKE
-LD
 SED
-CC
-UNIVERSION
-OSTITLE
-WINDOWS
 TOP
 BUILDAMOUNT
 BINARY
@@ -647,7 +637,6 @@ enable_option_checking
 enable_MMiSS
 enable_Het
 enable_HTk
-with_ghc_docs
 with_bdb
 with_MMiSS_LaTeX
 '
@@ -1268,13 +1257,12 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-MMiSS          Compile everything needed for MMiSS
-  --enable-Het            Compile everything needed for HetCATS
+  --enable-Het            Compile everything needed for Hets
   --enable-HTk            Compile everything needed for HTk
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-ghc-html         Set to pathname of Glasgow Haskell's html directory
   --with-bdb              Set to pathname where Berkeley DB is installed
   --with-MMiSS-LaTeX      Set to pathname where MMiSS-LaTeX is installed
 
@@ -1870,13 +1858,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 #
 # Is this configure script being run in a binary release or not?
-if test -r "not.a.binary.release"; then
-   echo Configuring for building from source
    BINARY=NO
-else
-   echo Configuring a binary release
-   BINARY=YES
-fi
 
 #
 #
@@ -1921,71 +1903,6 @@ echo "The top of the UniForM build tree is: $TOP"
 
 #
 #
-# Are we running Windows or Unix?
-case `uname` in
-   CYGWIN* ) WINDOWS=1 ; OSTITLE=windows ;;
-   MINGW32* ) WINDOWS=1 ; OSTITLE=windows ;;
-   Linux* ) WINDOWS=0 ; OSTITLE=linux ;;
-   SunOS* ) WINDOWS=0 ; OSTITLE=solaris ;;
-   FreeBSD* ) WINDOWS=0 ; OSTITLE=freebsd ;;
-   Darwin*) WINDOWS=0 ; OSTITLE=MacOS ;;
-   * ) WINDOWS=0; OSTITLE=unknown ;;
-esac
-
-echo You are running $OSTITLE
-
-
-
-#
-# What is our version?
-UNIVERSION=`cat VERSION`
-
-#
-# Find a C compiler.
-for ac_prog in gcc cc
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_CC+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $CC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_CC="$CC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_CC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-CC=$ac_cv_path_CC
-if test -n "$CC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $CC" >&5
-$as_echo "$CC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$CC" && break
-done
 
 #
 # Find sed
@@ -2038,56 +1955,6 @@ if test -z "$SED"; then
    echo "Without sed we won't be able to finish this configuration"
    GOAHEAD=NO
 fi
-#
-# Find a GNU linker
-for ac_prog in gnu-ld gld ld
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_LD+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $LD in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_LD="$LD" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_LD="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-LD=$ac_cv_path_LD
-if test -n "$LD"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $LD" >&5
-$as_echo "$LD" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$LD" && break
-done
-
-$LD --version
-echo
-echo "If that message didn't indicate a GNU linker, it won't be possible to use ghci on packages constructed with this build."
 
 #
 # Check for gmake
@@ -2188,10 +2055,8 @@ fi
 done
 
 if test -z "$GHC"; then
-   if test "$BINARY" = NO; then
-      echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
-      GOAHEAD=NO
-   fi
+   echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
+   GOAHEAD=NO
    GhcShortVersion=000
 else
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking version of ghc" >&5
@@ -2242,89 +2107,6 @@ $as_echo "$uni_version_of_ghc" >&6; }
    fi
 
    echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
-fi
-
-
-
-# Check for ghc-pkg
-for ac_prog in ghc-pkg
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_GHCPKG+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $GHCPKG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_GHCPKG="$GHCPKG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_GHCPKG="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-GHCPKG=$ac_cv_path_GHCPKG
-if test -n "$GHCPKG"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $GHCPKG" >&5
-$as_echo "$GHCPKG" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$GHCPKG" && break
-done
-
-if test -z "$GHCPKG"; then
-   if test "$BINARY" = NO; then
-      echo Without ghc-pkg you cannot compile UniForM.
-      GOAHEAD=NO
-   fi
-fi
-
-# Try to find GHC's documents.
-
-# Check whether --with-ghc-docs was given.
-if test "${with_ghc_docs+set}" = set; then :
-  withval=$with_ghc_docs; GHCHTML=$withval
-else
-  GHCHTML=${GHCHTML}
-
-fi
-
-# Try to guess from GHC's installation directory.
-echo $GHCHTML $GHC
-if test -z "$GHCHTML" -a -n "$GHC"; then
-   # The funny things bracketted by @ signs are
-   # "Quadrigraphs" which autoconf translates to square brackets.
-   GHCHTML=`$GHC --print-libdir | sed -e 's+/lib/\([^/]*\)$+/share/doc/ghc+g'`
-fi
-
-if test -d $GHCHTML/libraries
-then
-   echo Glasgow Haskell HTML documents found in $GHCHTML
-else
-   GHCHTML=
-   echo No HTML documents or Haddock files found for GHC.
-   echo This will mean ./runhaddock.sh cannot insert links within
-   echo Haddocked versions of our modules to GHC modules.
 fi
 
 
@@ -2382,17 +2164,13 @@ if test -z "$WISH"; then
     WISH="/usr/bin/wish"
 fi
 #
-# Check for daVinci
+# Check for uDrawGraph
 if test -n "$UDG_HOME"; then
    UDG=$UDG_HOME/bin/uDrawGraph
    echo Assuming uDrawGraph to be $UDG because of variable \$UDG_HOME
 
-else if test -n "$DAVINCIHOME"; then
-   UDG=$DAVINCIHOME/bin/daVinci
-   echo Assuming DAVINCI=$UDG because of variable \$DAVINCIHOME
-
-   else
-   for ac_prog in uDrawGraph daVinci
+else
+   for ac_prog in uDrawGraph
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -2437,7 +2215,6 @@ fi
   test -n "$UDG" && break
 done
 
-   fi
 fi
 
 if test -z "$UDG"; then
@@ -2549,54 +2326,7 @@ done
 if test -z "$ZIP"; then
    echo "Without zip you cannot build zip archives."
 fi
-#
-# Check for haddock
-for ac_prog in haddock
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_HADDOCK+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $HADDOCK in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_HADDOCK="$HADDOCK" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_HADDOCK="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
 
-  ;;
-esac
-fi
-HADDOCK=$ac_cv_path_HADDOCK
-if test -n "$HADDOCK"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HADDOCK" >&5
-$as_echo "$HADDOCK" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$HADDOCK" && break
-done
-
-echo haddock is used for providing browsable versions of the HTk sources.
 #
 # Check for gfind, cp, ln and mkdir
 for ac_prog in gfind
@@ -3908,48 +3638,19 @@ done
 
 
 
-#
-# Construct the default options, used by
-# util/default_options.c
-# The format of these is described in util/WBFiles.hs.  We make a feeble
-# and incomplete attempt to escape any funny characters so we can
-# put them into util/default_options.c.  Note that we have to double-double
-# escape \ characters, once for sed and once for sh.
-DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$UDG --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
-s+"+\\\\"+g'`
-
-
 # Find all files Makefile.in
 MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
-   if test "$BINARY" = NO; then
-      echo Compiling MainFixFileNames
-      $GHC --make mk/MainFixFileNames.hs -o mk/FixFileNames
-   fi
-
-   FIXFILENAMES=$PWD/mk/FixFileNames
-
-   # Find out what GHC thinks this directory is (this will not necessarily be
-   # the same as TOP on Windows).  This string is escaped.
-   GHCTOP=`echo '#PWD' | $FIXFILENAMES`
-   echo GHC calls this directory $GHCTOP
-
-
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   if test "$BINARY" = NO; then
-      SCRIPTS="mmiss/test/runWorkbench mmiss/test/runServer posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer util/CompileFlags.hs runhaddock.sh mk/cabal-ghc mk/cabal-ghc-pkg"
-   else
-      SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp posixutil/daVinci.debug posixutil/wish.debug"
-   fi
+   SCRIPTS="mmiss/test/runWorkbench mmiss/test/runServer posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer"
 
    # Not all SCRIPTS exist in some binary releases.  Filter out those that
    # don't.
    SCRIPTS1=`for i in $SCRIPTS;do if test -e $i.in ; then echo $i; fi;done`
 
-   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk includes/uni-config.h"
-
+   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk"
 
    ac_config_files="$ac_config_files $MAKEFILES $SCRIPTS1 $OTHERFILES"
 
@@ -5094,24 +4795,6 @@ fi
 
    chmod +x $SCRIPTS1
 
-   if test "$BINARY" = NO
-   then
-      echo Setting up packages and export packages file as empty
-      # The echo prints []; the funny things bracketted by @ signs are
-      # "Quadrigraphs" which express this so.  Normal square brackets
-      # won't work since they have a special meaning for autoconf.
-      echo [] >uni-package.conf
-      echo [] >uni-package.conf.export
-      mk/FixFileNames <uni-package.options | $GHCPKG --package-conf=uni-package.conf register -
-
-      GHCPKGOPTS=--force
-
-      $GHCPKG $GHCPKGOPTS --package-conf=uni-package.conf.export register - <uni-package.options
-      if test -n "$BDBDIR"; then
-         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf register -
-         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf.export register -
-      fi
-      GMAKESHORT=`basename $GMAKE`
-      echo type \"${GMAKESHORT} cabal\" to build the packages
-   fi
+   GMAKESHORT=`basename $GMAKE`
+   echo type \"${GMAKESHORT} cabal\" to build the packages
 fi

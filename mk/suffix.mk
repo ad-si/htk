@@ -276,7 +276,7 @@ endif
 endif
 
 
-SETUP = $(GHCTOP)/Setup
+SETUP = $(TOP)/Setup
 
 $(SETUP) : $(SETUP).hs
 	$(HC) --make -o $@ $<
