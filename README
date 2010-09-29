@@ -278,6 +278,8 @@ SUBDIRS specifies a list of subdirectories of this directory also containing
    Makefiles, into which we should recurse.
 SRCSC is like SRCS, but expects a list of C files.
 
+Basically SUBDIRS is currently used to create all cabal packages.
+
 After you've modified a Makefile.in, you should run
    ./configure
 (from the top directory)
