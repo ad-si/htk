@@ -7,14 +7,14 @@ module GraphDispTest(
 
 import Control.Concurrent
 
-import Debug(debug)
+import Util.Debug(debug)
 
-import Events
-import Destructible
-import Channels
+import Events.Events
+import Events.Destructible
+import Events.Channels
 
-import GraphDisp
-import GraphConfigure
+import Graphs.GraphDisp as GraphDisp
+import Graphs.GraphConfigure
 
 setUpGraph ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms

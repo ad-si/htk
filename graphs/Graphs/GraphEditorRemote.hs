@@ -13,9 +13,9 @@ import Server.CallServer
 import Events.Destructible
 import Events.Events
 
-import Graphs.Graph
-import Graphs.GraphDisp
-import Graphs.GraphConfigure
+import Graphs.Graph as Graph
+import Graphs.GraphDisp as GraphDisp
+import Graphs.GraphConfigure as GraphConfigure
 import Graphs.GraphEditor
 import Graphs.GraphEditorService
 import Graphs.SimpleGraph
