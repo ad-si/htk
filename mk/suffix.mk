@@ -245,10 +245,7 @@ else
    libhere : $(LIB)
 endif
 
-UNSUPPORTED = GetPut RegexChannel SyncRec \
-  DaVinci DaVinciDouble GraphEditorRemote
-
-TESTPROGNAMES = $(filter-out $(UNSUPPORTED),$(patsubst test%,%,$(TESTPROGS)))
+TESTPROGNAMES = $(patsubst test%,%,$(TESTPROGS))
 MAINPROGNAMES = $(filter-out Depend,$(MAINPROGS))
 
 testcabalhere :
