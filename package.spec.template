@@ -1,8 +1,0 @@
-name: PACKAGE
-license: AllRightsReserved
-exposed: True
-exposed-modules: EXPOSED
-depends: DEPS
-import-dirs: "#PWDIMPORTS"
-library-dirs: "#PWD"
-hs-libraries: PACKAGELIB

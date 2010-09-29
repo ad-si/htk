@@ -1,2 +1,0 @@
-This file is included in the CVS sources so that the ./configure script
-knows it is not building a binary release.

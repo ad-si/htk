@@ -1,34 +1,24 @@
 This directory contains Uni, the central part of the UniForM workbench.
 The source of Uni and the MMiSS Workbench is in the following directories,
-which are listed in the order they are compiled.  
+which are listed in the order they are compiled.
 
 
    directory    |  contents
-   
+
    mk           |  Makefile magic which set up default rules and variables
    util         |  Miscellanous Haskell functions used all over Uni
-   events       |  Events, providing a way for concurrent events to 
+   events       |  Events, providing a way for concurrent events to
                 |  communicated
    reactor      |  Miscellaneous things for running processes and tools
    posixutil    |  Various utilities that only work under Posix.
    htk          |  This is an encapsulation of Tcl/Tk in Haskell
                 |  See htk/examples for a few short introductory examples.
                 |  The htk code is divided among several sub-directories.
-   HaXml-1.11   |  This contains the complete source of HaXml.  This is
-                |  included by uni, but is completely unchanged from the
-                |  official distribution, which is currently the responsibility
-                |  of Malcolm Wallace. 
-                |
-                |  (Actually "completely unchanged" is a lie; I just changed
-                |  two comments for Haddock, and also replaced a reference
-                |  to FiniteMap with the full qualified name Data.FiniteMap.)
-                |
-   HaXml        |  We compile HaXml, if necessary, in this directory.
    server       |  Stuff for client-server relationships
    graphs       |  General framework for shared graphs.
    davinci      |  This is an encapsulation of uDra(Graph) in Haskell
    simpledb     |  A very simple database system.
-   imports      | 
+   imports      |
    types        |  Repository
    emacs        |  Contains the code for editing MMiSS objects with XEmacs
    mmiss/parser |  (Un)Parses LaTeX sources for MMiSS objects.
@@ -38,65 +28,47 @@ which are listed in the order they are compiled.
 Requirements for compiling UniForM
 ----------------------------------
 
-At the moment, the Uni sources and the MMiSS workbench have been 
-successfully compiled and run on Linux/x86, Microsoft Windows XP (running
-MinGW),  Sparc Solaris, and MacOS Darwin.  The HTk part also works on
-FreeBSD.
+At the moment, the Uni sources and the MMiSS workbench have been
+successfully compiled on Linux/x86. Microsoft Windows XP (running
+MinGW),  Sparc Solaris, and MacOS Darwin should work, too.
+The HTk part also used to work on FreeBSD.
 
-The following things are specifically required if you want to compile 
+The following things are specifically required if you want to compile
 everything.  If you just want HTk, you only need (1)-(3).  If you just want
-HTk + uDraw(Graph) formerly daVinci + HaXml, you only need (1)-(4).  
+HTk + uDraw(Graph), you only need (1)-(4).
 
-(1) Glasgow Haskell.   
-    
-    http://www.haskell.org/ghc/docs/latest/html/building/sec-port-info.html
+(1) Glasgow Haskell. http://www.haskell.org/ghc/
 
-    This release specifically requires version 6.4 of Glasgow Haskell or
-    later. If you haven't got a binary release or you like living
-    dangerously,  you can get
-    detailed instructions for compiling GHC from source from here:
+    This release specifically requires version 6.10.x or 6.12.x
 
-       http://research.microsoft.com/%7Esimonpj/tmp/building/
-
-    or here (specifically for Windows)
-
-       http://raintown.org/wiki/index.php/Building_The_Glasgow_Haskell_Compiler_from_source_on_Windows
-
-    NB.  Be *very* careful to follow instructions carefully and don't attempt
-    to be clever or use short cuts.  Compiling the Glasgow Haskell Compiler
-    takes a very long time (maybe as much as several hours) and deviating
-    from the instructions may well cause your compilation to fall over 
-    mysteriously some time later, meaning you'll have to go back to the
-    beginning and repeat the process.
-
-(2) A standard Unix-ish environment.  On 
-    Linux/Solaris/MacOS Darwin/FreeBSD this is a given.  On Windows there is 
-    a choice between MinGW and Cygwin, both of which provide you with 
+(2) A standard Unix-ish environment.  On
+    Linux/Solaris/MacOS Darwin/FreeBSD this is a given.  On Windows there is
+    a choice between MinGW and Cygwin, both of which provide you with
     Unix-like shells, gcc, libraries, and so on.  For compiling the Workbench,
-    I recommend MinGW, which seems to be simpler than Cygwin, and friendlier 
+    I recommend MinGW, which seems to be simpler than Cygwin, and friendlier
     about working with other (non MinGW/Cygwin) programs.  MinGW is also, by
     the way, capable of compiling GHC.  You can get it from
-     
+
        http://www.mingw.org
 
     You will need at least MSYS, MinGW and the MSYS Developer Tool Kit.
     You will probably also want TclTK (for (3).
-    
+
     However Cygwin (http://www.cygwin.com) may well work as well.
 
 (3) Tcl/Tk.  htk uses the (very common) "wish" program for all its basic user
     interaction.  Typing "wish" at your command prompt should produce
     a small empty window called "wish" if you have it (typing "exit" will
     then allow you to escape).  If you don't have it, you should be able to
-    find somewhere to download it from 
+    find somewhere to download it from
 
        http://www.tcl.tk
 
-    If you want another look-and-feel, try tixwish 
+    If you want another look-and-feel, try tixwish
     ( http://tix.sourceforge.net ).
 
 (4) uDraw(Graph) formerly daVinci.  This is what the Workbench uses to
-    display graphs.  You can get version 3.1.1 from 
+    display graphs. You can get version 3.1.1 from
 
        http://www.informatik.uni-bremen.de/uDrawGraph
 
@@ -115,8 +87,8 @@ HTk + uDraw(Graph) formerly daVinci + HaXml, you only need (1)-(4).
        ../dist/configure --disable-shared
 
     configure has other useful, sometimes essential, options, which
-    you can find out by type 
-   
+    you can find out by type
+
        ../dist/configure --help
 
     For example if you are using MinGW, you need the --enable-mingw option;
@@ -148,12 +120,12 @@ HTk + uDraw(Graph) formerly daVinci + HaXml, you only need (1)-(4).
     This needs to be enabled from XEmacs. You can do this by running
     the Lisp command "(gnuserv-start)" within XEmacs.  Alternatively you
     can add the same command to your .xemacs/init.el so that it is run
-    every time XEmacs start.  
+    every time XEmacs start.
 
     Annoyingly, there are some releases of XEmacs which do not include
-    gnuserv, in particular the Netinstaller version of XEmacs currently 
+    gnuserv, in particular the Netinstaller version of XEmacs currently
     available for Windows.  I have however been able to get an XEmacs working
-    with gnuserv on Windows by compiling the Netinstaller version with a 
+    with gnuserv on Windows by compiling the Netinstaller version with a
     version of gnuclient/gnuserv compiled from source.  For the latter, I
     followed the instructions for compiling XEmacs on cygwin, but instead
     of compiling all the XEmacs sources I just went to the xemacs-21.4.5/
@@ -170,7 +142,7 @@ HTk + uDraw(Graph) formerly daVinci + HaXml, you only need (1)-(4).
     same directory), and that gnuclient.exe is on your PATH.  Yes, as I said
     it's annoying.
 
-(7) To run the Workbench and TeX the output, you will need MMiSS TeX.  This is 
+(7) To run the Workbench and TeX the output, you will need MMiSS TeX.  This is
     *not* currently in the public domain.  However assuming you have it,
     and have configure'd it, UniForM again needs to know where to find it.
     It will guess /usr/local/MMISS/tex, but if MMiSS-LaTeX is not there
@@ -181,58 +153,39 @@ HTk + uDraw(Graph) formerly daVinci + HaXml, you only need (1)-(4).
     If you don't have MMiSS TeX, you can still compile and run the Workbench,
     but won't be able to TeX anything.
 
-(8) A thing you should ideally have is a lot of memory (like 250 MB). 
-    Everyone has that much these days, don't they?  But if you don't and
-    a compilation falls over because of it, try "gmake slow".
-
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
-your copies, here are details.  The Uni sources are kept in a 
-publicly accessible CVS repository at cvs-agbkb.informatik.uni-bremen.de.  
-For general details about this repository, see
-   http://www.informatik.uni-bremen.de/uniform/wb/cvs/index.html
-So for example to get a complete set of the latest version of the sources you 
+your copies, here are details.  The Uni sources are kept in a
+publicly accessible SVN repository at svn-agbkb.informatik.uni-bremen.de.
+
+So for example to get a complete set of the latest version of the sources you
 type (in bash or sh)
 
-export CVSROOT=:pserver:cvsread@cvs-agbkb.informatik.uni-bremen.de:/repository
-cvs login
-# when cvs login asks for a password, type "cvsread"   
-cvs checkout uni
+  svn co https://svn-agbkb.informatik.uni-bremen.de/uni/trunk uni
 
 This will create a directory uni in your current directory containing
 the latest sources for uni.
-
-NB.  With the tag "-rghc-6-02" you may get the old branch that worked for
-ghc-6.2.x style versions of the Glasgow Haskell compiler.
-
-Type "man cvs" to find out other CVS commands.
 
 What To Do Before Compiling
 ----------------------------
 
 1) Do you want a debugging version of Uni?  By default you won't
-   get it.  To compile a debugging version, 
-      cd uni/mk
-      cp local.mk.debug local.mk
-   The file local.mk is included, if present, by every Makefile.
-   Thus it's also a good thing to use for other Makefile hacking.
+   get it. (grep for isDebug)
+
 2) How much do you want to compile?  The default is everything,
    but you can give configure the option --enable-HTk, if all you
-   want to compile is HTk or --enable-Het if you just want to 
-   compile the things needed for HetCATS (HTk + uDraw(Graph) + HaXml).
+   want to compile is HTk or --enable-Het if you just want to
+   compile the things needed for Hets (HTk + uDraw(Graph)).
    If ./configure can't find the files it needs it may decide not
-   to compile everything anyway; for example if it can't find uDrawGraph
-   it will just compile HTk.
-3) The programs (ghc, wish, uDrawGraph or daVinci, gnuclient) need
-   to be in your PATH  when you run ./configure.  (After that,
-   ./configure makes sure they are remembered.)    
-   If you want to compile everything, you will also 
-   need to tell ./configure where to find the Berkeley Data Base, see 
-   (5) in the "Requirements section".
+   to compile everything anyway; for example if it can't find
+   a Berkeley Data Base it will just compile HTk and uDrawGraph.
 
-   You can also specify these using environment variables.  For example,
-   if you want to use tixwish rather than wish, set the environment variable
-   UNIWISH to the location of your tixwish executable.
+3) The programs (ghc, wish, uDrawGraph, gnuclient) should
+   be in your PATH  when you run your applications
+   (./configure just checks them).
+   If you want to compile everything, you will also
+   need to tell ./configure where to find the Berkeley Data Base, see
+   (5) in the "Requirements section".
 
 Compiling
 ---------
@@ -243,11 +196,11 @@ it, assuming that you are in the same directory as this README file
 document, I shall use "gmake" to mean "whatever command corresponds to
 GNU make on your system".  Other versions of make, such as that called "make"
 on Solaris, do not work.
-   
+
 # Configure the Makefiles
 ./configure
 # Compile Uni
-gmake all
+gmake cabal
 
 Compiling the Emacs Lisp files
 ------------------------------
@@ -260,40 +213,25 @@ gmake objsemacs
 Other Make targets for UniForM developers
 -----------------------------------------
 
-The 
+The
    ./configure
-   gmake all
+   gmake cabal
 sequence described above is just if you want to build the whole thing from
 scratch.  Once you've done this, you may want to modify a file and then
-recompile. 
+recompile.
 
 The Make targets described in this section all work in any directory of uni
 that contains a Makefile.  If you use then in a subdirectory, they will only
 apply to that subdirectory.  For example, if you have modified a file, you
 can do
-   gmake all
+   gmake cabal
 in the directory containing that file
 
 As described in the next section "Makefiles for uni", source files are
 divided into package files, test files and main files.  You can use
-   gmake package
-   gmake test
-or
-   gmake main
+   gmake testcabal
 to compile just the files you are interested in.  Of course, to compile
-the test or main files, you should already have compiled the package files.
-
-You can also compile any individual file.  This is often useful when you
-modify one file and want to get GHC to check it.  First, as preparation, you
-need to do
-   gmake depend
-and then you can use
-   gmake [object file]
-where the object file for, say, Foo.hs is Foo.o.
-
-If you add a source file, or want to add a whole new subdirectory with its
-own Makefile, you will need to modify a Makefile.  These are described in
-the next section.
+the test and main files, you should already have compiled the cabal packages.
 
 Makefiles for uni
 -----------------
@@ -309,8 +247,9 @@ PACKAGES = package1 package2 . . .
 
 include @TOP@/mk/boilerplate.mk
 ---- cut here --------------
+
 Thus we have a list of variable settings (which may be in any order),
-then we include the general Make magic.  
+then we include the general Make magic.
 
 SRCS contains all the Haskell source files in this directory.
    The Makefiles interpret these specially according to name.
@@ -325,147 +264,47 @@ SRCS contains all the Haskell source files in this directory.
       name of the file (so the file Foo.hs must contain the module Foo; the
       module subdir/Bar.hs must contain the module Bar).
 
-PACKAGE is the name you want to give to the package contained in this 
+PACKAGE is the name you want to give to the package contained in this
    directory.  Normally this name begins with "uni-". This should be
    specified if and only if the directory contains library files.
 PACKAGES is the list of packages you will need.  This includes
    GHC packages (net and posix for example) and also UniForM packages
    (like uni-htk).  You only have to give direct dependencies here; for
    example uni-htk imports uni-util, so if you specify uni-htk, you do not
-   need uni-util.   
+   need uni-util.
 
 The following variables also occur occasionally:
 SUBDIRS specifies a list of subdirectories of this directory also containing
    Makefiles, into which we should recurse.
 SRCSC is like SRCS, but expects a list of C files.
 
-Some special targets are occasionally optionally defined.  These include
-   dochere
-If a Makefile defines this target it will be executed when gmake doc is
-done; it should compile any documentation in this directory.
-   wwwhere
-If a Makefile defines this target it will be executed when gmake www is done.
-This should copy any appropriate files over to the Web page.
-
-Makefile.in can also contain variable settings which, for example, specify
-   special GHC options to use, but I shall not explain this here.  You may
-   be able to work some of them out by looking at the Makefiles, for example
-   htk/Makefile.in.
-
-After you've modified a Makefile, if you have time on your hands you should run
-   ./configure 
+After you've modified a Makefile.in, you should run
+   ./configure
 (from the top directory)
-followed by 
-   gmake packagesquick
-to reset the package file.  You may also need to run
-   gmake depend
-if the import dependencies between the files you are working on have changed
-and you want Make targets "lib" or individual object files to work.
- 
-However in many cases it will be possible to get away with
-   gmake makefilequick
-to regenerate the Makefile in the current directory.  (This assumes that
-one is already there.)  This technique assumes you've changed that Makefile, 
-and nothing else relevant to configuration.  (For example, it assumes you
-haven't added any new Makefiles.) 
-
-Making documentation
---------------------
-
-You need to use Haddock 0.7, which is available from 
-
-   http://www.haskell.org/haddock/
-
-Make sure Haddock is in your path and then type
-
-   ./configure 
-   ./runhaddock.sh
-
-The output may be even better if you can find where Glasgow Haskell installs
-its HTML documentation and, instead of "./configure", use 
-"./configure --with-ghc-html=[directory]".  ./configure tries to figure out
-where the HTML documentation is anyway, but it doesn't always get it
-right. (GHC's HTML documentation should have been generated with the
-same haddock version, which should be the case for ghc-6.4.1)
+followed by
+   gmake cabal
+to recompile the cabal packages.
+(Use "ghc-pkg unregister" to remove older or corrupt versions)
 
 
-
-Other Specific Issues for Windows
+Other Specific Issues for Windows (untested)
 ---------------------------------
 
-For wish, daVinci, gnuclient, programs which the Workbench calls externally, 
-there is a problem because the Workbench uses GHC, which expects the
-native Windows file names of their executables, while when you ran ./configure
-it will have hardwired the MinGW (or perhaps CygWin) names, which are tweaked
-to make them look more Unix-y.  The solution is to specify the file names
+It is possible to specify the file names
 directly, by setting the environment variables UNIWISH, UNIDAVINCI and
 UNIGNUCLIENT to the location of the executables.  If they are in your PATH,
-you can in fact just set them to "wish", "daVinci" and "gnuclient".
-(The renaming of daVinci to uDrawGraph has not been tested yet under windows)
-
-
-How to Make a Binary Distribution
----------------------------------
-
-The following (should) work.
-
-# of course you can skip the next three commands if you've already done them
-   ./configure
-   gmake packages
-#
-   gmake doc
-   gmake prepareexports
-   gmake exports
-
-This will create .tar.gz and .zip files containing a binary distribution
-(the names begin with uni- and includes version numbers and so on).  
-You should afterwards re-run ./configure as gmake prepareexports (currently) 
-alters the default_options code in util, to put in generic locations for wish,
-daVinci & co.
-
-Other documentation
--------------------
-
-The htk/doc directory contains various documentation about htk.
-
-You should start with htk/doc/intro, which is an introduction.
-
-htk/doc/hdoc contains hdoc-style information indexing modules, variables,
-   classes and so on.  The files (once documentation is made) are in HTML.
-
-htk/doc/internal/HOWTO.tex contains a description of the internals of the HTk
-   encapsulation; this will be most useful if you want to modify this
-   encapsulation in some way.  Hence it is heavily technical.  Just to make
-   things more fun, it is in German.  Do let us know if you want a translation.
-
-
-docs/future contains some notes on the future development of UniForM
-(some of which has already happened).
+you can in fact just set them to "wish", "uDrawGraph" and "gnuclient".
 
 More information about Make targets
 -----------------------------------
 
-Make targets are those names you put after "gmake", like "depend" and "all"
+Make targets are those names you put after "gmake", like "cabal"
 in the above instructions.
 
 Most Make targets can be used in any directory of the UniForM source
-containing a makefile, not just the top one.  
-"depend" does various necessary setting up.
-"all" does the actual compilation, once depend has been run.
-"packages" is like "all", but just compiles the packages, not the stand-alone
-   executables.
-"test" makes all the test programs, that is stand-alone executables compiled
-   from Haskell modules beginning with "Test".
-"main" makes all the main programs, that is stand-alone executables compiled
-   from Haskell modules beginning with "Main".  (The prefix "Main" is removed)
+containing a makefile, not just the top one.
 
-"clean" deletes all the output of "all".
-
-The following two options fall into this class, but are experimental and
-likely to change in the near future.
-The following targets are provided by the top-level Makefile:
-
-"tarball.tar.gz" makes a tarball (with that name) of all UniForM sources.
+"clean" deletes all object files
 
 There are some other targets, but you will have to look in mk/suffix.mk
 and Makefile.in to see what they are.
@@ -479,8 +318,6 @@ present, and can be used to change the options and provide extra targets.
 Conclusion
 ----------
 
-Please report problems to uniform@informatik.uni-bremen.de .
+Please report problems to Christian.Maeder@dfki.de.
 
 Good luck!
-
-

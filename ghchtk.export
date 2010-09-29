@@ -1,2 +1,0 @@
-#!/bin/sh
-ghc -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances -package-conf #PWD/uni-package.conf -package uni-htk $*

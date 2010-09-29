@@ -1,84 +1,9 @@
-Here is a list of Make targets, or at least the most useful ones.
+Here is the list of Make targets that should work for ghc-6.10.x and ghc-6.12.x.
 Of course these will only work when you've run ./configure (which creates
 the Makefiles in the first place.)
 
-(as of 13th June)
-
-   packages - creates all packages (which means libraries but not executables)
-   test - creates all test programs.  packages must have been made.
-   main - creates all main programs.  packages must have been made.
-   all - packages + test + main
+   cabal - creates all cabal packages globally with profiling
+     (which means libraries but not executables)
+   testcabal - creates all test and main programs.
+     packages must have been made.
    clean - cleans everything
-
-The process of packages can be split up into two stages.  One involves
-compiling the object files and putting them into .a library archives; the
-other (much quicker) involves registering these in UniForM's uni-package.conf
-file.
-
-The ./configure process does not touch the .a library archives, but it zaps
-the uni-package.conf file.  However there is also the target  
-
-   packagesquick - recreate the uni-package.conf file
-
-which you can use ./configure.
-
-There are two methods provided for compiling object files.  The method used
-by the "packages" target compiles all the object files in one directory in
-one go; this is fast if you have a lot of memory and you want to compile
-all the files at once.  However if you are short of memory or you want to
-recompile after just one or two source files have changed, it is often better
-to get GHC to compile the files one by one.  For this you need
-   depend - create dependency files, needed by the next two targets.
-      "packagesfast" already needs to have been made; if you haven't done any
-      compilation it will fall over during HTk, but you will still be able
-      to compile all modules up to and including HTk with the resulting
-      modules, then you should iterate making "packagesquick" and repeating,
-      and you should be able to compile everything.
-   lib - create the .a file by compiling files one by one.
-   (any source module).o - compiles just that file and those it depends on.
-If you like living dangerously you can give Make the command line option
-FAST=YES to tell it to _ignore_ source dependencies; this means you can 
-compile a source module without checking whether other modules have changed.
-After you have made "lib" you can then do "packagesfast" to add the library
-to the packages file. 
-
-Preparing a binary release
---------------------------
-
-After you've made "packages" do
-
-   prepareexports - sets up a package file for export.  (Not quite a 
-      real package file; it contains some bad filenames which will have to
-      be reprocessed at the other end.)
-   exports - Make the .tar.gz and .zip files to be exported.
-
-Making just in a directory
---------------------------
-
-Some of the targets work recursively on subdirectories.  For these there
-is a corresponding target with name ending "here" which just works on the
-current directory.
-
-   packagehere - corresponds to "packages"
-   libhere - corresponds to "lib"
-   mainhere - corresponds to "main"
-   testhere - corresponds to "test"
-
-Displaying lists of sources files
----------------------------------
-
-Various targets list source files, for example:
-
-   displayshs[here] - lists Haskell sources
-   displaysrcs[here] - lists full pathnames of Haskell, C or Makefile sources.
-   displayexports[here] - lists full pathnames of everything to be exported.
-   exportnames - lists everything to be exported with their exported names.
-
-Other Miscellaneous Targets
----------------------------
-
-   ghci - Starts up ghci with all packages used by the current directory loaded
-   display - displays various Makefile variables in this directory
-   makefilequick - recreates the Makefile in this directory from Makefile.in
-
-
