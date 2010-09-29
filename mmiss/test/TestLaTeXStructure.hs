@@ -6,13 +6,13 @@ module Main(main) where
 import IO
 import System
 
-import Computation
+import Util.Computation
 
-import LaTeXParser
+import MMiSS.LaTeX.Parser
 
-import MMiSSDTD
-import MMiSSEditXml
-import MMiSSFileSystemExamples
+import MMiSS.DTD
+import MMiSS.EditXml
+import MMiSS.FileSystemExamples
 
 main :: IO ()
 main =

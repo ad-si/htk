@@ -1,9 +1,9 @@
 module Main where
 
-import AtomString
-import CodedValue
-import ICStringLen
-import ExtendedPrelude
+import Util.AtomString
+import Types.CodedValue
+import Util.ICStringLen
+import Util.ExtendedPrelude
 
 main :: IO ()
 main =

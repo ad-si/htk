@@ -1,12 +1,12 @@
 module Main(main) where
 
-import Registry
+import Util.Registry
 
-import HTk
+import HTk.Toplevel.HTk
 
-import GetAttributesType
-import AttributesType
-import Registrations
+import Types.GetAttributesType
+import Types.AttributesType
+import Types.Registrations
 
 main :: IO ()
 main =

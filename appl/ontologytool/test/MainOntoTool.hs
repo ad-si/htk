@@ -12,16 +12,16 @@ import Maybe
 
 -- import Computation
 -- import AtomString
-import OntoParser
-import MMiSSOntology
-import MMiSSOntologyGraph
+import Appl.Ontologytool.OntoParser
+import Appl.Ontologytool.MMiSSOntology
+import Appl.Ontologytool.MMiSSOntologyGraph
 import Data.Graph.Inductive.Graph
 
 -- import Events
 -- import Destructible
 -- import InfoBus
 
-import HTk
+import HTk.Toplevel.HTk
 -- import SimpleForm
 -- import DialogWin
 

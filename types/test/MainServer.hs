@@ -1,9 +1,9 @@
 {- This program runs a server for all the UniForM services. -}
 module Main(main) where
 
-import Server
+import Server.Server
 
-import SimpleDBService
+import SimpleDB.Service
 
 main :: IO ()
 main =

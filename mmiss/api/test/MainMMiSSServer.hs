@@ -9,26 +9,26 @@ import IO
 import Time
 
 import Control.Concurrent
-import Control.Exception
+import Control.OldException as Control.Exception
 import Network
 
 
-import ExtendedPrelude
-import BinaryAll
-import Computation
-import WBFiles(getXMLPort,parseArgumentsRequiring)
+import Util.ExtendedPrelude
+import Util.BinaryAll
+import Util.Computation
+import Util.WBFiles(getXMLPort,parseArgumentsRequiring)
 
-import BlockSigPIPE
+import Posixutil.BlockSigPIPE
 
-import Crypt
-import PasswordFile
-import HostsPorts
+import Server.Crypt
+import Server.PasswordFile
+import Server.HostsPorts
 
-import Registrations
+import Types.Registrations
 
-import MMiSSRegistrations
+import MMiSS.Registrations
 
-import MMiSSDoXml
+import MMiSS.API.DoXml
 
 main :: IO ()
 main =

@@ -10,19 +10,19 @@ module Main(main) where
 
 import System
 
-import WBFiles
+import Util.WBFiles
 
-import Events
-import Destructible
+import Events.Events
+import Events.Destructible
 
-import HTk
+import HTk.Toplevel.HTk
 
-import HostsPorts
+import Server.HostsPorts
 
-import DaVinciGraph
+import UDrawGraph.Graph
 
-import Initialisation
-import VersionGraph
+import Types.Initialisation
+import Types.VersionGraph
 
 main :: IO ()
 main =

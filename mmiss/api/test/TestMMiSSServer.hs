@@ -4,17 +4,17 @@ module Main(main) where
 import IO
 import Maybe
 
-import BinaryAll
-import Messages
-import Computation
-import ICStringLen
-import AtomString
-import WBFiles
+import Util.BinaryAll
+import Util.Messages
+import Util.Computation
+import Util.ICStringLen
+import Util.AtomString
+import Util.WBFiles
 
 import Control.Concurrent
 import Network
 
-import MMiSSAPIBlock
+import MMiSS.API.Block
 
 
 main :: IO ()

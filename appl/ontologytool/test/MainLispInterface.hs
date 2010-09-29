@@ -11,10 +11,10 @@ module Main (main, command_loop) where
 
 import Char
 import IO
-import DaVinciGraph
-import GraphDisp
-import GraphConfigure
-import AbstractGraphView as AGV
+import UDrawGraph.Graph
+import Graphs.GraphDisp
+import Graphs.GraphConfigure
+import Appl.Ontologytool.AbstractGraphView as AGV
 import Data.IORef
 
 

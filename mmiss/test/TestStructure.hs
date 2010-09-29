@@ -6,9 +6,9 @@ module Main(main) where
 import IO
 import System
 
-import Computation
+import Util.Computation
 
-import MMiSSDTD
+import MMiSS.DTD
 
 
 main :: IO ()

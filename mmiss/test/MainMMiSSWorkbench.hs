@@ -4,28 +4,28 @@ module Main(main) where
 import Maybe
 import System
 
-import WBFiles
-import ExtendedPrelude
-import Messages
+import Util.WBFiles
+import Util.ExtendedPrelude
+import Util.Messages
 
-import InfoBus
+import Reactor.InfoBus
 
-import HTk
-import SimpleForm
-import DialogWin
+import HTk.Toplevel.HTk
+import HTk.Toolkit.SimpleForm
+import HTk.Toolkit.DialogWin
 
-import DaVinciGraph
+import UDrawGraph.Graph
 
-import PasswordFile
-import HostsPorts
-import HostsList
+import Server.PasswordFile
+import Server.HostsPorts
+import Server.HostsList
 
-import VersionGraphList
-import Registrations
+import Types.VersionGraphList
+import Types.Registrations
 
-import EmacsBasic
+import Emacs.Basic
 
-import MMiSSRegistrations
+import MMiSS.Registrations
 
 -- We put a catchOurExceps round everything, just in case.
 main :: IO ()
