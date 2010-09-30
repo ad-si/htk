@@ -33,7 +33,7 @@ module Events.RegexChannel(
       -- -> Event MatchResult
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.RegularExpression
 
