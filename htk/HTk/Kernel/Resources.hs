@@ -17,7 +17,7 @@ module HTk.Kernel.Resources (
 ) where
 
 import HTk.Kernel.GUIValue
-import Char
+import Data.Char
 
 
 -- -----------------------------------------------------------------------

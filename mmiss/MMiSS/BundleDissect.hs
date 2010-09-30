@@ -5,8 +5,8 @@ module MMiSS.BundleDissect(
    reduceElement, -- :: Element -> Maybe Element
    ) where
 
-import Monad
-import Maybe
+import Control.Monad
+import Data.Maybe
 
 import Util.Computation
 

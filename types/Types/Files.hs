@@ -23,7 +23,7 @@ module Types.Files(
       -- creating the LinkedObject, and that the file type has no attributes
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 

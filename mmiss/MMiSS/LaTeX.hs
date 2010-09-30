@@ -6,8 +6,8 @@ module MMiSS.LaTeX(
 
 import Directory
 
-import Maybe
-import Char
+import Data.Maybe
+import Data.Char
 
 import Util.WBFiles
 import Util.FileNames
@@ -111,7 +111,7 @@ mmissLaTeX view fileName contents exportFiles0 =
             -- allowing the user to do various things with the resulting
             -- output, until he/she clicks Cancel.
             let
-               emptyName str = all Char.isSpace str
+               emptyName str = all isSpace str
 
                dviLoop :: IO ()
                -- Choice is xdvi or send to file

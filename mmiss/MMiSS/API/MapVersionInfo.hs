@@ -5,7 +5,7 @@ module MMiSS.API.MapVersionInfo(
    toOurUserInfo,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Text.XML.HaXml.Xml2Haskell
 

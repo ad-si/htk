@@ -51,7 +51,7 @@ module Types.VersionGraphClient(
       -- :: ArcType
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Control.Concurrent.MVar
 

@@ -18,7 +18,7 @@ module HTk.Kernel.Font (
 ) where
 
 import HTk.Kernel.GUIValue
-import Char
+import Data.Char
 import Util.ExtendedPrelude(simpleSplit)
 import Util.Debug(debug)
 

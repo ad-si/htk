@@ -35,8 +35,8 @@ module Imports.ErrorManagement(
 
    ) where
 
-import Monad
-import Maybe
+import Control.Monad
+import Data.Maybe
 
 import Util.Computation
 import Util.Messages

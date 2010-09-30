@@ -60,8 +60,8 @@ module MMiSS.PackageFolder(
 
    ) where
 
-import Maybe
-import List
+import Data.Maybe
+import Data.List as List
 
 import System.IO.Unsafe
 import Util.DeprecatedFiniteMap

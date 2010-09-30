@@ -5,7 +5,7 @@ module MMiSS.ReAssemble(
    reAssembleNoRecursion,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.Computation
 import Util.AtomString

@@ -71,9 +71,9 @@ module MMiSS.LaTeX.Parser (
 
 -- import IO(FilePath)
 
-import List
-import Char
-import Monad
+import Data.List
+import Data.Char
+import Control.Monad
 import System.IO
 
 import Text.XML.HaXml.Types
@@ -1439,7 +1439,7 @@ fromIncludeStrOpt "Group" = Just 'G'
 fromIncludeStrOpt "Unit" = Just 'U'
 fromIncludeStrOpt "Atom" = Just 'A'
 fromIncludeStrOpt "Embedded" = Just 'E'
-fromIncludeStrOpt (c : cs) | Char.isLower c
+fromIncludeStrOpt (c : cs) | isLower c
    = fromIncludeStrOpt (toUpper c : cs)
 fromIncludeStrOpt _ = Nothing
 

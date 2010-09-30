@@ -16,9 +16,9 @@ module HTk.Kernel.GUIValue (
         illegalGUIValue
         ) where
 
-import Char
-import Maybe(isJust)
-import List (find)
+import Data.Char
+import Data.Maybe(isJust)
+import Data.List (find)
 
 -- --------------------------------------------------------------------------
 --  Options

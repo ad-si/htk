@@ -1,7 +1,7 @@
 {- Runs the MMiSS workbench as a client. -}
 module Main(main) where
 
-import Maybe
+import Data.Maybe
 import System
 
 import Util.WBFiles

@@ -156,7 +156,7 @@ module MMiSS.VariantObject(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Control.Concurrent.MVar
 import System.IO.Unsafe(unsafeInterleaveIO)

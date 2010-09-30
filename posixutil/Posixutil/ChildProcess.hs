@@ -50,8 +50,9 @@ module Posixutil.ChildProcess (
    )
 where
 
-import IO
-import Monad
+import System.IO
+import System.IO.Error as IO
+import Control.Monad
 
 import Foreign.C.String
 import System.Exit

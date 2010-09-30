@@ -50,7 +50,7 @@ module HTk.Toolkit.TreeList (
 
 ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 
@@ -58,7 +58,7 @@ import Reactor.ReferenceVariables
 
 import HTk.Toplevel.HTk
 import HTk.Toolkit.ScrollBox
-import List
+import Data.List
 import HTk.Kernel.Core
 import HTk.Toolkit.CItem
 import HTk.Toolkit.Name

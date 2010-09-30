@@ -61,7 +61,7 @@ import HTk.Components.Index
 import HTk.Components.Selection
 import HTk.Devices.XSelection
 import HTk.Components.ICursor
-import Char(isSpace)
+import Data.Char(isSpace)
 import HTk.Components.Focus
 import Util.Computation
 import Events.Destructible

@@ -19,7 +19,7 @@ module MMiSS.BundleConvert(
    ) where
 
 import IO
-import Maybe
+import Data.Maybe
 
 import Util.AtomString
 import Util.Computation

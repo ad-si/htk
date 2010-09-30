@@ -34,7 +34,7 @@ module HTk.Kernel.Cursor (
 
 import HTk.Kernel.GUIValue
 import HTk.Kernel.Colour
-import Char
+import Data.Char
 import Util.Debug(debug)
 
 

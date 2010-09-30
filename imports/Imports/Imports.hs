@@ -32,7 +32,7 @@ module Imports.Imports(
 --   getLocalNodeData,LocalNodeData(..), -- DEBUG
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Data.IORef
 import Control.Concurrent.MVar

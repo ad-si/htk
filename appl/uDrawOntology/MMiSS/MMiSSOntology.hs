@@ -143,7 +143,7 @@ module MMiSS.MMiSSOntology (
 where
 
 -- import Control.Monad
-import Maybe
+import Data.Maybe
 import Computation hiding (try)
 import Data.List
 import qualified Data.Map               as Map

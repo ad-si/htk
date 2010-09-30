@@ -47,7 +47,7 @@ import Reactor.ReferenceVariables
 import HTk.Toolkit.Name
 import Events.Examples(watch)
 import HTk.Kernel.Core
-import Maybe
+import Data.Maybe
 
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)

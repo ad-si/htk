@@ -34,8 +34,8 @@ module Graphs.GetAncestors(
       -- This is a pure cut-down function for extracting a node's ancestors.
    ) where
 
-import Monad
-import Maybe
+import Control.Monad
+import Data.Maybe
 
 import Util.DeprecatedSet
 

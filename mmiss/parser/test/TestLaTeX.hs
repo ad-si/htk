@@ -6,7 +6,7 @@ module Main(main) where
 
 import IO
 import System
-import List
+import Data.List
 
 -- import Pretty
 

@@ -33,7 +33,7 @@ module Types.AttributesType(
    editObjectAttributes,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 import Data.IORef

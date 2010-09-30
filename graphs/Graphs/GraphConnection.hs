@@ -20,7 +20,7 @@ module Graphs.GraphConnection(
    mapGraphConnection,
    ) where
 
-import Monad(filterM)
+import Control.Monad(filterM)
 
 import Util.DeprecatedSet
 import Control.Concurrent

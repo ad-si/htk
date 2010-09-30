@@ -13,8 +13,8 @@ module SimpleDB.Permissions(
    unparsePermissions,
    ) where
 
-import Char
-import Maybe
+import Data.Char
+import Data.Maybe
 
 import Text.ParserCombinators.Parsec
 

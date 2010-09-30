@@ -2,7 +2,7 @@
 {- Tests and demonstrates toolkit/SimpleForm.hs -}
 module Main(main) where
 
-import Char
+import Data.Char
 
 import qualified HTk.Kernel.Configuration as Configuration
 

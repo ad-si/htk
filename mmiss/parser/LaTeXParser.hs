@@ -71,9 +71,9 @@ module LaTeXParser (
 
 -- import IO(FilePath)
 
-import List
-import Char
-import Monad
+import Data.List
+import Data.Char
+import Control.Monad
 import System.IO
 
 import Text.XML.HaXml.Types

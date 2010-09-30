@@ -44,7 +44,7 @@ module Types.Folders(
       -- The value of the argument is ignored.
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 import Data.IORef

@@ -52,9 +52,9 @@ module LaTeXParserCore (
 
 -- module LaTeXParserCore where
 
-import List
-import Char
-import Monad
+import Data.List
+import Data.Char
+import Control.Monad
 
 import Text.ParserCombinators.Parsec
 

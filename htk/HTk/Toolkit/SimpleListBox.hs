@@ -29,7 +29,7 @@ module HTk.Toolkit.SimpleListBox(
       -- item has yet been added.)
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Control.Concurrent.MVar
 

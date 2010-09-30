@@ -22,7 +22,7 @@ module MMiSS.Preamble(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 

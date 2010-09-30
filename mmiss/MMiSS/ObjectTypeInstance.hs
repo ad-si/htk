@@ -14,7 +14,7 @@ module MMiSS.ObjectTypeInstance(
       -- -> IO (WithError (Maybe (Link MMiSSObject)))
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 

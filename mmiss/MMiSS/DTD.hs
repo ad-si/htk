@@ -28,8 +28,8 @@ module MMiSS.DTD(
    ) where
 
 import IO
-import Maybe
-import qualified List
+import Data.Maybe
+import qualified Data.List as List
 
 import Util.DeprecatedFiniteMap
 import System.IO.Unsafe

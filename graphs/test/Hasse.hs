@@ -4,7 +4,7 @@ module Hasse(
    hasse -- Ord a => [(a,a)] -> [(a,a)]
    ) where
 
-import List hiding (intersect,union)
+import Data.List hiding (intersect,union)
 
 import DeprecatedFiniteMap
 import DeprecatedSet

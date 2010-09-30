@@ -6,8 +6,8 @@ module Types.Merging(
 
    ) where
 
-import Maybe
-import List
+import Data.Maybe
+import Data.List
 
 import Util.DeprecatedFiniteMap
 import System.IO.Unsafe

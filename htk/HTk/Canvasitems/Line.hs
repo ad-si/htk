@@ -31,7 +31,7 @@ import HTk.Kernel.Geometry(Distance)
 import HTk.Canvasitems.CanvasItem
 import HTk.Canvasitems.CanvasTag
 import HTk.Canvasitems.CanvasItemAux
-import Char
+import Data.Char
 import Events.Destructible
 import Util.Computation
 import Events.Synchronized

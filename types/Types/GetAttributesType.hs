@@ -6,7 +6,7 @@ module Types.GetAttributesType(
    getAttributesType, -- :: IO AttributesType
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.Computation
 

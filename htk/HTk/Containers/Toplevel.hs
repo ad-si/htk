@@ -14,7 +14,7 @@ module HTk.Containers.Toplevel (
 import HTk.Kernel.Resources
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses
-import List
+import Data.List
 import Util.Computation
 import Events.Destructible
 import Events.Synchronized

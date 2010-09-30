@@ -6,7 +6,7 @@ module MMiSS.BundleNodeEditLocks(
    acquireBundleNodeEditLocks,
    ) where
 
-import Monad
+import Control.Monad
 
 import Util.Computation
 

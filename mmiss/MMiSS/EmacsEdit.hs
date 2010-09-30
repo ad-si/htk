@@ -11,7 +11,7 @@ module MMiSS.EmacsEdit(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar

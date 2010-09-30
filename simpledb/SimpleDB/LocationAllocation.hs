@@ -11,8 +11,8 @@ module SimpleDB.LocationAllocation(
    forgetUsersLocations,
    ) where
 
-import Monad
-import Maybe
+import Control.Monad
+import Data.Maybe
 
 import Data.IORef
 import Util.DeprecatedFiniteMap

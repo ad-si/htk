@@ -5,8 +5,8 @@ module SimpleDB.VersionData(
    createVersionData,
    ) where
 
-import Maybe
-import Monad
+import Data.Maybe
+import Control.Monad
 
 import Data.IORef
 import Util.DeprecatedFiniteMap

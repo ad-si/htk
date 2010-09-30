@@ -4,7 +4,7 @@ module SimpleDB.FlushSimpleDB(
    flushSimpleDB,
    ) where
 
-import Monad
+import Control.Monad
 
 import SimpleDB.Types
 import SimpleDB.BDBOps

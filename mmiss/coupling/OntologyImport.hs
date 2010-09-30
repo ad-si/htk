@@ -4,7 +4,7 @@ module OntologyImport (
 
 import IO
 import System
-import Maybe
+import Data.Maybe
 import Data.List
 
 import View

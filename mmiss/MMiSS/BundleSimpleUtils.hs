@@ -85,9 +85,9 @@ module MMiSS.BundleSimpleUtils(
 
 import Util.DeprecatedFiniteMap
 
-import Maybe
+import Data.Maybe
 import IO
-import List
+import Data.List
 
 import Control.Monad.State
 import Text.XML.HaXml.Types

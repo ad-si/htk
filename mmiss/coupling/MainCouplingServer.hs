@@ -8,8 +8,8 @@ module Main(main) where
 import IO
 import Time
 import System
-import Maybe
-import Monad
+import Data.Maybe
+import Control.Monad
 
 import Data.List
 import Data.Graph.Inductive

@@ -8,7 +8,7 @@ module Graphs.PureGraphPrune(
    ) where
 
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 import Util.DeprecatedSet

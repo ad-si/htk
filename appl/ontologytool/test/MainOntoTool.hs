@@ -7,8 +7,8 @@ module Main(main) where
 import IO
 import System.Directory
 import System
-import List
-import Maybe
+import Data.List
+import Data.Maybe
 
 -- import Computation
 -- import AtomString

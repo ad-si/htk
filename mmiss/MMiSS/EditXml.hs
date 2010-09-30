@@ -13,7 +13,7 @@ module MMiSS.EditXml(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.Computation
 

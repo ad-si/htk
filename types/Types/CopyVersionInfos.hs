@@ -14,8 +14,8 @@ module Types.CopyVersionInfos(
    -- to repository.
    ) where
 
-import Maybe
-import Monad
+import Data.Maybe
+import Control.Monad
 
 import Util.DeprecatedFiniteMap
 

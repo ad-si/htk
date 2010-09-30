@@ -49,7 +49,7 @@ module Types.View(
       -- get the VersionInfo for this view.
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Control.Concurrent.MVar
 

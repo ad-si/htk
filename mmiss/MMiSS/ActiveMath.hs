@@ -4,7 +4,7 @@ module MMiSS.ActiveMath(
    ) where
 
 import Directory
-import Char
+import Data.Char
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar

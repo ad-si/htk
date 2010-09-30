@@ -11,7 +11,7 @@ module MMiSS.BundleFillIn(
    fillInBundle, -- :: Maybe EntityName -> Bundle -> IO Bundle
    ) where
 
-import Maybe
+import Data.Maybe
 import IO
 
 import Util.Computation

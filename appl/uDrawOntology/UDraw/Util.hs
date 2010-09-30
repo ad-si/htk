@@ -26,7 +26,7 @@ module UDraw.Util (
   getUDGHOME
   )where
 
-import qualified List
+import qualified Data.List as List
 
 import qualified Data.Map               as Map
 import qualified Debug.Trace            as Debug

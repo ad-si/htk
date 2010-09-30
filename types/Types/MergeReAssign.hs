@@ -14,8 +14,8 @@ module Types.MergeReAssign(
    mkLinkReAssigner,
    ) where
 
-import Maybe
-import Monad
+import Data.Maybe
+import Control.Monad
 
 import Util.DeprecatedFiniteMap
 import Data.IORef

@@ -7,8 +7,8 @@ module Emacs.SExp (
    doParseInt,
    ) where
 
-import Char
-import Maybe
+import Data.Char
+import Data.Maybe
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P

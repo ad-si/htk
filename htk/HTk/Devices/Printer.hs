@@ -24,7 +24,7 @@ module HTk.Devices.Printer (
 
 
 import HTk.Kernel.Core
-import Char(isSpace)
+import Data.Char(isSpace)
 import Util.Computation
 import HTk.Kernel.Configuration
 import Events.Destructible

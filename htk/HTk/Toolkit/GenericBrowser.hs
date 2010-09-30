@@ -10,7 +10,7 @@ module HTk.Toolkit.GenericBrowser (
 
 ) where
 
-import Monad
+import Control.Monad hiding (forever)
 
 import System.IO.Unsafe
 

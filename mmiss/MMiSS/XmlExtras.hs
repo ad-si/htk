@@ -20,7 +20,7 @@ module MMiSS.XmlExtras(
    mapElement, -- :: (Element -> Maybe Element) -> Element -> Element
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Control.Monad.State
 

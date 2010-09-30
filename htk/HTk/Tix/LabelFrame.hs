@@ -20,7 +20,7 @@ import Util.Computation
 import Events.Synchronized
 import Events.Destructible
 import HTk.Kernel.Packer
-import Char
+import Data.Char
 import HTk.Kernel.PackOptions
 import HTk.Kernel.GridPackOptions
 import HTk.Kernel.Tooltip

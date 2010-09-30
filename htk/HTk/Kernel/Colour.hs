@@ -7,7 +7,7 @@ module HTk.Kernel.Colour (
 ) where
 
 import HTk.Kernel.GUIValue
-import Char
+import Data.Char
 
 
 -- -----------------------------------------------------------------------

@@ -5,7 +5,7 @@ module Types.CopyVersion(
    FromTo(..),
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

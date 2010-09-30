@@ -37,7 +37,7 @@ module Graphs.SimpleGraph(
 
    ) where
 
-import List(delete)
+import Data.List(delete)
 
 import Control.Concurrent
 import Control.Exception(try)

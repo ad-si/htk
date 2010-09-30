@@ -14,7 +14,7 @@ module MMiSS.BundleUtils(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.ICStringLen
 import Util.AtomString

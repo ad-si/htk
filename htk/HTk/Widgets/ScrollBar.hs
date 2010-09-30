@@ -31,15 +31,15 @@ import HTk.Kernel.Geometry
 import HTk.Kernel.Resources
 import Events.Destructible
 import HTk.Components.Slider
-import Char
+import Data.Char
 import Util.Computation
 import Events.Synchronized
 import Reactor.ReferenceVariables
 import HTk.Kernel.Packer
 import HTk.Kernel.Tooltip
 import HTk.Kernel.GUIValue
-import List(dropWhile, takeWhile)
-import Char(isSpace)
+import Data.List(dropWhile, takeWhile)
+import Data.Char(isSpace)
 
 
 -- -----------------------------------------------------------------------

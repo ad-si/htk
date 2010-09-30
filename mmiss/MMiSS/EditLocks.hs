@@ -22,8 +22,8 @@ module MMiSS.EditLocks(
    emptyLockSet, -- :: LockSet
    ) where
 
-import Maybe
-import List
+import Data.Maybe
+import Data.List
 
 import Util.Computation
 

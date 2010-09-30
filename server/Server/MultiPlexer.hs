@@ -10,7 +10,7 @@ module Server.MultiPlexer(
    sendCommand, -- :: MultiPlexer command response -> command -> IO response
    ) where
 
-import Monad
+import Control.Monad
 
 import Control.Concurrent
 

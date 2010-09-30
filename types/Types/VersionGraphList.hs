@@ -11,8 +11,8 @@ module Types.VersionGraphList(
    showHostPortOpt, -- :: Maybe HostPort -> String
    ) where
 
-import Maybe
-import Monad
+import Data.Maybe
+import Control.Monad
 
 import System.IO.Unsafe
 import Control.Concurrent

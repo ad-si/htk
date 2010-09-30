@@ -25,7 +25,7 @@ module SimpleDB.PrimitiveLocation(
    getLocations,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

@@ -8,7 +8,7 @@ module Graphs.RemoveAncestors(
    removeAncestorsByPure,
    ) where
 
-import Monad
+import Control.Monad
 
 
 import Control.Monad.Identity

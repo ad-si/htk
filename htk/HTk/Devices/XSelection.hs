@@ -17,7 +17,7 @@ import HTk.Kernel.Core
 import HTk.Components.Index
 import HTk.Components.Selection
 import HTk.Devices.Screen
-import Char
+import Data.Char
 import Util.Computation
 import HTk.Containers.Window
 

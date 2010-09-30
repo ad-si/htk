@@ -3,8 +3,8 @@ module DrawDepend(
   drawDepend
   ) where
 
-import List
-import Maybe
+import Data.List
+import Data.Maybe
 import IO
 import System
 

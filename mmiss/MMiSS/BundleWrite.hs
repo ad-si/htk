@@ -10,9 +10,9 @@ module MMiSS.BundleWrite(
 
 import Control.Exception
 
-import IO
-import List
-import Maybe
+import System.IO
+import Data.List as List
+import Data.Maybe
 
 import Types.View
 import Types.LinkManager

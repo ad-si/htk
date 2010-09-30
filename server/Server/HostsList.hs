@@ -18,7 +18,7 @@ module Server.HostsList (
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Data.IORef
 import System.IO.Unsafe

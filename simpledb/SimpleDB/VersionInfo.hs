@@ -87,7 +87,7 @@ module SimpleDB.VersionInfo(
    ) where
 
 import Time
-import List (intersperse)
+import Data.List (intersperse)
 
 import Data.Typeable
 import Util.DeprecatedFiniteMap

@@ -9,7 +9,7 @@ module Main (main, command_loop) where
 -}
 
 
-import Char
+import Data.Char
 import IO
 import UDrawGraph.Graph
 import Graphs.GraphDisp

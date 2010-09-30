@@ -62,7 +62,7 @@ module Imports.Environment(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

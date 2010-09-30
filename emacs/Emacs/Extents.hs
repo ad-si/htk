@@ -37,7 +37,7 @@ module Emacs.Extents(
    insertButtonAt,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeepSeq
 import Util.Computation

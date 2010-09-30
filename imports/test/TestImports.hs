@@ -3,8 +3,8 @@ module Main where
 import System.IO.Unsafe
 import Util.DeprecatedFiniteMap
 
-import Monad
-import Maybe
+import Control.Monad
+import Data.Maybe
 
 import Util.Broadcaster
 import Util.AtomString

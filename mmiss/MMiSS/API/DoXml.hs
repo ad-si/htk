@@ -5,7 +5,7 @@ module MMiSS.API.DoXml(
    ) where
 
 import IO
-import List
+import Data.List
 
 import System.IO.Unsafe
 

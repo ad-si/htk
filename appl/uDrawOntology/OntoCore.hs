@@ -15,7 +15,7 @@ import Graphics.UI.WXCore
 import qualified IO
 import qualified Util.Thread as Thread
 import qualified System
-import qualified List
+import qualified Data.List as List
 import qualified Char
 
 import qualified Data.Map                   as Map

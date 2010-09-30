@@ -10,7 +10,7 @@ module SimpleDB.VersionAllocation(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 import Data.IORef

@@ -21,8 +21,8 @@ module SimpleDB.VersionInfoFilter(
 
 import Debug.Trace
 
-import Maybe(catMaybes)
-import Char
+import Data.Maybe(catMaybes)
+import Data.Char
 import Time
 
 import Util.ExtendedPrelude

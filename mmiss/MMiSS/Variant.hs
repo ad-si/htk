@@ -73,8 +73,8 @@ module MMiSS.Variant(
       -- Let the user edit an MMiSSVariantSearch or Spec.
    ) where
 
-import Maybe
-import Monad
+import Data.Maybe
+import Control.Monad
 
 import Control.Concurrent.MVar
 import Util.DeprecatedFiniteMap

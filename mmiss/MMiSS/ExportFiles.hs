@@ -6,7 +6,7 @@ module MMiSS.ExportFiles(
 
    ) where
 
-import Monad
+import Control.Monad
 
 import Util.DeprecatedFiniteMap
 

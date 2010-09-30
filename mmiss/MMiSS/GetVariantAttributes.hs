@@ -13,8 +13,8 @@ module MMiSS.GetVariantAttributes(
    versionKey, -- :: String
    ) where
 
-import Maybe
-import qualified List
+import Data.Maybe
+import qualified Data.List as List
 
 import Util.DeprecatedSet
 

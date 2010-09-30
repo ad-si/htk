@@ -56,8 +56,8 @@ module Imports.EntityNames(
       -- Add the given separator to the fullName, which should not have one.
    ) where
 
-import Char
-import List
+import Data.Char
+import Data.List
 
 import Text.ParserCombinators.Parsec
 

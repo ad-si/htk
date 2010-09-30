@@ -40,9 +40,9 @@ module MMiSS.BundleValidate(
       -- are transmitted to the user.
    ) where
 
-import List
-import Monad
-import Maybe
+import Data.List
+import Control.Monad
+import Data.Maybe
 
 import MMiSS.XmlExtras
 

@@ -5,8 +5,8 @@ module SimpleDB.Commit(
 
 import Control.Exception
 
-import Monad
-import Maybe
+import Control.Monad
+import Data.Maybe
 
 import Util.Computation(done)
 

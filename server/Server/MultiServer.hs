@@ -26,7 +26,7 @@ module Server.MultiServer(
    -- the action (which presumably starts the client off) while waiting.
    ) where
 
-import Maybe
+import Data.Maybe
 import IO
 import Random
 

@@ -19,7 +19,7 @@ module Server.Server(
    ) where
 
 import IO
-import List
+import Data.List
 import Time
 
 import Control.Exception hiding (handle)

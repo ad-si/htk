@@ -40,9 +40,9 @@ module MMiSS.FileType(
 
 import IO
 import Directory
-import Monad
-import Maybe
-import Char
+import Control.Monad
+import Data.Maybe
+import Data.Char
 
 import System.IO.Unsafe
 import Util.DeprecatedFiniteMap

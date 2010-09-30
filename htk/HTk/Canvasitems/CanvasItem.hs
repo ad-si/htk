@@ -28,7 +28,7 @@ module HTk.Canvasitems.CanvasItem (
 
 ) where
 
-import List (intersperse)
+import Data.List (intersperse)
 
 import HTk.Kernel.Core
 import HTk.Kernel.Configuration
@@ -37,7 +37,7 @@ import HTk.Kernel.Colour
 import HTk.Components.Image
 import HTk.Components.BitMap
 import HTk.Widgets.Canvas
-import Char(isSpace)
+import Data.Char(isSpace)
 import Util.Computation
 import Events.Synchronized
 

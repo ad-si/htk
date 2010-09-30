@@ -12,7 +12,7 @@ module SimpleDB.SecurityManagement(
    verifyGlobalGetPermissionsAccess,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

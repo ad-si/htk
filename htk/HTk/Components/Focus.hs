@@ -27,7 +27,7 @@ module HTk.Components.Focus (
 
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
-import Char(isSpace)
+import Data.Char(isSpace)
 import Util.Computation
 import HTk.Containers.Window
 

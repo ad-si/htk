@@ -40,7 +40,7 @@ module HTk.Toolkit.Notepad (
 
 ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

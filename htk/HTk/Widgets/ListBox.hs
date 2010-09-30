@@ -21,14 +21,14 @@ module HTk.Widgets.ListBox (
 
 ) where
 
-import List
+import Data.List
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Widgets.ScrollBar
 import HTk.Components.Index
 import HTk.Components.Selection hiding (HasIndex,getBaseIndex)
-import Char(isSpace)
+import Data.Char(isSpace)
 import HTk.Components.Focus
 import HTk.Devices.XSelection
 import Events.Synchronized

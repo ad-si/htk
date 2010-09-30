@@ -7,7 +7,7 @@ module MMiSS.ObjectTypeType(
    constructKey,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

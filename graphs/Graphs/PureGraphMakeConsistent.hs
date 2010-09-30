@@ -8,7 +8,7 @@ module Graphs.PureGraphMakeConsistent(
    pureGraphMakeConsistent,
    ) where
 
-import List
+import Data.List
 
 import Util.DeprecatedFiniteMap
 

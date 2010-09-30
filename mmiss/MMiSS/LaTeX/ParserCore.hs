@@ -52,9 +52,9 @@ module MMiSS.LaTeX.ParserCore (
 
 -- module MMiSS.LaTeX.ParserCore where
 
-import List
-import Char
-import Monad
+import Data.List
+import Data.Char
+import Control.Monad
 
 import Text.ParserCombinators.Parsec
 

@@ -50,7 +50,7 @@ module Server.HostsPorts(
    mapHostPort, -- :: HostPort -> HostKey
    ) where
 
-import Maybe
+import Data.Maybe
 import IO
 import Network
 

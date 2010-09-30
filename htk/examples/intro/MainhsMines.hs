@@ -2,9 +2,9 @@ module Main where
 
 import Random -- (randomRIO)
 import Array
-import List (union, nub)
+import Data.List (union, nub)
 import System
-import Monad (foldM)
+import Control.Monad (foldM)
 
 import System.IO.Unsafe
 

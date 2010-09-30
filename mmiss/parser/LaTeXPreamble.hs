@@ -18,7 +18,7 @@ where
 import Text.ParserCombinators.Parsec
 
 import ExtendedPrelude(mapEq)
-import List
+import Data.List
 import Computation hiding (try)
 import Dynamics
 import AtomString

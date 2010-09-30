@@ -11,9 +11,9 @@ module Server.GroupFile(
    ) where
 
 import IO
-import Char
+import Data.Char
 import Time
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 import Util.DeprecatedSet

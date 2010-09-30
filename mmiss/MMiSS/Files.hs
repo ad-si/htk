@@ -2,7 +2,7 @@ module MMiSS.Files where
 
 import Text.XML.HaXml.Xml2Haskell
 import Text.XML.HaXml.OneOfN
-import Char (isSpace)
+import Data.Char (isSpace)
 
 
 {-Type decls-}

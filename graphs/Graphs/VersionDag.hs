@@ -26,7 +26,7 @@ module Graphs.VersionDag(
    getNodeInfos,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

@@ -10,8 +10,8 @@ module Emacs.Edit(
    PrintAction(..),
    ) where
 
-import Maybe
-import Monad
+import Data.Maybe
+import Control.Monad
 
 import Util.Computation
 import Util.Registry

@@ -3,7 +3,7 @@ module SimpleDB.GetDiffs(
    getDiffs
    ) where
 
-import Monad
+import Control.Monad
 
 import Util.DeprecatedFiniteMap
 

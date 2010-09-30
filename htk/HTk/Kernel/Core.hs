@@ -104,7 +104,7 @@ module HTk.Kernel.Core (
 
 ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 import Control.Concurrent

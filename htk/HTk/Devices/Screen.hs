@@ -15,7 +15,7 @@ module HTk.Devices.Screen (
 
 import HTk.Kernel.Core
 import HTk.Kernel.Geometry(Distance)
-import Char(isSpace)
+import Data.Char(isSpace)
 import HTk.Containers.Window
 
 

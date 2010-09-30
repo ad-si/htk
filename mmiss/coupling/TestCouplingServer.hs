@@ -2,7 +2,7 @@
 module Main(main) where
 
 import IO
-import Maybe
+import Data.Maybe
 
 import BinaryAll
 import Messages

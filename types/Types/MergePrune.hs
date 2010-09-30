@@ -15,7 +15,7 @@ module Types.MergePrune(
       -- All the views should, of course, come from the same repository.
    ) where
 
-import Monad
+import Control.Monad
 
 import Util.DeprecatedFiniteMap
 

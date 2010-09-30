@@ -11,8 +11,8 @@ module HTk.Toolkit.FileDialog (
 import Directory
 import IO
 import System
-import Maybe
-import qualified List(sort)
+import Data.Maybe
+import qualified Data.List as List(sort)
 
 import Control.Exception
 import Data.IORef

@@ -15,7 +15,7 @@ module HTk.Components.Index (
 import HTk.Kernel.Core
 import HTk.Kernel.Geometry
 import Util.ExtendedPrelude
-import Char
+import Data.Char
 
 
 -- -----------------------------------------------------------------------

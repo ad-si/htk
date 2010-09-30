@@ -41,7 +41,7 @@ module Types.GlobalRegistry(
    describeGlobalKey,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

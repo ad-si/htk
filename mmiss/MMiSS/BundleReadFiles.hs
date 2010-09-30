@@ -13,7 +13,7 @@ module MMiSS.BundleReadFiles(
    ) where
 
 import IO
-import Maybe
+import Data.Maybe
 
 import Imports.EntityNames
 

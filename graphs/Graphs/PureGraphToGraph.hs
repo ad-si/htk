@@ -4,8 +4,8 @@ module Graphs.PureGraphToGraph(
    pureGraphToGraph,
    ) where
 
-import Maybe
-import List
+import Data.Maybe
+import Data.List
 
 import Util.DeprecatedFiniteMap
 import Data.IORef

@@ -30,7 +30,7 @@ module MMiSS.ObjectType(
    variablesSame,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe(unsafeInterleaveIO)
 

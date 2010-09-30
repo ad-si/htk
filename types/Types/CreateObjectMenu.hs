@@ -4,7 +4,7 @@ module Types.CreateObjectMenu(
    createObjectMenu,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.Computation
 

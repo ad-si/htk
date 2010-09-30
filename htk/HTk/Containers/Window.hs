@@ -28,7 +28,7 @@ import HTk.Kernel.Resources
 import HTk.Kernel.Geometry
 import HTk.Kernel.Configuration
 import HTk.Kernel.Core
-import Char
+import Data.Char
 
 type Display = String
 

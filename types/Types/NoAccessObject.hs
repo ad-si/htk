@@ -17,7 +17,7 @@ module Types.NoAccessObject(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 import Data.Typeable

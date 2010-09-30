@@ -24,7 +24,7 @@ module HTk.Toolkit.DialogWin (
         useHTk,
         ) where
 
-import Maybe(fromMaybe)
+import Data.Maybe(fromMaybe)
 
 import System.IO.Unsafe
 

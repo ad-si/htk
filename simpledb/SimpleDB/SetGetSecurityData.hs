@@ -7,7 +7,7 @@ module SimpleDB.SetGetSecurityData(
    getParentLocation,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

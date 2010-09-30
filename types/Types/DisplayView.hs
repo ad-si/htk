@@ -12,7 +12,7 @@ module Types.DisplayView(
    openGeneralDisplay,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 import Control.Concurrent.MVar

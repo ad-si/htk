@@ -41,10 +41,10 @@ import HTk.Toolkit.Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick
 import Reactor.ReferenceVariables
 import HTk.Toolkit.Name
 import HTk.Kernel.Core
-import List
+import Data.List
 import HTk.Toolkit.MarkupText
 import HTk.Toolkit.CItem
-import Maybe
+import Data.Maybe
 
 
 --------------------------------------------------------------------------

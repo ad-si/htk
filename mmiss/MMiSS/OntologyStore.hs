@@ -174,7 +174,7 @@ import qualified Data.Map as Map
 import Data.Graph.Inductive
 import Data.List
 import Control.Monad
-import Maybe
+import Data.Maybe
 
 import Text.Read
 import qualified Text.Read.Lex as L

@@ -241,7 +241,7 @@ module Types.LinkManager(
       -- likely enough in different views.)
    ) where
 
-import Maybe
+import Data.Maybe
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar

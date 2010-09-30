@@ -27,7 +27,7 @@ import HTk.Kernel.GUIValue
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
-import Char(isDigit)
+import Data.Char(isDigit)
 import Util.Computation
 import Events.Synchronized
 import Events.Destructible

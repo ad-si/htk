@@ -33,8 +33,8 @@ module MMiSS.ElementInfo(
    getObjectClass, -- :: Element -> WithError (Maybe String)
    ) where
 
-import List
-import Maybe
+import Data.List
+import Data.Maybe
 
 import Util.AtomString
 import Util.Computation

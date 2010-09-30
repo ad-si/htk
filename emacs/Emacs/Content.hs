@@ -9,7 +9,7 @@ module Emacs.Content(
    toEmacsLinks,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.ExtendedPrelude(HasMapMonadic(..))
 

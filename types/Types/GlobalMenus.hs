@@ -8,7 +8,7 @@ module Types.GlobalMenus(
    openDisplayType,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import HTk.Toplevel.HTk
 import HTk.Toolkit.MenuType as Menu

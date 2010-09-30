@@ -58,9 +58,9 @@ module HTk.Kernel.Wish (
 #endif
 #endif
 
-import Maybe
-import Char
-import List(find,union,delete)
+import Data.Maybe
+import Data.Char
+import Data.List(find,union,delete)
 
 import Control.Concurrent
 import Foreign.C.String

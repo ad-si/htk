@@ -10,7 +10,7 @@ import HTk.Toolkit.Name
 import HTk.Toolkit.CItem
 import Reactor.ReferenceVariables
 import HTk.Toolkit.GenericBrowser
-import Char(toLower)
+import Data.Char(toLower)
 
 
 -- -----------------------------------------------------------------------

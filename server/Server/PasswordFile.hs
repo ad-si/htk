@@ -26,7 +26,7 @@ module Server.PasswordFile(
    ) where
 
 import IO
-import Maybe
+import Data.Maybe
 
 import Control.Concurrent.MVar
 import Data.IORef

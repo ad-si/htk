@@ -14,7 +14,7 @@ module Reactor.BSem (
    tryAcquireBSemsWithError1,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Control.Concurrent.MVar
 

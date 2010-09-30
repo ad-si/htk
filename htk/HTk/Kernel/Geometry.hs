@@ -14,7 +14,7 @@ module HTk.Kernel.Geometry (
 ) where
 
 import HTk.Kernel.GUIValue
-import Char
+import Data.Char
 
 
 -- -----------------------------------------------------------------------

@@ -127,7 +127,7 @@ module HTk.Toolkit.SimpleForm(
 
    ) where
 
-import Char
+import Data.Char
 
 import Data.IORef
 import Data.Typeable

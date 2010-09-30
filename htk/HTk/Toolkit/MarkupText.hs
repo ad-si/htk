@@ -143,7 +143,7 @@ module HTk.Toolkit.MarkupText (
   scrollMarkupText,
 ) where
 
-import Char
+import Data.Char
 import Prelude hiding (pi, not, and, or, sum)
 import qualified Prelude (not)
 

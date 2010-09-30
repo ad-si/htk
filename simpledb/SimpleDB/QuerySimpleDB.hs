@@ -3,7 +3,7 @@ module SimpleDB.QuerySimpleDB(
    querySimpleDB,
    ) where
 
-import Monad
+import Control.Monad
 
 import Data.IORef
 import Util.DeprecatedFiniteMap

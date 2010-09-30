@@ -20,7 +20,7 @@ import HTk.Kernel.Core
 import HTk.Components.Index
 import HTk.Components.Selection
 import HTk.Widgets.Editor
-import Char(isSpace)
+import Data.Char(isSpace)
 import Events.Synchronized
 
 

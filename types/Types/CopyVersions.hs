@@ -4,8 +4,8 @@ module Types.CopyVersions (
    copyVersions, -- :: VersionGraph -> IO ()
    ) where
 
-import Maybe
-import List
+import Data.Maybe
+import Data.List as List
 
 import Util.Computation
 import Util.ExtendedPrelude
