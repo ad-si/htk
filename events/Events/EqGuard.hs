@@ -1,3 +1,6 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | Here we create a simple guarded queue which allows guarding by equality
 -- according to an ordered key.  Thus guards have three values,
 -- match anything, match nothing, and match this value.

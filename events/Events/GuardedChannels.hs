@@ -1,3 +1,9 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | GuardedEvents implements guarded events for channels.
 module Events.GuardedChannels(
    GuardedChannel,
@@ -32,8 +38,6 @@ module Events.GuardedChannels(
    CanSendX,
    HasGuardedChannel,
    ) where
-
-import IO
 
 import Control.Concurrent
 

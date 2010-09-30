@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Examples is meant to contain examples of using events which
 -- are too small to go into their own module.
 module Events.Examples(
@@ -83,7 +85,7 @@ watch (event :: Event a) =
                )
             +> die
 
-      spawnEvent waitForNext
+      _ <- spawnEvent waitForNext
 
       return (receive channel,sync(send dieChannel ()))
 
@@ -106,7 +108,7 @@ spawnRepeatedEvent event =
                   event
                   handleEvent
                )
-      spawnEvent handleEvent
+      _ <- spawnEvent handleEvent
       return (sync(noWait(send dieChannel ())))
 
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | WrapIO.wrapIO turns an IO action into an event (which has no
 -- non-trivial guards available).
 module Events.WrapIO(
@@ -31,7 +33,7 @@ wrapIO (aAct :: IO a) =
             do
                next <- aAct
                sync(send channel next)
-      spawn dispatcher
+      _ <- spawn dispatcher
       let
          emptyChannel =
             do

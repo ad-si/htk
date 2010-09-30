@@ -1,13 +1,17 @@
 name:           uni-events
-version:        2.1.0.0
+version:        2.2.0.0
+build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
 author:         uniform@informatik.uni-bremen.de
+maintainer:     Christian.Maeder@dfki.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Event handling for the uniform workbench
+cabal-version:  >= 1.4
 description:    uni events
-exposed-modules: Events.Toggle,
+
+library
+ exposed-modules: Events.Toggle,
              Events.Events,
              Events.After,
              Events.Cells,
@@ -24,6 +28,9 @@ exposed-modules: Events.Toggle,
              Events.Examples,
              Events.RefQueue,
              Events.Synchronized
-build-depends: base >=3 && < 4, haskell98, uni-util
-ghc-options: -fglasgow-exts
-extensions: UndecidableInstances
+ build-depends: base >=3 && < 4, uni-util
+
+ if impl(ghc < 6.10)
+   extensions: PatternSignatures
+ else
+   ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

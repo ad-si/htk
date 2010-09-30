@@ -1,3 +1,7 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | Here we implement a null guard channel that provides no guards,
 -- but is hopefully useful as an example.
 module Events.NullGuard (

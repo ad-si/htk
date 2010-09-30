@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | RefQueue are standard non-functional
 -- queues using pointers (aka IORefs).  Events can be deleted asynchronously,
 -- but this is done only by nulling the cell they are contained in, otherwise
