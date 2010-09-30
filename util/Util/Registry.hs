@@ -64,7 +64,6 @@ module Util.Registry(
       -- corresponds to getValueSafe and getRegistryValue
    ) where
 
-import System.IO
 import Data.Maybe
 
 import Control.Monad.Trans

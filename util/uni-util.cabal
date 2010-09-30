@@ -44,7 +44,7 @@ library
  include-dirs: include
  c-sources: new_object.c, default_options.c
 
- build-depends: base >= 3 && < 4, parsec, mtl, directory, haskell98,
+ build-depends: base >= 3 && < 4, parsec, mtl, directory,
   network, containers, bytestring, array, old-time
 
  if flag(base4)
@@ -54,8 +54,10 @@ library
    cpp-options: -DDEBUG
 
  if os(windows)
-      cpp-options: -DWINDOWS
+   cpp-options: -DWINDOWS
 
  -- for ghc-6.8 only
- extensions: PatternSignatures
- ghc-options: -fwarn-unused-imports
+ if impl(ghc < 6.10)
+   extensions: PatternSignatures
+ else
+   ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

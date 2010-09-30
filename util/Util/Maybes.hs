@@ -6,8 +6,6 @@ module Util.Maybes (
       -- check that all the Maybes are really Just's.
    ) where
 
-import Data.Maybe -- renamer will tell us if there are any conflicts
-
 fromMaybes :: [Maybe a] -> Maybe [a]
 fromMaybes [] = Just []
 fromMaybes (Nothing : _) = Nothing

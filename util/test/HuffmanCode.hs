@@ -2,9 +2,9 @@
    since this should be tested from the command line. -}
 module HuffmanTree where
 
-import List(sort)
+import Data.List(sort)
 
-import Huffman
+import Util.Huffman
 
 data HuffmanTree a = Leaf Int a | Branch Int (HuffmanTree a) (HuffmanTree a)
   deriving Show
