@@ -1,3 +1,6 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Implementation of the Myers algorithm, from "An O(ND) Difference Algorithm
 -- and Its Variations", by Eugene Myers page 6 (figure 2).
 --
@@ -27,7 +30,7 @@ module Util.Myers(
    ) where
 
 
-import Array
+import Data.Array
 
 import Control.Monad.ST
 import Data.Array.ST

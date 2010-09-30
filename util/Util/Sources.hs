@@ -1,3 +1,10 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- |
 -- Description: Simple Events
 --
@@ -151,7 +158,7 @@ module Util.Sources(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Control.Concurrent
 import Data.IORef

@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 -- | QuickReadShow is designed for the rapid manufacture of read/show
 -- instances.  To create such an instance you need to (a) instance
 -- quickRead; (b) instance Read/Show using a particular template.

@@ -1,3 +1,8 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE NoMonoPatBinds #-}
+
 -- |
 -- Description : What the Prelude Forgot
 --
@@ -103,9 +108,9 @@ module Util.ExtendedPrelude (
    generalisedMerge,
    ) where
 
-import Char
-import Monad
-import Maybe
+import Data.Char
+import Control.Monad
+import Data.Maybe
 import qualified Util.DeprecatedFiniteMap as DeprecatedFiniteMap
 
 import Util.DeprecatedSet

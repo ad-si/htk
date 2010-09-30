@@ -1,24 +1,31 @@
 name:           uni-util
-version:        2.1.0.0
+version:        2.2.0.0
 build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
+license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
+maintainer:     Christian.Maeder@dfki.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Utilities for the uniform workbench
-cabal-version: >= 1.2
+cabal-version:  >= 1.4
 description:
  This package contains various miscellaneous utilities which belong nowhere in
  particular in the Workbench.  Highlights include "Util.Computation",
  "Util.ExtendedPrelude", "Util.Sources" and "Util.BinaryAll".
 
+extra-source-files: include/new_object.h include/default_options.h
+
 flag base4
+
+flag debug
+  description: add debug traces
+  default: False
 
 library
  exposed-modules:
   Util.DeprecatedFiniteMap, Util.DeprecatedSet, Util.Huffman,
-  Util.TemplateHaskellHelps, Util.CompileFlags, Util.Queue,
+  Util.CompileFlags, Util.Queue,
   Util.ExtendedPrelude, Util.Computation, Util.Dynamics, Util.WBFiles,
   Util.Object, Util.Debug, Util.Maybes, Util.LineShow, Util.Cache,
   Util.FileNames, Util.IOExtras, Util.QuickReadShow, Util.AtomString,
@@ -37,12 +44,18 @@ library
  include-dirs: include
  c-sources: new_object.c, default_options.c
 
- build-depends: base >= 3 && < 4, haskell98, parsec, template-haskell, mtl,
+ build-depends: base >= 3 && < 4, parsec, mtl, directory, haskell98,
   network, containers, bytestring, array, old-time
 
  if flag(base4)
    build-depends: ghc-prim
 
- ghc-options: -fglasgow-exts
- extensions: CPP, TemplateHaskell, NoMonoPatBinds, OverlappingInstances,
-  UndecidableInstances
+ if flag(debug)
+   cpp-options: -DDEBUG
+
+ if os(windows)
+      cpp-options: -DWINDOWS
+
+ -- for ghc-6.8 only
+ extensions: PatternSignatures
+ ghc-options: -fwarn-unused-imports

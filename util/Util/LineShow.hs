@@ -27,6 +27,6 @@ instance Read a => Read (LineShow a) where
                _ -> []
       in
          case readsPrec prec toRead of
-            [(nLines::Int,'\n':remainder)] -> readLines nLines [] remainder
+            [(nLines,'\n':remainder)] -> readLines (nLines :: Int) [] remainder
             _ -> []
 

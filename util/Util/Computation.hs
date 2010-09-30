@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- |
 -- Description : Miscellaneous Monads, in particular 'Computation.WithError'.
 module Util.Computation (
@@ -104,8 +106,7 @@ module Util.Computation (
         )
 where
 
-import IO hiding (try,catch)
-import Monad
+import Control.Monad hiding (forever)
 
 import Control.Exception
 

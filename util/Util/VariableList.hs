@@ -1,3 +1,6 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Util.VariableList(
    newVariableListFromSet, -- :: Ord a => VariableSetSource a -> VariableList a
    newVariableListFromList, -- :: Ord a => SimpleSource [a] -> VariableList a
@@ -14,7 +17,7 @@ module Util.VariableList(
 
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Data.IORef
 

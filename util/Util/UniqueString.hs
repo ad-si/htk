@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 -- |
 -- Description : Generate Unique Strings
 --
@@ -36,7 +38,7 @@ module Util.UniqueString(
    firstUniqueString, -- :: String
    ) where
 
-import Array
+import Data.Array
 
 import Control.Concurrent
 

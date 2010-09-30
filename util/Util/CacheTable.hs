@@ -1,3 +1,7 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | We implement in this module a general cache strategy for lookup
 -- tables, using weak pointers.
 module Util.CacheTable(

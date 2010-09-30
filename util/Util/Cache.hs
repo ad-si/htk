@@ -12,8 +12,6 @@ module Util.Cache(
 import Util.DeprecatedFiniteMap
 import Control.Concurrent
 
-import Util.Computation
-
 data Ord key =>
    Cache key elt = Cache (MVar(FiniteMap key (MVar elt))) (key -> IO elt)
 

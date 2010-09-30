@@ -12,7 +12,7 @@ module Util.Maybes (
       -- check that all the Maybes are really Just's.
    ) where
 
-import Maybe -- renamer will tell us if there are any conflicts
+import Data.Maybe -- renamer will tell us if there are any conflicts
 
 firstJust :: [Maybe a] -> Maybe a
 firstJust [] = Nothing

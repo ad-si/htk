@@ -27,7 +27,8 @@ module Util.IOExtras(
 
    ) where
 
-import IO
+import System.IO.Error
+import System.IO
 
 import Data.IORef
 import Control.Exception

@@ -38,9 +38,9 @@ module Util.Messages(
    setMessFns, -- :: MessFns -> IO ()
    ) where
 
-import IO
-import Char
-import qualified List
+import System.IO
+import Data.Char
+import qualified Data.List as List
 
 import Util.DeprecatedSet
 import Control.Concurrent.MVar

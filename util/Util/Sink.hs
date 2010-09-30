@@ -1,3 +1,6 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+
 -- | Very primitive concurrency, this implements a sink, which passes messages
 -- along until the receiver is no longer interested.
 module Util.Sink(
@@ -30,7 +33,6 @@ module Util.Sink(
 import Control.Concurrent
 import System.IO.Unsafe
 import Data.IORef
-import Control.Concurrent.Chan
 
 import Util.Object
 import Util.ExtendedPrelude

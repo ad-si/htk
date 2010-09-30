@@ -1,3 +1,9 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | A Broadcaster/SimpleBroadcaster is a variable Source/SimpleSource paired
 -- with its update function
 module Util.Broadcaster(

@@ -49,8 +49,7 @@ module Util.StringSkip (
       -- (but don't change anything).
    ) where
 
-import List
-import Maybe
+import Data.Maybe
 
 import Util.ExtendedPrelude
 

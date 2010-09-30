@@ -1,3 +1,5 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+
 -- | This module interfaces the strerror function.
 module Util.StrError(
    strError, -- :: Int -> IO String

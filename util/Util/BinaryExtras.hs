@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | This module contains various extra Binary instances, for example ones
 -- which are particular GHC or uni-specific.
 module Util.BinaryExtras(
@@ -8,7 +12,7 @@ module Util.BinaryExtras(
       -- static clock time, used in other modules.
    ) where
 
-import IO
+import System.IO
 
 import Data.IORef
 import System.Time

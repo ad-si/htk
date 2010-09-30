@@ -36,8 +36,8 @@ module Util.UniqueFile(
    -- Get full name of a file in the unique file store.
    ) where
 
-import Directory
-import Char
+import System.Directory
+import Data.Char
 
 import Util.IOExtras
 import Util.Registry

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Blockers are used to implement variable set sources which can be
 -- turned on and off.  They are indexed by a BlockID.
 module Util.VariableSetBlocker(

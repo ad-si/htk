@@ -1,3 +1,7 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | Library for converting types to and from binary, so that they can
 -- be written to and from files, stored compactly in memory, and so on.
 --
@@ -64,7 +68,7 @@ module Util.Binary (
    ) where
 
 -- Standard imports
-import IO
+import System.IO
 
 -- GHC imports
 import Control.Monad.State

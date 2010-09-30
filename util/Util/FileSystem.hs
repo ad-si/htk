@@ -11,7 +11,7 @@ module Util.FileSystem(
    ensureFiles,
    ) where
 
-import Directory
+import System.Directory
 
 import Util.Computation(done)
 import Util.TempFile

@@ -1,3 +1,5 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+
 -- |
 -- Description : Option processing
 --
@@ -115,9 +117,6 @@ module Util.WBFiles (
 
    getToolTimeOut, -- :: IO Int
       -- gets tool time out.
-   getWindowsTick, -- :: IO Int
-      -- get time to wait between ticks for Windows.
-      -- Away from Windows, this function will not work.
    getTOP, --  :: IO String
       -- Get the location of the top directory.
    getTOPPath,
@@ -712,7 +711,7 @@ parseTheseArgumentsRequiring' arguments required =
                emptyFM
                arguments
 
-         (initial :: ParseState) = (Nothing,initialMap)
+         initial = (Nothing, initialMap) :: ParseState
 
       defaultOptionsStr <- peekCString defaultOptions
       afterDefault <- foldM (handleParameter False) initial
@@ -880,23 +879,3 @@ printToErr :: String -> IO ()
 printToErr message =
    do
       hPutStrLn stderr message
-
-------------------------------------------------------------------------
--- Windows handling
-------------------------------------------------------------------------
-
-#ifndef __HADDOCK__
-$(
-   if  isWindows
-      then
-        [d|
-           getWindowsTick = valOf "windowsTick" (getArgInt "windowsTick")
-        |]
-      else
-        [d|
-           getWindowsTick = error "getWindowsTick does not exist"
-        |]
-  )
-#endif
-getWindowsTick :: IO Int
-

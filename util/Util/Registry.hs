@@ -1,3 +1,10 @@
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE NoMonoPatBinds #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- |
 -- Description: Store information by key.
 --
@@ -57,8 +64,8 @@ module Util.Registry(
       -- corresponds to getValueSafe and getRegistryValue
    ) where
 
-import IO
-import Maybe
+import System.IO
+import Data.Maybe
 
 import Control.Monad.Trans
 import System.IO.Unsafe
@@ -67,7 +74,7 @@ import Util.DeprecatedSet
 import Control.Concurrent
 import Control.Exception
 import GHC.Prim(unsafeCoerce#)
-   -- Ouch.  Will go with ghc6.04
+   -- Ouch.  Will go with ghc6
 
 import Util.ExtendedPrelude(newFallOut,mkBreakFn)
 import Util.Dynamics

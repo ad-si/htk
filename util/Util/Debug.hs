@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -- |
 -- MODULE        : Debug
 -- AUTHOR        : George Russell
@@ -36,12 +38,12 @@ module Util.Debug(
      -- the evaluation calls an error call, the given String is prepended
      -- to the evaluation.
   ) where
-import IO
+import System.IO as IO
+import System.IO.Error as IO
 
 import System.IO.Unsafe
 import Control.Exception
 
-import Util.CompileFlags
 import Util.WBFiles
 
 openDebugFile :: IO (Maybe Handle)
@@ -60,23 +62,18 @@ debugFile = unsafePerformIO openDebugFile
 debugFile :: Maybe Handle
 {-# NOINLINE debugFile #-}
 
-#ifndef __HADDOCK__
-$(
-
-   if isDebug
-      then
-         [d|
-            debugString s =
+#ifdef DEBUG
+debugString s =
                case debugFile of
                   Just f -> IO.hPutStr f s
                   Nothing -> return ()
 
-            debug s =
+debug s =
                case debugFile of
                   Just f  -> IO.hPutStrLn f (show s)
                   Nothing -> return ()
 
-            debugAct mess act =
+debugAct mess act =
                do
                   res <- Control.Exception.try act
                   case res of
@@ -86,19 +83,14 @@ $(
                            throw error
                      Right success -> return success
 
-         |]
-      else
-         [d|
-            debugString _ = return ()
+#else
+debugString _ = return ()
 
-            debug _ = return ()
+debug _ = return ()
+{-# inline debug #-}
 
-            debugAct _ act = act
-
-            {-# inline debug #-}
-            {-# inline debugAct #-}
-         |]
-   )
+debugAct _ act = act
+{-# inline debugAct #-}
 #endif
 
 -- | show something to log file if debugging is turned on.

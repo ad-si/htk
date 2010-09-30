@@ -17,12 +17,12 @@ module Util.UTF8(
       -- returns an error message (Left).
    ) where
 
-import Char
-import List
+import Data.Char
+import Data.List
 
 import Data.Bits
 import Data.Word
-import Control.Monad.Error -- needed for instance Monad (Either String)
+import Control.Monad.Error () -- needed for instance Monad (Either String)
 
 import Util.Computation
 

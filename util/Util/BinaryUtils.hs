@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
 -- | Various functions for declaring new instances of Binary for types.
 module Util.BinaryUtils(
    mapWrite, -- :: HasBinary b m => (a -> b) -> (WriteBinary m -> a -> m ())
@@ -60,7 +65,7 @@ module Util.BinaryUtils(
       -- more general wrapped for any monad.
    ) where
 
-import IO(Handle)
+import System.IO(Handle)
 
 -- GHC imports
 import Control.Monad.Trans

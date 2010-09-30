@@ -1,3 +1,6 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | A wrapper for the new GHC (and Hugs) Dynamic module.
 -- The main improvement over the original Dynamic module is
 -- that we provide flavours of TypeableXXXX for kinds with

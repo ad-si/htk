@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | This implements a SinkSource with keyed changes.
 module Util.KeyedChanges(
    KeyedChanges,

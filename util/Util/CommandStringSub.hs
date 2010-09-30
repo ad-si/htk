@@ -54,7 +54,7 @@ module Util.CommandStringSub(
    bashEscape, -- :: String -> String
    ) where
 
-import Char
+import Data.Char
 
 import Util.Computation
 

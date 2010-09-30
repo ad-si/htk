@@ -1,3 +1,9 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | VariableSet allow us to track changes to an unordered mutable set.
 -- The elements of the set are keyed by instancing HasKey with some Ord
 -- instance; this allows us to set up a special HasKey instance for this
@@ -24,12 +30,11 @@ module Util.VariableSet(
    listToSetSource,
    ) where
 
-import Maybe
-import qualified List
+import Data.Maybe
+import qualified Data.List as List
 
 import Util.DeprecatedSet
 
-import Util.Computation
 import Util.Dynamics
 import Util.Sources
 import Util.Broadcaster

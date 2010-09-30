@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -- | FileNames contain facilities for manipulating filenames
 -- in a hopefully OS-independent manner.
 module Util.FileNames(
@@ -40,22 +41,12 @@ module Util.FileNames(
 
    ) where
 
-import Util.CompileFlags
-
-#ifndef __HADDOCK__
-$(
-   if isWindows
-      then
-         [d|
-            fileSep = '\\'
-            recordSep = "\r\n"
-         |]
-      else
-         [d|
-            fileSep = '/'
-            recordSep = "\n"
-         |]
-   )
+#ifdef WINDOWS
+fileSep = '\\'
+recordSep = "\r\n"
+#else
+fileSep = '/'
+recordSep = "\n"
 #endif
 
 fileSep :: Char
@@ -112,7 +103,7 @@ unbreakName parts = foldr1 combineNames parts
 
 splitExtension :: String -> Maybe (String,String)
 splitExtension str = case splitExtension0 str of
-      Just (ne @ (name,ext)) | not (null name),not (null ext) -> Just ne
+      Just (ne @ (name,ext)) | not (null name) && not (null ext) -> Just ne
       _ -> Nothing
    where
       splitExtension0 [] = Nothing

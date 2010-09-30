@@ -1,3 +1,5 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+
 -- | Module which generates globally unique 'ObjectID's.
 module Util.Object (
    ObjectID(..),

@@ -1,3 +1,11 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | Instances of the 'Binary.HasBinary' class.  This includes the
 -- standard types (except of course for things like function types and
 -- IO) plus a few others.
@@ -24,8 +32,7 @@ module Util.BinaryInstances(
       -- A wrapper for unsigned integral types.
    ) where
 
-import Char
-import Monad
+import Data.Char
 
 -- GHC modules
 import Data.Bits

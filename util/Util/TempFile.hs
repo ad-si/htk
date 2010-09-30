@@ -4,7 +4,7 @@ module Util.TempFile(
    ) where
 
 
-import Directory
+import System.Directory
 
 import Control.Concurrent
 import System.IO.Unsafe

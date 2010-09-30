@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | This module provides immutable CStrings, which additionally have
 -- the property that they are automatically freed when the garbage-collector
 -- forgets about them.
@@ -35,8 +40,6 @@ module Util.ICStringLen(
 
    ) where
 
-import Char
-
 import System.IO.Unsafe
 import Foreign.C.String
 import Foreign.ForeignPtr
@@ -51,8 +54,6 @@ import Util.Binary
 import Util.Computation
 import Util.ExtendedPrelude
 import Util.Dynamics
-import Util.CompileFlags
-import Util.TemplateHaskellHelps
 import Util.UTF8
 
 -- ------------------------------------------------------------------
@@ -63,40 +64,6 @@ data ICStringLen = ICStringLen (ForeignPtr CChar) Int deriving (Typeable)
 
 newtype UTF8 bytes = UTF8 bytes
 
--- -------------------------------------------------------------------
--- Extracting a ForeignPtr's components.
--- -------------------------------------------------------------------
-
-#ifndef __HADDOCK__
-$(
-   if ghcShortVersion <= 601
-      then
-         [d|
-            unsafeForeignPtrToPtr = $(dynName "foreignPtrToPtr")
-         |]
-      else
-         [d|
-            template = "haskell" -- null declaration for now
-         |]
-   )
-
--- ------------------------------------------------------------------
--- Creating a newForeignPtr (602 style)
--- ------------------------------------------------------------------
-
-$(
-   if ghcShortVersion <= 601
-      then
-         [d|
-            newForeignPtr0 finalizerLen ptr
-               = $(dynName "newForeignPtr") ptr finalizerLen
-         |]
-      else
-         [d|
-            newForeignPtr0 = $(dynName "newForeignPtr")
-         |]
-   )
-#endif
 -- ------------------------------------------------------------------
 -- Creation and reading
 -- ------------------------------------------------------------------
@@ -159,7 +126,7 @@ withICStringLen (ICStringLen foreignPtr len) readFn =
 createICStringLen :: CString -> Int -> IO ICStringLen
 createICStringLen ptr len =
    do
-      foreignPtr <- newForeignPtr0 finalizerFree ptr
+      foreignPtr <- newForeignPtr finalizerFree ptr
       return (ICStringLen foreignPtr len)
 
 

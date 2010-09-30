@@ -1,3 +1,6 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+
 -- | VariableMap is analagous to VariableSet and provides a mutable map ordered
 -- by key whose changes can be tracked.
 module Util.VariableMap(
@@ -21,7 +24,7 @@ module Util.VariableMap(
    getVariableMapByKey,
    ) where
 
-import Maybe
+import Data.Maybe
 
 import Util.DeprecatedFiniteMap
 

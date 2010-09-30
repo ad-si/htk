@@ -1,3 +1,8 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UnliftedFFITypes #-}
+
 -- | Basic Thread operations.
 module Util.Thread (
    module Util.Computation,
