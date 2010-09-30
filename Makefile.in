@@ -7,7 +7,7 @@
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
 
-ifeq "@BUILDAMOUNT@" "50"  
+ifeq "@BUILDAMOUNT@" "50"
    # Just HTk
    SUBDIRS = util events reactor posixutil htk
 else
@@ -17,7 +17,7 @@ ifeq "@BUILDAMOUNT@" "70"
 else
 ifeq "@BUILDAMOUNT@" "100"
    # All MMiSS stuff
-   SUBDIRS = util events reactor posixutil htk HaXml server graphs \
+   SUBDIRS = util events reactor posixutil htk server graphs \
           davinci simpledb imports types emacs mmiss/parser mmiss appl
 else
    echo !!!! Makefile bug: unexpected value @BUILDAMOUNT@ - please fix !!!!
@@ -28,14 +28,14 @@ endif
 COMMONEXTRAEXPORTS = VERSION uni-package.conf.export includes/*.h includes/uni-config.h.in mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk configure
 
 ifeq "@WINDOWS@" "1"
-EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS) 
+EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS)
 else
 EXTRAEXPORTS = install ghchtk.export ghcihtk.export mk/FixFileNames $(COMMONEXTRAEXPORTS)
 endif
 
 THISISTOP = YES
 
-include @TOP@/mk/boilerplate.mk 
+include @TOP@/mk/boilerplate.mk
 
 # Tarballs:
 # These targets are for experts only, so feel free to hack away if they
@@ -56,16 +56,16 @@ endif
 
 findsources :
 	@$(MAKE) displaysrcs -s --no-print-directory
-	@echo @TOP@/mk/boilerplate.mk.in @TOP@/mk/machinedep.mk.in 
+	@echo @TOP@/mk/boilerplate.mk.in @TOP@/mk/machinedep.mk.in
 	@echo @TOP@/mk/var.mk @TOP@/mk/suffix.mk @TOP@/mk/local.mk.debug
-	@echo @TOP@/configure.ac 
-	@echo @TOP@/not.a.binary.release 
+	@echo @TOP@/configure.ac
+	@echo @TOP@/not.a.binary.release
 	@echo @TOP@/bdb-package.options @TOP@/package.spec.template
 	@echo @TOP@/uni-package.options @TOP@/mk/MainFixFileNames.hs
 tarball.tar.gz:
 	cd @TOP@;@TAR@ -czf tarball.tar.gz `(($(MAKE) -s --no-print-directory findsources) | sed "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo README ; echo configure ; echo VERSION`
 
-# tar of all object and .hi files (but not .depend/library/exec files which 
+# tar of all object and .hi files (but not .depend/library/exec files which
 # are cheaper to regenerate)
 tarball.objects.tar.gz:
 	@TAR@ -czf tarball.objects.tar.gz `gfind . '(' -name '*.o' -o -name '*.hi' ')' `
