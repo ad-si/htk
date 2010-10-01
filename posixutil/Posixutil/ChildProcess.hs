@@ -52,16 +52,12 @@ where
 
 import System.IO
 import System.IO.Error as IO
-import Control.Monad
 
 import Foreign.C.String
 import System.Exit
 import System.Process
 import Control.Concurrent
-import Control.Concurrent.Chan
 import qualified Control.Exception as Exception
-import System.IO(hPutBuf)
-
 
 import Util.Computation
 import Util.CompileFlags

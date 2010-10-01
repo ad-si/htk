@@ -7,9 +7,7 @@ module Posixutil.ProcessClasses(
    CommandTool(..), -- can send commands.
    ) where
 
-import System
-
-import Util.Computation
+import System.Exit
 
 -- --------------------------------------------------------------------------
 --  Can get status
@@ -43,6 +41,6 @@ class Tool t => CommandTool t where
    execOneWayCmd   :: String -> t -> IO ()
    execCmd cmd t   =
       do
-         evalCmd cmd t
-         done
+         _ <- evalCmd cmd t
+         return ()
    -- only overrridden by Expect, in which all commands are one-way.

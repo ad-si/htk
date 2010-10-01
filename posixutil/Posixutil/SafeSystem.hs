@@ -8,8 +8,7 @@ module Posixutil.SafeSystem(
    safeSystem,
    ) where
 
-import System
-
+import System.Exit
 
 import Util.WBFiles
 import Util.FileNames

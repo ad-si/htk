@@ -18,9 +18,7 @@ import System.IO as IO
 import System.IO.Error as IO
 import qualified System.IO.Error as IOErr
 
-import GHC.IO
 import Foreign.C
-import Foreign.Ptr
 import Control.Exception
 import qualified System.Directory as Dir
 
@@ -186,5 +184,3 @@ copyCStringLenToFile (ptr,len) filePath =
       handle <- IO.openFile filePath IO.WriteMode
       hPutBuf handle ptr len
       IO.hFlush handle
-
-
