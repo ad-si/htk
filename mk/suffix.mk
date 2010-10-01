@@ -154,7 +154,7 @@ LIBMODULENAMESCOMMAS = $(LIBMODULENAMESCOMMAS':COMMA=,)
 .SECONDARY : $(OBJS) $(HIFILES)
 
 # all is the default target anyway, by virtual of boilerplate.mk.
-all : packagehere mainhere testhere
+all : cabal
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
 
 # ghci starts up GHC interactively, with the current package if any
@@ -288,7 +288,7 @@ GHCDIR = $(shell $(HC) --print-libdir | sed -e 's+/lib/.*++g')
 echoghcdir :
 	echo $(GHCDIR)
 
-CABAL = $(SETUP) configure -O -p --prefix=$(GHCDIR) --global; \
+CABAL = $(SETUP) configure -O --prefix=$(GHCDIR) --global; \
     $(SETUP) build; \
     $(SETUP) haddock; \
     $(SETUP) install
