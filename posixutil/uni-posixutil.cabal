@@ -5,6 +5,7 @@ license:        LGPL
 license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
 maintainer:     Christian.Maeder@dfki.de
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Posix utilities for the uniform workbench
 description:    posix utilities
