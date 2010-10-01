@@ -8,11 +8,11 @@ maintainer:     Christian.Maeder@dfki.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Utilities for the uniform workbench
-cabal-version:  >= 1.4
 description:
  This package contains various miscellaneous utilities which belong nowhere in
- particular in the Workbench.  Highlights include "Util.Computation",
- "Util.ExtendedPrelude", "Util.Sources" and "Util.BinaryAll".
+ particular in the Workbench.
+cabal-version:  >= 1.4
+Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
 
 extra-source-files: include/new_object.h include/default_options.h
 
@@ -44,7 +44,7 @@ library
  include-dirs: include
  c-sources: new_object.c, default_options.c
 
- build-depends: base >= 3 && < 4, parsec, mtl, directory,
+ build-depends: base >= 3 && < 4, parsec < 3, mtl, directory,
   network, containers, bytestring, array, old-time
 
  if flag(base4)
@@ -56,7 +56,6 @@ library
  if os(windows)
    cpp-options: -DWINDOWS
 
- -- for ghc-6.8 only
  if impl(ghc < 6.10)
    extensions: PatternSignatures
  else

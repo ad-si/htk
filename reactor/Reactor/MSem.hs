@@ -19,7 +19,8 @@ import Data.IORef
 import Control.Concurrent
 
 import Util.Computation
-
+import Events.Synchronized
+import Reactor.Lock
 import Reactor.BSem
 
 data MSem = MSem {
@@ -58,4 +59,3 @@ synchronizeWithChoice mSem toAct =
 
 instance Synchronized MSem where
    synchronize mSem act = synchronizeWithChoice mSem (const act)
-

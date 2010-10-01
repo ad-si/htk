@@ -3,8 +3,6 @@
 --
 -- A simple semaphore
 module Reactor.BSem (
-   module Reactor.Lock,
-
    BSem,
    newBSem,
    newLockedBSem,
@@ -19,6 +17,7 @@ import Data.Maybe
 import Control.Concurrent.MVar
 
 import Util.Thread
+import Events.Synchronized
 import Reactor.Lock
 
 -- --------------------------------------------------------------------------

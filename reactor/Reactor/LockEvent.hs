@@ -26,6 +26,7 @@ instance Lock EventLock where
    acquire (EventLock channel) = sendIO channel True
 {-   acquire (EventLock channel) = sync (noWait (send channel True)) -}
    release (EventLock channel) = sendIO channel False
+   tryAcquire _ = return False
 
 newEventLock :: IO EventLock
 newEventLock =

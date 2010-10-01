@@ -7,7 +7,7 @@ module Reactor.WithDir(
    withDir, -- :: FilePath -> IO a -> IO a
    ) where
 
-import Directory
+import System.Directory
 
 import System.IO.Unsafe
 

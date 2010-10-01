@@ -21,7 +21,6 @@ module Reactor.ReferenceVariables(
 import Data.IORef
 import Control.Concurrent.MVar
 
-import Util.Computation
 import Events.Synchronized
 import Reactor.MSem
 

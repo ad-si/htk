@@ -113,7 +113,7 @@ registerDestroyAct act =
 encapsulateWaitTermAct :: IO () -> IO ()
 encapsulateWaitTermAct act =
    do sync <- newEmptyMVar
-      registerDestroyAct (readMVar sync)
+      _ <- registerDestroyAct (readMVar sync)
       act
       putMVar sync ()
 
