@@ -42,6 +42,8 @@ import Util.WBFiles
 import Util.ICStringLen
 import Util.BinaryAll
 
+import Events.Synchronized
+
 import Reactor.BSem
 
 -- --------------------------------------------------------------

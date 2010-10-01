@@ -34,6 +34,7 @@ import Util.Sources
 import Util.Broadcaster
 import Util.Messages
 
+import Reactor.Lock
 import Reactor.BSem
 
 --import Graph(NodeType)

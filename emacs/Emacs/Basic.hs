@@ -57,6 +57,7 @@ import Events.GuardedEvents
 import Events.EqGuard
 import Events.Events
 import Events.Destructible
+import Events.Synchronized
 
 import Reactor.BSem
 

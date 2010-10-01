@@ -21,6 +21,8 @@ import Util.Messages
 import Util.WBFiles
 import Util.AtomString
 
+import Events.Synchronized
+
 import Reactor.BSem
 import Reactor.Lock
 

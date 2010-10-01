@@ -8,6 +8,8 @@ import Foreign.C.String
 
 import System.IO.Unsafe
 
+import Events.Synchronized
+
 import Reactor.BSem
 import Reactor.Lock
 

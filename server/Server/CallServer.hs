@@ -51,6 +51,7 @@ import Util.BinaryAll
 import Util.Messages
 
 import Events.Destructible
+import Events.Synchronized
 
 import Server.HostsPorts
 
