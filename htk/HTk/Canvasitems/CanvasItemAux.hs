@@ -31,7 +31,6 @@ module HTk.Canvasitems.CanvasItemAux (
 
 import HTk.Kernel.Core
 import HTk.Kernel.Geometry
-import HTk.Widgets.Canvas
 import HTk.Canvasitems.CanvasItem
 import Util.Computation
 

@@ -1,3 +1,13 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 -- |
 -- Description: Graphical Form Input
 --
@@ -132,20 +142,11 @@ import Data.Char
 import Data.IORef
 import Data.Typeable
 
-import Util.Computation
 import Util.ExtendedPrelude
 import Util.BinaryAll(HasBinary(..),mapWrite,mapRead)
-
-import Events.Events
-import Events.Channels
-
+import Util.Messages
 
 import HTk.Toplevel.HTk
---import qualified UtilWin
-import HTk.Toolkit.DialogWin
-import HTk.Widgets.MenuButton
-
-import HTk.Toolkit.MenuType
 import HTk.Toolkit.HTkMenu
 
 -- -------------------------------------------------------------------------
@@ -428,9 +429,9 @@ doForm1 canCancel title (Form enterForm) =
                         valueError <- getFormValue enteredForm
                         case fromWithError valueError of
                            Right value -> return (Just value)
-                           Left error ->
+                           Left err ->
                               do
-                                 createErrorWin error []
+                                 errorMess err
                                  sync handler
                      )
                )

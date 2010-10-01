@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | Basic dialog window and a couple of predefined abstractions.
 module HTk.Toolkit.DialogWin (
         Dialog,
@@ -76,6 +79,10 @@ instance HasMarkupText (Dialog a) where
     case fEditor dlg of
       Just e -> do {e # new t; return dlg}
       _      -> return dlg
+  insertAt _ _ _ = error
+    "HTk.Toolkit.DialogWin.instance HasMarkupText (Dialog a) insertAt"
+  clear = error
+    "HTk.Toolkit.DialogWin.instance HasMarkupText (Dialog a) clear"
 
 
 -- | The message displayed as plain text.

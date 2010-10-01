@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 -- | A simple markup language for convenient writing into an editor widget.
 module HTk.Toolkit.MarkupText (
 
@@ -147,7 +149,6 @@ import Data.Char
 import Prelude hiding (pi, not, and, or, sum)
 import qualified Prelude (not)
 
-import Control.Concurrent(threadDelay)
 import System.IO.Unsafe
 
 import Util.Object
@@ -156,16 +157,10 @@ import Reactor.ReferenceVariables
 
 import HTk.Toplevel.HTk hiding (font, underline, offset)
 import HTk.Kernel.GUIObject
-import HTk.Kernel.Configuration hiding (font, underline)
-import qualified HTk.Kernel.Configuration as Configuration (font, underline)
-import HTk.Widgets.Editor
-import HTk.Textitems.TextTag hiding (offset)
+import qualified HTk.Kernel.Configuration as Configuration (font)
 import qualified HTk.Textitems.TextTag as TextTag (offset)
 import HTk.Kernel.Font
-import HTk.Widgets.Editor
-import Util.Object
-import HTk.Kernel.Wish
-
+import HTk.Components.Index
 
 -- -----------------------------------------------------------------------
 -- state

@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 module HTk.Kernel.Core (
 
   Wish(..),
@@ -92,7 +96,6 @@ module HTk.Kernel.Core (
   bindTagS,
   showP,
   mkBoundCmdArg,
-  delimitString,
   BindTag,
   EventInfoSet,
 
@@ -104,15 +107,12 @@ module HTk.Kernel.Core (
 
 ) where
 
-import Data.Maybe
-
 import Util.DeprecatedFiniteMap
 import Control.Concurrent
 import System.IO.Unsafe
 
 import Util.Computation
 
-import Events.Channels
 import Events.GuardedEvents
 import Events.EqGuard
 import Events.Events
@@ -133,7 +133,6 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.PackOptions
 import HTk.Kernel.GridPackOptions
-
 
 -- -----------------------------------------------------------------------
 --  base GUI object

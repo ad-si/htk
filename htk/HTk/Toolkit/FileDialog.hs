@@ -8,24 +8,20 @@ module HTk.Toolkit.FileDialog (
 ) where
 
 
-import Directory
-import IO
-import System
-import Data.Maybe
+import System.Directory as Directory
+import System.IO.Error
+
 import qualified Data.List as List(sort)
 
 import Control.Exception
-import Data.IORef
 
-import Util.Debug(debug)
 import Util.FileNames
 import Util.Messages
 
 import Reactor.ReferenceVariables
 
 import HTk.Toplevel.HTk
-import HTk.Kernel.TkVariables
-import HTk.Toolkit.ModalDialog
+import HTk.Toolkit.ModalDialog (modalDialog)
 import HTk.Toolkit.DialogWin (createWarningWin,createConfirmWin)
 
 debugMsg :: String-> IO ()

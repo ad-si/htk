@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /text/ canvas item.
 -- A text container on a canvas widget.
 module HTk.Canvasitems.TextItem (

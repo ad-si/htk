@@ -1,3 +1,5 @@
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | HTk\'s /toplevel/ widget.
 -- A toplevel widget is a toplevel container for widgets (a window).
 module HTk.Containers.Toplevel (
@@ -11,7 +13,6 @@ module HTk.Containers.Toplevel (
 
 ) where
 
-import HTk.Kernel.Resources
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses
 import Data.List

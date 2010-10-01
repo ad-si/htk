@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | Basic types and classes concerning widget configuration.
 module HTk.Kernel.Configuration (
 

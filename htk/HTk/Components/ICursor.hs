@@ -1,9 +1,8 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | Basic types and classes concerning insertion cursors in entry and
 -- text fields.
 module HTk.Components.ICursor (
-
-  module HTk.Components.Index,
-
   ICursor(..),
   HasInsertionCursor,
   HasInsertionCursorIndexGet(..),
@@ -22,7 +21,6 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
 import HTk.Kernel.Colour(toColour)
-import HTk.Components.Index
 import Util.Computation
 
 

@@ -1,7 +1,5 @@
 -- | Basic input window for record values and their fields.
 module HTk.Toolkit.InputWin (
-        module HTk.Toolkit.InputForm,
-
         InputWin,
         createInputWin,
         createInputWin',
@@ -15,7 +13,6 @@ import HTk.Toplevel.HTk
 import HTk.Widgets.Space
 import HTk.Toolkit.SelectBox
 import HTk.Toolkit.ModalDialog
-import HTk.Toolkit.DialogWin
 import HTk.Toolkit.InputForm
 import Reactor.ReferenceVariables
 import HTk.Toolkit.Separator

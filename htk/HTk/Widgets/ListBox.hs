@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | HTk\'s /listbox widget/ .
 -- A scrollable widget that displays a set of text lines with selection
 -- functionality.
@@ -27,9 +32,8 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Widgets.ScrollBar
 import HTk.Components.Index
-import HTk.Components.Selection hiding (HasIndex,getBaseIndex)
+import HTk.Components.Selection
 import Data.Char(isSpace)
-import HTk.Components.Focus
 import HTk.Devices.XSelection
 import Events.Synchronized
 import Util.Computation

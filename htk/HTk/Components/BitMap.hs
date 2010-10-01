@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | This module provides access to bitmap resources.
 module HTk.Components.BitMap (
 
@@ -23,7 +25,6 @@ module HTk.Components.BitMap (
 
 ) where
 
-import HTk.Kernel.GUIValue
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
@@ -31,8 +32,6 @@ import Data.Char(isDigit)
 import Util.Computation
 import Events.Synchronized
 import Events.Destructible
-import HTk.Kernel.Packer
-
 
 -- -----------------------------------------------------------------------
 -- BitMap designators

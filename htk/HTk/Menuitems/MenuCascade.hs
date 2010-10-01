@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /menu cascade item/.
 -- A containers for cascaded menus.
 module HTk.Menuitems.MenuCascade (
@@ -13,7 +16,6 @@ module HTk.Menuitems.MenuCascade (
 
 import HTk.Kernel.Core
 import HTk.Kernel.Configuration
-import HTk.Components.Image
 import HTk.Components.BitMap
 import HTk.Menuitems.Menu
 import HTk.Menuitems.MenuItem

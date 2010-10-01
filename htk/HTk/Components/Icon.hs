@@ -1,8 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | This module provides access to window icons.
 module HTk.Components.Icon (
-
-  module HTk.Containers.Window,
-
   Icon(..),
   iconMask,
   getIconMask
@@ -14,8 +14,6 @@ import HTk.Components.BitMap
 import Util.Computation
 import Events.Synchronized
 import HTk.Containers.Window
-import Events.Destructible
-
 
 -- -----------------------------------------------------------------------
 -- type icon's

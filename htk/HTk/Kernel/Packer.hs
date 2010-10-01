@@ -14,13 +14,11 @@ module HTk.Kernel.Packer (
 ) where
 
 import HTk.Kernel.GUIObject
-import HTk.Kernel.GUIObjectKind
 import HTk.Kernel.Resources
 import HTk.Kernel.BaseClasses(Widget)
 import Reactor.ReferenceVariables
 import HTk.Kernel.PackOptions
 import HTk.Kernel.GridPackOptions
-import HTk.Kernel.Wish
 import HTk.Kernel.Core
 
 

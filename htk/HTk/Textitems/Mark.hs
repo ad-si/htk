@@ -1,6 +1,9 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | This module provides access to text marks inside an editor widget.
 module HTk.Textitems.Mark (
-
   Editor,
 
   Gravity(..),
@@ -18,6 +21,7 @@ module HTk.Textitems.Mark (
 
 import HTk.Kernel.Core
 import HTk.Components.Index
+import HTk.Components.ICursor
 import HTk.Components.Selection
 import HTk.Widgets.Editor
 import Data.Char(isSpace)

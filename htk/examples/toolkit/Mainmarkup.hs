@@ -2,7 +2,7 @@
 module Main(main) where
 
 import HTk.Toplevel.HTk
-import HTk.Toolkit.MarkupText
+import HTk.Toolkit.MarkupText as MarkupText
 
 main :: IO ()
 main =

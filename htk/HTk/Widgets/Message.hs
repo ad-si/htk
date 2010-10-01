@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk's <strong>message widget</strong>.<br>
 -- A message widget is a simple container for text.
 module HTk.Widgets.Message (

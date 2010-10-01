@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk's <strong>canvas widget</strong>.<br>
 -- A canvas is a drawing pad, that can also contain widgets in embedded
 -- windows.<br>
@@ -35,7 +38,6 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
 import HTk.Kernel.Geometry
-import HTk.Components.Image
 import HTk.Widgets.ScrollBar
 import HTk.Devices.Printer
 import Util.Computation

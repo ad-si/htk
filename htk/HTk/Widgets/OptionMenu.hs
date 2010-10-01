@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /option menu/ widget.
 -- A simple clip up menu displaying a set of radiobuttons.
 module HTk.Widgets.OptionMenu (
@@ -10,12 +13,9 @@ module HTk.Widgets.OptionMenu (
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
-import HTk.Kernel.GUIValue
-import HTk.Widgets.Button
 import HTk.Menuitems.MenuItem
 import Events.Destructible
 import Util.Computation
-import Events.Synchronized
 import HTk.Kernel.Packer
 import HTk.Kernel.Tooltip
 

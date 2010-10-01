@@ -1,11 +1,12 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | HTk\'s /editor widget/.
 -- A text container for editing purposes. An editor widget can contain
 -- text tags, to which you can bind events, and also embedded windows.
 module HTk.Widgets.Editor (
-
-  module HTk.Components.Selection,
-  module HTk.Components.ICursor,
-  module HTk.Components.Index,
 
   ScrollBar,
   ScrollUnit,
@@ -55,14 +56,12 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
 import HTk.Kernel.Geometry
-import HTk.Components.BitMap
 import HTk.Widgets.ScrollBar
-import HTk.Components.Index
 import HTk.Components.Selection
 import HTk.Devices.XSelection
 import HTk.Components.ICursor
+import HTk.Components.Index
 import Data.Char(isSpace)
-import HTk.Components.Focus
 import Util.Computation
 import Events.Destructible
 import Events.Synchronized

@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | The @module Font@ export basic types and classes concerning
 -- font resources.
 module HTk.Kernel.Font (
@@ -20,8 +23,6 @@ module HTk.Kernel.Font (
 import HTk.Kernel.GUIValue
 import Data.Char
 import Util.ExtendedPrelude(simpleSplit)
-import Util.Debug(debug)
-
 
 -- -----------------------------------------------------------------------
 -- Font

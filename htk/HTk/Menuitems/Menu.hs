@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | HTk\'s /menus/.
 -- A @Menu@ is a container for menu structures.
 module HTk.Menuitems.Menu (
@@ -18,13 +22,10 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
 import HTk.Kernel.Geometry
-import HTk.Components.Image
-import HTk.Components.BitMap
 import Reactor.ReferenceVariables
 import Events.Destructible
 import Events.Synchronized
 import Util.Computation
-import Events.Events
 import HTk.Containers.Window
 
 

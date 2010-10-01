@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /radiobutton/ widget.
 -- A simple radiobutton associated with a polymorphic variable.
 module HTk.Widgets.RadioButton (

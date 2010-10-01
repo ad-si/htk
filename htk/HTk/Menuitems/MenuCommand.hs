@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /menu command/.
 -- A simple command inside a menu.
 module HTk.Menuitems.MenuCommand (
@@ -12,7 +15,6 @@ module HTk.Menuitems.MenuCommand (
 
 import HTk.Kernel.Core
 import HTk.Kernel.Configuration
-import HTk.Components.Image
 import HTk.Components.BitMap
 import HTk.Menuitems.Menu
 import HTk.Menuitems.MenuItem

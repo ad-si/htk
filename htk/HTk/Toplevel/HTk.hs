@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
+
 -- |
 -- Description: Low-Level Tcl\/Tk interface
 module HTk.Toplevel.HTk (
@@ -146,7 +150,6 @@ module HTk.Toplevel.HTk (
   -- withdrawWish withdraws the wish window.
 
   HTk,
-  AbstractWidget(..),    -- TD: needed ?
 
   updateAllTasks,
   updateIdleTasks,
@@ -154,7 +157,6 @@ module HTk.Toplevel.HTk (
   Destructible(..),
   Destroyable(..),
 
-  done,
   cleanupWish,
 
   getHTk,
@@ -214,7 +216,7 @@ import HTk.Kernel.BaseClasses
 import HTk.Containers.Box
 import HTk.Containers.Toplevel
 import HTk.Containers.Window
-import Reactor.ReferenceVariables
+
 import Events.Destructible
 import HTk.Kernel.EventInfo
 import Events.Events

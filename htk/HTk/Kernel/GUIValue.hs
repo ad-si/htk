@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 module HTk.Kernel.GUIValue (
         Generator(..),
 

@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /LabelFrame/ widget.
 -- A labelled container for widgets. This widget is from the Tix library
 -- and therefore only available if Tix is installed. When Tix is not

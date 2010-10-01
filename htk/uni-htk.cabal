@@ -1,14 +1,23 @@
 name:           uni-htk
-version:        2.0
+version:        2.2.0.0
 build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
+license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
+maintainer:     Christian.Maeder@dfki.de
 homepage:       http://www.informatik.uni-bremen.de/htk/
 category:       GUI
 synopsis:       Graphical User Interface for Haskell Programs
 description:    GUI toolkit based on Tcl\/Tk
-exposed-modules: HTk.Kernel.BaseClasses, HTk.Kernel.ButtonWidget,
+cabal-version:  >= 1.4
+Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+
+flag debug
+  description: add debug traces
+  default: False
+
+library
+ exposed-modules: HTk.Kernel.BaseClasses, HTk.Kernel.ButtonWidget,
   HTk.Kernel.CallWish, HTk.Kernel.Colour, HTk.Kernel.Configuration,
   HTk.Kernel.Core, HTk.Kernel.Cursor, HTk.Kernel.EventInfo, HTk.Kernel.Font,
   HTk.Kernel.GUIObject, HTk.Kernel.GUIObjectKind, HTk.Kernel.GUIObjectName,
@@ -45,7 +54,16 @@ exposed-modules: HTk.Kernel.BaseClasses, HTk.Kernel.ButtonWidget,
   HTk.Toolkit.ScrollBox, HTk.Toolkit.SelectBox, HTk.Toolkit.Separator,
   HTk.Toolkit.SimpleForm, HTk.Toolkit.SimpleListBox, HTk.Toolkit.SpinButton,
   HTk.Toolkit.TextDisplay, HTk.Toolkit.TreeList
-build-depends: base >=3 && < 4, haskell98, uni-util, uni-events, uni-posixutil,
+
+ build-depends: base >=3 && < 4, directory, uni-util, uni-events, uni-posixutil,
   uni-reactor
-ghc-options: -fglasgow-exts
-extensions: CPP, OverlappingInstances, UndecidableInstances
+
+-- extensions: OverlappingInstances
+
+ if flag(debug)
+   cpp-options: -DDEBUG
+
+ if impl(ghc < 6.10)
+   extensions: PatternSignatures
+ else
+   ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

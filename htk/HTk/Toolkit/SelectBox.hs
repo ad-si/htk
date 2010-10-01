@@ -14,13 +14,8 @@ module HTk.Toolkit.SelectBox (
 
 import HTk.Toplevel.HTk
 import HTk.Kernel.GUIObject
-import HTk.Kernel.BaseClasses(Widget)
-import HTk.Containers.Frame
-import HTk.Widgets.Button
 import HTk.Widgets.Space
 import Reactor.ReferenceVariables
-import HTk.Kernel.Packer
-
 
 -- -----------------------------------------------------------------------
 -- SelectBox type

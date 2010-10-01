@@ -1,8 +1,9 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | This module provides access to text tags inside an editor widget.
 module HTk.Textitems.TextTag (
-
-  module HTk.Components.Index,
-
   TextTag,
   createTextTag,
 
@@ -39,19 +40,14 @@ module HTk.Textitems.TextTag (
 
 import HTk.Kernel.Core
 import HTk.Kernel.Resources
-import HTk.Kernel.Colour
-import HTk.Kernel.Font
 import HTk.Kernel.Geometry
 import HTk.Kernel.Configuration
 import HTk.Widgets.Editor
 import HTk.Components.BitMap
-import HTk.Components.Selection
 import HTk.Components.Index
 import Util.Computation
 import Events.Synchronized
 import Events.Destructible
-import HTk.Kernel.Tooltip
-
 
 -- -----------------------------------------------------------------------
 -- TextTag type

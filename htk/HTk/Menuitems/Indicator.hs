@@ -2,7 +2,6 @@
 -- Indicators are displayed with menu checkbuttons, menu buttons and
 -- menu radiobuttons.
 module HTk.Menuitems.Indicator (
-
   Indicator(..),
 
   HasColour(..),
@@ -13,13 +12,9 @@ module HTk.Menuitems.Indicator (
 ) where
 
 import HTk.Kernel.Core
-import HTk.Kernel.Configuration
 import HTk.Components.Image
-import HTk.Components.BitMap
-import HTk.Menuitems.Menu
 import HTk.Menuitems.MenuItem
 import Util.Computation
-import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Resources
 import HTk.Kernel.Colour
 
@@ -55,6 +50,7 @@ class GUIObject w => HasIndicator w where
 -- | Internal.
 instance HasIndicator w => GUIObject (Indicator w) where
   toGUIObject (Indicator w) = toGUIObject w
+  cname _ = "Indicator"
 
 -- | You can specify the colour for the selector of menu checkbuttons and
 -- menu radiobuttons.

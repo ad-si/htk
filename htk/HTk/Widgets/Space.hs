@@ -7,7 +7,6 @@ module HTk.Widgets.Space (
 
 ) where
 
-import HTk.Kernel.Core
 import HTk.Containers.Frame
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources

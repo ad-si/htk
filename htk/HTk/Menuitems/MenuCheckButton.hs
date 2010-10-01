@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /menu checkbutton/.
 -- A simple checkbutton inside a menu associated with a polymorphic
 -- variable.
@@ -13,7 +16,6 @@ module HTk.Menuitems.MenuCheckButton (
 
 import HTk.Kernel.Core
 import HTk.Kernel.Configuration
-import HTk.Components.Image
 import HTk.Components.BitMap
 import HTk.Menuitems.Menu
 import HTk.Menuitems.MenuItem

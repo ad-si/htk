@@ -1,3 +1,6 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | the inputform
 module HTk.Toolkit.InputForm (
         InputForm(..),
@@ -32,17 +35,13 @@ module HTk.Toolkit.InputForm (
         )
 where
 
+import Util.Messages
 import HTk.Kernel.Core
 import qualified HTk.Toplevel.HTk as HTk (font)
 import HTk.Toplevel.HTk hiding (font)
-import HTk.Toolkit.DialogWin
 import HTk.Toolkit.SpinButton
 import HTk.Toolkit.ScrollBox
-import HTk.Widgets.Space
-import HTk.Toolkit.Separator
 import Reactor.ReferenceVariables
-import HTk.Toolkit.MarkupText
-
 
 -- --------------------------------------------------------------------------
 -- Classes
@@ -294,7 +293,7 @@ instance InputField EntryField where
                           case ans of
                                   (Left e) -> do {
                                           txt <- getText lbl;
-                                          createErrorWin (txt++" legal field value") [];
+                                          errorMess (txt++" legal field value");
                                           raise illegalGUIValue
                                           }
                                   (Right val) -> return (f r val)
@@ -390,7 +389,7 @@ instance InputField NumEntryField where
                 setSelectorCmd pv cmd;
                 return fe
                 }) where cmd r = do {value (f r) pr; done}
-        modifier f fe@(NumEntryField pr lbl _ pv :: NumEntryField a b) =
+        modifier f fe@(NumEntryField pr lbl _ pv) =
                 synchronize fe $ do {
                 setReplacorCmd pv cmd;
                 return fe
@@ -399,7 +398,7 @@ instance InputField NumEntryField where
                           case ans of
                                   (Left e) -> do {
                                           txt <- getText lbl;
-                                          createErrorWin ("Illegal field value for "++ txt) [];
+                                          errorMess ("Illegal field value for "++ txt);
                                           raise illegalGUIValue
                                           }
                                   (Right val) -> return (f r val) {- do
@@ -503,7 +502,7 @@ instance InputField CheckboxField where
                           case ans of
                                   (Left e) -> do {
                                           txt <- getText lbl;
-                                          createErrorWin (txt++" legal field value") [];
+                                          errorMess (txt++" legal field value");
                                           raise illegalGUIValue
                                           }
                                   (Right val) -> return (f r val)
@@ -595,7 +594,7 @@ instance InputField TextField where
                           case ans of
                             Left err -> do {
                                    txt <- getText lbl;
-                                   createErrorWin (txt++" legal field value") [];
+                                   errorMess (txt++" legal field value");
                                    raise illegalGUIValue
                                    }
                             Right val -> return (f r val)

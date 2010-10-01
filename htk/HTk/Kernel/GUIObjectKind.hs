@@ -9,7 +9,6 @@ module HTk.Kernel.GUIObjectKind (
 import HTk.Kernel.GUIValue
 import HTk.Kernel.Geometry
 import HTk.Kernel.Resources
-import Reactor.ReferenceVariables
 import HTk.Kernel.GUIObjectName
 
 

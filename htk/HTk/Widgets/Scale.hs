@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /scale/ widget.
 -- A simple slider in a through representing a range of numeric values.
 module HTk.Widgets.Scale (

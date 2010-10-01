@@ -34,13 +34,11 @@ import Events.Destructible
 import Events.Synchronized
 import Util.Computation
 import HTk.Kernel.Geometry (Position,Distance)
-import HTk.Kernel.GUIObjectName (CanvasTagOrID (..))
 
 
 infixr 3 &#&
 infixr 2 |#|
 infixr 2 ^#
-
 
 
 -- -----------------------------------------------------------------------

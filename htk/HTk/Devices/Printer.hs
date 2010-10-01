@@ -5,7 +5,6 @@ module HTk.Devices.Printer (
   HasPostscript(..),
 
   PostScript,
-  postscript,
   pageheight,
   pagewidth,
   pagex,
@@ -26,12 +25,8 @@ module HTk.Devices.Printer (
 import HTk.Kernel.Core
 import Data.Char(isSpace)
 import Util.Computation
-import HTk.Kernel.Configuration
-import Events.Destructible
 import HTk.Kernel.Geometry
 import HTk.Kernel.Resources
-import HTk.Kernel.Packer
-
 
 -- -----------------------------------------------------------------------
 -- HasPostscript class

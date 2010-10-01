@@ -1,3 +1,6 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | HTk\'s /ComboBox/.
 -- Only available when using tixwish.  However this module needs to go
 -- in the uni-htk-widgets package because it depends on it.
@@ -15,12 +18,10 @@ module HTk.Widgets.ComboBox (
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
-import HTk.Kernel.Resources
 import Util.Computation
 import Events.Synchronized
 import Events.Destructible
 import HTk.Kernel.Packer
-import HTk.Kernel.Tooltip
 import HTk.Widgets.Entry
 import HTk.Widgets.ListBox
 import HTk.Tix.Subwidget

@@ -22,7 +22,6 @@ import HTk.Kernel.ButtonWidget
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
 import HTk.Components.Image
-import HTk.Components.BitMap
 import Reactor.ReferenceVariables
 import Util.Computation
 import Events.Events

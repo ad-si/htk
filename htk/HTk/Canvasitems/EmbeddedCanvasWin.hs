@@ -1,9 +1,6 @@
 -- | HTk\'s /embedded canvas windows/.
 -- A container for widgets on a canvas widget.
 module HTk.Canvasitems.EmbeddedCanvasWin (
-
-  module HTk.Canvasitems.CanvasItem,
-
   EmbeddedCanvasWin,
   createEmbeddedCanvasWin
 
@@ -12,14 +9,11 @@ module HTk.Canvasitems.EmbeddedCanvasWin (
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses
 import HTk.Kernel.Configuration
-import HTk.Canvasitems.CanvasItem
 import HTk.Canvasitems.CanvasTag
 import HTk.Canvasitems.CanvasItemAux
 import Util.Computation
 import Events.Synchronized
 import Events.Destructible
-import Reactor.ReferenceVariables
-
 
 -- -----------------------------------------------------------------------
 -- embedded window

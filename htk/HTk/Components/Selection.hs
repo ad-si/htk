@@ -1,9 +1,8 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | This module provides access to a widgets selection (e.g. inside a
 -- listbox, editor or entry widget).
 module HTk.Components.Selection (
-
-  HasIndex(..),
-
   Selection(..),
   HasSelection(..),
   HasSelectionIndex(..),
@@ -18,7 +17,6 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
 import HTk.Kernel.Colour(toColour)
-import HTk.Components.Index
 import Util.Computation
 
 

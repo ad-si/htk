@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | This module implements a simple list box to which strings can be
 -- added at the end and deleted.
 module HTk.Toolkit.SimpleListBox(
@@ -36,11 +38,6 @@ import Control.Concurrent.MVar
 import Util.ExtendedPrelude
 import Util.Object
 
-import Events.Destructible
-
-import Events.Events
-
-import HTk.Kernel.GUIObject(toGUIObject)
 import HTk.Kernel.Core(GUIObject(..))
 import HTk.Toplevel.HTk
 

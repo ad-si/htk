@@ -5,10 +5,7 @@ module HTk.Toolkit.ModalDialog (
 
 ) where
 
-import Util.Computation (try)
 import HTk.Toplevel.HTk
-import HTk.Components.Focus
-
 
 -- -----------------------------------------------------------------------
 -- Basic Behaviours for modelling Modal Dialogs

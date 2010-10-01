@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | HTk\'s /checkbutton/ widget.
 -- A simple checkbutton associated with a polymorphic variable.
 module HTk.Widgets.CheckButton (

@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | This module exports basic types and classes on index positions, e.g.
 -- inside an editor or entry widget.
 module HTk.Components.Index (

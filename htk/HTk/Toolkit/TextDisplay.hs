@@ -8,7 +8,6 @@ module HTk.Toolkit.TextDisplay(
 ) where
 
 import HTk.Toplevel.HTk
-import HTk.Kernel.Core
 import HTk.Toolkit.ScrollBox
 
 -- | Display some (longish) text in an uneditable, scrollable editor.

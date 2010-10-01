@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | Basic types and classes for coloured resources.
 module HTk.Kernel.Colour (
 

@@ -6,7 +6,6 @@ module HTk.Kernel.Tooltip (
 
 import HTk.Kernel.Wish
 import HTk.Kernel.GUIObject
-import Reactor.ReferenceVariables
 import Util.Computation
 
 

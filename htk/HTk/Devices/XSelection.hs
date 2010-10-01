@@ -1,9 +1,5 @@
 -- | This module provides access to the X selection.
 module HTk.Devices.XSelection (
-
-  module HTk.Components.Index,
-  module HTk.Components.Selection,
-
   HasXSelection(..),
 
   XSelection(..),
@@ -14,13 +10,9 @@ module HTk.Devices.XSelection (
 ) where
 
 import HTk.Kernel.Core
-import HTk.Components.Index
 import HTk.Components.Selection
 import HTk.Devices.Screen
-import Data.Char
 import Util.Computation
-import HTk.Containers.Window
-
 
 -- -----------------------------------------------------------------------
 -- class HasXSelection

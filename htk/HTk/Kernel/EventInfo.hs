@@ -100,9 +100,10 @@ delEventInfoSet (EventInfoSet set) eventPars =
 
 mkEventInfo :: [(EventParameter,String)] -> EventInfo
 mkEventInfo settings =
-  foldl getEvPar (EventInfo {}) settings
+  foldl getEvPar (EventInfo 0 0 0 0 0) settings
   where getEvPar i (Px, val) = i {x= read val}
         getEvPar i (Py, val) = i {y= read val}
         getEvPar i (Pb, val) = i {button= read val}
         getEvPar i (PX, val) = i {xRoot = read val}
         getEvPar i (PY, val) = i {yRoot = read val}
+

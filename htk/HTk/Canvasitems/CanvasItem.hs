@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | The @module CanvasItem@ exports basic classes and
 -- general functionality on canvas items.
 module HTk.Canvasitems.CanvasItem (
@@ -31,13 +34,10 @@ module HTk.Canvasitems.CanvasItem (
 import Data.List (intersperse)
 
 import HTk.Kernel.Core
-import HTk.Kernel.Configuration
 import HTk.Kernel.Geometry
 import HTk.Kernel.Colour
-import HTk.Components.Image
 import HTk.Components.BitMap
 import HTk.Widgets.Canvas
-import Data.Char(isSpace)
 import Util.Computation
 import Events.Synchronized
 

@@ -16,7 +16,7 @@ import HTk.Toplevel.HTk
 import HTk.Kernel.Core
 import HTk.Toolkit.ScrollBox
 import HTk.Toolkit.FileDialog
-import System
+import System.Environment
 
 
 -- -----------------------------------------------------------------------

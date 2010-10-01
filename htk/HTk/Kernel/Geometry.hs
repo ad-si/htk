@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | The @module Geometry@ exports basic geometric types and
 -- functionality.
 module HTk.Kernel.Geometry (

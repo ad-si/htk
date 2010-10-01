@@ -1,3 +1,6 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | HTk\'s /embedded windows/ inside an editor widget.
 module HTk.Textitems.EmbeddedTextWin (
 
@@ -11,7 +14,6 @@ module HTk.Textitems.EmbeddedTextWin (
 
 import HTk.Kernel.Core
 import HTk.Widgets.Editor
-import HTk.Containers.Frame
 import HTk.Components.Index
 import Util.Computation
 import Events.Synchronized
@@ -19,8 +21,6 @@ import HTk.Kernel.Resources
 import Events.Destructible
 import HTk.Kernel.Geometry
 import HTk.Kernel.BaseClasses(Widget)
-import HTk.Kernel.Wish
-
 
 -- -----------------------------------------------------------------------
 -- type EmbeddedTextWin

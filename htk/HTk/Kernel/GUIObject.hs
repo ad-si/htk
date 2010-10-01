@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 module HTk.Kernel.GUIObject(
 
   GUIObject(..),
@@ -17,8 +21,6 @@ module HTk.Kernel.GUIObject(
 
 ) where
 
-
-import Util.Debug(debug)
 import Reactor.ReferenceVariables
 import Events.Synchronized
 import HTk.Kernel.GUIObjectKind

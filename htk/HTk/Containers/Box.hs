@@ -17,11 +17,9 @@ import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
-import HTk.Containers.Frame
 import Events.Destructible
 import Util.Computation
 import Events.Synchronized
-import Reactor.ReferenceVariables
 import HTk.Kernel.Packer
 
 

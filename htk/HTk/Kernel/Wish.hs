@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -- | HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
 -- -----------------------------------------------------------------------
 module HTk.Kernel.Wish (
@@ -58,21 +60,18 @@ module HTk.Kernel.Wish (
 #endif
 #endif
 
-import Data.Maybe
-import Data.Char
-import Data.List(find,union,delete)
+
+import Data.List(union,delete)
 
 import Control.Concurrent
 import Foreign.C.String
 import System.IO.Unsafe
 import Control.Exception
 
-import Util.Debug
 import Util.Object
 import Util.Computation
 
 import Events.Events
-import Events.Channels
 import Events.GuardedEvents
 import Events.EqGuard
 import Events.Destructible

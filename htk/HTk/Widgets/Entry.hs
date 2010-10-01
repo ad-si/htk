@@ -1,11 +1,11 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | HTk's <strong>entry field</strong>.<br>
 -- A simple widget that displays an editable line of text.
 module HTk.Widgets.Entry (
-
-  module HTk.Components.Selection,
-  --module HTk.Components.Index exported by ICursor
-  module HTk.Components.ICursor,
-
   Entry,
 
   newEntry,
@@ -22,11 +22,10 @@ import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
 import HTk.Kernel.Resources
 import HTk.Kernel.Geometry
-import HTk.Kernel.GUIValue
 import HTk.Widgets.ScrollBar
---import Index exported by ICursor
-import HTk.Components.Selection hiding (HasIndex, getBaseIndex)
+import HTk.Components.Selection
 import HTk.Devices.XSelection
+import HTk.Components.Index
 import HTk.Components.ICursor
 import Util.Computation
 import Events.Destructible

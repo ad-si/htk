@@ -1,8 +1,5 @@
 -- | A simple /icon bar/ containing buttons and separators.
 module HTk.Toolkit.IconBar (
-
-  module HTk.Components.BitMap,
-
   IconBar,
   newIconBar,
 
@@ -20,12 +17,8 @@ module HTk.Toolkit.IconBar (
 where
 
 import HTk.Toplevel.HTk
-import HTk.Components.BitMap
-import HTk.Components.Image
 import Reactor.ReferenceVariables
 import HTk.Kernel.Configuration
-import HTk.Kernel.Resources
-import HTk.Containers.Frame
 import HTk.Kernel.GUIObject
 
 

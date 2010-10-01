@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | Basic types and classes associated with the mouse cursor.
 module HTk.Kernel.Cursor (
 
@@ -35,8 +38,6 @@ module HTk.Kernel.Cursor (
 import HTk.Kernel.GUIValue
 import HTk.Kernel.Colour
 import Data.Char
-import Util.Debug(debug)
-
 
 -- -----------------------------------------------------------------------
 -- Cursor Type

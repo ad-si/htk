@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | This module provides access to image resources from files or base64
 -- encoded strings.
 module HTk.Components.Image (
@@ -21,8 +23,6 @@ import HTk.Kernel.Configuration
 import Util.Computation
 import Events.Synchronized
 import Events.Destructible
-import HTk.Kernel.Packer
-
 
 -- -----------------------------------------------------------------------
 -- class image

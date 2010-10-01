@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | Basic types and classes concerning toplevel window resources.
 module HTk.Containers.Window (
 
@@ -22,9 +27,6 @@ module HTk.Containers.Window (
 
 import Util.Computation
 
-import Reactor.ReferenceVariables
-
-import HTk.Kernel.Resources
 import HTk.Kernel.Geometry
 import HTk.Kernel.Configuration
 import HTk.Kernel.Core

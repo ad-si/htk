@@ -27,8 +27,6 @@ import Util.Computation
 import Events.Synchronized
 import Events.Destructible
 import HTk.Kernel.Packer
-import HTk.Kernel.Tooltip
-
 
 -- -----------------------------------------------------------------------
 -- type PanedWindow

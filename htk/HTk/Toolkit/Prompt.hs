@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | A simple prompt (a labelled entry field).
 module HTk.Toolkit.Prompt (
 
@@ -10,9 +13,6 @@ module HTk.Toolkit.Prompt (
 
 import HTk.Kernel.Core
 import HTk.Toplevel.HTk
-import HTk.Widgets.Label
-import HTk.Widgets.Entry
-
 
 -- -----------------------------------------------------------------------
 -- datatype
