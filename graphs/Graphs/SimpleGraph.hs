@@ -50,6 +50,7 @@ import Util.AtomString
 import Events.Destructible
 import Events.Events
 import Events.Channels
+import Events.Synchronized
 
 import Reactor.BSem
 

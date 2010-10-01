@@ -45,6 +45,7 @@ import Util.Messages
 import Events.Channels
 import Events.Events
 import Events.Destructible
+import Events.Synchronized
 
 import Reactor.BSem
 

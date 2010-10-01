@@ -75,6 +75,7 @@ import Events.Spawn
 import Events.Events
 import Events.Channels
 import Events.Destructible
+import Events.Synchronized
 
 import Reactor.BSem
 import Posixutil.ChildProcess
