@@ -1,3 +1,6 @@
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | The functions in this module implement pruning of 'PureGraph's,
 -- to remove hidden nodes as far as possible, while still showing the
 -- structure between non-hidden nodes.

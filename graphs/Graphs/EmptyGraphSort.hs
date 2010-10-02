@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+
 -- | This module describes an empty display graph sort.  In other words, it
 -- displays nothing.  Not a lot of use you might think, but we use it for
 -- the MMiSS API to get a version graph without invoking daVinci.

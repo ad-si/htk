@@ -8,8 +8,6 @@ module Graphs.PureGraphMakeConsistent(
    pureGraphMakeConsistent,
    ) where
 
-import Data.List
-
 import Util.DeprecatedFiniteMap
 
 import Graphs.PureGraph

@@ -1,3 +1,6 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+
 -- | GetAttributes is used by the GraphEditor to pop up HTk windows
 -- to get information from the user.
 module Graphs.GetAttributes(
@@ -14,7 +17,6 @@ module Graphs.GetAttributes(
 
 import Control.Exception
 
-import Util.Computation (done)
 import Util.Dynamics
 import Util.Registry hiding (getValue)
 import qualified Util.Registry as Registry (getValue)

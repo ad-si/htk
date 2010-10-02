@@ -1,3 +1,6 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | #########################################################################
 --
 -- This Graph Editor is inspired by the one by Einar Karlsen but uses

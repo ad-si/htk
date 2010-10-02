@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | This module implements a simple \"pure\" graph interface, destined
 -- to be used for the complex graph operations required by VersionDag.
 --

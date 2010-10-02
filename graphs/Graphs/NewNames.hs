@@ -23,8 +23,6 @@
    -- called, otherwise it raises an error.
    ) where
 
-import IO
-
 import Util.Computation
 
 import Control.Concurrent

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | GraphConnection contains various operations on graph connections
 module Graphs.GraphConnection(
    SubGraph(..),

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | This module contains various functions for operating on graphs
 module Graphs.GraphOps(
    isAncestor, -- :: graph ... -> Node -> Node -> IO Bool

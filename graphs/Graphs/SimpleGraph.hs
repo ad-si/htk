@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | SimpleGraph is, as the name implies, a simple implementation
 -- of the Graph interface.  For example, we don't bother to sort
 -- the arcs going out of a node, meaning that to find out if two

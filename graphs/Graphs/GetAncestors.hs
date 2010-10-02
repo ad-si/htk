@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Graphs.GetAncestors(
    getAncestors,
       -- :: Graph graph => Bool

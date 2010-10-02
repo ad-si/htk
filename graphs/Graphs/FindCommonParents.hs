@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Given two acyclic graphs G1 and G2 sharing some nodes, and a list V1 of nodes in G1,
 -- let A be the union of G1 intersect G2 and V1.  The function in this module returns
 -- a list L of type [(Node,[Node])] such that

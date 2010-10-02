@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+
 -- | Graph defines the Graph class, which defines the basic things a
 -- graph must do.  Peculiarities:
 -- (1) Graphs are directed with labelled nodes and

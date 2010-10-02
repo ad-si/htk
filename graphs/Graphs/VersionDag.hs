@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | This module implements a VersionDag, a graph which is used for
 -- displaying versions within the Workbench.
 --

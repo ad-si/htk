@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | The function in this module finds a cycle in a given directed graph, if
 -- one exists.
 module Graphs.FindCycle (

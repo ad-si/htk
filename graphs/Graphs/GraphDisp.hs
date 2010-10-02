@@ -1,3 +1,9 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- |
 -- Description: Basic Interface for Graph Display
 --
@@ -189,7 +195,6 @@ module Graphs.GraphDisp(
 
 import Data.Typeable
 
-import Util.Dynamics
 import Util.VariableList hiding (redraw)
 import Util.Delayer(HasDelayer(..))
 

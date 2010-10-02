@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | The removeAncestors function in this module (actually an IO action) takes
 -- a graph G and a list of nodes N and computes N' = { n in N |
 --    there does not exist an m in N and a non-trivial path n -> m }.

@@ -1,10 +1,11 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | This module, given a changing source of 'PureGraph's, transforms it into
 -- a 'Graph'. -}
 module Graphs.PureGraphToGraph(
    pureGraphToGraph,
    ) where
 
-import Data.Maybe
 import Data.List
 
 import Util.DeprecatedFiniteMap
