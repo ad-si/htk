@@ -28,11 +28,8 @@ else
    CPPOPT =
 endif
 
-HCSHORTFLAGS = \
-   $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) -fno-mono-pat-binds \
-   -fglasgow-exts -fallow-overlapping-instances \
-   -fallow-undecidable-instances -Wall -fth \
-   $($*_HC_OPTIONS)
+HCSHORTFLAGS = $(HC_OPTIONS) $(EXTRA_HC_OPTIONS) \
+   -fglasgow-exts -Wall $($*_HC_OPTIONS)
 
 PACKAGESARGS = $(PACKAGES:%=-package %)
 
