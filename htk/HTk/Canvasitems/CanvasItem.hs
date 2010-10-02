@@ -7,9 +7,6 @@ module HTk.Canvasitems.CanvasItem (
 
   Canvas,
 
-  BitMapHandle(..),
-  BitMap,
-
   HasCoords(..),
 
   CanvasItem,
@@ -33,11 +30,11 @@ module HTk.Canvasitems.CanvasItem (
 
 import Data.List (intersperse)
 
+import HTk.Widgets.Canvas
 import HTk.Kernel.Core
 import HTk.Kernel.Geometry
 import HTk.Kernel.Colour
 import HTk.Components.BitMap
-import HTk.Widgets.Canvas
 import Util.Computation
 import Events.Synchronized
 

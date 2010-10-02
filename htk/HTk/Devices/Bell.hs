@@ -1,7 +1,6 @@
 -- | This module provides access to the terminal bell.
 module HTk.Devices.Bell (
 
-  Window,
   ringBell,
   bell
 

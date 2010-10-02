@@ -18,10 +18,9 @@ import Reactor.ReferenceVariables
 
 import HTk.Toplevel.HTk
 import HTk.Kernel.Core
-import qualified HTk.Toolkit.TreeList as TreeList (TreeListEvent(Selected, Focused))
-import HTk.Toolkit.TreeList hiding (TreeListEvent(Selected, Focused))
-import qualified HTk.Toolkit.Notepad as Notepad (NotepadEvent(Dropped, Doubleclick, Rightclick))
-import HTk.Toolkit.Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick))
+import HTk.Toolkit.TreeList as TreeList
+import qualified HTk.Toolkit.Notepad as Notepad
+import HTk.Toolkit.Notepad hiding (NotepadEvent(..))
 
 -- | Browsed data needs to instantiate the class @CItem@.
 class CItem o => GBObject o where
@@ -122,9 +121,9 @@ newGenericBrowser par rootobjs cnf =
                                             (npobj, npobjs) ->
                                             npItemsDropped gb
                                               (npobj, npobjs)
-                                          Selected npobj ->
+                                          Notepad.Selected npobj ->
                                             npItemSelected gb npobj
-                                          Deselected npobj ->
+                                          Notepad.Deselected npobj ->
                                             npItemDeselected gb npobj
                                           Notepad.Doubleclick npobj ->
                                             npItemDoubleclick gb npobj

@@ -1,7 +1,6 @@
 -- | HTk\'s /image/ canvas item.
 -- An image object on a canvas widget.
 module HTk.Canvasitems.ImageItem (
-  module HTk.Canvasitems.CanvasItem,
 
   ImageItem,
   createImageItem

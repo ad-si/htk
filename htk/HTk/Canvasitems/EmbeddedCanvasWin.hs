@@ -9,6 +9,7 @@ module HTk.Canvasitems.EmbeddedCanvasWin (
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses
 import HTk.Kernel.Configuration
+import HTk.Canvasitems.CanvasItem
 import HTk.Canvasitems.CanvasTag
 import HTk.Canvasitems.CanvasItemAux
 import Util.Computation

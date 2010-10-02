@@ -4,7 +4,6 @@
 
 -- | This module provides access to text marks inside an editor widget.
 module HTk.Textitems.Mark (
-  Editor,
 
   Gravity(..),
 

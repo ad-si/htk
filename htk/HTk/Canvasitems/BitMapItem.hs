@@ -2,8 +2,6 @@
 -- A bitmap object on a canvas widget.
 module HTk.Canvasitems.BitMapItem (
 
-  module HTk.Canvasitems.CanvasItem,
-
   BitMapItem,
   createBitMapItem
 

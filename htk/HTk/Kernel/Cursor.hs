@@ -4,10 +4,6 @@
 -- | Basic types and classes associated with the mouse cursor.
 module HTk.Kernel.Cursor (
 
-  GUIVALUE(..),
-  GUIValue(..),
-  Colour,
-
   CursorDesignator(..),
 
   Cursor(..),

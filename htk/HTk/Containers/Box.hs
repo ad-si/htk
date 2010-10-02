@@ -2,7 +2,6 @@
 -- packing).
 module HTk.Containers.Box (
 
-  Flexibility(..),
   Box,
 
   newBox,

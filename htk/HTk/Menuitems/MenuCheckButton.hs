@@ -6,9 +6,6 @@
 -- variable.
 module HTk.Menuitems.MenuCheckButton (
 
-  HasIndicator(..),
-  HasAccelerator(..),
-
   MenuCheckButton,
   createMenuCheckButton
 

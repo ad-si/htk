@@ -1,8 +1,4 @@
 module HTk.Canvasitems.CanvasItemAux (
-  Canvas,
-
-  HasCoords(..),
-  CanvasItem,
 
   createCanvasItem,
 

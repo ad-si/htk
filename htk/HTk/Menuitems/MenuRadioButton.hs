@@ -6,9 +6,6 @@
 -- variable.
 module HTk.Menuitems.MenuRadioButton (
 
-  HasIndicator(..),
-  HasAccelerator(..),
-
   MenuRadioButton,
   createMenuRadioButton
 

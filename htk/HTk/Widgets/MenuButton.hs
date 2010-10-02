@@ -3,8 +3,6 @@
 
 module HTk.Widgets.MenuButton (
 
-  ButtonWidget(..),
-
   MenuButton,
   newMenuButton
 

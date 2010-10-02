@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
 
 -- |
 -- Description: Low-Level Tcl\/Tk interface
@@ -102,13 +101,16 @@ module HTk.Toplevel.HTk (
 
 -- components submodules
 
+  module HTk.Components.Index,
   module HTk.Components.BitMap,
   module HTk.Components.Image,
   module HTk.Components.Focus,
   module HTk.Components.Icon,
+  module HTk.Components.Selection,
 
 -- widget packing
 
+  module HTk.Kernel.ButtonWidget,
   module HTk.Kernel.Packer,
   module HTk.Kernel.PackOptions,
   module HTk.Kernel.GridPackOptions,
@@ -163,80 +165,91 @@ module HTk.Toplevel.HTk (
 ) where
 
 import Control.Concurrent
-import System.IO.Unsafe
 
-import HTk.Containers.Frame
-import HTk.Widgets.Label
-import HTk.Widgets.Message
-import HTk.Widgets.Entry
-import HTk.Widgets.Button
-import HTk.Widgets.CheckButton
-import HTk.Widgets.RadioButton
-import HTk.Widgets.MenuButton
-import HTk.Widgets.Canvas
-import HTk.Widgets.Editor
-import HTk.Widgets.ListBox
-import HTk.Widgets.OptionMenu
-import HTk.Widgets.Scale
-import HTk.Widgets.ScrollBar
-import HTk.Menuitems.Menu
-import HTk.Menuitems.MenuCascade
-import HTk.Menuitems.MenuCommand
-import HTk.Menuitems.MenuCheckButton
-import HTk.Menuitems.MenuRadioButton
-import HTk.Menuitems.MenuSeparator
-import HTk.Canvasitems.CanvasItem
+import Events.Channels
+import Events.Destructible
+import Events.Events
+import Events.Spawn
+import Events.Synchronized
+
 import HTk.Canvasitems.Arc
+import HTk.Canvasitems.BitMapItem
+import HTk.Canvasitems.CanvasItem hiding (Canvas)
+import HTk.Canvasitems.CanvasTag
+import HTk.Canvasitems.EmbeddedCanvasWin
+import HTk.Canvasitems.ImageItem
 import HTk.Canvasitems.Line
 import HTk.Canvasitems.Oval
 import HTk.Canvasitems.Polygon
 import HTk.Canvasitems.Rectangle
-import HTk.Canvasitems.ImageItem
-import HTk.Canvasitems.BitMapItem
 import HTk.Canvasitems.TextItem
-import HTk.Canvasitems.CanvasTag
-import HTk.Canvasitems.EmbeddedCanvasWin
-import HTk.Components.Image
+
 import HTk.Components.BitMap
-import HTk.Kernel.Configuration
-import HTk.Kernel.Packer
-import HTk.Kernel.PackOptions
-import HTk.Kernel.GridPackOptions
-import HTk.Devices.Screen
-import HTk.Kernel.Cursor
-import Util.Computation
-import HTk.Kernel.Geometry
-import HTk.Kernel.Resources
-import HTk.Kernel.Tooltip
-import HTk.Kernel.Font
-import HTk.Kernel.Colour
-import HTk.Kernel.GUIValue
-import HTk.Kernel.Core
-import HTk.Kernel.BaseClasses
+import HTk.Components.Focus
+import HTk.Components.Icon
+import HTk.Components.Image
+import HTk.Components.Index
+import HTk.Components.Selection
+
 import HTk.Containers.Box
+import HTk.Containers.Frame
 import HTk.Containers.Toplevel
 import HTk.Containers.Window
 
-import Events.Destructible
-import HTk.Kernel.EventInfo
-import Events.Events
-import Events.Spawn
-import Events.Channels
-import Events.Synchronized
-import HTk.Kernel.TkVariables
-import HTk.Textitems.TextTag
-import HTk.Textitems.Mark
-import HTk.Kernel.Wish
-import HTk.Textitems.EmbeddedTextWin
-import HTk.Tix.NoteBook
-import HTk.Tix.LabelFrame
-import HTk.Tix.PanedWindow
-import HTk.Widgets.ComboBox
 import HTk.Devices.Bell
-import HTk.Components.Focus
-import HTk.Components.Icon
 import HTk.Devices.Printer
+import HTk.Devices.Screen
 
+import HTk.Kernel.BaseClasses
+import HTk.Kernel.ButtonWidget
+import HTk.Kernel.Colour
+import HTk.Kernel.Configuration
+import HTk.Kernel.Core
+import HTk.Kernel.Cursor
+import HTk.Kernel.EventInfo
+import HTk.Kernel.Font
+import HTk.Kernel.GUIValue
+import HTk.Kernel.Geometry
+import HTk.Kernel.GridPackOptions
+import HTk.Kernel.PackOptions
+import HTk.Kernel.Packer
+import HTk.Kernel.Resources
+import HTk.Kernel.TkVariables
+import HTk.Kernel.Tooltip
+import HTk.Kernel.Wish
+
+import HTk.Menuitems.Menu
+import HTk.Menuitems.MenuCascade
+import HTk.Menuitems.MenuCheckButton
+import HTk.Menuitems.MenuCommand
+import HTk.Menuitems.MenuRadioButton
+import HTk.Menuitems.MenuSeparator
+
+import HTk.Textitems.EmbeddedTextWin
+import HTk.Textitems.Mark
+import HTk.Textitems.TextTag
+
+import HTk.Tix.LabelFrame
+import HTk.Tix.NoteBook
+import HTk.Tix.PanedWindow
+
+import HTk.Widgets.Button
+import HTk.Widgets.Canvas
+import HTk.Widgets.CheckButton
+import HTk.Widgets.ComboBox
+import HTk.Widgets.Editor
+import HTk.Widgets.Entry
+import HTk.Widgets.Label
+import HTk.Widgets.ListBox
+import HTk.Widgets.MenuButton
+import HTk.Widgets.Message
+import HTk.Widgets.OptionMenu
+import HTk.Widgets.RadioButton
+import HTk.Widgets.Scale
+import HTk.Widgets.ScrollBar
+
+import System.IO.Unsafe
+import Util.Computation
 
 -- -----------------------------------------------------------------------
 -- type HTk and its instances

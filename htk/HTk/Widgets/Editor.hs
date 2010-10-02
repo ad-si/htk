@@ -8,10 +8,6 @@
 -- text tags, to which you can bind events, and also embedded windows.
 module HTk.Widgets.Editor (
 
-  ScrollBar,
-  ScrollUnit,
-  HasScroller(..),
-
   Editor,
   newEditor,
 

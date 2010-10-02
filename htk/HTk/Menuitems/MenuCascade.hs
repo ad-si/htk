@@ -5,9 +5,6 @@
 -- A containers for cascaded menus.
 module HTk.Menuitems.MenuCascade (
 
-  HasIndicator(..),
-  HasAccelerator(..),
-
   MenuCascade,
   createMenuCascade,
   createPulldownMenu

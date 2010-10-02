@@ -5,9 +5,6 @@
 -- A simple command inside a menu.
 module HTk.Menuitems.MenuCommand (
 
-  HasIndicator(..),
-  HasAccelerator(..),
-
   MenuCommand,
   createMenuCommand
 

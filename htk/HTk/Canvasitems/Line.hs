@@ -2,8 +2,6 @@
 -- A line object on a canvas widget.
 module HTk.Canvasitems.Line (
 
-  module HTk.Canvasitems.CanvasItem,
-
   ArrowHead(..),
   CapStyle(..),
   JoinStyle(..),

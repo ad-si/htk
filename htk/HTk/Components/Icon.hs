@@ -10,6 +10,7 @@ module HTk.Components.Icon (
 ) where
 
 import HTk.Kernel.Core
+import HTk.Kernel.Configuration
 import HTk.Components.BitMap
 import Util.Computation
 import Events.Synchronized

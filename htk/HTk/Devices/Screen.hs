@@ -2,7 +2,6 @@
 -- screen\'s properties.
 module HTk.Devices.Screen (
 
-  Distance,
   Screen(..),
   getScreenHeight,
   getScreenWidth,

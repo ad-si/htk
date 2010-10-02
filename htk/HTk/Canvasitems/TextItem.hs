@@ -5,8 +5,6 @@
 -- A text container on a canvas widget.
 module HTk.Canvasitems.TextItem (
 
-  module HTk.Canvasitems.CanvasItem,
-
   TextItem,
   createTextItem
 

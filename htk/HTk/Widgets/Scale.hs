@@ -10,8 +10,6 @@ module HTk.Widgets.Scale (
   Scale,
   newScale,
 
-  HasIncrement(..),
-
   digits,
   getDigits,
 
@@ -21,9 +19,6 @@ module HTk.Widgets.Scale (
   getIntervalTo,
   intervalFrom,
   getIntervalFrom,
-
-  Slider(..),
-  HasSlider(..),
 
   bigIncrement,
   getBigIncrement,

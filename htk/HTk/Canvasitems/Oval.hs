@@ -2,8 +2,6 @@
 -- An oval object on a canvas widget.
 module HTk.Canvasitems.Oval (
 
-  module HTk.Canvasitems.CanvasItem,
-
   Oval,
   createOval
 

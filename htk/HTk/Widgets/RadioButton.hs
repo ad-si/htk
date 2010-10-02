@@ -5,8 +5,6 @@
 -- A simple radiobutton associated with a polymorphic variable.
 module HTk.Widgets.RadioButton (
 
-  ButtonWidget(..),
-
   RadioButton,
   newRadioButton
 

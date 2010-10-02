@@ -7,12 +7,6 @@
 -- A canvas widget contains <strong>canvas items</strong>.
 module HTk.Widgets.Canvas (
 
-  HasPostscript(..),   -- TD: ps export
-
-  ScrollBar,
-  HasScroller(..),
-  ScrollUnit,
-
   Canvas,
   newCanvas,
 

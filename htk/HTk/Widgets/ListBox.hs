@@ -8,9 +8,6 @@
 -- functionality.
 module HTk.Widgets.ListBox (
 
-  module HTk.Components.Selection,
-  module HTk.Components.Index,
-
   ListBox,
   newListBox,
 

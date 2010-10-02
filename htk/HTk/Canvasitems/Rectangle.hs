@@ -2,8 +2,6 @@
 -- A rectangle object on a canvas widget.
 module HTk.Canvasitems.Rectangle (
 
-  module HTk.Canvasitems.CanvasItem,
-
   Rectangle,
   createRectangle
 

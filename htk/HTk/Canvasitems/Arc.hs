@@ -2,8 +2,6 @@
 -- An arc object on a canvas widget.
 module HTk.Canvasitems.Arc (
 
-  module HTk.Canvasitems.CanvasItem,
-
   Arc,
   createArc,
 

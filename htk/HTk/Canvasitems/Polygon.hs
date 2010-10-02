@@ -2,8 +2,6 @@
 -- A polygon object on a canvas widget.
 module HTk.Canvasitems.Polygon (
 
-  module HTk.Canvasitems.CanvasItem,
-
   Polygon,
   createPolygon
 

@@ -8,10 +8,6 @@ module HTk.Containers.Window (
 
   Window(..),
   Display,
-  HasGeometry(..),
-  HasSize(..),
-  HasPosition(..),
-  HasText(..),
   maxSize,
   getMaxSize,
   minSize,

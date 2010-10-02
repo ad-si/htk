@@ -1,7 +1,5 @@
 module HTk.Canvasitems.CanvasTag (
 
-  module HTk.Canvasitems.CanvasItem,
-
   CanvasTag,
 
   TaggedCanvasItem(..),

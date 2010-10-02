@@ -1,8 +1,6 @@
 -- | This module provides functionality on the current focus.
 module HTk.Components.Focus (
 
-  Window,
-
   CurrentFocus,
 
   FocusModel(..),
