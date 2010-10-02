@@ -22,7 +22,6 @@ import qualified HTk.Toolkit.TreeList as TreeList (TreeListEvent(Selected, Focus
 import HTk.Toolkit.TreeList hiding (TreeListEvent(Selected, Focused))
 import qualified HTk.Toolkit.Notepad as Notepad (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import HTk.Toolkit.Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick))
-import HTk.Toolkit.CItem
 
 -- | Browsed data needs to instantiate the class @CItem@.
 class CItem o => GBObject o where
@@ -132,7 +131,7 @@ newGenericBrowser par rootobjs cnf =
                                           Notepad.Rightclick npobjs ->
                                             npItemsRightclick gb npobjs
                                           _ -> done))
-     spawnEvent (forever listenComponents)
+     _ <- spawnEvent (forever listenComponents)
      rootobjs' <- filterM isObjectNode rootobjs
      initBrowser gb rootobjs'
      return gb

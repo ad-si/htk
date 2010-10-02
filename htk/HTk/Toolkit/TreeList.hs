@@ -176,7 +176,7 @@ newTreeList par cfun objs cnf =
         listenCnv =
           (press >> always (deselect treelist) >> listenCnv) +>
           receive death
-    spawnEvent listenCnv
+    _ <- spawnEvent listenCnv
     setRef cleanup [ub, syncNoWait (send death ())]
     return treelist
 
@@ -261,7 +261,7 @@ recoverTreeList par cfun st cnf =
     let listenCnv :: Event ()
         listenCnv = (press >> always (deselect tl) >> listenCnv) +>
                     receive death
-    spawnEvent listenCnv
+    _ <- spawnEvent listenCnv
     setRef cleanup [ub, syncNoWait (send death ())]
     return tl
 
@@ -562,7 +562,7 @@ startObjectInteractor obj =
     let listenObject :: Event ()
         listenObject =    (press >> always (pressed obj) >> listenObject)
                        +> (receive death)
-    spawnEvent listenObject
+    _ <- spawnEvent listenObject
     addUnbindAction obj (syncNoWait (send death ()))
     done
 
@@ -1085,7 +1085,7 @@ mkTreeListObject tl val isnode isopen cnf =
                                                  else Leaf)), ev_inf)))
                 listenObject)
           +> receive death
-    spawnEvent listenObject
+    _ <- spawnEvent listenObject
     return obj
 
 -- selector for the horizontal line of an (internal) tree list object

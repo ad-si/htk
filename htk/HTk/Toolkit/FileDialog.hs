@@ -22,7 +22,6 @@ import Reactor.ReferenceVariables
 
 import HTk.Toplevel.HTk
 import HTk.Toolkit.ModalDialog (modalDialog)
-import HTk.Toolkit.DialogWin (createWarningWin,createConfirmWin)
 
 debugMsg :: String-> IO ()
 debugMsg str = done -- putStr (">>> " ++ str ++ "\n")
@@ -116,7 +115,7 @@ updPathMenu pathmenubutton menuref path foldersref filesref pathref
           do
             item <- createMenuCommand pathmenu [text fp]
             clickeditem <- clicked item
-            spawnEvent (forever (clickeditem >> always (selected fp)))
+            _ <- spawnEvent (forever (clickeditem >> always (selected fp)))
             done
         selected :: FilePath -> IO ()
         selected fp =
@@ -715,8 +714,8 @@ fileDialog' isNew title pathref =
                          else status # text "cancelled file deletion" >>
                               done))) >>
               listenDialog)
-    spawnEvent listenDialog
-    spawnEvent (main_destr >> always (do
+    _ <- spawnEvent listenDialog
+    _ <- spawnEvent (main_destr >> always (do
                                         mchildwindow <- getRef childwindow
                                         case mchildwindow of
                                           Just win -> destroy win

@@ -160,7 +160,6 @@ import HTk.Kernel.GUIObject
 import qualified HTk.Kernel.Configuration as Configuration (font)
 import qualified HTk.Textitems.TextTag as TextTag (offset)
 import HTk.Kernel.Font
-import HTk.Components.Index
 
 -- -----------------------------------------------------------------------
 -- state
@@ -989,7 +988,7 @@ parseMarkupText m f =
                                        (always (tag # fg c1) >>
                                         listenTag))
                                  +> receive death
-                           spawnEvent listenTag
+                           _ <- spawnEvent listenTag
                            addToState ed [u_entered, u_left,
                                           syncNoWait(send death ())]
                            return tag)
@@ -1017,7 +1016,7 @@ parseMarkupText m f =
                                        (always (tag # underlined Off) >>
                                         listenTag))
                                  +> receive death
-                           spawnEvent listenTag
+                           _ <- spawnEvent listenTag
                            addToState ed [u_entered, u_left,
                                           syncNoWait (send death ())]
                            return tag)
@@ -1040,7 +1039,7 @@ parseMarkupText m f =
                                listenTag =
                                     (click >> always act >> listenTag)
                                  +> receive death
-                           spawnEvent listenTag
+                           _ <- spawnEvent listenTag
                            addToState ed [u_click,
                                           syncNoWait (send death ())]
                            return tag)
@@ -1070,7 +1069,7 @@ parseMarkupText m f =
                                                      Nothing -> done) >>
                                   listenTag) +>
                                  receive death
-                           spawnEvent listenTag
+                           _ <- spawnEvent listenTag
                            addToState ed [enter_u, leave_u,
                                           syncNoWait (send death ())]
                            return tag)
@@ -1110,7 +1109,7 @@ parseMarkupText m f =
                                                settags txt' tags') >>
                                     listenTag)
                                  +> receive death
-                           spawnEvent listenTag
+                           _ <- spawnEvent listenTag
                            addToState ed [u_click,
                                           syncNoWait (send death ())]
                            return tag)
@@ -1136,7 +1135,7 @@ parseMarkupText m f =
                                              ed # new linktext) >>
                                      listenTag)
                                  +> receive death
-                           spawnEvent listenTag
+                           _ <- spawnEvent listenTag
                            addToState ed [u_click,
                                           syncNoWait (send death ())]
                            return tag)

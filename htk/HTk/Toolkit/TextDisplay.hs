@@ -38,7 +38,7 @@ createTextDisplayExt title txt conf unpost =
      ed # state Disabled
 
      quit <- clicked q
-     spawnEvent (quit >>> do destroy win; unpost)
+     _ <- spawnEvent (quit >>> do destroy win; unpost)
      return (win, ed)
 
 -- | Display some (longish) text in an uneditable, scrollable editor.

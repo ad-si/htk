@@ -421,7 +421,7 @@ newWish =
             bufferedCommands = bufferedCommands,
             oID = oID
             }
-      spawnEvent eventForwarder
+      _ <- spawnEvent eventForwarder
 
       registerToolDebug "Wish" wish -- so that shutdown works.
 

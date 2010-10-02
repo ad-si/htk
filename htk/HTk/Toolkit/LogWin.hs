@@ -57,7 +57,7 @@ createLogWin cnf =
         listen = (clickedsavecmd >> always (saveLog ed) >> listen) +>
                  (clickedquitcmd >>> destroy win) +>
                  receive death
-    spawnEvent listen
+    _ <- spawnEvent listen
     return (LogWin win ed (syncNoWait (send death ())))
 
 

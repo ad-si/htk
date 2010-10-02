@@ -570,7 +570,7 @@ makeFormMenuEntry frame htkMenu =
                )
             +> receive killChannel
 
-      spawnEvent menuEventThread
+      _ <- spawnEvent menuEventThread
 
       return (EnteredForm{
          packAction = pack menuButton [],

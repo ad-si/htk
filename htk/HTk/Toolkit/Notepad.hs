@@ -176,7 +176,7 @@ createNotepadItem val notepad updscrollregion cnf =
 
     (entered, _) <- bindSimple item Enter
     (left, _) <- bindSimple item Leave
-    spawnEvent (forever ((entered >>>
+    _ <- spawnEvent (forever ((entered >>>
                             (do st <- getIntState notepad
                                 (if st /= Mov then
                                    do
@@ -1112,7 +1112,7 @@ newNotepad par scrolltype imgsize mstate cnf =
           +> (release >> listenNotepad)  -- avoid cueing of release events
           +> receive stopListening
 
-    spawnEvent listenNotepad
+    _ <- spawnEvent listenNotepad
     foldl (>>=) (return notepad) cnf
     case mstate of
       Just state -> importNotepadState notepad state

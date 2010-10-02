@@ -39,7 +39,6 @@ import HTk.Toolkit.TreeList hiding (obj_val, TreeListEvent(Selected), selected)
 import qualified HTk.Toolkit.Notepad as Notepad (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import HTk.Toolkit.Notepad hiding (NotepadEvent(Dropped, Doubleclick, Rightclick))
 import Reactor.ReferenceVariables
-import HTk.Toolkit.Name
 import HTk.Kernel.Core
 import Data.List
 import HTk.Toolkit.MarkupText
@@ -363,7 +362,7 @@ newGenGUI mstate showLeavesInTree =
     (np_ev, _) <- bindNotepadEv np
     (tl_ev, _) <- bindTreeListEv tl
 
-    spawnEvent (forever ((do
+    _ <- spawnEvent (forever ((do
                             ev <- np_ev
                             always
                               (case ev of

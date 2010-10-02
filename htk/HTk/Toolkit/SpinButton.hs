@@ -63,7 +63,7 @@ newSpinButton par cmd cnf =
                         (clicked_bup >> always (cmd Up) >>
                          listenButtons) +>
                         receive death
-    spawnEvent listenButtons
+    _ <- spawnEvent listenButtons
     configure (SpinButton b bup bdown (syncNoWait (send death ())))
               cnf
 
