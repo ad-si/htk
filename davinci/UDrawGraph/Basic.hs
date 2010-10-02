@@ -233,12 +233,12 @@ getDaVinciEnvironment =
                   Right envVal -> Just (envName,envVal)
                   )
 
-      (daVinciEnvs :: [Maybe (String,String)])
+      daVinciEnvs
          <- mapM getEnvOpt [
             "DISPLAY","LD_LIBRARY_PATH","DAVINCIHOME","LANG","OSTYPE",
             "PATH","PWD","USER"]
 
-      return (catMaybes daVinciEnvs)
+      return (catMaybes (daVinciEnvs :: [Maybe (String,String)]))
 
 
 -- ---------------------------------------------------------------------

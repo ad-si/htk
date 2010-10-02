@@ -1,3 +1,10 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | This is the implementation of modules GraphDisp and GraphConfigure for
 -- daVinci.   See those files for explanation of the names.
 -- We encode, for example, the type parameter node as DaVinciNode,
