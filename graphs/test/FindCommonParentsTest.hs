@@ -1,7 +1,7 @@
 -- | Test graphs for FindCommonParents
 module FindCommonParentsTest where
 
-import FindCommonParents
+import Graphs.FindCommonParents
 
 graph1 :: GraphBack Int Int
 graph1 = GraphBack {

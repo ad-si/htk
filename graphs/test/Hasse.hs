@@ -6,10 +6,10 @@ module Hasse(
 
 import Data.List hiding (intersect,union)
 
-import DeprecatedFiniteMap
-import DeprecatedSet
+import Util.DeprecatedFiniteMap
+import Util.DeprecatedSet
 
-import TopSort
+import Graphs.TopSort
 
 data Ord a => HasseData a = HasseData {
    leftToDo :: [a],

@@ -8,22 +8,22 @@ import Data.Maybe
 import IO
 import System
 
-import DeprecatedSet
-import DeprecatedFiniteMap
+import Util.DeprecatedSet
+import Util.DeprecatedFiniteMap
 
-import Debug
-import Computation
-import IOExtras
-import Dynamics(fromDynamic)
+import Util.Debug
+import Util.Computation
+import Util.IOExtras
+import Util.Dynamics(fromDynamic)
 
-import RegularExpression
-import InfoBus
-import Events
-import Destructible
-import WBFiles
+import Util.RegularExpression
+import Reactor.InfoBus
+import Events.Events
+import Events.Destructible
+import Util.WBFiles
 
-import GraphDisp
-import GraphConfigure
+import Graphs.GraphDisp
+import Graphs.GraphConfigure
 
 import Hasse
 

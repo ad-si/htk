@@ -2,8 +2,8 @@
 -- Also for GraphOps.
 module RemoveAncestorsTest where
 
-import RemoveAncestors
-import GraphOps
+import Graphs.RemoveAncestors
+import Graphs.GraphOps
 
 test :: [Int] -> IO ()
 test l0 =
