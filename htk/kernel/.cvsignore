@@ -1,9 +1,0 @@
-pgm
-*.o
-*.hi
-.depend
-Makefile.bak
-*%
-backup*
-test
-TOBEDONE
