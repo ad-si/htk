@@ -16,7 +16,6 @@ library
   exposed-modules:
     Events.Toggle,
     Events.Events,
-    Events.After,
     Events.Cells,
     Events.GuardedEvents,
     Events.GuardedChannels,
@@ -25,7 +24,6 @@ library
     Events.FMQueue,
     Events.EqGuard,
     Events.Spawn,
-    Events.WrapIO,
     Events.Destructible,
     Events.Channels,
     Events.Examples,

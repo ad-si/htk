@@ -9,8 +9,10 @@ homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Utilities for the uniform workbench
 description:
- This package contains various miscellaneous utilities which belong nowhere in
- particular in the Workbench.
+ This package contains various miscellaneous utilities used for the
+ old HTk- und uDrawGraph bindings as well as for the MMiSS Workbench.
+ They are kept for compatibility reason and put on hackage to ease
+ installation.
 cabal-version:  >= 1.4
 Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
 
@@ -29,15 +31,15 @@ library
   Util.ExtendedPrelude, Util.Computation, Util.Dynamics, Util.WBFiles,
   Util.Object, Util.Debug, Util.Maybes, Util.LineShow, Util.Cache,
   Util.FileNames, Util.IOExtras, Util.QuickReadShow, Util.AtomString,
-  Util.SmallSet, Util.Registry, Util.DelSet,
+  Util.Registry,
   Util.Thread, Util.UniqueString, Util.UniqueFile, Util.TempFile, Util.Sink,
-  Util.VariableSet, Util.VariableMap, Util.CommandStringSub, Util.WaitOnN,
-  Util.FileSystem, Util.CacheTable, Util.DeepSeq, Util.NameMangle,
+  Util.VariableSet, Util.VariableMap, Util.CommandStringSub,
+  Util.DeepSeq, Util.NameMangle,
   Util.KeyedChanges, Util.Sources, Util.Broadcaster, Util.ReferenceCount,
   Util.Delayer, Util.VariableList, Util.Myers, Util.VariableSetBlocker,
   Util.IntPlus, Util.UnionFind, Util.ICStringLen, Util.VisitedSet,
-  Util.StrError, Util.HostName, Util.Bytes, Util.Binary, Util.BinaryUtils,
-  Util.BinaryInstances, Util.BinaryExtras, Util.BinaryAll, Util.StringSkip,
+  Util.HostName, Util.Bytes, Util.Binary, Util.BinaryUtils,
+  Util.BinaryInstances, Util.BinaryExtras, Util.BinaryAll,
   Util.ThreadDict, Util.TSem, Util.Store, Util.Messages,
   Util.ClockTimeToString, Util.UTF8, Util.VSem
 

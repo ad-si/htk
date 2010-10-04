@@ -19,7 +19,6 @@ library
     Reactor.MSem,
     Reactor.ReferenceVariables,
     Reactor.InfoBus,
-    Reactor.LockEvent,
     Reactor.WithDir
 
   build-depends: base >=3 && < 5, directory, uni-util, uni-events
