@@ -33,7 +33,7 @@ module Util.Delayer(
 import Control.Concurrent.MVar
 import Control.Exception
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
 import Util.Object
 import Util.Computation(done)
@@ -49,7 +49,7 @@ data DelayedAction = DelayedAction {
 
 data DelayerState = DelayerState {
    delayCount ::  ! Int, -- ^ 0 when not delay'd.
-   delayedActions :: Set DelayedAction
+   delayedActions :: Set.Set DelayedAction
    }
 
 data Delayer = Delayer (MVar DelayerState)
@@ -134,7 +134,7 @@ endDelay (Delayer mVar) =
                   let
                      afterAct = mapM_
                         (\ delayedAction -> action delayedAction)
-                        (setToList (delayedActions delayerState0))
+                        (Set.toList (delayedActions delayerState0))
                   in
                      (emptyDelayerState,afterAct)
                )
@@ -145,7 +145,7 @@ endDelay (Delayer mVar) =
 emptyDelayerState :: DelayerState
 emptyDelayerState = DelayerState {
    delayCount = 0,
-   delayedActions = emptySet
+   delayedActions = Set.empty
    }
 
 
@@ -180,8 +180,8 @@ delayedAct (Delayer mVar) delayedAct =
                   (delayerState0,action delayedAct)
                else
                   let
-                     delayedActions1 = addToSet (delayedActions delayerState0)
-                        delayedAct
+                     delayedActions1 = Set.insert delayedAct
+                        (delayedActions delayerState0)
 
                      delayerState1 = delayerState0 {
                         delayedActions = delayedActions1
@@ -198,7 +198,7 @@ cancelDelayedAct (Delayer mVar) delayedAction =
    modifyMVar_ mVar (\ delayerState0 ->
       let
          delayedActions1
-            = delFromSet (delayedActions delayerState0) delayedAction
+            = Set.delete delayedAction (delayedActions delayerState0)
 
          delayerState1 = delayerState0 {delayedActions = delayedActions1}
       in

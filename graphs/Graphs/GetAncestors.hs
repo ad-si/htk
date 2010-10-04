@@ -39,7 +39,8 @@ module Graphs.GetAncestors(
 import Control.Monad
 import Data.Maybe
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
+import Data.Set (Set)
 
 import Graphs.Graph
 
@@ -103,20 +104,20 @@ getAncestorsGeneric nonTrivial getParents f node =
       (visited,ancestors) <-
          (if nonTrivial then getAncestorsGenericInnerStrict
             else getAncestorsGenericInner)
-         getParents f (emptySet,[]) node
+         getParents f (Set.empty,[]) node
       return ancestors
 
 getAncestorsGenericInner
    :: Ord node => (node -> IO [node]) -> (node -> IO Bool)
    -> (Set node,[node]) -> node -> IO (Set node,[node])
 getAncestorsGenericInner getParents f (state @ (visitedSet0,ancestors0)) node =
-   if elementOf node visitedSet0
+   if Set.member node visitedSet0
       then
          return state
       else
          do
             let
-               visitedSet1 = addToSet visitedSet0 node
+               visitedSet1 = Set.insert node visitedSet0
             isAncestor <- f node
             if isAncestor
                then
@@ -144,7 +145,7 @@ isAncestor (getParents :: node -> m [node]) (node1 :: node) (node2 :: node) =
    let
       isAncestorInner :: Set node -> node -> m (Maybe (Set node))
       isAncestorInner visitedSet0 node =
-         if elementOf node visitedSet0
+         if Set.member node visitedSet0
             then
                return (
                   if node == node1
@@ -156,7 +157,7 @@ isAncestor (getParents :: node -> m [node]) (node1 :: node) (node2 :: node) =
             else
                let
                   visitedSet1 :: Set node
-                  visitedSet1 = addToSet visitedSet0 node
+                  visitedSet1 = Set.insert node visitedSet0
                in
                   do
                      parents <- getParents node
@@ -172,7 +173,7 @@ isAncestor (getParents :: node -> m [node]) (node1 :: node) (node2 :: node) =
                Just visitedSet1 -> scanParents visitedSet1 nodes
    in
       do
-         searchResultOpt <- isAncestorInner (unitSet node1) node2
+         searchResultOpt <- isAncestorInner (Set.singleton node1) node2
          return (not (isJust searchResultOpt))
 {-# SPECIALIZE isAncestor
    :: (Integer -> IO [Integer]) -> Integer -> Integer -> IO Bool #-}
@@ -184,7 +185,7 @@ isAncestorPure getParents (node1 :: node) (node2 :: node) =
    let
       isAncestorPureInner :: Set node -> node -> Maybe (Set node)
       isAncestorPureInner visitedSet0 node =
-         if elementOf node visitedSet0
+         if Set.member node visitedSet0
             then
                if node == node1
                   then
@@ -194,7 +195,7 @@ isAncestorPure getParents (node1 :: node) (node2 :: node) =
             else
                let
                   visitedSet1 :: Set node
-                  visitedSet1 = addToSet visitedSet0 node
+                  visitedSet1 = Set.insert node visitedSet0
                in
                   scanParents visitedSet1 (getParents node)
 
@@ -204,21 +205,21 @@ isAncestorPure getParents (node1 :: node) (node2 :: node) =
             Nothing -> Nothing
             Just visitedSet1 -> scanParents visitedSet1 nodes
    in
-      not (isJust (isAncestorPureInner (unitSet node1) node2))
+      not (isJust (isAncestorPureInner (Set.singleton node1) node2))
 
 getAncestorsPure :: Ord node => (node -> [node]) -> node -> [node]
 getAncestorsPure getParents (node0 :: node) =
    let
       getAncestorsPureInner :: Set node -> node -> Set node
       getAncestorsPureInner visitedSet0 node =
-         if elementOf node visitedSet0
+         if Set.member node visitedSet0
             then
                visitedSet0
             else
                let
-                  visitedSet1 = addToSet visitedSet0 node
+                  visitedSet1 = Set.insert node visitedSet0
                   parents = getParents node
                in
                   foldl getAncestorsPureInner visitedSet1 parents
    in
-      setToList (getAncestorsPureInner emptySet node0)
+      Set.toList (getAncestorsPureInner Set.empty node0)

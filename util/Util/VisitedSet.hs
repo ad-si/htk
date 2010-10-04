@@ -8,24 +8,24 @@ module Util.VisitedSet(
    ) where
 
 import Control.Concurrent
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
-newtype VisitedSet key = VisitedSet (MVar (Set key))
+newtype VisitedSet key = VisitedSet (MVar (Set.Set key))
 
 newVisitedSet :: Ord key => IO (VisitedSet key)
 newVisitedSet =
    do
-      mVar <- newMVar emptySet
+      mVar <- newMVar Set.empty
       return (VisitedSet mVar)
 
 isVisited :: Ord key => VisitedSet key -> key -> IO Bool
 isVisited (VisitedSet mVar) key =
    modifyMVar mVar
       (\ set ->
-         return (if elementOf key set
+         return (if Set.member key set
             then
                (set,True)
             else
-               (addToSet set key,False)
+               (Set.insert key set,False)
             )
          )

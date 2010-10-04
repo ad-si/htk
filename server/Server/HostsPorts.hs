@@ -51,7 +51,7 @@ module Server.HostsPorts(
    ) where
 
 import Data.Maybe
-import IO
+import System.IO
 import Network
 
 import Util.WBFiles

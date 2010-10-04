@@ -14,7 +14,8 @@ module Graphs.PureGraphPrune(
 import Data.Maybe
 
 import Util.DeprecatedFiniteMap
-import Util.DeprecatedSet
+import qualified Data.Set as Set
+import Data.Set (Set)
 
 import Util.ExtendedPrelude
 
@@ -50,12 +51,12 @@ pureGraphPrune isHidden (pureGraph0 :: PureGraph nodeInfo arcInfo) =
 -- | Computes list in which parents always precede their children.
 orderGraph :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> [nodeInfo]
 orderGraph ((PureGraph fm) :: PureGraph nodeInfo arcInfo) =
-      reverse (snd (foldl visit (emptySet,[]) (keysFM fm)))
+      reverse (snd (foldl visit (Set.empty,[]) (keysFM fm)))
    where
       visit :: (Set nodeInfo,[nodeInfo]) -> nodeInfo
          -> (Set nodeInfo,[nodeInfo])
       visit (sl0 @ (set0,list0)) a =
-         if elementOf a set0
+         if Set.member a set0
             then
                sl0
             else
@@ -63,7 +64,7 @@ orderGraph ((PureGraph fm) :: PureGraph nodeInfo arcInfo) =
                   nodeData :: NodeData nodeInfo arcInfo
                   Just nodeData = lookupFM fm a
 
-                  set1 = addToSet set0 a
+                  set1 = Set.insert a set0
 
                   (set2,list1) = foldl visit (set1,list0)
                      (parentNodes nodeData)
@@ -135,7 +136,7 @@ findNotHanging isHidden (PureGraph fm :: PureGraph nodeInfo (Maybe arcInfo)) =
       visit :: Set nodeInfo -> nodeInfo -> Set nodeInfo
       visit set0 a =
          let
-            set1 = addToSet set0 a
+            set1 = Set.insert a set0
             Just nodeData = lookupFM fm a
          in
             visits set1 (parentNodes nodeData)
@@ -149,7 +150,7 @@ findNotHanging isHidden (PureGraph fm :: PureGraph nodeInfo (Maybe arcInfo)) =
          (keysFM fm)
 
       notHanging :: Set nodeInfo
-      notHanging = visits emptySet notHidden
+      notHanging = visits Set.empty notHidden
 
       notHangingFM = foldl
          (\ fm0 a ->
@@ -159,7 +160,7 @@ findNotHanging isHidden (PureGraph fm :: PureGraph nodeInfo (Maybe arcInfo)) =
                addToFM fm0 a nodeData
             )
          emptyFM
-         (setToList notHanging)
+         (Set.toList notHanging)
    in
       PureGraph notHangingFM
 

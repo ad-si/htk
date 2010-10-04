@@ -10,13 +10,14 @@ module Server.GroupFile(
    listContainingGroups,
    ) where
 
-import IO
+import System.IO.Error as IO
 import Data.Char
-import Time
+import System.Time
 import Data.Maybe
 
 import Util.DeprecatedFiniteMap
-import Util.DeprecatedSet
+import qualified Data.Set as Set
+import Data.Set (Set)
 import System.IO.Unsafe
 import Control.Concurrent.MVar
 import System.Directory
@@ -84,7 +85,7 @@ mapGroupFile (GroupFile fm) =
       list1 = fmToList fm
 
       list2 :: [(GroupOrUser,[String])]
-      list2 = fmap (\ (gOrU,set) -> (gOrU,setToList set)) list1
+      list2 = fmap (\ (gOrU,set) -> (gOrU,Set.toList set)) list1
    in
       list2
 
@@ -92,7 +93,7 @@ unmapGroupFile :: GroupFileMapTransmit -> GroupFile
 unmapGroupFile list1 =
    let
       list2 :: [(GroupOrUser,Set String)]
-      list2 = fmap (\ (gOrU,list) -> (gOrU,mkSet list)) list1
+      list2 = fmap (\ (gOrU,list) -> (gOrU,Set.fromList list)) list1
    in
       GroupFile (listToFM list2)
 
@@ -117,8 +118,8 @@ indexGroupFile (GroupFile1 groupList) =
       foldFn2 :: String -> GroupFileMap -> GroupOrUser -> GroupFileMap
       foldFn2 groupName fm0 toAdd =
          let
-            set0 = lookupWithDefaultFM fm0 emptySet toAdd
-            set1 = addToSet set0 groupName
+            set0 = lookupWithDefaultFM fm0 Set.empty toAdd
+            set1 = Set.insert groupName set0
             fm1 = addToFM fm0 toAdd set1
          in
             fm1
@@ -136,7 +137,7 @@ userIsInGroup ::
    -> String -- ^ group name
    -> Bool
 userIsInGroup groupFile user targetGroup =
-      not (isJust (scanContainingGroups (User user) emptySet))
+      not (isJust (scanContainingGroups (User user) Set.empty))
    where
       -- we maintain a (Set String) containing those groups already
       -- being searched or which have already been searched, to stop us
@@ -148,13 +149,13 @@ userIsInGroup groupFile user targetGroup =
             containingGroups :: Set String
             containingGroups = findContainingGroups groupFile groupOrUser
          in
-            if elementOf targetGroup containingGroups
+            if Set.member targetGroup containingGroups
                then
                   Nothing
                else
                   let
                      containingGroupsList :: [String]
-                     containingGroupsList = setToList containingGroups
+                     containingGroupsList = Set.toList containingGroups
 
                      scanList :: [String] -> Set String
                         -> Maybe (Set String)
@@ -170,13 +171,13 @@ userIsInGroup groupFile user targetGroup =
          -- groupIsIn returns (Just set) if the group is not contained
          -- in 'targetGroup', otherwise Nothing.
       groupIsIn group visitedSet0 =
-         if elementOf group visitedSet0
+         if Set.member group visitedSet0
             then
                Just visitedSet0
             else
                let
                   visitedSet1 :: Set String
-                  visitedSet1 = addToSet visitedSet0 group
+                  visitedSet1 = Set.insert group visitedSet0
                in
                   scanContainingGroups (Group group) visitedSet1
 
@@ -193,10 +194,10 @@ extractInfoForUser groupFile user =
 -- | List groups containing this user.
 listContainingGroups :: GroupFile -> String -> [String]
 listContainingGroups groupFile user
-   = setToList (extractAllContainingGroups groupFile user)
+   = Set.toList (extractAllContainingGroups groupFile user)
 
 extractAllContainingGroups :: GroupFile -> String -> Set String
-extractAllContainingGroups groupFile user = extract1 (User user) emptySet
+extractAllContainingGroups groupFile user = extract1 (User user) Set.empty
    where
       -- We maintain an accumulating parameter containing those
       -- groups found so far
@@ -206,16 +207,16 @@ extractAllContainingGroups groupFile user = extract1 (User user) emptySet
             containingGroups :: Set String
             containingGroups = findContainingGroups groupFile groupOrUser
          in
-            scanList (setToList containingGroups) foundSoFar0
+            scanList (Set.toList containingGroups) foundSoFar0
 
       extract :: String -> Set String -> Set String
       extract group foundSoFar0 =
-         if elementOf group foundSoFar0
+         if Set.member group foundSoFar0
             then
                foundSoFar0
             else
                let
-                  foundSoFar1 = addToSet foundSoFar0 group
+                  foundSoFar1 = Set.insert group foundSoFar0
                in
                   extract1 (Group group) foundSoFar1
 
@@ -226,7 +227,7 @@ extractAllContainingGroups groupFile user = extract1 (User user) emptySet
 
 findContainingGroups :: GroupFile -> GroupOrUser -> Set String
 findContainingGroups (GroupFile fm) gOrU
-   = lookupWithDefaultFM fm emptySet gOrU
+   = lookupWithDefaultFM fm Set.empty gOrU
 
 
 

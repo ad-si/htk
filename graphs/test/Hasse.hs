@@ -7,7 +7,7 @@ module Hasse(
 import Data.List hiding (intersect,union)
 
 import Util.DeprecatedFiniteMap
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
 import Graphs.TopSort
 
@@ -16,7 +16,7 @@ data Ord a => HasseData a = HasseData {
    positions :: FiniteMap a Int,
    soFar :: [(a,a)],
    directPredecessors :: FiniteMap a [a],
-   knownPredecessors :: FiniteMap a (Set a)
+   knownPredecessors :: FiniteMap a (Set.Set a)
    }
 
 hasse :: Ord a => [(a,a)] -> [(a,a)]
@@ -80,11 +80,11 @@ oneStep (HasseData {
                         compare xNo yNo
                      )
                   nextPredecessors
-            lessThanNext = unitSet next
+            lessThanNext = Set.singleton next
             (newSoFar,lessThanNext2) =
                foldr
                   (\ predecessor (sF@(soFar,lessThanNext)) ->
-                     if elementOf predecessor lessThanNext
+                     if Set.member predecessor lessThanNext
                         then
                            sF
                         else
@@ -93,7 +93,7 @@ oneStep (HasseData {
                                  lookupFM knownPredecessors predecessor
                            in
                               ((predecessor,next):soFar,
-                                 union predPredecessors lessThanNext
+                                 Set.union predPredecessors lessThanNext
                                  )
                      )
                   (soFar,lessThanNext)

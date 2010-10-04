@@ -27,8 +27,8 @@ module Server.MultiServer(
    ) where
 
 import Data.Maybe
-import IO
-import Random
+import System.IO
+import System.Random
 
 import Network
 import qualified Network.Socket

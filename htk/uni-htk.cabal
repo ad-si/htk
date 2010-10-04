@@ -55,8 +55,8 @@ library
   HTk.Toolkit.SimpleForm, HTk.Toolkit.SimpleListBox, HTk.Toolkit.SpinButton,
   HTk.Toolkit.TextDisplay, HTk.Toolkit.TreeList
 
- build-depends: base >=3 && < 4, directory, uni-util, uni-events, uni-posixutil,
-  uni-reactor
+ build-depends: base >=3 && < 4, containers, directory, uni-util, uni-events,
+  uni-posixutil, uni-reactor
 
 -- extensions: OverlappingInstances
 

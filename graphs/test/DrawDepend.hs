@@ -8,7 +8,7 @@ import Data.Maybe
 import IO
 import System
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 import Util.DeprecatedFiniteMap
 
 import Util.Debug

@@ -2,21 +2,32 @@ name:           uni-server
 version:        2.1.0.0
 build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
+license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
+maintainer:     Christian.Maeder@dfki.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Server for the uniform workbench
 description:    server
-exposed-modules:
- Server.HostsPorts, Server.ServiceClass, Server.Server, Server.EchoService,
- Server.CallServer, Server.Notification, Server.MultiServer, Server.Crypt,
- Server.PasswordFile, Server.MultiPlexer, Server.LogFile, Server.Hosts,
- Server.HostsList, Server.GroupFile
-include-dirs: include
-c-sources: dipperstein_crypt.c
-build-depends: base >=3 && < 4, directory, haskell98, network, parsec,
-  uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk,
-  HaXml >= 1.13.2 && < 1.14
-ghc-options: -fglasgow-exts
-extensions: NoMonoPatBinds, RecursiveDo
+cabal-version:  >= 1.4
+Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+
+library
+  exposed-modules:
+    Server.HostsPorts, Server.ServiceClass, Server.Server, Server.EchoService,
+    Server.CallServer, Server.Notification, Server.MultiServer, Server.Crypt,
+    Server.PasswordFile, Server.MultiPlexer, Server.LogFile, Server.Hosts,
+    Server.HostsList, Server.GroupFile
+
+  include-dirs: include
+  c-sources: dipperstein_crypt.c
+
+  build-depends: base >=3 && < 4, containers, directory, network, parsec,
+    old-time, random, uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk,
+    HaXml >= 1.13.2 && < 1.14
+
+  ghc-options: -fglasgow-exts
+  extensions: NoMonoPatBinds, RecursiveDo
+
+  if impl(ghc > 6.10)
+    ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

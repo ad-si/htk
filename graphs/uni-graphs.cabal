@@ -25,7 +25,7 @@ library
     Graphs.EmptyGraphSort, Graphs.PureGraph, Graphs.PureGraphPrune,
     Graphs.PureGraphToGraph, Graphs.VersionDag, Graphs.PureGraphMakeConsistent
 
-  build-depends: base >=3 && < 4, mtl, uni-util, uni-events,
+  build-depends: base >=3 && < 4, containers, mtl, uni-util, uni-events,
     uni-reactor, uni-htk
 
   if flag(debug)

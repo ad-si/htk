@@ -8,7 +8,7 @@ module Server.LogFile(
    readLog,
    ) where
 
-import IO
+import System.IO
 
 import Util.WBFiles
 import Util.Computation

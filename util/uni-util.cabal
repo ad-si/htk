@@ -26,7 +26,7 @@ flag debug
 
 library
  exposed-modules:
-  Util.DeprecatedFiniteMap, Util.DeprecatedSet, Util.Huffman,
+  Util.DeprecatedFiniteMap, Util.Huffman,
   Util.CompileFlags, Util.Queue,
   Util.ExtendedPrelude, Util.Computation, Util.Dynamics, Util.WBFiles,
   Util.Object, Util.Debug, Util.Maybes, Util.LineShow, Util.Cache,

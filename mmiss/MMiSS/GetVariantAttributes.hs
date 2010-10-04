@@ -16,7 +16,8 @@ module MMiSS.GetVariantAttributes(
 import Data.Maybe
 import qualified Data.List as List
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
+import Data.Set (Set)
 
 import Util.Computation
 import Util.ExtendedPrelude
@@ -38,7 +39,7 @@ editVariantAttributes = editVariantAttributes1 10
 editVariantAttributes1
    :: Int -> [(String,Maybe String)] -> IO (Maybe [(String,Maybe String)])
 editVariantAttributes1 n oldVariants =
-   editRemainingAttributes n emptySet oldVariants
+   editRemainingAttributes n Set.empty oldVariants
 
 
 editRemainingAttributes :: Int -> Set String -> [(String,Maybe String)]
@@ -75,7 +76,7 @@ editRemainingAttributes n keysSoFar remainingDefaults0 =
                (keyForm keyDefault Form.\\ valueForm valueDefault)
 
          remainingDefaults1 = List.filter
-            (\ (key,value) -> not (elementOf key keysSoFar))
+            (\ (key,value) -> not (Set.member key keysSoFar))
             remainingDefaults0
 
          (theseDefaults,remainingDefaults2) = splitAt n remainingDefaults1
@@ -104,12 +105,12 @@ editRemainingAttributes n keysSoFar remainingDefaults0 =
                   -> WithError (Set String)
                checkFn keysSoFar [] = return keysSoFar
                checkFn keysSoFar ((key,_):otherValues) =
-                  if elementOf key keysSoFar
+                  if Set.member key keysSoFar
                      then
                         fail ("Element " ++ key
                            ++ " is specified multiple times")
                      else
-                        checkFn (addToSet keysSoFar key) otherValues
+                        checkFn (Set.insert key keysSoFar) otherValues
             in
                mapForm
                   (\ keyValues ->
@@ -130,7 +131,7 @@ editRemainingAttributes n keysSoFar remainingDefaults0 =
          Just ((list,keysSoFar2),False) ->
             let
                remainingAttributes3 = List.filter
-                  (\ (key,value) -> not (elementOf key keysSoFar2))
+                  (\ (key,value) -> not (Set.member key keysSoFar2))
                   remainingDefaults2
             in
                return (Just (list ++ remainingAttributes3))

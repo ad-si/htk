@@ -24,7 +24,7 @@ module Graphs.GraphConnection(
 
 import Control.Monad(filterM)
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 import Control.Concurrent
 
 import Util.Computation (done)
@@ -41,14 +41,14 @@ import Graphs.Graph
 -- apart from wasting time, could get passed onto other clients of the
 -- server, which might have themselves constructed identical arcs
 -- in their subgraphs.)
-newtype ConnectionState = ConnectionState (MVar (Set Arc))
+newtype ConnectionState = ConnectionState (MVar (Set.Set Arc))
 -- This contains the arcs NOT in the subgraph, because for our planned
 -- application
 
 newConnectionState :: IO ConnectionState
 newConnectionState =
    do
-      mVar <- newMVar emptySet
+      mVar <- newMVar Set.empty
       return (ConnectionState mVar)
 
 arcIsInSubGraph :: ConnectionState -> Arc -> IO Bool
@@ -56,7 +56,7 @@ arcIsInSubGraph (ConnectionState mVar) arc =
    do
       set <- takeMVar mVar
       let
-         result = not (elementOf arc set)
+         result = not (Set.member arc set)
       putMVar mVar set
       return result
 
@@ -64,13 +64,13 @@ arcAdd :: ConnectionState -> Arc -> IO ()
 arcAdd (ConnectionState mVar) arc =
    do
       set <- takeMVar mVar
-      putMVar mVar (union set (unitSet arc))
+      putMVar mVar (Set.union set (Set.singleton arc))
 
 arcDelete :: ConnectionState -> Arc -> IO ()
 arcDelete (ConnectionState mVar) arc =
    do
       set <- takeMVar mVar
-      putMVar mVar (minusSet set (unitSet arc))
+      putMVar mVar (Set.difference set (Set.singleton arc))
 
 -----------------------------------------------------------------------------
 -- SubGraph

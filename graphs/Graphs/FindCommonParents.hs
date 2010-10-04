@@ -23,7 +23,7 @@ module Graphs.FindCommonParents(
 import Data.Maybe
 
 import Util.DeprecatedFiniteMap
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
 import Graphs.TopSort
 
@@ -112,7 +112,7 @@ findCommonParents
                Nothing ->
                   let
                      Just nodes = getParents1 node
-                     (_,list) = doNodes nodes emptySet []
+                     (_,list) = doNodes nodes Set.empty []
                   in
                      Just (reverse list)
          where
@@ -120,8 +120,8 @@ findCommonParents
             -- The following functions have the job of scanning back
             -- through g1, looking for parents also in g2, or which
             -- will be by merit of being copied.
-            doNodes :: [node1] -> Set nodeKey -> [(node1,Maybe node2)]
-               -> (Set nodeKey,[(node1,Maybe node2)])
+            doNodes :: [node1] -> Set.Set nodeKey -> [(node1,Maybe node2)]
+               -> (Set.Set nodeKey,[(node1,Maybe node2)])
             -- Set is visited set.
             -- list is accumulating parameter.
             doNodes nodes visited0 acc0 =
@@ -130,8 +130,8 @@ findCommonParents
                   (visited0,acc0)
                   nodes
 
-            doNode1 :: node1 -> Set nodeKey -> [(node1,Maybe node2)]
-               -> (Set nodeKey,[(node1,Maybe node2)])
+            doNode1 :: node1 -> Set.Set nodeKey -> [(node1,Maybe node2)]
+               -> (Set.Set nodeKey,[(node1,Maybe node2)])
             -- Set is visited set, ancestors already visited.
             -- list is accumulating parameter.
             doNode1 node1 visited0 acc0 =
@@ -139,12 +139,12 @@ findCommonParents
                let
                   Just nodeKey = getKey1 node1
                in
-                  if elementOf nodeKey visited0
+                  if Set.member nodeKey visited0
                      then
                         (visited0,acc0)
                      else
                         let
-                           visited1 = addToSet visited0 nodeKey
+                           visited1 = Set.insert nodeKey visited0
                         in
                            case (lookupFM g2Dict nodeKey,
                                  lookupFM v1Dict nodeKey) of

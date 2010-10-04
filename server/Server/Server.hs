@@ -18,9 +18,10 @@ module Server.Server(
    -- the server is interrupted in some way.
    ) where
 
-import IO
+import System.IO.Error as IO
+import System.IO
 import Data.List
-import Time
+import System.Time
 
 import Control.Exception hiding (handle)
 

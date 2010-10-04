@@ -33,7 +33,7 @@ module Util.VariableSet(
 import Data.Maybe
 import qualified Data.List as List
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
 import Util.Dynamics
 import Util.Sources
@@ -74,7 +74,7 @@ instance HasKey x key => Ord (Keyed x) where
 -- The datatype
 -- --------------------------------------------------------------------
 
-newtype VariableSetData x = VariableSetData (Set (Keyed x))
+newtype VariableSetData x = VariableSetData (Set.Set (Keyed x))
 
 -- | Encodes the updates to a variable set.
 -- BeginGroup does not actually alter the set itself, but
@@ -103,15 +103,15 @@ update setUpdate (variableSet @ (VariableSetData set)) =
          AddElement x ->
             let
                kx = Keyed x
-               isElement = elementOf kx set
+               isElement = Set.member kx set
             in
-               if isElement then noop else oneop (addToSet set kx)
+               if isElement then noop else oneop (Set.insert kx set)
          DelElement x ->
             let
                kx = Keyed x
-               isElement = elementOf kx set
+               isElement = Set.member kx set
             in
-               if isElement then oneop (delFromSet set kx)
+               if isElement then oneop (Set.delete kx set)
                   else noop
          BeginGroup -> grouper
          EndGroup -> grouper
@@ -128,7 +128,7 @@ newtype VariableSet x
 newEmptyVariableSet :: HasKey x key => IO (VariableSet x)
 newEmptyVariableSet =
    do
-      broadcaster <- newBroadcaster (VariableSetData emptySet)
+      broadcaster <- newBroadcaster (VariableSetData Set.empty)
       return (VariableSet broadcaster)
 
 -- | Create a new variable set with given contents
@@ -136,7 +136,7 @@ newVariableSet :: HasKey x key => [x] -> IO (VariableSet x)
 newVariableSet contents =
    do
       broadcaster
-         <- newBroadcaster (VariableSetData (mkSet (fmap Keyed contents)))
+         <- newBroadcaster (VariableSetData (Set.fromList (fmap Keyed contents)))
       return (VariableSet broadcaster)
 
 -- | Update a variable set in some way.
@@ -149,14 +149,14 @@ setVariableSet :: HasKey x key => VariableSet x -> [x] -> IO ()
 setVariableSet (VariableSet broadcaster) newList =
    do
      let
-        newSet = mkSet (fmap Keyed newList)
+        newSet = Set.fromList (fmap Keyed newList)
 
         updateFn (VariableSetData oldSet) =
            let
               toAddList
                  = List.filter
-                    (\ el -> not (elementOf (Keyed el) oldSet)) newList
-              toDeleteList = fmap unKey (setToList (minusSet oldSet newSet))
+                    (\ el -> not (Set.member (Keyed el) oldSet)) newList
+              toDeleteList = fmap unKey (Set.toList (Set.difference oldSet newSet))
               updates =
                  [BeginGroup] ++ (fmap AddElement toAddList)
                     ++ (fmap DelElement toDeleteList) ++ [EndGroup]
@@ -173,7 +173,7 @@ instance HasKey x key => HasSource (VariableSet x) [x] (VariableSetUpdate x)
       where
    toSource (VariableSet broadcaster) =
       map1
-         (\ (VariableSetData set) -> fmap unKey (setToList set))
+         (\ (VariableSetData set) -> fmap unKey (Set.toList set))
          (toSource broadcaster)
 
 -- --------------------------------------------------------------------
@@ -292,18 +292,18 @@ listToSetSource (simpleSource :: SimpleSource [x]) =
       source1 :: Source [x] [x]
       source1 = toSource simpleSource
 
-      source2 :: Source (Set x,[x]) [VariableSetUpdate x]
+      source2 :: Source (Set.Set x,[x]) [VariableSetUpdate x]
       source2 = foldSource
-         (\ list -> mkSet list)
+         (\ list -> Set.fromList list)
          (\ oldSet newList ->
             let
-               newSet = mkSet newList
+               newSet = Set.fromList newList
 
-               toAdd = minusSet newSet oldSet
-               adds = fmap AddElement (setToList toAdd)
+               toAdd = Set.difference newSet oldSet
+               adds = fmap AddElement (Set.toList toAdd)
 
-               toDelete = minusSet oldSet newSet
-               deletes = fmap DelElement (setToList toDelete)
+               toDelete = Set.difference oldSet newSet
+               deletes = fmap DelElement (Set.toList toDelete)
             in
                (newSet,adds ++ deletes)
             )

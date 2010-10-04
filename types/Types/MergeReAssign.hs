@@ -19,7 +19,7 @@ import Control.Monad
 
 import Util.DeprecatedFiniteMap
 import Data.IORef
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
 import Util.ExtendedPrelude
 import Util.Registry
@@ -193,7 +193,8 @@ mkLinkReAssigner views allRelevantObjectTypes =
          -- construct list of all identifications, using a set to keep track
          -- of what has already been included.
          let
-            mkIdentifications :: [[NodeData]] -> Set (ViewId,WrappedMergeLink)
+            mkIdentifications :: [[NodeData]]
+               -> Set.Set (ViewId,WrappedMergeLink)
                -> [[NodeData]] -> IO [[NodeData]]
             mkIdentifications oldIdentifications visited newIdentifications =
                case oldIdentifications of
@@ -202,7 +203,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                      let
                         key = toKey nd
                      in
-                        if elementOf key visited
+                        if Set.member key visited
                            then -- done this one
                               mkIdentifications oldIdentifications1 visited
                                  newIdentifications
@@ -210,7 +211,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                               do
                                  let
                                     (Just uf) = lookupFM unionFinds key
-                                    visited1 = addToSet visited key
+                                    visited1 = Set.insert key visited
                                  sameElements1 <- sameElements uf
                                  let
                                     newIdentifications1 =
@@ -219,7 +220,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                                  mkIdentifications oldIdentifications1
                                     visited1 newIdentifications1
 
-         identifications1 <- mkIdentifications identifications0 emptySet []
+         identifications1 <- mkIdentifications identifications0 Set.empty []
 
          -- Check for link clashes, IE two links in the same view being
          -- identified.

@@ -30,7 +30,7 @@ module UDrawGraph.Graph(
 import Data.Maybe
 
 import Data.IORef
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 import Util.DeprecatedFiniteMap
 import Control.Concurrent
 import qualified Data.Dynamic
@@ -1613,8 +1613,8 @@ sortPendingChanges1 pendingChanges =
       -- eliminated edges.
       finalState = toFinalState pendingChanges
 
-      deletedNodes :: Set NodeId
-      deletedNodes = mkSet (mapMaybe
+      deletedNodes :: Set.Set NodeId
+      deletedNodes = Set.fromList (mapMaybe
          (\ update -> case update of
                NU (DeleteNode nodeId) -> Just nodeId
                _ -> Nothing
@@ -1622,22 +1622,22 @@ sortPendingChanges1 pendingChanges =
          finalState
          )
 
-      (edgeUpdates2 :: [EdgeUpdate],obsoleteEdges :: Set EdgeId) =
+      (edgeUpdates2 :: [EdgeUpdate],obsoleteEdges :: Set.Set EdgeId) =
          foldl
             (\ (eSF,oSF) e -> case e of
                (NewEdge edgeId _ _ nodeFrom nodeTo) ->
-                  if (elementOf nodeFrom deletedNodes) ||
-                     (elementOf nodeTo deletedNodes)
-                     then (eSF,addToSet oSF edgeId)
+                  if (Set.member nodeFrom deletedNodes) ||
+                     (Set.member nodeTo deletedNodes)
+                     then (eSF,Set.insert edgeId oSF)
                      else (e:eSF,oSF)
                _ -> (e:eSF,oSF)
                )
-            ([],emptySet)
+            ([],Set.empty)
             edgeUpdates1
 
       (edgeUpdates3 :: [EdgeUpdate]) = List.filter
          (\ e -> case e of
-            DeleteEdge edgeId -> not (elementOf edgeId obsoleteEdges)
+            DeleteEdge edgeId -> not (Set.member edgeId obsoleteEdges)
             _ -> True
             )
          (reverse edgeUpdates2)

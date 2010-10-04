@@ -25,7 +25,7 @@ module HTk.Kernel.EventInfo(
    defaultEventInfoSet
    ) where
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
 import HTk.Kernel.Geometry(Distance)
 
@@ -34,7 +34,7 @@ import HTk.Kernel.Geometry(Distance)
 -- Datatypes
 -- --------------------------------------------------------------
 
-newtype EventInfoSet = EventInfoSet (Set EventParameter)
+newtype EventInfoSet = EventInfoSet (Set.Set EventParameter)
 
 data EventInfo = EventInfo { x :: Distance,
                              y :: Distance,
@@ -82,21 +82,21 @@ epFromChar ch =
 -- --------------------------------------------------------------
 
 listEventInfoSet :: EventInfoSet -> [EventParameter]
-listEventInfoSet (EventInfoSet set) = setToList set
+listEventInfoSet (EventInfoSet set) = Set.toList set
 
 mkEventInfoSet :: [EventParameter] -> EventInfoSet
-mkEventInfoSet eventPars = EventInfoSet (mkSet eventPars)
+mkEventInfoSet eventPars = EventInfoSet (Set.fromList eventPars)
 
 emptyEventInfoSet :: EventInfoSet
 emptyEventInfoSet = mkEventInfoSet []
 
 addEventInfoSet :: EventInfoSet -> [EventParameter] -> EventInfoSet
 addEventInfoSet (EventInfoSet set) eventPars =
-   EventInfoSet(union set (mkSet eventPars))
+   EventInfoSet(Set.union set (Set.fromList eventPars))
 
 delEventInfoSet :: EventInfoSet -> [EventParameter] -> EventInfoSet
 delEventInfoSet (EventInfoSet set) eventPars =
-   EventInfoSet(minusSet set (mkSet eventPars))
+   EventInfoSet(Set.difference set (Set.fromList eventPars))
 
 mkEventInfo :: [(EventParameter,String)] -> EventInfo
 mkEventInfo settings =

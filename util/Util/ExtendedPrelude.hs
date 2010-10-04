@@ -113,7 +113,7 @@ import Control.Monad
 import Data.Maybe
 import qualified Util.DeprecatedFiniteMap as DeprecatedFiniteMap
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 import Control.Exception
 import System.IO.Unsafe
 
@@ -671,7 +671,7 @@ class EqIO v => OrdIO v where
 
 -- | Remove duplicate elements from a list.
 uniqOrd :: Ord a => [a] -> [a]
-uniqOrd = setToList . mkSet
+uniqOrd = Set.toList . Set.fromList
 
 -- | Remove duplicate elements from a list where the key function is supplied.
 uniqOrdByKey :: Ord b => (a -> b) -> [a] -> [a]
@@ -692,49 +692,49 @@ uniqOrdByKey (getKey :: a -> b) (as :: [a]) =
 uniqOrdByKeyOrder :: Ord b => (a -> b) -> [a] -> [a]
 uniqOrdByKeyOrder (getKey :: a -> b) =
    let
-      u :: Set b -> [a] -> [a]
+      u :: Set.Set b -> [a] -> [a]
       u visited [] = []
       u visited (a:as) =
-         if elementOf key visited
+         if Set.member key visited
             then
                u visited as
             else
-               a : u (addToSet visited key) as
+               a : u (Set.insert key visited) as
          where
             key = getKey a
    in
-      u emptySet
+      u Set.empty
 
 -- | Like uniqOrd, except that we specify the output order of the list.
 -- The resulting list is that obtained by deleting all duplicate elements
 -- in the list, except the first, for example [1,2,3,2,1,4] will go to
 -- [1,2,3,4].
 uniqOrdOrder :: Ord a => [a] -> [a]
-uniqOrdOrder list = mkList emptySet list
+uniqOrdOrder list = mkList Set.empty list
    where
       mkList _ [] = []
       mkList set (a : as) =
-         if elementOf a set
+         if Set.member a set
             then
                mkList set as
             else
-               a : mkList (addToSet set a) as
+               a : mkList (Set.insert a set) as
 
 -- | If there are two elements of the list with the same (a), return one,
 -- otherwise Nothing.
 findDuplicate :: Ord a => (b -> a) -> [b] -> Maybe b
-findDuplicate toA bs = fd emptySet bs
+findDuplicate toA bs = fd Set.empty bs
    where
       fd _ [] = Nothing
       fd aSet0 (b:bs) =
          let
             a = toA b
          in
-            if elementOf a aSet0
+            if Set.member a aSet0
                then
                   Just b
                else
-                  fd (addToSet aSet0 a) bs
+                  fd (Set.insert a aSet0) bs
 
 -- | Return Just True if all the elements give True, Just False if all False,
 -- Nothing otherwise (or list is empty).

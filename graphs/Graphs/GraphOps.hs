@@ -10,7 +10,7 @@ module Graphs.GraphOps(
       -- generic version
    ) where
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 
 import Util.Queue
 
@@ -41,11 +41,11 @@ isAncestorBy getChildren (node1 :: node) node2 =
          -- The first argument is the visited set; the second the nodes
          -- to be done.  We use a queue so that the search is breadth-first
          -- not depth-first.
-         search :: Set node -> Queue node -> IO Bool
+         search :: Set.Set node -> Queue node -> IO Bool
          search visited toDo0 = case removeQ toDo0 of
             Nothing -> return False
             Just (node,toDo1) ->
-               if elementOf node visited
+               if Set.member node visited
                   then
                      search visited toDo1
                   else
@@ -57,8 +57,8 @@ isAncestorBy getChildren (node1 :: node) node2 =
                               children <- getChildren node
                               let
                                  toDo2 = foldl insertQ toDo1 children
-                                 visited1 = addToSet visited node
+                                 visited1 = Set.insert node visited
                               search visited1 toDo2
 
-      search emptySet (singletonQ node1)
+      search Set.empty (singletonQ node1)
 

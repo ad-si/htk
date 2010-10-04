@@ -69,7 +69,7 @@ import Data.Maybe
 import Control.Monad.Trans
 import System.IO.Unsafe
 import Util.DeprecatedFiniteMap
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 import Control.Concurrent
 import Control.Exception
 import GHC.Prim(unsafeCoerce#)
@@ -382,7 +382,7 @@ instance KeyOpsRegistry (registry from Obj) from
 -- ----------------------------------------------------------------------
 
 newtype LockedRegistry from to
-   = Locked (Registry from (MVar (Maybe to),Set ThreadId))
+   = Locked (Registry from (MVar (Maybe to),Set.Set ThreadId))
    deriving (Typeable)
 
 type UntypedLockedRegistry from = Untyped LockedRegistry from
@@ -407,15 +407,15 @@ takeVal (Locked registry) from =
                      Nothing ->
                         do
                            mVar <- newMVar Nothing
-                           return (Just (mVar,unitSet threadId),mVar)
+                           return (Just (mVar,Set.singleton threadId),mVar)
                      Just (mVar,set0) ->
-                        if elementOf threadId set0
+                        if Set.member threadId set0
                            then -- error
                               mkBreakFn lockedFallOutId
                                  ("Circular transformValue detected in "
                                     ++ "Registry.LockedRegistry")
                            else
-                              return (Just (mVar,addToSet set0 threadId),mVar)
+                              return (Just (mVar,Set.insert threadId set0),mVar)
                )
       takeMVar mVar
 
@@ -431,8 +431,8 @@ putVal (Locked registry) from toOpt =
                Just (mVar,set0) ->
                   do
                      let
-                        set1 = delFromSet set0 threadId
-                     if isEmptySet set1 && not (isJust toOpt)
+                        set1 = Set.delete threadId set0
+                     if Set.null set1 && not (isJust toOpt)
                         then
                            return (Nothing,())
                         else

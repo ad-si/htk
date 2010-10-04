@@ -11,7 +11,7 @@ module Server.Notification(
                 -- when someone sends a notification with this String.
    ) where
 
-import IO
+import System.IO
 
 import Util.Object
 

@@ -1,9 +1,10 @@
 name:           uni-types
-version:        2.0
+version:        2.0.0.0
 build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
+license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
+maintainer:     Christian.Maeder@dfki.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       repository access
@@ -13,22 +14,28 @@ description:
   general class that objects need to instance to be put in the repository.
   "Files" and "Folders" are two such instances.  "LinkManager" maintains the
   folder structure.
+cabal-version:  >= 1.4
+Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
 
-exposed-modules:
- Types.LinkDrawer, Types.VersionDB, Types.ViewType, Types.CodedValue,
- Types.Link, Types.BasicObjects, Types.DisplayTypes, Types.ObjectTypes,
- Types.View, Types.AttributesType, Types.DisplayParms, Types.GlobalRegistry,
- Types.Folders, Types.DisplayView, Types.Files, Types.VersionGraph,
- Types.Initialisation, Types.CallEditor, Types.CreateObjectMenu,
- Types.Registrations, Types.GetAttributesType, Types.GlobalMenus,
- Types.SpecialNodeActions, Types.LinkManager, Types.MergeTypes, Types.Merging,
- Types.MergeReAssign, Types.MergePrune, Types.VersionGraphClient,
- Types.LocalMenus, Types.CopyVersion, Types.VersionGraphList,
- Types.CopyVersionInfos, Types.CopyVersions, Types.ToggleAdminStatus,
- Types.ManagePermissions, Types.NoAccessObject, Types.MergeComputeParents
+library
+  exposed-modules:
+    Types.LinkDrawer, Types.VersionDB, Types.ViewType, Types.CodedValue,
+    Types.Link, Types.BasicObjects, Types.DisplayTypes, Types.ObjectTypes,
+    Types.View, Types.AttributesType, Types.DisplayParms, Types.GlobalRegistry,
+    Types.Folders, Types.DisplayView, Types.Files, Types.VersionGraph,
+    Types.Initialisation, Types.CallEditor, Types.CreateObjectMenu,
+    Types.Registrations, Types.GetAttributesType, Types.GlobalMenus,
+    Types.SpecialNodeActions, Types.LinkManager, Types.MergeTypes,
+    Types.Merging,
+    Types.MergeReAssign, Types.MergePrune, Types.VersionGraphClient,
+    Types.LocalMenus, Types.CopyVersion, Types.VersionGraphList,
+    Types.CopyVersionInfos, Types.CopyVersions, Types.ToggleAdminStatus,
+    Types.ManagePermissions, Types.NoAccessObject, Types.MergeComputeParents
 
-build-depends: base >=3 && < 4, haskell98, parsec, mtl, uni-util, uni-events,
-  uni-reactor, uni-posixutil, uni-htk, uni-graphs, uni-server, uni-simpledb,
-  uni-imports
-ghc-options: -fglasgow-exts
-extensions: OverlappingInstances, UndecidableInstances
+  build-depends: base >=3 && < 4, containers, haskell98, parsec, mtl, uni-util,
+    uni-events, uni-reactor, uni-posixutil, uni-htk, uni-graphs, uni-server,
+    uni-simpledb, uni-imports
+  ghc-options: -fglasgow-exts
+  extensions: OverlappingInstances, UndecidableInstances
+  if impl(ghc > 6.10)
+    ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

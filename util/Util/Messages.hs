@@ -42,7 +42,7 @@ import System.IO
 import Data.Char
 import qualified Data.List as List
 
-import Util.DeprecatedSet
+import qualified Data.Set as Set
 import Control.Concurrent.MVar
 import System.IO.Unsafe
 
@@ -205,16 +205,16 @@ errorMess2 message0 =
       clearPendingErrorMessages
 
 clearPendingErrorMessages :: IO ()
-clearPendingErrorMessages = cpe emptySet
+clearPendingErrorMessages = cpe Set.empty
    where
-      cpe :: Set String -> IO ()
+      cpe :: Set.Set String -> IO ()
       cpe alreadyDisplayedSet0 =
          do
             messages0 <- readMVar pendingErrorMessagesMVar
-            putStrLn (show (messages0,setToList alreadyDisplayedSet0))
+            putStrLn (show (messages0,Set.toList alreadyDisplayedSet0))
             let
                messages1 = List.filter
-                  (\ message -> not (elementOf message alreadyDisplayedSet0))
+                  (\ message -> not (Set.member message alreadyDisplayedSet0))
                   messages0
 
                messages2 = uniqOrdOrder messages1
@@ -227,7 +227,8 @@ clearPendingErrorMessages = cpe emptySet
 
                      let
                         alreadyDisplayedSet1 =
-                           union alreadyDisplayedSet0 (mkSet messages2)
+                           Set.union alreadyDisplayedSet0
+                                  (Set.fromList messages2)
 
                      cpe alreadyDisplayedSet1
 

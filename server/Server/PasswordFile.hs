@@ -25,7 +25,7 @@ module Server.PasswordFile(
       -- Used for internal servers.
    ) where
 
-import IO
+import System.IO
 import Data.Maybe
 
 import Control.Concurrent.MVar
