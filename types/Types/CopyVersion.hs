@@ -7,7 +7,7 @@ module Types.CopyVersion(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 import Util.VariableSet(HasKey(..))
@@ -61,14 +61,14 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         toMyVersionGraphClient
            = toVersionGraphClient toVersionGraph
 
-        parentsMap :: FiniteMap ObjectVersion ObjectVersion
-        parentsMap = listToFM (map
+        parentsMap :: Map.Map ObjectVersion ObjectVersion
+        parentsMap = Map.fromList (map
            (\ parent -> (from parent,to parent))
            parents
            )
 
         mapParent :: ObjectVersion -> ObjectVersion
-        mapParent fromVersion = case lookupFM parentsMap fromVersion of
+        mapParent fromVersion = case Map.lookup fromVersion parentsMap of
            Nothing -> error "CopyVersion: unknown parent"
            Just toVersion -> toVersion
 
@@ -90,8 +90,8 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
      wrappedMergeLinks <- getAllWrappedMergeLinks view0
 
      let
-        wmlMap :: FiniteMap Location WrappedMergeLink
-        wmlMap = listToFM
+        wmlMap :: Map.Map Location WrappedMergeLink
+        wmlMap = Map.fromList
            (map
               (\ wml -> (toKey wml,wml))
               wrappedMergeLinks
@@ -101,7 +101,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
 
         mapChanged :: Location -> ChangeData -> IO (Maybe CommitChange)
         mapChanged location changeData =
-           case lookupFM wmlMap location of
+           case Map.lookup location wmlMap of
               Nothing -> return Nothing
                  -- This location is inaccessible, and so the change can
                  -- be discarded.
@@ -238,6 +238,6 @@ getAllWrappedMergeLinks view =
 
       let
          wmls :: [WrappedMergeLink]
-         wmls = (map snd) . keysFM . linkMap $ linkReAssigner
+         wmls = (map snd) . Map.keys . linkMap $ linkReAssigner
 
       return wmls

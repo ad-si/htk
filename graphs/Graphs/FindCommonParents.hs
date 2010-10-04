@@ -22,7 +22,7 @@ module Graphs.FindCommonParents(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import Graphs.TopSort
@@ -71,7 +71,7 @@ findCommonParents
       getParents1 = getParents g1
 
       -- (1) construct dictionaries by NodeKey for all nodes in g2 and v1.
-      v1Dict :: FiniteMap nodeKey node1
+      v1Dict :: Map.Map nodeKey node1
       v1Dict =
          foldl
             (\ map0 v1Node ->
@@ -79,15 +79,15 @@ findCommonParents
                   Just nodeKey = getKey1 v1Node
                      -- Nothing here indicates an element of v1 not in G1.
                in
-                  addToFM map0 nodeKey v1Node
+                  Map.insert nodeKey v1Node map0
                )
-            emptyFM
+            Map.empty
             v1
 
       g2Nodes :: [node2]
       g2Nodes = getAllNodes g2
 
-      g2Dict :: FiniteMap nodeKey node2
+      g2Dict :: Map.Map nodeKey node2
       g2Dict =
          foldl
             (\ map0 g2Node ->
@@ -95,9 +95,9 @@ findCommonParents
                  Just nodeKey = getKey2 g2Node
                     -- Nothing here indicates an element of g2Nodes not in g2.
               in
-                 addToFM map0 nodeKey g2Node
+                 Map.insert nodeKey g2Node map0
               )
-           emptyFM
+           Map.empty
            g2Nodes
 
       -- doNode gets the list for the given node, or Nothing if it is
@@ -107,7 +107,7 @@ findCommonParents
          let
             Just nodeKey = getKey1 node
          in
-            case lookupFM g2Dict nodeKey of
+            case Map.lookup nodeKey g2Dict of
                Just _ -> Nothing -- already is G2.
                Nothing ->
                   let
@@ -146,8 +146,8 @@ findCommonParents
                         let
                            visited1 = Set.insert nodeKey visited0
                         in
-                           case (lookupFM g2Dict nodeKey,
-                                 lookupFM v1Dict nodeKey) of
+                           case (Map.lookup nodeKey g2Dict,
+                                 Map.lookup nodeKey v1Dict) of
                               (Just node2,_) ->
                                  -- Node is in g2.  Since node was found
                                  -- by scanning back in graph1,
@@ -181,15 +181,15 @@ findCommonParents
       nodes1 = catMaybes nodes1Opt
 
       -- (3) Construct a map from nodeKey to the elements of this list.
-      nodeKeyMap :: FiniteMap nodeKey (node1,[(node1,Maybe node2)])
+      nodeKeyMap :: Map.Map nodeKey (node1,[(node1,Maybe node2)])
       nodeKeyMap = foldl
          (\ map0 (nodeData @ (node1,nodes)) ->
             let
                Just nodeKey = getKey1 node1
             in
-               addToFM map0 nodeKey nodeData
+               Map.insert nodeKey nodeData map0
             )
-         emptyFM
+         Map.empty
          nodes1
 
       -- (4) transform nodes1 list into an list of relations
@@ -243,7 +243,7 @@ findCommonParents
          fmap
             (\ nodeKey ->
                let
-                  Just nodeData = lookupFM nodeKeyMap nodeKey
+                  Just nodeData = Map.lookup nodeKey nodeKeyMap
                in
                   nodeData
                )

@@ -107,7 +107,7 @@ where
 
 import Util.Computation hiding (try)
 import Data.List
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Data.Graph.Inductive
 import Data.Graph.Inductive.Tree
@@ -137,9 +137,9 @@ data ClassType = SubSort | Predicate deriving (Eq, Read, Show)
 
 data MMiSSOntology = MMiSSOntology {
   name :: String,
-  classes :: FiniteMap String ClassDecl,
-  objects :: FiniteMap String ObjectDecl,
-  relations :: FiniteMap String RelationDecl,
+  classes :: Map.Map String ClassDecl,
+  objects :: Map.Map String ObjectDecl,
+  relations :: Map.Map String RelationDecl,
   objectLinks :: [ObjectLink],
   mode :: InsertMode,
   classGraph :: Gr (String, String, OntoObjectType) String,
@@ -177,9 +177,9 @@ emptyMMiSSOntology :: String -> InsertMode -> MMiSSOntology
 emptyMMiSSOntology ontoName insertMode =
   MMiSSOntology {
     name = ontoName,
-    classes = emptyFM,
-    objects = emptyFM,
-    relations = emptyFM,
+    classes = Map.empty,
+    objects = Map.empty,
+    relations = Map.empty,
     objectLinks = [],
     mode = insertMode,
     classGraph = empty,
@@ -187,7 +187,7 @@ emptyMMiSSOntology ontoName insertMode =
   }
 
 getRelationNames :: MMiSSOntology -> [String]
-getRelationNames onto = keysFM (relations onto)
+getRelationNames onto = Map.keys (relations onto)
 
 
 getOntologyName :: MMiSSOntology -> String
@@ -219,7 +219,7 @@ insertClass onto className optText superCs maybeType =
                           "can't be overridden. (AutoInsert is on).\n")
         _ -> hasError("Insertion of class: " ++ className  ++
                       " -> Class is already defined in Ontology.\n"))
-    (lookupFM (classes onto) className)
+    (Map.lookup (classes onto) className)
   where
     myInsertClass cn opt super classType =
       let class1 = (cn, (ClassDecl cn opt super [] False classType))
@@ -227,7 +227,7 @@ insertClass onto className optText superCs maybeType =
            []          -> addClasses [class1] super
            superClasses ->
                let (defSC,undefSC) =
-                       partition (\sC -> elemFM sC (classes onto))
+                       partition (\sC -> Map.member sC (classes onto))
                                  superClasses
                    sClassDecls =
                        map (\sC -> (sC, (ClassDecl sC "" [] []
@@ -287,7 +287,7 @@ insertBaseRelation :: MMiSSOntology -> RelName -> DefaultText -> Maybe SuperRel 
                       -> WithError (MMiSSOntology)
 
 insertBaseRelation onto relName defText superRel card =
-  case lookupFM (relations onto) relName of
+  case Map.lookup (relations onto) relName of
     Nothing -> myInsertRel relName defText superRel card
     Just(RelationDecl _ _ _ _ _ auto) ->
       case (mode onto) of
@@ -302,7 +302,7 @@ insertBaseRelation onto relName defText superRel card =
       in case super of
            Nothing          -> addRelations [rel1]
            Just(superR) ->
-             if (elemFM superR (relations onto))
+             if (Map.member superR (relations onto))
                then addRelations [rel1]
                else case (mode onto) of
                       AutoInsert -> let rel2 = (superR, (RelationDecl superR Nothing "" [] Nothing True))
@@ -325,7 +325,7 @@ insertRelationType :: MMiSSOntology -> RelName -> ClassName -> ClassName -> With
 insertRelationType onto relName source target =
   do o1 <- lookupClass onto source
      o2 <- lookupClass o1 target
-     o3 <- case lookupFM (relations o2) relName of
+     o3 <- case Map.lookup (relations o2) relName of
              Nothing -> if ((mode o2) == AutoInsert)
                           then return (addRelations o2 [(relName, (RelationDecl relName Nothing "" [] Nothing True))])
                           else hasError("Insertion of relation type: Relation " ++ relName
@@ -358,7 +358,7 @@ insertRelationType onto relName source target =
                                 relationGraph = relationGraph onto}
 
     lookupClass o className =
-       case lookupFM (classes o) className of
+       case Map.lookup (classes o) className of
          Nothing -> if ((mode o) == AutoInsert)
                       then return (addClasses o [(className, (ClassDecl className "" [] [] True Nothing))])
                       else hasError("Insertion of relation type: Class " ++ className
@@ -397,13 +397,13 @@ isEqualTypelist (r1, _) (r2, _) = r1 == r2
 insertObject :: MMiSSOntology -> ObjectName -> DefaultText -> ClassName -> WithError (MMiSSOntology)
 
 insertObject onto objectName defText className =
-  do o1 <- if (elemFM objectName (objects onto))
+  do o1 <- if (Map.member objectName (objects onto))
              then hasError("Insertion of object: " ++ objectName ++ " already exists.")
              else return onto
      o2 <- lookupClass o1 className
      return (MMiSSOntology {name = name onto,
                             classes = classes o2,
-                            objects = addToFM (objects onto) objectName
+                            objects = Map.insert (objects onto) objectName
                                               (ObjectDecl objectName defText className),
                             relations = relations onto,
                             objectLinks = objectLinks onto,
@@ -421,7 +421,7 @@ insertObject onto objectName defText className =
                                 classGraph = foldl addClassNodeWithoutDecl (classGraph onto) cList,
                                 relationGraph = relationGraph onto}
     lookupClass o className =
-       case lookupFM (classes o) className of
+       case Map.lookup (classes o) className of
          Nothing -> if ((mode o) == AutoInsert)
                       then return (addClasses o [(className, (ClassDecl className "" [] [] True Nothing))])
                       else hasError("Insertion of object: " ++ objectName ++ " -> Class " ++ className
@@ -437,15 +437,15 @@ insertObject onto objectName defText className =
 
 
 insertLink onto source target relName =
-  do o1 <- case lookupFM (objects onto) source of
+  do o1 <- case Map.lookup (objects onto) source of
              Just(_) -> return onto
              Nothing -> hasError("Insertion of object link: Object " ++ source
                                         ++ " doesn't exist in the Ontology.\n")
-     o2 <- case lookupFM (objects o1) target of
+     o2 <- case Map.lookup (objects o1) target of
              Just(_) -> return o1
              Nothing -> hasError("Insertion of object link: Object " ++ target
                                         ++ " doesn't exist in the Ontology.\n")
-     o3 <- case lookupFM (relations o2) relName of
+     o3 <- case Map.lookup (relations o2) relName of
              Just(_) -> return o2
              Nothing -> hasError("Insertion of object link: Relation " ++ relName
                                         ++ " doesn't exist in the Ontology.\n")
@@ -471,8 +471,8 @@ isComplete :: MMiSSOntology -> [String]
 isComplete onto =
   if ((mode onto) == ThrowError)
     then []
-    else  (foldFM checkClass [] (classes onto))
-            ++ (foldFM checkRel [] (relations onto))
+    else  (Map.foldWithKey checkClass [] (classes onto))
+            ++ (Map.foldWithKey checkRel [] (relations onto))
 
   where
     checkClass className (ClassDecl _ _ _ _ inserted _) l =
@@ -491,9 +491,9 @@ exportOWL :: MMiSSOntology -> String
 
 exportOWL onto =
   let startStr = owlStart (name onto)
-      relationsStr = foldl writeOWLRelation "" (eltsFM (relations(onto)))
-      classesStr =  foldl writeOWLClass "" (eltsFM (classes(onto)))
-      objectsStr = foldl writeOWLObject "" (eltsFM (objects(onto)))
+      relationsStr = foldl writeOWLRelation "" (Map.elems (relations(onto)))
+      classesStr =  foldl writeOWLClass "" (Map.elems (classes(onto)))
+      objectsStr = foldl writeOWLObject "" (Map.elems (objects(onto)))
       linksStr = foldl writeOWLLink "" (objectLinks(onto))
       endStr = "</rdf:RDF>"
   in startStr ++ classesStr ++ relationsStr ++ objectsStr ++ linksStr ++ endStr
@@ -660,7 +660,7 @@ graphvizNodeAtts o (cname, _, t) =
          ++ "  <TR><TD><FONT FACE=\"Helvetica\" POINT-SIZE=\"8.0\">" ++ cname ++ "</FONT></TD></TR></TABLE>>,"
          ++ "  shape = \"plaintext\", URL=\"" ++ url ++ "\""
   where
-    phrase = case lookupFM (classes o) cname of
+    phrase = case Map.lookup (classes o) cname of
                 Nothing -> ""
                 (Just(ClassDecl _ p _ _ _ _)) -> p
     url = (name o) ++ ".pdf#" ++ cname

@@ -214,7 +214,7 @@ import qualified System.Environment as System
 import System.Exit(exitWith,ExitCode(..))
 
 import Control.Concurrent
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import System.IO.Unsafe
 import Foreign.C.String
 
@@ -541,7 +541,7 @@ showArgValue (BoolValue b) = if b then "+" else "-"
 ------------------------------------------------------------------------
 
 newtype ParsedArguments =
-   ParsedArguments (MVar (Maybe (FiniteMap String ArgValue)))
+   ParsedArguments (MVar (Maybe (Map.Map String ArgValue)))
 
 makeParsedArguments :: IO ParsedArguments
 makeParsedArguments =
@@ -561,7 +561,7 @@ getArgValue :: String -> IO (Maybe ArgValue)
 getArgValue optionName =
    do
       map <- forceParseArguments
-      return (lookupFM map optionName)
+      return (Map.lookup optionName map)
 
 mismatch :: String -> a
 mismatch optionName =
@@ -603,7 +603,7 @@ getArgBool optionName =
 
 -- forceParseArguments is used to force a parse of the arguments
 -- when no parse function has been called before.
-forceParseArguments :: IO (FiniteMap String ArgValue)
+forceParseArguments :: IO (Map.Map String ArgValue)
 forceParseArguments =
    do
       let ParsedArguments mVar = parsedArguments
@@ -690,7 +690,7 @@ parseTheseArgumentsRequiring arguments required =
                   Just exitCode -> exitWith exitCode
 
 
-type ParseState = (Maybe ExitCode,FiniteMap String ArgValue)
+type ParseState = (Maybe ExitCode,Map.Map String ArgValue)
 
 parseTheseArgumentsRequiring' :: [ProgramArgument] -> [String] ->
   IO ParseState
@@ -706,9 +706,9 @@ parseTheseArgumentsRequiring' arguments required =
                (\ map argument ->
                   case (defaultVal argument) of
                      Nothing -> map
-                     Just value -> addToFM map (optionName argument) value
+                     Just value -> Map.insert (optionName argument) value map
                   )
-               emptyFM
+               Map.empty
                arguments
 
          initial = (Nothing, initialMap) :: ParseState
@@ -787,7 +787,7 @@ parseTheseArgumentsRequiring' arguments required =
                      -- we always take notice of this error, since it
                      -- shouldn't occur in the default list either.
             Just argValue ->
-               return (prevExit,addToFM prevMap option argValue)
+               return (prevExit,Map.insert option argValue prevMap)
 
       splitSetPart :: String -> Maybe (String,String)
       -- splitSetPart splits the string at its first : or = and returns
@@ -820,11 +820,11 @@ parseTheseArgumentsRequiring' arguments required =
                   arguments
                   )
 
-      displayState :: FiniteMap String ArgValue -> IO ()
+      displayState :: Map.Map String ArgValue -> IO ()
       -- displays the current options
       displayState fmap =
          do
-            let optionValues = fmToList fmap
+            let optionValues = Map.toList fmap
             printToErr "Parameter settings:"
             sequence_
                (map
@@ -852,7 +852,7 @@ parseTheseArgumentsRequiring' arguments required =
       checkReq :: ParseState -> String -> IO ParseState
       -- check that the provided option value is set
       checkReq prev@(prevExit,prevMap) option =
-         case lookupFM prevMap option of
+         case Map.lookup option prevMap of
             Just _ -> return prev
             Nothing ->
                do

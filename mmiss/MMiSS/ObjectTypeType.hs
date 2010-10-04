@@ -9,7 +9,7 @@ module MMiSS.ObjectTypeType(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Dynamics
 
@@ -48,7 +48,7 @@ instance HasBinary MMiSSObjectType CodingMonad where
    readBin = mapRead
       (\ xmlTag ->
          let
-            (Just objectType) = lookupFM mmissObjectTypeMap xmlTag
+            (Just objectType) = Map.lookup xmlTag mmissObjectTypeMap
          in
             objectType
          )
@@ -57,9 +57,9 @@ instance HasBinary MMiSSObjectType CodingMonad where
 -- mmissObjectTypeMap contains all object types read from the DTD.
 -- ------------------------------------------------------------------------
 
-mmissObjectTypeMap :: FiniteMap String MMiSSObjectType
+mmissObjectTypeMap :: Map.Map String MMiSSObjectType
 mmissObjectTypeMap =
-   listToFM
+   Map.fromList
       (map
          (\ xmlTag ->
             (xmlTag,MMiSSObjectType {
@@ -78,9 +78,9 @@ constructKey xmlTag = oneOffKey "MMiSSObjectTypeList" xmlTag
 -- | Returns the object type for a given Xml tag.
 retrieveObjectType :: String -> MMiSSObjectType
 retrieveObjectType xmlTag =
-   lookupWithDefaultFM mmissObjectTypeMap
+   Map.findWithDefault
       (error ("MMiSSObjectTypeType: unknown Xml tag "++xmlTag))
-      xmlTag
+      xmlTag mmissObjectTypeMap
 
 allObjectTypes :: [MMiSSObjectType]
-allObjectTypes = eltsFM mmissObjectTypeMap
+allObjectTypes = Map.elems mmissObjectTypeMap

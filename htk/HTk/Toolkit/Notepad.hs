@@ -42,7 +42,7 @@ module HTk.Toolkit.Notepad (
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Reactor.ReferenceVariables
 
@@ -835,7 +835,7 @@ newNotepad par scrolltype imgsize mstate cnf =
         grid_y = 10
 
         checkDropZones :: CItem a =>
-                          FiniteMap (Int, Int) [NotepadItem a] ->
+                          Map.Map (Int, Int) [NotepadItem a] ->
                           Notepad a -> Distance -> Distance -> IO ()
         checkDropZones it_map notepad x@(Distance ix) y@(Distance iy) =
           let doSet item =
@@ -893,28 +893,28 @@ newNotepad par scrolltype imgsize mstate cnf =
           in do (_, (Distance sizex, Distance sizey)) <-
                   getScrollRegion (canvas notepad)
                 let idx@(idx_x, idx_y) = (div ix (div sizex grid_x), div iy (div sizey grid_y))
-                    items = (lookupWithDefaultFM it_map [] idx)
-                checkDropZones' (lookupWithDefaultFM it_map [] idx)
+                    items = (Map.findWithDefault [] idx it_map)
+                checkDropZones' items
 
-        buildMap :: CItem a => Notepad a -> IO (FiniteMap (Int, Int) [NotepadItem a])
+        buildMap :: CItem a => Notepad a -> IO (Map.Map (Int, Int) [NotepadItem a])
         buildMap notepad =
           do notepaditems <- getRef (items notepad)
              selecteditems <- getRef (selected_items notepad)
              let nonselecteditems =
                    filter (\item -> not(any ((==) item) selecteditems))
                           notepaditems
-             fmref <- newRef emptyFM
+             fmref <- newRef Map.empty
              let add (idx_x, idx_y) notepaditem =
                    if idx_x >= 0 && idx_x < grid_x &&
                       idx_y >= 0 && idx_y < grid_y then
                      do fm <- getRef fmref
-                        let mnotepaditems = lookupFM fm (idx_x, idx_y)
+                        let mnotepaditems = Map.lookup (idx_x, idx_y) fm
                         let nufm = case mnotepaditems of
                                      Just notepaditems ->
-                                       addToFM fm (idx_x, idx_y)
-                                         (notepaditem : notepaditems)
-                                     _ -> addToFM fm (idx_x, idx_y)
-                                                  [notepaditem]
+                                       Map.insert (idx_x, idx_y)
+                                         (notepaditem : notepaditems) fm
+                                     _ -> Map.insert (idx_x, idx_y)
+                                                  [notepaditem] fm
                         setRef fmref nufm
                    else done
                  getCenterIndex notepaditem =

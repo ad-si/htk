@@ -27,7 +27,7 @@ module MMiSS.API.SessionState(
    ) where
 
 import Control.Concurrent.MVar
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.UniqueString
 import Util.Computation
@@ -52,8 +52,8 @@ newtype MMiSSSessionState = MMiSSSessionState (MVar MMiSSSessionStateValue)
 
 data MMiSSSessionStateValue = MMiSSSessionStateValue {
    messages :: Messages, -- ^ Messages are in reverse order.
-   servers :: FiniteMap ServerRef VersionGraph,
-   versions :: FiniteMap VersionRef View,
+   servers :: Map.Map ServerRef VersionGraph,
+   versions :: Map.Map VersionRef View,
    serverRefSource :: UniqueStringCounter,
    versionRefSource :: UniqueStringCounter
    }
@@ -77,8 +77,8 @@ initialSessionState = MMiSSSessionStateValue {
          messagesStatus = Default Messages_status_success
          })
       [],
-   servers = emptyFM,
-   versions = emptyFM,
+   servers = Map.empty,
+   versions = Map.empty,
    serverRefSource = firstUniqueStringCounter,
    versionRefSource = firstUniqueStringCounter
    }
@@ -91,7 +91,7 @@ lookupVersionGraph :: MMiSSSessionState -> ServerRef -> IO VersionGraph
 lookupVersionGraph state serverRef =
    do
       servers0 <- readState state servers
-      case lookupFM servers0 serverRef of
+      case Map.lookup serverRef servers0 of
          Nothing -> importExportError "Server not known"
          Just versionGraph -> return versionGraph
 
@@ -102,11 +102,11 @@ deleteVersionGraph (MMiSSSessionState mVar) serverRef =
          do
             let
                servers0 = servers state
-            case lookupFM servers0 serverRef of
+            case Map.lookup serverRef servers0 of
                Nothing -> importExportError "Server not known"
                Just versionGraph -> destroy versionGraph
             let
-               servers1 = delFromFM servers0 serverRef
+               servers1 = Map.delete serverRef servers0
             return (state {servers = servers1})
          )
 
@@ -131,12 +131,12 @@ setServer (MMiSSSessionState mVar) serverRefOpt versionGraph =
 
                servers0 = servers state1
 
-            case lookupFM servers0 serverRef of
+            case Map.lookup serverRef servers0 of
                Nothing -> done
                Just versionGraph0 -> destroy versionGraph0
 
             let
-               servers1 = addToFM servers0 serverRef versionGraph
+               servers1 = Map.insert serverRef versionGraph servers0
 
                state2 = state1 {servers = servers1}
             return (state2,serverRef)
@@ -150,7 +150,7 @@ lookupView :: MMiSSSessionState -> VersionRef -> IO View
 lookupView state versionRef =
    do
       versions0 <- readState state versions
-      case lookupFM versions0 versionRef of
+      case Map.lookup versionRef versions0 of
          Nothing -> importExportError "Version not known"
          Just view -> return view
 
@@ -161,11 +161,11 @@ deleteView (MMiSSSessionState mVar) versionRef =
          do
             let
                versions0 = versions state
-            case lookupFM versions0 versionRef of
+            case Map.lookup versionRef versions0 of
                Nothing -> importExportError "Version not known"
                Just versionGraph -> destroy versionGraph
             let
-               versions1 = delFromFM versions0 versionRef
+               versions1 = Map.delete versionRef versions0
             return (state {versions = versions1})
          )
 
@@ -192,12 +192,12 @@ setView (MMiSSSessionState mVar) versionRefOpt view =
 
                versions0 = versions state1
 
-            case lookupFM versions0 versionRef of
+            case Map.lookup versionRef versions0 of
                Nothing -> done
                Just view1 -> destroy view1
 
             let
-               versions1 = addToFM versions0 versionRef view
+               versions1 = Map.insert versionRef view versions0
 
                state2 = state1 {versions = versions1}
             return (state2,versionRef)
@@ -207,7 +207,7 @@ setView (MMiSSSessionState mVar) versionRefOpt view =
 -- Allocating new references
 -- -------------------------------------------------------------------------
 
-newRefGen :: Ord key => (String -> key) -> FiniteMap key value
+newRefGen :: Ord key => (String -> key) -> Map.Map key value
    -> UniqueStringCounter -> (key,UniqueStringCounter)
 newRefGen mkKey map0 counter0 =
    let
@@ -215,7 +215,7 @@ newRefGen mkKey map0 counter0 =
 
       key0 = mkKey s0
    in
-      if elemFM key0 map0
+      if Map.member key0 map0
          then
             newRefGen mkKey map0 counter1
          else

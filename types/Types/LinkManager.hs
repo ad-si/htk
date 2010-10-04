@@ -245,7 +245,7 @@ import Data.Maybe
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 import Util.ExtendedPrelude
@@ -336,7 +336,7 @@ objectContents linkedObject =
          (\ fm ->
             map
                (\ linkedObjectPtr -> wrappedLinkInPtr linkedObjectPtr)
-               (eltsFM fm)
+               (Map.elems fm)
             )
          (toSimpleSource (contents linkedObject))
          )
@@ -350,7 +350,7 @@ objectContentsWithName linkedObject =
             map
                (\ (name,linkedObjectPtr)
                   -> (name,wrappedLinkInPtr linkedObjectPtr))
-               (fmToList fm)
+               (Map.toList fm)
             )
          (toSimpleSource (contents linkedObject))
          )
@@ -365,7 +365,7 @@ listObjectContentsAsWrappedLinks linkedObject =
             (\ (entityName,linkedObjectPtr)
                -> (entityName,wrappedLinkInPtr linkedObjectPtr)
                )
-            (fmToList fm)
+            (Map.toList fm)
          )
       (toSimpleSource (contents linkedObject))
 
@@ -379,7 +379,7 @@ listObjectContents linkedObject =
             (\ (entityName,linkedObjectPtr)
                -> (entityName,fromLinkedObjectPtr linkedObjectPtr)
                )
-            (fmToList fm)
+            (Map.toList fm)
          )
       (toSimpleSource (contents linkedObject))
 
@@ -755,11 +755,11 @@ instance Ord LinkedObject where
 data LinkedObject = LinkedObject {
    thisPtr :: LinkedObjectPtr,
    insertion :: SimpleSource (Maybe Insertion),
-   contents :: SimpleBroadcaster (FiniteMap EntityName LinkedObjectPtr),
+   contents :: SimpleBroadcaster (Map.Map EntityName LinkedObjectPtr),
    moveObject :: Maybe Insertion -> IO (WithError ()),
    importCommands :: Maybe (SimpleBroadcaster ImportCommands),
 
-   contentsSource :: SimpleSource (FiniteMap EntityName LinkedObjectPtr),
+   contentsSource :: SimpleSource (Map.Map EntityName LinkedObjectPtr),
    importCommandsSource ::Maybe (SimpleSource ImportCommands)
 
 
@@ -788,7 +788,7 @@ toFolderStructure root =
       getContentsSource linkedObject =
          return .
             (fmap
-               (mapFM (\ _ ptr -> fromLinkedObjectPtr ptr)))
+               (Map.mapWithKey (\ _ ptr -> fromLinkedObjectPtr ptr)))
             . contentsSource $ linkedObject
 
       getImportCommands linkedObject =
@@ -824,7 +824,7 @@ freezeLinkedObject linkedObject =
       insertion' <- readContents (insertion linkedObject)
       contentsData <- readContents (contents linkedObject)
       let
-         (contents' :: [(EntityName,LinkedObjectPtr)]) = fmToList contentsData
+         (contents' :: [(EntityName,LinkedObjectPtr)]) = Map.toList contentsData
          hasImportCommands = isJust (importCommands linkedObject)
 
       return (FrozenLinkedObject {wrappedLink' = wrappedLink',
@@ -852,7 +852,7 @@ createLinkedObject view isNew frozenLinkedObject =
       insertionBroadcaster <- newSimpleBroadcaster insertion0
 
       contents1
-         <- newSimpleBroadcaster (listToFM (contents' frozenLinkedObject))
+         <- newSimpleBroadcaster (Map.fromList (contents' frozenLinkedObject))
 
       importCommands <-
          if hasImportCommands frozenLinkedObject
@@ -913,8 +913,8 @@ createLinkedObject view isNew frozenLinkedObject =
                                  oldName = name oldInsertion
                               success <- applySimpleUpdate'
                                  (toContents oldInsertion)
-                                 (\ map -> (delFromFM map oldName,
-                                    elemFM oldName map))
+                                 (\ map -> (Map.delete oldName map,
+                                    Map.member oldName map))
                               when success (dirtyInsertion oldInsertion)
                case insertionOpt of
                   Nothing -> -- this must be a deletion
@@ -944,11 +944,11 @@ createLinkedObject view isNew frozenLinkedObject =
                                  success <- applySimpleUpdate'
                                     (toContents newInsertion)
                                     (\ map ->
-                                       if elemFM newName map
+                                       if Map.member newName map
                                           then
                                              (map,False)
                                           else
-                                             (addToFM map newName thisPtr,True)
+                                             (Map.insert newName thisPtr map,True)
                                        )
                                  return (if success
                                     then
@@ -1201,7 +1201,7 @@ lookupEntityName
    :: LinkedObject -> EntityName -> SimpleSource (Maybe LinkedObjectPtr)
 lookupEntityName linkedObject entityName =
    fmap
-      (\ fm -> lookupFM fm entityName)
+      (\ fm -> Map.lookup entityName fm)
       (toSimpleSource (contents linkedObject))
 
 
@@ -1299,11 +1299,11 @@ getLinkedObjectMergeLinks =
             let
                linkedObject = toLinkedObject object
 
-            (contents1 :: FiniteMap EntityName LinkedObjectPtr)
+            (contents1 :: Map.Map EntityName LinkedObjectPtr)
                <- readContents (contents linkedObject)
             let
                contents2 :: [(EntityName,LinkedObjectPtr)]
-               contents2 = fmToList contents1
+               contents2 = Map.toList contents1
 
                contents3 :: [(WrappedMergeLink,EntityName)]
                contents3 =
@@ -1348,11 +1348,11 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                let
                   wrappedLink0 = wrappedLinkInPtr linkedObjectPtr
 
-                  wrappedMergeLink1 = lookupWithDefaultFM
-                     (linkMap linkReAssigner)
+                  wrappedMergeLink1 = Map.findWithDefault
                      (error ("LinkManager.mapLinkedObjectPtr "
                         ++ "- unassigned pointer??"))
                      (viewId view,toWrappedMergeLink wrappedLink0)
+                     (linkMap linkReAssigner)
 
                   wrappedLink1
                      = fromWrappedMergeLink wrappedLink0 wrappedMergeLink1
@@ -1406,15 +1406,15 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
             -- had to be consistent during getLinkedObjectMergeLinks, we don't
             -- need to do that now.
             addContents :: View -> [(EntityName,LinkedObjectPtr)]
-               -> FiniteMap EntityName LinkedObjectPtr
-               -> FiniteMap EntityName LinkedObjectPtr
+               -> Map.Map EntityName LinkedObjectPtr
+               -> Map.Map EntityName LinkedObjectPtr
             -- add the contents for one FrozenLinkedObject to an existing
             -- map.
             addContents view theseContents map0 =
                foldl
                   (\ map0 (entityName,linkedObjectPtr) ->
-                     addToFM map0 entityName
-                        (mapLinkedObjectPtr view linkedObjectPtr)
+                     Map.insert entityName
+                        (mapLinkedObjectPtr view linkedObjectPtr) map0
                      )
                   map0
                   theseContents
@@ -1422,10 +1422,10 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                foldl
                   (\ map0 (view,frozenLinkedObject)
                      -> addContents view (contents' frozenLinkedObject) map0)
-                  emptyFM
+                  Map.empty
                   frozenLinkedObjects
 
-            newContents' = fmToList finalMap
+            newContents' = Map.toList finalMap
 
             newFrozenLinkedObject = FrozenLinkedObject {
                wrappedLink' = newWrappedLink',

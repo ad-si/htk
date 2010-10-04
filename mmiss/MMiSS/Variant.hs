@@ -77,7 +77,7 @@ import Data.Maybe
 import Control.Monad
 
 import Control.Concurrent.MVar
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Text.XML.HaXml.Types hiding (VersionInfo)
 
 import Util.Computation(done,fromWithError,WithError,mapWithError)
@@ -146,13 +146,13 @@ getVersionAndUnset variants =
 mkMMiSSVariants :: [(String,Maybe String)] -> MMiSSVariants
 mkMMiSSVariants keyValues =
    let
-      variantsMap1 :: FiniteMap String (Maybe String)
-      variantsMap1 = listToFM keyValues
+      variantsMap1 :: Map.Map String (Maybe String)
+      variantsMap1 = Map.fromList keyValues
 
       versionOpt :: Maybe ObjectVersion
       versionOpt =
          do
-            versionStrOpt <- lookupFM variantsMap1 versionKey
+            versionStrOpt <- Map.lookup versionKey variantsMap1
             versionStr <- case versionStrOpt of
                Nothing -> error ("Nothing given as Version attribute")
                Just versionStr -> return versionStr
@@ -162,16 +162,16 @@ mkMMiSSVariants keyValues =
                   ++ show versionStr)
                Right version -> return version
 
-      variantsMap2 :: FiniteMap String (Maybe String)
+      variantsMap2 :: Map.Map String (Maybe String)
       variantsMap2 =
          if isJust versionOpt
             then
-               delFromFM variantsMap1 versionKey
+               Map.delete versionKey variantsMap1
             else
                variantsMap1
    in
 
-      MMiSSVariants {versionOpt = versionOpt,keyValues = fmToList variantsMap2}
+      MMiSSVariants {versionOpt = versionOpt,keyValues = Map.toList variantsMap2}
 
 unmkMMiSSVariants :: MMiSSVariants -> [(String,Maybe String)]
 unmkMMiSSVariants variants =

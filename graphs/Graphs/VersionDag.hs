@@ -30,7 +30,7 @@ module Graphs.VersionDag(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Sources
 import Util.Broadcaster
@@ -55,7 +55,7 @@ data VersionDag nodeKey nodeInfo arcInfo = VersionDag {
 
 data VersionDagState nodeKey nodeInfo arcInfo = VersionDagState {
    inPureGraph :: PureGraph nodeKey arcInfo,
-   nodeInfoDict :: FiniteMap nodeKey nodeInfo,
+   nodeInfoDict :: Map.Map nodeKey nodeInfo,
    isHidden :: nodeInfo -> Bool
    }
 
@@ -73,7 +73,7 @@ newVersionDag isHidden0 toNodeKey0 toParents0 =
       let
          state = VersionDagState {
             inPureGraph = emptyPureGraph,
-            nodeInfoDict = emptyFM,
+            nodeInfoDict = Map.empty,
             isHidden = isHidden0
             }
 
@@ -111,7 +111,7 @@ addVersions versionDag nodeInfos =
             nodeInfoDict0 = nodeInfoDict state0
 
             nodeInfoDict1 =
-               addListToFM
+               foldr (uncurry Map.insert)
                   nodeInfoDict0
                   (map
                      (\ nodeInfo -> (toNodeKey versionDag nodeInfo,nodeInfo))
@@ -136,7 +136,7 @@ deleteVersion versionDag nodeKey =
 
             nodeInfoDict0 = nodeInfoDict state0
 
-            nodeInfoDict1 = delFromFM nodeInfoDict0 nodeKey
+            nodeInfoDict1 = Map.delete nodeKey nodeInfoDict0
             state1 = state0 {
                inPureGraph = inPureGraph1,
                nodeInfoDict = nodeInfoDict1
@@ -176,14 +176,14 @@ lookupNodeKey :: Ord nodeKey
 lookupNodeKey versionDag nodeKey =
    do
       state <- readContents (stateBroadcaster versionDag)
-      return (lookupFM (nodeInfoDict state) nodeKey)
+      return (Map.lookup nodeKey (nodeInfoDict state))
 
 getNodeInfos :: Ord nodeKey
    => VersionDag nodeKey nodeInfo arcInfo -> IO [nodeInfo]
 getNodeInfos versionDag =
    do
       state <- readContents (stateBroadcaster versionDag)
-      return (eltsFM (nodeInfoDict state))
+      return (Map.elems (nodeInfoDict state))
 
 
 -- --------------------------------------------------------------------------
@@ -201,10 +201,10 @@ toDisplayedGraph (versionDag :: VersionDag nodeKey nodeInfo arcInfo) =
          let
             toNodeInfo :: nodeKey -> nodeInfo
             toNodeInfo nodeKey =
-               lookupWithDefaultFM
-                  (nodeInfoDict state)
+               Map.findWithDefault
                   (error "VersionDag: nodeKey encountered with no nodeInfo")
                   nodeKey
+                  (nodeInfoDict state)
 
             isHidden0 :: nodeInfo -> Bool
             isHidden0 = isHidden state
@@ -254,7 +254,7 @@ getInputGraphBack
          inPureGraph0 :: PureGraph nodeKey arcInfo
          inPureGraph0 = inPureGraph state
 
-         nodeInfoDict0 :: FiniteMap nodeKey nodeInfo
+         nodeInfoDict0 :: Map.Map nodeKey nodeInfo
          nodeInfoDict0 = nodeInfoDict state
 
          getAllNodes :: [nodeKey]
@@ -263,7 +263,7 @@ getInputGraphBack
          getKey :: nodeKey -> Maybe graphBackNodeKey
          getKey nodeKey =
             do
-               nodeInfo <- lookupFM nodeInfoDict0 nodeKey
+               nodeInfo <- Map.lookup nodeKey nodeInfoDict0
                return (toGraphBackNodeKey nodeKey nodeInfo)
 
          getParents :: nodeKey -> Maybe [nodeKey]
@@ -287,10 +287,10 @@ toInputGraph (versionDag :: VersionDag nodeKey nodeInfo arcInfo) =
          let
             toNodeInfo :: nodeKey -> nodeInfo
             toNodeInfo nodeKey =
-               lookupWithDefaultFM
-                  (nodeInfoDict state)
+               Map.findWithDefault
                   (error "VersionDag: nodeKey encountered with no nodeInfo")
                   nodeKey
+                  (nodeInfoDict state)
          in
             (inPureGraph state,toNodeInfo)
    in

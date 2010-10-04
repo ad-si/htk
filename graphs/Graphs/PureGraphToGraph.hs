@@ -8,7 +8,7 @@ module Graphs.PureGraphToGraph(
 
 import Data.List
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Data.IORef
 
 import Util.Computation(done)
@@ -140,7 +140,7 @@ modifyPureGraph nameSource
    do
       -- Node-generating mechanism.  We generate nodes dynamically as we
       -- look them up.
-      (nodeIORef :: IORef (FiniteMap nodeKey Node)) <- newIORef emptyFM
+      (nodeIORef :: IORef (Map.Map nodeKey Node)) <- newIORef Map.empty
       let
          lookupNode :: nodeKey -> IO Node
          lookupNode nodeKey = case lookupPureNode pg nodeKey of
@@ -148,23 +148,23 @@ modifyPureGraph nameSource
             Nothing ->
                do
                   fm <- readIORef nodeIORef
-                  case lookupFM fm nodeKey of
+                  case Map.lookup nodeKey fm of
                      Just node -> return node
                      Nothing ->
                         do
                            nodeStr <- getNewName nameSource
                            let
                               node = fromString nodeStr
-                           writeIORef nodeIORef (addToFM fm nodeKey node)
+                           writeIORef nodeIORef (Map.insert nodeKey node fm)
                            return node
 
 
          oldFM0List :: [((nodeKey,Node),
             NodeData (nodeKey,Node) (arcInfo,Arc))]
-         oldFM0List = fmToList oldFM0
+         oldFM0List = Map.toList oldFM0
 
          newFM0List :: [(nodeKey,NodeData nodeKey arcInfo)]
-         newFM0List = fmToList newFM0
+         newFM0List = Map.toList newFM0
 
          -- type arguments for generalisedMerge
 
@@ -235,7 +235,7 @@ modifyPureGraph nameSource
       -- To make the updates consistent, sort them into the order
       -- (delete arcs) (delete nodes) (add nodes) (set node labels) (add arcs)
       let
-         pg1 = PureGraph (listToFM newFM1List)
+         pg1 = PureGraph (Map.fromList newFM1List)
 
 
          updates0 = concat updatess0
@@ -254,8 +254,8 @@ lookupPureNode :: Ord nodeKey
    -> nodeKey
    -> Maybe Node
 lookupPureNode (PureGraph fm) nodeKey0 =
-   case fmToList_GE_1 fm (nodeKey0,firstNode) of
-      ((nodeKey1,node),_) : _  | nodeKey1 == nodeKey0 -> Just node
+  case filter (\ ((nodeKey1, _), _) -> nodeKey1 == nodeKey0) $ Map.toList fm of
+      ((_,node),_) : _  -> Just node
       _ -> Nothing
 
 modifyArcs :: (Ord nodeKey,Ord arcInfo)

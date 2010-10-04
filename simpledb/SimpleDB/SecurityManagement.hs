@@ -14,7 +14,7 @@ module SimpleDB.SecurityManagement(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation(done)
 
@@ -151,7 +151,7 @@ verifyAccess1 simpleDB groupFile userId0 version versionData location1
       case allowedOpt of
          Just _ -> return allowedOpt
          Nothing ->
-            case lookupFM (parentsMap versionData) location1 of
+            case Map.lookup location1 (parentsMap versionData) of
                Nothing -> return Nothing
                Just location2 ->
                   verifyAccess1 simpleDB groupFile userId0 version versionData

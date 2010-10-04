@@ -13,7 +13,7 @@ module Imports.Aliases(
       -- Expand all aliases in the given EntitySearchName
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 import Util.AtomString
@@ -28,9 +28,9 @@ import Imports.EntityNames
 -- ------------------------------------------------------------------------
 
 data Aliases = Aliases {
-   begin :: FiniteMap EntityName EntitySearchName,
+   begin :: Map.Map EntityName EntitySearchName,
       -- path aliases which begin with Current., Root. or Parent.
-   general :: FiniteMap EntityName [EntityName]
+   general :: Map.Map EntityName [EntityName]
       -- others
    }
 
@@ -48,15 +48,15 @@ mkAliases (ImportCommands importCommands) =
          readAliases importCommands aliases
       readAliases (PathAlias from esn : importCommands)
             (aliases0 @ (Aliases {begin = begin0,general = general0})) =
-         if elemFM from begin0 || elemFM from general0
+         if Map.member from begin0 || Map.member from general0
             then
                hasError ("Alias " ++ toString from ++ " is multiply defined")
             else
                readAliases importCommands (
                   case esn of
                      FromHere (EntityFullName to) ->
-                        aliases0 {general = addToFM general0 from to}
-                     _ -> aliases0 {begin = addToFM begin0 from esn}
+                        aliases0 {general = Map.insert from to general0}
+                     _ -> aliases0 {begin = Map.insert from esn begin0}
                   )
 
       cycleCheckAliases :: Aliases -> WithError Aliases
@@ -72,11 +72,11 @@ mkAliases (ImportCommands importCommands) =
 
          let
             nodes :: [EntityName]
-            nodes = keysFM begin0 ++ keysFM general0
+            nodes = Map.keys begin0 ++ Map.keys general0
 
             components :: EntityName -> [EntityName]
             components entityName =
-               lookupWithDefaultFM general0 [] entityName
+               Map.findWithDefault [] entityName general0
          in
             case findCycle nodes components of
                Nothing -> hasValue aliases
@@ -87,7 +87,7 @@ mkAliases (ImportCommands importCommands) =
       mapWithError'
          cycleCheckAliases
          (readAliases importCommands
-            (Aliases {begin = emptyFM,general = emptyFM}))
+            (Aliases {begin = Map.empty,general = Map.empty}))
 
 expandAliases :: Aliases -> EntitySearchName -> EntitySearchName
 expandAliases (aliases @ (Aliases {begin = begin,general = general}))
@@ -108,7 +108,7 @@ expandAliases (aliases @ (Aliases {begin = begin,general = general}))
    where
       expandHere :: EntityName -> [EntityName] -> EntitySearchName
       expandHere name1 names =
-         case lookupFM begin name1 of
+         case Map.lookup name1 begin of
             Nothing -> FromHere (EntityFullName (expandNames (name1 : names)))
             Just esn -> expandAliases aliases (searchPlusNames esn names)
 
@@ -116,7 +116,7 @@ expandAliases (aliases @ (Aliases {begin = begin,general = general}))
       expandNames names = concat (map expandName names)
 
       expandName :: EntityName -> [EntityName]
-      expandName name = case lookupFM general name of
+      expandName name = case Map.lookup name general of
          Nothing -> [name]
          Just names -> expandNames names
 

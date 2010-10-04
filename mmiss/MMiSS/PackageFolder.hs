@@ -64,7 +64,7 @@ import Data.Maybe
 import Data.List as List
 
 import System.IO.Unsafe
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 import Util.ExtendedPrelude
@@ -576,8 +576,8 @@ instance HasBundleNodeWrite MMiSSPackageFolder where
                   let
                      preambleLocation = preambleEntityName : thisLocation
 
-                  preambleLink <- case lookupFM (fm bundleNodeLocations)
-                        preambleLocation of
+                  preambleLink <- case Map.lookup
+                        preambleLocation (fm bundleNodeLocations) of
                      Just bundleNodeExtraData ->
                         let
                            preambleWrappedLink = location bundleNodeExtraData

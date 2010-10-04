@@ -12,7 +12,7 @@ module SimpleDB.VersionAllocation(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Data.IORef
 
 import Data.IORef
@@ -48,7 +48,7 @@ useVersion :: SimpleDB -> User -> ObjectVersion -> IO ()
 useVersion simpleDB user version =
    do
       userOpt <- atomicModifyIORef (openVersions simpleDB)
-         (\ fm0 -> (delFromFM fm0 version,lookupFM fm0 version))
+         (\ fm0 -> (Map.delete version fm0,Map.lookup version fm0))
       let
          notAllowed = throwError AccessError
             "Attempt to commit version which is not allocated"
@@ -68,7 +68,7 @@ useVersion simpleDB user version =
 reuseVersion :: SimpleDB -> User -> ObjectVersion -> IO ()
 reuseVersion simpleDB user version =
    atomicModifyIORef (openVersions simpleDB)
-      (\ fm0 -> (addToFM fm0 version user,()))
+      (\ fm0 -> (Map.insert version user fm0,()))
 
 -- | Forget all versions belonging to a user and free their memory.
 forgetUsersVersions :: SimpleDB -> User -> IO ()
@@ -78,7 +78,7 @@ forgetUsersVersions simpleDB user0 =
          (\ fm0 ->
             let
                old :: [(ObjectVersion,User)]
-               old = fmToList fm0
+               old = Map.toList fm0
 
                toDelete :: [ObjectVersion]
                toDelete = mapMaybe
@@ -92,11 +92,11 @@ forgetUsersVersions simpleDB user0 =
                   old
 
                fm1 = foldl
-                  (\ fm ov -> delFromFM fm ov)
+                  (\ fm ov -> Map.delete ov fm)
                   fm0
                   toDelete
             in
-               (fm1,sizeFM fm1)
+               (fm1,Map.size fm1)
             )
 
       seq l done

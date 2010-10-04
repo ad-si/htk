@@ -45,7 +45,7 @@ import Data.Maybe
 import Data.Char
 
 import System.IO.Unsafe
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.WBFiles
 import Util.ICStringLen
@@ -123,8 +123,8 @@ newtype MMiSSFileVersion = MMiSSFileVersion {
 
 -- | the result of reading the Files.xml file.
 data MMiSSFilesState = MMiSSFilesState {
-   fileTypes :: FiniteMap String MMiSSFileType,
-   menus :: FiniteMap String Menu
+   fileTypes :: Map.Map String MMiSSFileType,
+   menus :: Map.Map String Menu
    }
 
 -- ----------------------------------------------------------------------
@@ -147,7 +147,7 @@ importMMiSSFile view folder dirPath0 name0 ext variantSpec =
 
             fullName = dirPath1 `combineNames` name1
 
-         fileType0 <- case lookupFM (fileTypes mmissFilesState) ext of
+         fileType0 <- case Map.lookup ext (fileTypes mmissFilesState) of
             Nothing -> break
                ("File " ++ fullName ++ " cannot be imported, because the "
                   ++ "extension " ++ ext ++ " is not known.")
@@ -333,9 +333,9 @@ findMMiSSFilesInDirectory filePath0 fullName0 =
 possibleNames :: EntityFullName -> [(EntityFullName,String)]
 possibleNames fullName0 = case splitFullName fullName0 of
    Nothing ->
-      map (\ tag -> (fullName0,tag)) (keysFM (fileTypes mmissFilesState))
+      map (\ tag -> (fullName0,tag)) (Map.keys (fileTypes mmissFilesState))
    Just (nt @ (fullName1,tag)) ->
-      case lookupFM (fileTypes mmissFilesState) tag of
+      case Map.lookup tag (fileTypes mmissFilesState) of
          Nothing -> [] -- not a recognised tag
          Just _ -> [nt]
 
@@ -366,8 +366,8 @@ getMMiSSFilesState =
 toMMiSSFilesState :: FileTypes -> MMiSSFilesState
 toMMiSSFilesState (FileTypes []) =
    MMiSSFilesState {
-      fileTypes = emptyFM,
-      menus = emptyFM
+      fileTypes = Map.empty,
+      menus = Map.empty
       }
 toMMiSSFilesState (FileTypes (fileType : fileTypes1)) =
    let
@@ -384,7 +384,7 @@ toMMiSSFilesState (FileTypes (fileType : fileTypes1)) =
                   }
 
                fileTypes0 = fileTypes filesState0
-               fileTypes1 = addToFM fileTypes0 tag mmissFileType
+               fileTypes1 = Map.insert tag mmissFileType fileTypes0
             in
                filesState0 {
                   fileTypes = fileTypes1
@@ -392,7 +392,7 @@ toMMiSSFilesState (FileTypes (fileType : fileTypes1)) =
          FileTypes_Menu (menu @ (Menu attrs _)) ->
             let
                menus0 = menus filesState0
-               menus1 = addToFM menus0 (menuId attrs) menu
+               menus1 = Map.insert (menuId attrs) menu menus0
             in
                filesState0 {
                   menus = menus1
@@ -406,9 +406,9 @@ toMMiSSFilesState (FileTypes (fileType : fileTypes1)) =
 instance Monad m => HasBinary MMiSSFileType m where
    writeBin = mapWrite typeTag
    readBin = mapRead (\ tag ->
-      lookupWithDefaultFM (fileTypes mmissFilesState)
+      Map.findWithDefault
          (error ("MMiSSFileType: unknown tag: " ++ tag))
-         tag
+         tag (fileTypes mmissFilesState)
        )
 
 instance HasBinary MMiSSFile CodingMonad where
@@ -656,7 +656,7 @@ instance ObjectType MMiSSFileType MMiSSFile where
 
    objectTypeGlobalRegistry _ = globalRegistry
 
-   extraObjectTypes = return (eltsFM (fileTypes mmissFilesState))
+   extraObjectTypes = return (Map.elems (fileTypes mmissFilesState))
 
    getObjectTypePrim = mmissFileType
 
@@ -718,7 +718,7 @@ getFilesNodeDisplayData view displayType mmissFileType
                LocalMenu (mkMenu menuId) $$$ nodeTypeParms0
 
          mkMenu :: String -> MenuPrim (Maybe String) (Link MMiSSFile -> IO ())
-         mkMenu menuId = case lookupFM (menus mmissFilesState) menuId of
+         mkMenu menuId = case Map.lookup menuId (menus mmissFilesState) of
             Just (Menu menuAttrs subMenus) ->
                MenuType.Menu (menuTitle menuAttrs) (map mkSubMenu subMenus)
 
@@ -786,7 +786,7 @@ instance HasBundleNodeWrite MMiSSFile where
                   let
                      Just ext1 = ext . objectType . fileLoc $ node
                      Just mmissFileType =
-                        lookupFM (fileTypes mmissFilesState) ext1
+                        Map.lookup ext1 (fileTypes mmissFilesState)
                      Just title = name . fileLoc $ node
 
                   linkedObjectWE <- newLinkedObject view (WrappedLink fileLink)
@@ -917,7 +917,7 @@ constructKey tag = oneOffKey "MMiSSFiles" tag
 
 
 fileTypeExists :: String -> Bool
-fileTypeExists ext = elemFM ext (fileTypes mmissFilesState)
+fileTypeExists ext = Map.member ext (fileTypes mmissFilesState)
 
 -- Make a name for an MMiSSFile, as known to the LinkManager.  We use the
 -- EntityName specialChar.

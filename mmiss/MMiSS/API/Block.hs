@@ -25,7 +25,7 @@ module MMiSS.API.Block(
 
 import IO
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Data.Word
 
 import Util.Bytes(Byte)
@@ -42,9 +42,9 @@ data BlockData = BlockData {
    blockText :: ICStringLen
    }
 
-data Block = Block (FiniteMap Int BlockData)
+data Block = Block (Map.Map Int BlockData)
    -- the keys will be consecutive integers starting at 0.
-   -- This mean we can use sizeFM to get the next index to use.
+   -- This mean we can use Map.size to get the next index to use.
 
 
 -- -------------------------------------------------------------------------
@@ -72,44 +72,44 @@ readBlock handle =
                )
             [ 0 .. nDataBlocks - 1 ]
 
-      return (Block (listToFM mapList))
+      return (Block (Map.fromList mapList))
 
 writeBlock :: Handle -> Block -> IO ()
 writeBlock handle (Block fm) =
    do
-      hWrite handle ((fromIntegral (sizeFM fm)) :: Word)
+      hWrite handle ((fromIntegral (Map.size fm)) :: Word)
       mapM_
          (\ blockData ->
             do
                hWrite handle (blockType blockData)
                hWrite handle (blockText blockData)
             )
-         (eltsFM fm)
+         (Map.elems fm)
 
 -- -------------------------------------------------------------------------
 -- constructing blocks
 -- -------------------------------------------------------------------------
 
 emptyBlock :: Block
-emptyBlock = Block emptyFM
+emptyBlock = Block Map.empty
 
 addBlockData :: Block -> BlockData -> (Block,Int)
 addBlockData (Block fm0) blockData =
    let
-      key = sizeFM fm0
+      key = Map.size fm0
 
-      fm1 = addToFM fm0 key blockData
+      fm1 = Map.insert key blockData fm0
    in
       (Block fm1,key)
 
 setBlockData :: Block -> Int -> BlockData -> Block
 setBlockData (Block fm0) key blockData =
-   case lookupFM fm0 key of
+   case Map.lookup key fm0 of
       Nothing ->
          error ("MMiSSAPIBlock: Key " ++ show key ++ " does not exist")
       Just _ ->
          let
-            fm1 = addToFM fm0 key blockData
+            fm1 = Map.insert key blockData fm0
          in
             Block fm1
 
@@ -124,4 +124,4 @@ dummyBlockData = BlockData {
 -- -------------------------------------------------------------------------
 
 lookupBlockData :: Block -> Int -> Maybe BlockData
-lookupBlockData (Block fm) i = lookupFM fm i
+lookupBlockData (Block fm) i = Map.lookup i fm

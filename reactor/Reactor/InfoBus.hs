@@ -13,7 +13,7 @@ module Reactor.InfoBus (
 
 
 import Control.Concurrent.MVar
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import System.IO.Unsafe
 import System.Mem(performGC)
 
@@ -29,7 +29,7 @@ import Events.Destructible
 
 type ToolManager = MVar Tools
 
-type Tools = FiniteMap ObjectID (IO ())
+type Tools = Map.Map ObjectID (IO ())
 
 
 -- --------------------------------------------------------------------------
@@ -37,7 +37,7 @@ type Tools = FiniteMap ObjectID (IO ())
 -- --------------------------------------------------------------------------
 
 toolmanager :: ToolManager
-toolmanager = unsafePerformIO (newMVar emptyFM)
+toolmanager = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE toolmanager #-}
 
 
@@ -49,14 +49,14 @@ registerTool :: (Object t, Destroyable t) => t -> IO ()
 registerTool t =
    do
       map <- takeMVar toolmanager
-      putMVar toolmanager (addToFM map (objectID t) (destroy t))
+      putMVar toolmanager (Map.insert (objectID t) (destroy t) map)
       done
 
 registerToolDebug :: (Object t, Destroyable t) => String -> t -> IO ()
 registerToolDebug title t =
    do
       map <- takeMVar toolmanager
-      putMVar toolmanager (addToFM map (objectID t) (destroy t))
+      putMVar toolmanager (Map.insert (objectID t) (destroy t) map)
       debug ("registerTool " ++ title,objectID t)
       done
 
@@ -69,7 +69,7 @@ deregisterTool t =
            -- actually.
          do
             map <- takeMVar toolmanager
-            putMVar toolmanager (delFromFM map oid)
+            putMVar toolmanager (Map.delete oid map)
          )
       debug ("deregisterTool ",oid)
       done
@@ -78,8 +78,8 @@ shutdown :: IO ()
 shutdown =
    do
       map <- takeMVar toolmanager
-      let toShutDown = fmToList map
-      putMVar toolmanager emptyFM
+      let toShutDown = Map.toList map
+      putMVar toolmanager Map.empty
       foreach toShutDown
          (\ (oid,cmd) ->
             do

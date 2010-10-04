@@ -18,7 +18,7 @@ module SimpleDB.Types(
 import Control.Monad.Trans
 import Data.Typeable
 import Data.IORef
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.DeepSeq
 import Util.ICStringLen
@@ -214,11 +214,11 @@ data SimpleDB = SimpleDB {
    dataDB :: BDB,
       -- ^ this contains the actual committed data (as ICStringLen).
 
-   versionData :: IORef (FiniteMap ObjectVersion VersionData),
+   versionData :: IORef (Map.Map ObjectVersion VersionData),
       -- ^ This contains the version data, for example the map from
       -- the PrimitiveLocation to the corresponding BDBKey (in this
       -- version).
-   openVersions :: IORef (FiniteMap ObjectVersion User),
+   openVersions :: IORef (Map.Map ObjectVersion User),
       -- ^ This map contains current version numbers allocated by
       -- NewVersion (by user) which have not yet had UserInfo
       -- assigned to them by Commit or ModifyUserInfo.
@@ -226,7 +226,7 @@ data SimpleDB = SimpleDB {
       -- This allows us to block attempts to hijack a version number
       -- allocated to someone else, or to commit to a version already
       -- committed to.
-   openLocations :: IORef (FiniteMap PrimitiveLocation User),
+   openLocations :: IORef (Map.Map PrimitiveLocation User),
       -- ^ This map contains current location numbers allocated by
       -- NewLocation (by user) or created in a redirect, which have
       -- not yet appeared in a commit.
@@ -270,7 +270,7 @@ data FrozenVersion =
 data VersionData = VersionData {
    parent :: Maybe ObjectVersion,
       -- ^ This version's parent.
-   objectDictionary :: FiniteMap PrimitiveLocation BDBKey,
+   objectDictionary :: Map.Map PrimitiveLocation BDBKey,
       -- ^ The dictionary contains every location in the ObjectDictionary,
       -- even those which are identical to those in the parent.  However
       -- we construct the objectDictionary starting with the dictionary
@@ -278,11 +278,11 @@ data VersionData = VersionData {
       -- because of persistence, the actual extra memory occupied on the
       -- server should be small, if there are only a few changes from the
       -- parent.
-   redirects :: FiniteMap Location PrimitiveLocation,
+   redirects :: Map.Map Location PrimitiveLocation,
       -- ^ This maps Location to the corresponding PrimitiveLocation,
       -- when the integers inside are different.
       -- As with objectDictionary, we use persistence.
-   parentsMap :: FiniteMap Location Location
+   parentsMap :: Map.Map Location Location
       -- ^ Map from an object to its parent, if any.
    }
 

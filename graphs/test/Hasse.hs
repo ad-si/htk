@@ -6,17 +6,17 @@ module Hasse(
 
 import Data.List hiding (intersect,union)
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import Graphs.TopSort
 
 data Ord a => HasseData a = HasseData {
    leftToDo :: [a],
-   positions :: FiniteMap a Int,
+   positions :: Map.Map a Int,
    soFar :: [(a,a)],
-   directPredecessors :: FiniteMap a [a],
-   knownPredecessors :: FiniteMap a (Set.Set a)
+   directPredecessors :: Map.Map a [a],
+   knownPredecessors :: Map.Map a (Set.Set a)
    }
 
 hasse :: Ord a => [(a,a)] -> [(a,a)]
@@ -34,17 +34,17 @@ initialise :: Ord a => [(a,a)] -> HasseData a
 initialise relations =
    let
       sorted = topSort relations
-      positions = listToFM (zip sorted [0..])
+      positions = Map.fromList (zip sorted [0..])
       soFar = []
 
-      emptyMap = listToFM (zip sorted (repeat []))
+      emptyMap = Map.fromList (zip sorted (repeat []))
       directPredecessors =
          foldr
             (\ (from,to) map ->
                let
-                  Just predecessors = lookupFM map to
+                  Just predecessors = Map.lookup map to
                in
-                  addToFM map to (from:predecessors)
+                  Map.insert map to (from:predecessors)
                )
             emptyMap
             relations
@@ -54,7 +54,7 @@ initialise relations =
          positions = positions,
          soFar = soFar,
          directPredecessors = directPredecessors,
-         knownPredecessors = emptyFM
+         knownPredecessors = Map.empty
          }
 
 oneStep :: Ord a => HasseData a -> Either [(a,a)] (HasseData a)
@@ -69,13 +69,13 @@ oneStep (HasseData {
       [] -> Left soFar
       (next:remainingToDo) ->
          let
-            Just nextPredecessors = lookupFM directPredecessors next
+            Just nextPredecessors = Map.lookup directPredecessors next
             sortedPredecessors =
                sortBy
                   (\ x y ->
                      let
-                        Just xNo = lookupFM positions x
-                        Just yNo = lookupFM positions y
+                        Just xNo = Map.lookup positions x
+                        Just yNo = Map.lookup positions y
                      in
                         compare xNo yNo
                      )
@@ -90,7 +90,7 @@ oneStep (HasseData {
                         else
                            let
                               Just predPredecessors =
-                                 lookupFM knownPredecessors predecessor
+                                 Map.lookup knownPredecessors predecessor
                            in
                               ((predecessor,next):soFar,
                                  Set.union predPredecessors lessThanNext
@@ -98,7 +98,7 @@ oneStep (HasseData {
                      )
                   (soFar,lessThanNext)
                   sortedPredecessors
-            knownPredecessors2 = addToFM knownPredecessors next lessThanNext2
+            knownPredecessors2 = Map.insert knownPredecessors next lessThanNext2
          in
             Right (HasseData{
                leftToDo = remainingToDo,

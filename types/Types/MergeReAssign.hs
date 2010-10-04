@@ -17,7 +17,7 @@ module Types.MergeReAssign(
 import Data.Maybe
 import Control.Monad
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Data.IORef
 import qualified Data.Set as Set
 
@@ -49,7 +49,7 @@ data ObjectNode object key =
    ObjectNode {
       references :: IORef [(View,Link object)],
          -- existing links which have to correspond to this object.
-      links :: IORef (FiniteMap key WrappedObjectNode),
+      links :: IORef (Map.Map key WrappedObjectNode),
       pathHere :: [String] -- path to this node
       } deriving (Typeable)
 
@@ -159,21 +159,21 @@ mkLinkReAssigner views allRelevantObjectTypes =
             toKey :: NodeData -> (ViewId,WrappedMergeLink)
             toKey (viewId,wml,_) = (viewId,wml)
 
-         (unionFinds :: FiniteMap (ViewId,WrappedMergeLink)
+         (unionFinds :: Map.Map (ViewId,WrappedMergeLink)
             (UnionFind NodeData)) <- foldM
                (\ fm0 nodeData ->
                   do
                      let
                         key = toKey nodeData
-                     if elemFM key fm0
+                     if Map.member key fm0
                         then
                            return fm0 -- already done
                         else
                            do
                               unionFind <- newElement nodeData
-                              return (addToFM fm0 key unionFind)
+                              return (Map.insert key unionFind fm0)
                   )
-               emptyFM
+               Map.empty
                allNodes
 
          -- apply identifications
@@ -182,8 +182,8 @@ mkLinkReAssigner views allRelevantObjectTypes =
                do
                   let
                      (uf : ufs) = fmap
-                        (\ nd -> lookupWithDefaultFM unionFinds
-                           (error "MergeReassign.1") (toKey nd)
+                        (\ nd -> Map.findWithDefault
+                           (error "MergeReassign.1") (toKey nd) unionFinds
                            )
                         nds
                   mapM_ (\ uf1 -> Union.union uf uf1) ufs
@@ -210,7 +210,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                            else
                               do
                                  let
-                                    (Just uf) = lookupFM unionFinds key
+                                    (Just uf) = Map.lookup key unionFinds
                                     visited1 = Set.insert key visited
                                  sameElements1 <- sameElements uf
                                  let
@@ -227,14 +227,14 @@ mkLinkReAssigner views allRelevantObjectTypes =
          let
             -- check a single list
             clashWE :: [NodeData] -> IO (WithError ())
-            clashWE nodes = clash nodes emptyFM
+            clashWE nodes = clash nodes Map.empty
                where
-                  clash :: [NodeData] -> FiniteMap ViewId [String]
+                  clash :: [NodeData] -> Map.Map ViewId [String]
                      -> IO (WithError ())
                   clash [] _ = return (hasValue ())
                   clash ((nd@(viewId,_,path)):nds) map0 =
                      do
-                        case lookupFM map0 viewId of
+                        case Map.lookup viewId map0 of
                            Just path2 ->
                               do
                                  viewString <- viewIdToString viewId
@@ -244,7 +244,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                                        ++ " in the view " ++ viewString))
                            Nothing ->
                               let
-                                 map1 = addToFM map0 viewId path
+                                 map1 = Map.insert viewId path map0
                               in
                                  clash nds map1
 
@@ -287,7 +287,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
             -- headView must map to themselves.
 
             linkReAssigner0 =
-               LinkReAssigner {linkMap = emptyFM,allMergesMap = emptyFM}
+               LinkReAssigner {linkMap = Map.empty,allMergesMap = Map.empty}
 
             -- Add an assignment of one identified list to a particular
             -- wrapped merge link.
@@ -303,11 +303,11 @@ mkLinkReAssigner views allRelevantObjectTypes =
                      ndPair1 = (viewId,wml)
                      ndPair2 = (toView viewId,wml)
 
-                     linkMap1 = addToFM linkMap0 ndPair1 newLink
+                     linkMap1 = Map.insert ndPair1 newLink linkMap0
 
-                     ndPairList0 = lookupWithDefaultFM allMergesMap0 [] newLink
-                     allMergesMap1 = addToFM allMergesMap0 newLink
-                        (ndPair2 : ndPairList0)
+                     ndPairList0 = Map.findWithDefault [] newLink allMergesMap0
+                     allMergesMap1 = Map.insert newLink
+                        (ndPair2 : ndPairList0) allMergesMap0
 
                      linkReAssigner1 = LinkReAssigner {
                         linkMap = linkMap1,
@@ -347,7 +347,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                   let
                      (nd @ (_,wml0,_) : _) = nds
                   linkReAssigner1 <-
-                        if elemFM (toKey nd) (linkMap linkReAssigner0)
+                        if Map.member (toKey nd) (linkMap linkReAssigner0)
                      then
                         -- we've done this one
                         return linkReAssigner0
@@ -360,7 +360,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                               genLink :: HasMerging object => Link object
                                  -> IO (Link object)
                               genLink link0 = if
-                                    elemFM (WrappedMergeLink link0)
+                                    Map.member (WrappedMergeLink link0)
                                        (allMergesMap linkReAssigner0)
                                  then
                                     -- can't use link0 as it's already
@@ -527,18 +527,18 @@ assignView view (State {registry = registry,allNodes = allNodes})
 
                         let
                            links1
-                              :: IORef (FiniteMap key WrappedObjectNode)
+                              :: IORef (Map.Map key WrappedObjectNode)
                            links1 = dynCast
                               ("MergeReAssign: object type has "
                                  ++ "inconsistent keys!")
                               links0
 
-                        (fMap0 :: FiniteMap key WrappedObjectNode)
+                        (fMap0 :: Map.Map key WrappedObjectNode)
                            <- readIORef links1
 
                         let
                            -- This function processes a single link, given
-                           -- the existing FiniteMap of outgoing arcs.
+                           -- the existing Map.Map of outgoing arcs.
                            --
                            -- It returns a possible (key,WrappedObjectNode)
                            -- to add to the map.
@@ -548,7 +548,7 @@ assignView view (State {registry = registry,allNodes = allNodes})
                               do
                                  let
                                     wrappedObjectNodeOpt
-                                       = lookupFM fMap0 key
+                                       = Map.lookup key fMap0
 
                                     pathHere1 = show key : pathHere0
                                  wrappedObjectNode
@@ -561,7 +561,8 @@ assignView view (State {registry = registry,allNodes = allNodes})
                         (newLinks :: [Maybe (key,WrappedObjectNode)])
                            <- mapMConcurrent doLink linksOut
                         let
-                           fMap1 = addListToFM fMap0 (catMaybes newLinks)
+                           fMap1 = foldr (uncurry Map.insert)
+                              fMap0 (catMaybes newLinks)
 
                         writeIORef links1 fMap1
                         return objectNode
@@ -571,7 +572,7 @@ assignView view (State {registry = registry,allNodes = allNodes})
          createObjectNode pathHere0 =
             do
                references1 <- newIORef []
-               links1 <- newIORef emptyFM
+               links1 <- newIORef Map.empty
                let
                   newObjectNode = ObjectNode {
                      references = references1,links =links1,
@@ -657,22 +658,22 @@ assignView view (State {registry = registry,allNodes = allNodes})
 debugLinkReAssigner :: LinkReAssigner -> String
 debugLinkReAssigner linkReAssign =
    let
-      linkMap1 :: FiniteMap (ViewId,WrappedMergeLink) WrappedMergeLink
+      linkMap1 :: Map.Map (ViewId,WrappedMergeLink) WrappedMergeLink
       linkMap1 = linkMap linkReAssign
 
       linkMap2 :: [((ViewId,WrappedMergeLink),WrappedMergeLink)]
-      linkMap2 = fmToList linkMap1
+      linkMap2 = Map.toList linkMap1
 
       linkMap3 :: [((ViewId,String),String)]
       linkMap3 = fmap
          (\ ((vi,wml1),wml2) -> ((vi,debugWML wml1),debugWML wml2))
          linkMap2
 
-      allMergesMap1 :: FiniteMap WrappedMergeLink [(View,WrappedMergeLink)]
+      allMergesMap1 :: Map.Map WrappedMergeLink [(View,WrappedMergeLink)]
       allMergesMap1 = allMergesMap linkReAssign
 
       allMergesMap2 :: [(WrappedMergeLink,[(View,WrappedMergeLink)])]
-      allMergesMap2 = fmToList allMergesMap1
+      allMergesMap2 = Map.toList allMergesMap1
 
       allMergesMap3 :: [(String,[(ViewId,String)])]
       allMergesMap3 = fmap

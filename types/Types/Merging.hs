@@ -9,7 +9,7 @@ module Types.Merging(
 import Data.Maybe
 import Data.List
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import System.IO.Unsafe
 import Control.Exception
 
@@ -188,7 +188,7 @@ mergeViews (views @ (firstView:_)) =
             postMergesOrExcep <- mapMConcurrent
                (\ wrappedMergeLink
                   -> Control.Exception.try (mergeOne wrappedMergeLink))
-               (fmToList (allMergesMap linkReAssigner))
+               (Map.toList (allMergesMap linkReAssigner))
 
             mapM_
                (\ postMergeOrExcep ->

@@ -9,7 +9,7 @@ module Imports.FolderStructure(
    getName,
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Sources
 
@@ -23,7 +23,7 @@ import Imports.EntityNames
 -- here.
 data FolderStructure node = FolderStructure {
    root :: node, -- the top node
-   getContentsSource :: node -> IO (SimpleSource (FiniteMap EntityName node)),
+   getContentsSource :: node -> IO (SimpleSource (Map.Map EntityName node)),
    getImportCommands :: node -> IO (Maybe (SimpleSource ImportCommands)),
       -- when Nothing means that this node is of inappropriate type for import.
    getParent :: node -> IO (SimpleSource (Maybe (node,EntityName)))
@@ -70,11 +70,11 @@ lookupFullName  folderStructure (node :: node) (EntityFullName names) =
       lookupFullName1 node0 [] = return (staticSimpleSource (Just node0))
       lookupFullName1 node0 (name1 : names) =
          do
-             (contentsSource :: SimpleSource (FiniteMap EntityName node))
+             (contentsSource :: SimpleSource (Map.Map EntityName node))
                 <- getContentsSource folderStructure node0
              return (mapIOSeq
                 contentsSource
-                (\ map -> case lookupFM map name1 of
+                (\ map -> case Map.lookup name1 map of
                    Nothing -> return (staticSimpleSource Nothing)
                    Just node1 -> lookupFullName1 node1 names
                    )

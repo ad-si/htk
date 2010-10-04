@@ -34,7 +34,7 @@ module Types.MergeTypes(
    )
  where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Dynamics
 import Util.Computation
@@ -106,10 +106,10 @@ pairMergeLinks (MergeLinks fn1) (MergeLinks fn2) =
 -- | This contains the reassignments made in merging, mapping each link to
 -- its corresponding link in the final merge.
 data LinkReAssigner = LinkReAssigner {
-   linkMap :: FiniteMap (ViewId,WrappedMergeLink) WrappedMergeLink,
+   linkMap :: Map.Map (ViewId,WrappedMergeLink) WrappedMergeLink,
       -- ^ maps each link to its corresponding link in the final merge
 
-   allMergesMap :: FiniteMap WrappedMergeLink [(View,WrappedMergeLink)]
+   allMergesMap :: Map.Map WrappedMergeLink [(View,WrappedMergeLink)]
       -- ^ allMergesMap is the inverse map, mapping each link in the
       -- final merge to the corresponding original links.
    }
@@ -190,8 +190,8 @@ instance HasKey WrappedMergeLink Location where
 mapLink :: HasMerging object => LinkReAssigner -> View -> Link object
    -> Link object
 mapLink linkReAssigner oldView oldLink =
-   case lookupFM (linkMap linkReAssigner) (viewId oldView,WrappedMergeLink oldLink)
-         of
+   case Map.lookup (viewId oldView,WrappedMergeLink oldLink)
+         (linkMap linkReAssigner) of
       Nothing -> error "MergeTypes.mapLink - unmapped type"
       Just wrappedMergeLink -> case unpackWrappedMergeLink wrappedMergeLink of
          Just newLink -> newLink

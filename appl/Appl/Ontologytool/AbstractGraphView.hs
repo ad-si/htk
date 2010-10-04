@@ -18,7 +18,7 @@ import Graphs.GraphConfigure
 import Events.Destructible
 
 import Data.List(nub)
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Data.IORef
 
@@ -70,7 +70,7 @@ data AbstractionGraph = AbstractionGraph {
        edgeComp :: CompTable,
        eventTable :: [(Int,Entry)]}
 
-type NodeMapping = FiniteMap I.Node Descr
+type NodeMapping = Map.Map I.Node Descr
 
 type Descr = Int
 type GraphInfo = IORef ([(Descr,AbstractionGraph)],Descr) -- for each graph the descriptor and the graph,
@@ -174,7 +174,7 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
   let g = AbstractionGraph {
             ontoGraph = ontoGr,
             relViewSpecs = relViewSpecList,
-            nodeMap = emptyFM,
+            nodeMap = Map.empty,
             pdfFilename = "",
             theGraph = graph,
             nodeTypes = zip nodetypenames nodetypes,

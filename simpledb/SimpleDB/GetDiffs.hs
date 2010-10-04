@@ -5,7 +5,7 @@ module SimpleDB.GetDiffs(
 
 import Control.Monad
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation(done)
 
@@ -75,7 +75,7 @@ getDiffs simpleDB user thisVersion parentVersions =
             do
                -- Construct a map back from BDBKey
                -- -> (ObjectVersion,Location) for the parents.
-               (bdbDict :: FiniteMap BDBKey (ObjectVersion,Location)) <- foldM
+               (bdbDict :: Map.Map BDBKey (ObjectVersion,Location)) <- foldM
                   (\ map0 (parentVersion,parentVersionData) ->
                      foldM
                         (\ map0 location ->
@@ -85,28 +85,28 @@ getDiffs simpleDB user thisVersion parentVersions =
                                     parentVersionData location
                               bdbKey <- retrieveKey parentVersionData
                                  primitiveLocation
-                              return (addToFM map0 bdbKey (
-                                 parentVersion,location))
+                              return (Map.insert bdbKey (
+                                 parentVersion,location) map0)
                            )
                         map0
                         (getLocations parentVersionData)
                      )
-                  emptyFM
+                  Map.empty
                   parentData
 
                let
                   -- Construct a map from each location used in at least
                   -- one parent version to one such parent version.
-                  locationMap :: FiniteMap Location ObjectVersion
+                  locationMap :: Map.Map Location ObjectVersion
                   locationMap = foldl
                      (\ map0 (parentVersion,parentVersionData) ->
                         foldl
                            (\ map0 location
-                              -> addToFM map0 location parentVersion)
+                              -> Map.insert location parentVersion map0)
                            map0
                            (getLocations parentVersionData)
                         )
-                     emptyFM
+                     Map.empty
                      parentData
 
                   -- Function constructing Diff for a particular item in the
@@ -124,14 +124,14 @@ getDiffs simpleDB user thisVersion parentVersions =
                               -> return IsOld
                            _ ->
                               do
-                                 changed <- case lookupFM bdbDict key1 of
+                                 changed <- case Map.lookup key1 bdbDict of
                                     Just locVers -> return (Right locVers)
                                     Nothing ->
                                        do
                                           icsl <- retrieve simpleDB
                                              user thisVersion location
                                           return (Left icsl)
-                                 case lookupFM locationMap location of
+                                 case Map.lookup location locationMap of
                                     Nothing ->
                                        return (IsNew {
                                           changed = changed
@@ -156,17 +156,17 @@ getDiffs simpleDB user thisVersion parentVersions =
                   (getLocations thisVersionData)
 
       let
-         diffFM :: FiniteMap Location Location -> FiniteMap Location Location
+         diffFM :: Map.Map Location Location -> Map.Map Location Location
             -> [(Location,Location)]
          diffFM thisFM parentFM =
             filter
                (\ (location,parent1) ->
-                  (lookupFM parentFM location /= Just parent1)
+                  (Map.lookup location parentFM /= Just parent1)
                   )
-               (fmToList thisFM)
+               (Map.toList thisFM)
 
          parentParentsMap = case parentData of
-            [] -> emptyFM
+            [] -> Map.empty
             ((_,headParentVersionData):_) -> parentsMap headParentVersionData
 
 

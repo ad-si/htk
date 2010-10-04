@@ -27,7 +27,7 @@ module SimpleDB.PrimitiveLocation(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.ExtendedPrelude
 
@@ -51,10 +51,10 @@ toPrimitiveLocation (Location lNo) = PrimitiveLocation lNo
 -- | Get the 'PrimitiveLocation' corresponding to a given 'Location',
 -- given the 'redirects' map from the 'VersionData'.
 
-retrievePrimitiveLocation1 :: FiniteMap Location PrimitiveLocation
+retrievePrimitiveLocation1 :: Map.Map Location PrimitiveLocation
     -> Location -> PrimitiveLocation
 retrievePrimitiveLocation1 map location =
-   lookupWithDefaultFM map (toPrimitiveLocation location) location
+   Map.findWithDefault (toPrimitiveLocation location) location map
 
 -- | Get the 'BDBKey' for a 'Location' in a particular version.
 retrieveLocationKeyOpt :: VersionData -> Location -> Maybe BDBKey
@@ -73,7 +73,7 @@ retrieveKey versionData = retrieveKey1 (objectDictionary versionData)
 retrieveKeyOpt :: VersionData -> PrimitiveLocation -> Maybe BDBKey
 retrieveKeyOpt versionData = retrieveKeyOpt1 (objectDictionary versionData)
 
-retrieveKey1 :: FiniteMap PrimitiveLocation BDBKey
+retrieveKey1 :: Map.Map PrimitiveLocation BDBKey
    -> PrimitiveLocation -> IO BDBKey
 retrieveKey1 fm primitiveLocation =
    case retrieveKeyOpt1 fm primitiveLocation of
@@ -85,10 +85,10 @@ retrieveKey1 fm primitiveLocation =
       guessedLocation = Location loc
       PrimitiveLocation loc = primitiveLocation
 
-retrieveKeyOpt1 :: FiniteMap PrimitiveLocation BDBKey
+retrieveKeyOpt1 :: Map.Map PrimitiveLocation BDBKey
    -> PrimitiveLocation -> Maybe BDBKey
 retrieveKeyOpt1 fm primitiveLocation =
-   lookupFM fm primitiveLocation
+   Map.lookup primitiveLocation fm
 
 -- | Reverse the redirects to extract the 'Location' for a particular
 -- 'PrimitiveLocation'
@@ -99,7 +99,7 @@ retrieveLocation :: VersionData -> PrimitiveLocation -> Location
 retrieveLocation versionData (pLocation @ (PrimitiveLocation lNo)) =
    let
       redirects1 :: [(Location,PrimitiveLocation)]
-      redirects1 = fmToList (redirects versionData)
+      redirects1 = Map.toList (redirects versionData)
 
       redirectedOpt :: Maybe Location
       redirectedOpt = findJust
@@ -117,16 +117,16 @@ retrieveLocation versionData (pLocation @ (PrimitiveLocation lNo)) =
 getLocations :: VersionData -> [Location]
 getLocations versionData =
    let
-      redirectLocs = keysFM (redirects versionData)
-      redirectPrimLocs = eltsFM (redirects versionData)
+      redirectLocs = Map.keys (redirects versionData)
+      redirectPrimLocs = Map.elems (redirects versionData)
 
       objectDictMinusRedirects =
          foldl
-            (\ map0 primLoc -> delFromFM map0 primLoc)
+            (\ map0 primLoc -> Map.delete primLoc map0)
             (objectDictionary versionData)
             redirectPrimLocs
 
-      otherPrimLocs = keysFM objectDictMinusRedirects
+      otherPrimLocs = Map.keys objectDictMinusRedirects
       otherLocs = map
          (\ (PrimitiveLocation locNo) -> Location locNo)
          otherPrimLocs

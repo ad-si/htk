@@ -9,7 +9,7 @@ import Data.Maybe
 import Control.Monad
 
 import Data.IORef
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation(done)
 
@@ -32,10 +32,10 @@ getVersionData simpleDB objectVersion =
       fm <- readIORef (versionData simpleDB)
       getVersionData0 fm objectVersion
 
-getVersionData0 :: FiniteMap ObjectVersion VersionData -> ObjectVersion
+getVersionData0 :: Map.Map ObjectVersion VersionData -> ObjectVersion
    -> IO VersionData
 getVersionData0 fm objectVersion =
-   case lookupFM fm objectVersion of
+   case Map.lookup objectVersion fm of
       Just versionData -> return versionData
       Nothing -> throwError NotFoundError
          ("Unknown version " ++ show objectVersion)
@@ -45,13 +45,13 @@ getVersionData0 fm objectVersion =
 -- -------------------------------------------------------------------
 
 -- | Read the VersionData from the versionDB database.
-createVersionData :: BDB -> IO (FiniteMap ObjectVersion VersionData)
+createVersionData :: BDB -> IO (Map.Map ObjectVersion VersionData)
 createVersionData bdb =
    do
       cursor <- mkCursor bdb
       let
-         getVersionData :: FiniteMap ObjectVersion VersionData
-            -> IO (FiniteMap ObjectVersion VersionData)
+         getVersionData :: Map.Map ObjectVersion VersionData
+            -> IO (Map.Map ObjectVersion VersionData)
          getVersionData fm0 =
             do
                nextDataOpt <- getObjectAtCursor cursor
@@ -65,7 +65,7 @@ createVersionData bdb =
                         (_,fm1) <- updateVersionData fm0 objectVersion1
                            frozenVersion
                         getVersionData fm1
-      fm <- getVersionData emptyFM
+      fm <- getVersionData Map.empty
       closeCursor cursor
       return fm
 
@@ -95,10 +95,10 @@ modifyVersionData simpleDB (objectVersion @ (ObjectVersion ovN))
 -- -------------------------------------------------------------------
 
 updateVersionData ::
-   FiniteMap ObjectVersion VersionData
+   Map.Map ObjectVersion VersionData
    -> ObjectVersion
    -> FrozenVersion
-   -> IO (VersionData,FiniteMap ObjectVersion VersionData)
+   -> IO (VersionData,Map.Map ObjectVersion VersionData)
 updateVersionData fm thisObjectVersion frozenVersion =
    do
       let
@@ -115,19 +115,19 @@ updateVersionData fm thisObjectVersion frozenVersion =
 
 
       let
-         parentObjectDictionary :: FiniteMap PrimitiveLocation BDBKey
-         parentRedirects :: FiniteMap Location PrimitiveLocation
+         parentObjectDictionary :: Map.Map PrimitiveLocation BDBKey
+         parentRedirects :: Map.Map Location PrimitiveLocation
          (parentObjectDictionary,parentRedirects,parentParentsMap) =
             case parentVersionDataOpt of
                Just versionData ->
                   (objectDictionary versionData,redirects versionData,
                      parentsMap versionData)
-               Nothing -> (emptyFM,emptyFM,emptyFM)
+               Nothing -> (Map.empty,Map.empty,Map.empty)
 
          addRedirect ::
-            FiniteMap Location PrimitiveLocation
+            Map.Map Location PrimitiveLocation
             ->  (Location,Either ObjectVersion PrimitiveLocation)
-            -> IO (FiniteMap Location PrimitiveLocation)
+            -> IO (Map.Map Location PrimitiveLocation)
          addRedirect fm0 (location,redirectSource) =
             do
                primitiveLocation <- case redirectSource of
@@ -142,17 +142,17 @@ updateVersionData fm thisObjectVersion frozenVersion =
                      then
                         fm0
                      else
-                        addToFM fm0 location primitiveLocation
+                        Map.insert location primitiveLocation fm0
                return fm1
 
-      (thisRedirects :: FiniteMap Location PrimitiveLocation)
+      (thisRedirects :: Map.Map Location PrimitiveLocation)
          <- foldM addRedirect parentRedirects (redirects' frozenVersion)
 
       let
          addObjectKey
-            :: FiniteMap PrimitiveLocation BDBKey
+            :: Map.Map PrimitiveLocation BDBKey
             -> (Location,Either BDBKey (ObjectVersion,Location))
-            -> IO (FiniteMap PrimitiveLocation BDBKey)
+            -> IO (Map.Map PrimitiveLocation BDBKey)
          addObjectKey fm0 (location,keySource) =
             do
                bdbKey <- case keySource of
@@ -167,21 +167,21 @@ updateVersionData fm thisObjectVersion frozenVersion =
                let
                   primitiveLocation = retrievePrimitiveLocation1
                      thisRedirects location
-               return (addToFM fm0 primitiveLocation bdbKey)
-      (thisObjectDictionary :: FiniteMap PrimitiveLocation BDBKey)
+               return (Map.insert primitiveLocation bdbKey fm0)
+      (thisObjectDictionary :: Map.Map PrimitiveLocation BDBKey)
          <- foldM addObjectKey parentObjectDictionary
             (objectChanges frozenVersion)
 
-      (parentChangesMap :: FiniteMap Location Location)
+      (parentChangesMap :: Map.Map Location Location)
          <- foldM
             (\ parentChangesMap0 (object,parent)
-               -> case lookupFM parentChangesMap0 object of
+               -> case Map.lookup object parentChangesMap0 of
                   Just _ ->
                      throwError MiscError ("Parent changes include "
                         ++ show object ++ " twice")
-                  Nothing -> return (addToFM parentChangesMap0 object parent)
+                  Nothing -> return (Map.insert object parent parentChangesMap0)
                )
-            emptyFM
+            Map.empty
             (parentChanges frozenVersion)
 
       -- Check for cycles in the parent changes
@@ -191,8 +191,8 @@ updateVersionData fm thisObjectVersion frozenVersion =
             let
                parent :: Maybe Location
                parent =
-                  case lookupFM parentChangesMap object of
-                     Nothing -> lookupFM parentParentsMap object
+                  case Map.lookup object parentChangesMap of
+                     Nothing -> Map.lookup object parentParentsMap
                      parent1 -> parent1
             in
                maybeToList parent
@@ -204,7 +204,7 @@ updateVersionData fm thisObjectVersion frozenVersion =
                " detected in parent locations")
 
       let
-         thisParentsMap = plusFM parentParentsMap parentChangesMap
+         thisParentsMap = Map.union parentChangesMap parentParentsMap
 
          thisVersionData = VersionData {
             parent = parent' frozenVersion,
@@ -225,5 +225,5 @@ updateVersionData fm thisObjectVersion frozenVersion =
             )
          (parentChanges frozenVersion)
 
-      return (thisVersionData,addToFM fm thisObjectVersion thisVersionData)
+      return (thisVersionData,Map.insert thisObjectVersion thisVersionData fm)
 

@@ -4,7 +4,7 @@ module SimpleDB.OpenSimpleDB(
    ) where
 
 import Data.IORef
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 
@@ -66,8 +66,8 @@ openSimpleDB versionState =
       nextVersion <- initVersions miscDB
 
       -- (5) create lists of open versions and open locations
-      openVersions <- newIORef emptyFM
-      openLocations <- newIORef emptyFM
+      openVersions <- newIORef Map.empty
+      openLocations <- newIORef Map.empty
 
       let
          simpleDB = simpleDB1 {

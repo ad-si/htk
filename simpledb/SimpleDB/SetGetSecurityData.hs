@@ -9,7 +9,7 @@ module SimpleDB.SetGetSecurityData(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Server.PasswordFile(User)
 
@@ -74,7 +74,7 @@ getParentLocation simpleDB user (version,location) =
    do
       versionData <- getVersionData simpleDB version
       let
-         parentLocationOpt = lookupFM (parentsMap versionData) location
+         parentLocationOpt = Map.lookup location (parentsMap versionData)
 
          locationToTest = fromMaybe location parentLocationOpt
 

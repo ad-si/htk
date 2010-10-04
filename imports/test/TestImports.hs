@@ -1,7 +1,7 @@
 module Main where
 
 import System.IO.Unsafe
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Control.Monad
 import Data.Maybe
@@ -130,7 +130,7 @@ nPre = [
 folderStructure :: FolderStructure Int
 folderStructure = FolderStructure {
    root = 1,
-   getContentsSource = (return . staticSimpleSource . listToFM . c . toN),
+   getContentsSource = (return . staticSimpleSource . Map.fromList . c . toN),
    getImportCommands = (\ i1 ->
       return (fmap
          (\ broadcaster -> toSimpleSource broadcaster)

@@ -31,7 +31,7 @@ import IO
 import Data.Maybe
 import qualified Data.List as List
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import System.IO.Unsafe
 import qualified Control.Exception (try)
 
@@ -56,7 +56,7 @@ import Text.XML.HaXml.Escape
 
 data MMiSSDTD = MMiSSDTD {
    simpleDTD :: Element -> [String],
-   displayInstructions :: FiniteMap String String,
+   displayInstructions :: Map.Map String String,
    elements :: [String]
    }
 
@@ -105,7 +105,7 @@ readDTD filePath =
          mmissDTD = MMiSSDTD {
             simpleDTD = simpleDTD,
             elements = elements,
-            displayInstructions = listToFM processingInstructions
+            displayInstructions = Map.fromList processingInstructions
             }
       return mmissDTD
 
@@ -127,12 +127,12 @@ allElements = elements theDTD
 allDisplayedElements :: [String]
 allDisplayedElements =
    List.filter
-      (\ tagName -> elemFM tagName (displayInstructions theDTD))
+      (\ tagName -> Map.member tagName (displayInstructions theDTD))
       allElements
 
 getDisplayInstruction :: String -> NodeTypes a
 getDisplayInstruction str =
-   case lookupFM (displayInstructions theDTD) str of
+   case Map.lookup str (displayInstructions theDTD) of
       Nothing -> defaultNodeTypes
       Just instructions -> readDisplay instructions
 

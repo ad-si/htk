@@ -15,7 +15,7 @@ import Data.Char
 import System.Time
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Set (Set)
 import System.IO.Unsafe
@@ -54,7 +54,7 @@ type GroupFileEntry = (String,[GroupOrUser])
 -- include it.
 newtype GroupFile = GroupFile GroupFileMap
 
-type GroupFileMap = FiniteMap GroupOrUser (Set String)
+type GroupFileMap = Map.Map GroupOrUser (Set String)
 
 data GroupOrUser =
       User String -- ^ User with this identifier
@@ -82,7 +82,7 @@ mapGroupFile :: GroupFile -> GroupFileMapTransmit
 mapGroupFile (GroupFile fm) =
    let
       list1 :: [(GroupOrUser,Set String)]
-      list1 = fmToList fm
+      list1 = Map.toList fm
 
       list2 :: [(GroupOrUser,[String])]
       list2 = fmap (\ (gOrU,set) -> (gOrU,Set.toList set)) list1
@@ -95,7 +95,7 @@ unmapGroupFile list1 =
       list2 :: [(GroupOrUser,Set String)]
       list2 = fmap (\ (gOrU,list) -> (gOrU,Set.fromList list)) list1
    in
-      GroupFile (listToFM list2)
+      GroupFile (Map.fromList list2)
 
 instance Monad m => HasBinary GroupFile m where
    writeBin = mapWrite mapGroupFile
@@ -109,7 +109,7 @@ indexGroupFile :: GroupFile1 -> GroupFile
 indexGroupFile (GroupFile1 groupList) =
    let
       fm :: GroupFileMap
-      fm = foldl foldFn1 emptyFM groupList
+      fm = foldl foldFn1 Map.empty groupList
 
       foldFn1 :: GroupFileMap -> GroupFileEntry -> GroupFileMap
       foldFn1 fm0 (groupName,toAddList) =
@@ -118,9 +118,9 @@ indexGroupFile (GroupFile1 groupList) =
       foldFn2 :: String -> GroupFileMap -> GroupOrUser -> GroupFileMap
       foldFn2 groupName fm0 toAdd =
          let
-            set0 = lookupWithDefaultFM fm0 Set.empty toAdd
+            set0 = Map.findWithDefault Set.empty toAdd fm0
             set1 = Set.insert groupName set0
-            fm1 = addToFM fm0 toAdd set1
+            fm1 = Map.insert toAdd set1 fm0
          in
             fm1
    in
@@ -188,7 +188,7 @@ extractInfoForUser groupFile user =
    let
       containingGroups = extractAllContainingGroups groupFile user
    in
-      GroupFile (unitFM (User user) containingGroups)
+      GroupFile (Map.singleton (User user) containingGroups)
 
 
 -- | List groups containing this user.
@@ -227,7 +227,7 @@ extractAllContainingGroups groupFile user = extract1 (User user) Set.empty
 
 findContainingGroups :: GroupFile -> GroupOrUser -> Set String
 findContainingGroups (GroupFile fm) gOrU
-   = lookupWithDefaultFM fm Set.empty gOrU
+   = Map.findWithDefault Set.empty gOrU fm
 
 
 
@@ -296,7 +296,7 @@ getGroupFile = modifyMVar groupFileMVar (\ groupFileData0 ->
                            groupFile groupFileData0)
                   Nothing ->
                      let
-                        emptyGroupFile = GroupFile emptyFM
+                        emptyGroupFile = GroupFile Map.empty
 
                         nullGroupFileData1 = GroupFileData {
                            lastChecked = currentClockTime,

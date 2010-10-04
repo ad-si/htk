@@ -15,7 +15,7 @@ import Control.Monad
 import Data.Maybe
 
 import Data.IORef
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation(done)
 
@@ -71,14 +71,14 @@ flushLocation simpleDB txn =
 openLocation :: SimpleDB -> User -> PrimitiveLocation -> IO ()
 openLocation simpleDB user primitiveLocation =
    atomicModifyIORef (openLocations simpleDB)
-      (\ fm0 -> (addToFM fm0 primitiveLocation user,()))
+      (\ fm0 -> (Map.insert primitiveLocation user fm0,()))
 
 -- | Show if a location is open and belongs to the user.
 isOpenLocation :: SimpleDB -> User -> PrimitiveLocation -> IO Bool
 isOpenLocation simpleDB user primitiveLocation =
    do
       fm <- readIORef (openLocations simpleDB)
-      return (lookupFM fm primitiveLocation == Just user)
+      return (Map.lookup primitiveLocation fm == Just user)
 
 -- | Mark a location as committed
 closeLocations :: SimpleDB -> User -> [PrimitiveLocation] -> IO ()
@@ -88,10 +88,10 @@ closeLocations simpleDB user pLocations0 =
          let
             pLocations1 :: [PrimitiveLocation]
             pLocations1 = filter
-               (\ pLocation -> lookupFM fm0 pLocation == Just user)
+               (\ pLocation -> Map.lookup pLocation fm0 == Just user)
                pLocations0
          in
-            (delListFromFM fm0 pLocations1,())
+            (foldr Map.delete fm0 pLocations1,())
          )
 
 -- | Forget all locations belonging to a user and free their memory.
@@ -102,7 +102,7 @@ forgetUsersLocations simpleDB user0 =
          (\ fm0 ->
             let
                old :: [(PrimitiveLocation,User)]
-               old = fmToList fm0
+               old = Map.toList fm0
 
                toDelete :: [PrimitiveLocation]
                toDelete = mapMaybe
@@ -116,11 +116,11 @@ forgetUsersLocations simpleDB user0 =
                   old
 
                fm1 = foldl
-                  (\ fm ov -> delFromFM fm ov)
+                  (\ fm ov -> Map.delete ov fm)
                   fm0
                   toDelete
             in
-               (fm1,sizeFM fm1)
+               (fm1,Map.size fm1)
             )
 
       seq l done

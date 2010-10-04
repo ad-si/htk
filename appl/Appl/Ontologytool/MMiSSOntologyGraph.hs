@@ -12,7 +12,7 @@ module Appl.Ontologytool.MMiSSOntologyGraph (
 where
 
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Data.List
 import Control.Monad
 import Data.IORef
@@ -88,7 +88,7 @@ displayClassGraph onto startClassOpt pdfFileOpt =
 
 {--
 emptyNodeMap :: A.NodeMapping
-emptyNodeMap = emptyFM
+emptyNodeMap = Map.empty
 --}
 
 setPDFFilename :: A.Descr -> A.GraphInfo -> String -> IO ()
@@ -127,14 +127,14 @@ createDaVinciGraph nodeMap classGraph nodeType gid ginfo =
     createNode :: Int -> A.GraphInfo -> A.NodeMapping -> LNode (String, String, OntoObjectType) -> IO (A.NodeMapping)
     createNode gid ginfo nMap (nodeID, (label, _, _)) =
       do (A.Result nid _) <- A.addnode gid nodeType label ginfo
-         return (addToFM nMap nodeID nid)
+         return (Map.insert nMap nodeID nid)
 
     createLink :: A.Descr -> A.GraphInfo -> A.NodeMapping -> LEdge String -> IO (A.NodeMapping)
     createLink gid ginfo nMap (node1, node2, edgeLabel) =
-      do dNodeID_1 <- case lookupFM nMap node1 of
+      do dNodeID_1 <- case Map.lookup nMap node1 of
                         Nothing -> return (-1)
                         Just(n) -> return(n)
-         dNodeID_2 <- case lookupFM nMap node2 of
+         dNodeID_2 <- case Map.lookup nMap node2 of
                         Nothing -> return (-1)
                         Just(n) -> return(n)
          if ((dNodeID_1 == -1) || (dNodeID_2 == -1))
@@ -177,21 +177,21 @@ updateDaVinciGraph newGraph gid gv =
           createNode :: Int -> A.GraphInfo -> Gr (String,String,OntoObjectType) String ->
                           A.NodeMapping -> LNode (String, String, OntoObjectType) -> IO (A.NodeMapping)
           createNode gid ginfo oldGraph nMap (nodeID, (name, className, objectType)) =
-            case lookupFM nMap nodeID of
+            case Map.lookup nMap nodeID of
               Just(_) -> return nMap
               Nothing ->
                 do (A.Result nid err) <- A.addnode gid (getTypeLabel objectType) name ginfo
                    case err of
-                     Nothing -> return (addToFM nMap nodeID nid)
+                     Nothing -> return (Map.insert nMap nodeID nid)
                      Just(str) -> do putStr str
-                                     return (addToFM nMap nodeID nid)
+                                     return (Map.insert nMap nodeID nid)
 
           createLink :: A.Descr -> A.GraphInfo -> A.NodeMapping -> LEdge String -> IO (A.NodeMapping)
           createLink gid ginfo nMap (node1, node2, edgeLabel) =
-            do dNodeID_1 <- case lookupFM nMap node1 of
+            do dNodeID_1 <- case Map.lookup nMap node1 of
                               Nothing -> return (-1)
                               Just(n) -> return(n)
-               dNodeID_2 <- case lookupFM nMap node2 of
+               dNodeID_2 <- case Map.lookup nMap node2 of
                               Nothing -> return (-1)
                               Just(n) -> return(n)
                if ((dNodeID_1 == -1) || (dNodeID_2 == -1))
@@ -487,7 +487,7 @@ purgeThisNode onto gv (name, descr, gid) =
            case mayNodeID of
              Nothing -> return()
              Just(nodeID) ->
-               case lookupFM nMap nodeID of
+               case Map.lookup nMap nodeID of
                  Nothing -> return()
                  Just(node) -> do A.delnode gid node gv
                                   A.redisplay gid gv
@@ -540,7 +540,7 @@ setFocusToNode onto nodeName gv (name, desc, gid) =
             case findLNode oldGraph nodeName of
                Nothing -> return(False)
                Just(nodeID) ->
-                  case lookupFM nMap nodeID of
+                  case Map.lookup nMap nodeID of
                     Nothing -> return(False)
                     Just(n) ->  do
                                    A.setFocusToNode gid n gv
@@ -770,7 +770,7 @@ purgeGraph gid gv =
   do (gs,ev_cnt) <- readIORef gv
      case lookup gid gs of
        Just g -> do A.Result _ _ <- A.writeOntoGraph gid empty gv
-                    A.Result _ _ <- A.writeNodeMap gid emptyFM gv
+                    A.Result _ _ <- A.writeNodeMap gid Map.empty gv
                     foldM (myDeleteNode gid gv) (A.Result 0 Nothing) (A.nodes g)
        Nothing -> return (A.Result 0 (Just ("Graph id "++show gid++" not found")))
 

@@ -83,7 +83,7 @@ module MMiSS.BundleSimpleUtils(
    describeLocInfo, -- :: LocInfo -> String
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Data.Maybe
 import IO
@@ -132,20 +132,20 @@ mergeKeyedBundleNodes :: (key -> key -> Bool) -> (key -> String) -> [String]
    -- be passed explicitly to avoid different mutually recursive contexts.
 mergeKeyedBundleNodes eqFn (describeFn :: key -> String) backtrace inputList =
    let
-      fmap1 :: FiniteMap String [(key,BundleNode)]
+      fmap1 :: Map.Map String [(key,BundleNode)]
       fmap1 =
          foldl
             (\ map0 (kn @ (key,node)) ->
                let
                   keyStr = describeFn key
                   entry =
-                     case lookupFM map0 keyStr of
+                     case Map.lookup keyStr map0 of
                         Nothing -> [kn]
                         Just kns -> kn:kns
                in
-                  addToFM map0 keyStr entry
+                  Map.insert keyStr entry map0
                )
-            emptyFM
+            Map.empty
             inputList
 
       checkKeyEq :: [(key,BundleNode)] -> WithError key
@@ -165,7 +165,7 @@ mergeKeyedBundleNodes eqFn (describeFn :: key -> String) backtrace inputList =
                (map snd bundleNodes)
             return (key,bundleNode)
 
-      (keyedBundleNodes :: [[(key,BundleNode)]]) = eltsFM fmap1
+      (keyedBundleNodes :: [[(key,BundleNode)]]) = Map.elems fmap1
 
    in
       mapM
@@ -278,12 +278,12 @@ mergeBundleNodesAsOne backtrace bundleNodes =
                return (Dir (map snd keyedNodes1))
          ([],bundleVariants) ->
             do
-               (variantMap :: FiniteMap (Maybe MMiSSVariantSpec) BundleText)
+               (variantMap :: Map.Map (Maybe MMiSSVariantSpec) BundleText)
                   <- foldM
                      (\ map0 (variantSpecOpt,text) ->
-                        case lookupFM map0 variantSpecOpt of
+                        case Map.lookup variantSpecOpt map0 of
                            Nothing -> return (
-                              addToFM map0 variantSpecOpt text)
+                              Map.insert variantSpecOpt text map0)
                            Just text0 ->
                               if text0 == text
                                  then
@@ -292,9 +292,9 @@ mergeBundleNodesAsOne backtrace bundleNodes =
                                     mergeFailure backtrace
                                        "Object has two incompatible variants"
                         )
-                     emptyFM
+                     Map.empty
                      bundleVariants
-               return (Object (fmToList variantMap))
+               return (Object (Map.toList variantMap))
          _ ->
             mergeFailure backtrace
                "Object has both text and directory data"

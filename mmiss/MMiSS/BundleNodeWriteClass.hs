@@ -7,7 +7,7 @@ module MMiSS.BundleNodeWriteClass(
    BundleNodeExtraData(..),
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.AtomString
 import Util.Computation
@@ -35,7 +35,7 @@ import MMiSS.BundleSimpleUtils
 -- the packagePath field in MMiSSBundleSimpleUtils), the link we
 -- have constructed for that node.
 newtype BundleNodeLocations = BundleNodeLocations {
-   fm :: FiniteMap [EntityName] BundleNodeExtraData
+   fm :: Map.Map [EntityName] BundleNodeExtraData
    }
 
 newtype BundleNodeExtraData = BundleNodeExtraData {

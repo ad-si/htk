@@ -17,7 +17,7 @@ module Types.CopyVersionInfos(
 import Data.Maybe
 import Control.Monad
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation(done)
 import Util.AtomString(toString)
@@ -39,7 +39,7 @@ import Types.CopyVersion(FromTo(..))
 
 data ProtoState = ProtoState {
       -- we give all ProtoVersions both in a finite map, and in a list.
-   fm :: FiniteMap ServerInfo ProtoVersion,
+   fm :: Map.Map ServerInfo ProtoVersion,
    list :: [ProtoVersion]
       -- parents always occur before their children in this list.
    }
@@ -56,7 +56,7 @@ data ProtoVersion = ProtoVersion {
    }
 
 -- Information we compute about the versions in the target graph.
-newtype ServerInfoDict = ServerInfoDict (FiniteMap ServerInfo ObjectVersion)
+newtype ServerInfoDict = ServerInfoDict (Map.Map ServerInfo ObjectVersion)
 
 -- ------------------------------------------------------------------------
 -- Top-level function
@@ -90,7 +90,7 @@ copyVersionInfos (FromTo {from = fromGraph,to = toGraph}) oldVersions =
       let
          resultMap :: ObjectVersion -> IO VersionInfo
          resultMap fromVersion =
-            case lookupFM newInfosFM fromVersion of
+            case Map.lookup fromVersion newInfosFM of
                Just versionInfo -> return versionInfo
                Nothing ->
                   do
@@ -119,7 +119,7 @@ prepareVersions (FromTo {from = fromGraph,to = toGraph}) versions =
 
       -- (2) compute initial ProtoState
       let
-         protoState0 = ProtoState {fm = emptyFM,list = []}
+         protoState0 = ProtoState {fm = Map.empty,list = []}
 
       -- (3) compute final ProtoState
       protoState1 <- foldM
@@ -174,7 +174,7 @@ prepareOneVersion fromGraph serverInfoDict protoState0 fromVersion =
                         }
 
                      protoState2 = ProtoState {
-                        fm = addToFM (fm protoState1) serverInfo protoVersion,
+                        fm = Map.insert serverInfo protoVersion (fm protoState1),
                         list = protoVersion : (list protoState1)
                         }
 
@@ -185,14 +185,14 @@ prepareOneVersion fromGraph serverInfoDict protoState0 fromVersion =
 -- -------------------------------------------------------------------------
 
 lookupVersion :: ProtoState -> ServerInfo -> Maybe ProtoVersion
-lookupVersion protoState = lookupFM (fm protoState)
+lookupVersion protoState i = Map.lookup i (fm protoState)
 
 -- -------------------------------------------------------------------------
 -- ServerInfoDict
 -- -------------------------------------------------------------------------
 
 lookupServerInfo :: ServerInfoDict -> ServerInfo -> Maybe ObjectVersion
-lookupServerInfo (ServerInfoDict map) = lookupFM map
+lookupServerInfo (ServerInfoDict map) i = Map.lookup i map
 
 mkServerInfoDict :: VersionGraphClient -> IO ServerInfoDict
 mkServerInfoDict versionGraphClient =
@@ -208,7 +208,7 @@ mkServerInfoDict versionGraphClient =
                )
             versionInfo1s
 
-      return (ServerInfoDict (listToFM (
+      return (ServerInfoDict (Map.fromList (
          map
             (\ versionInfo -> (server versionInfo,version (user versionInfo)))
             versionInfos
@@ -224,7 +224,7 @@ mkServerInfoDict versionGraphClient =
 --
 -- The first argument is the destination VersionGraph.
 copyProtoStateVersions :: VersionGraph -> ProtoState
-   -> IO (FiniteMap ObjectVersion VersionInfo)
+   -> IO (Map.Map ObjectVersion VersionInfo)
 copyProtoStateVersions toGraph protoState =
    do
       let
@@ -257,9 +257,9 @@ copyProtoStateVersions toGraph protoState =
       let
          -- Map from old object versions which have not yet been constructed
          -- to the corresponding new object version.
-         oldToNew :: FiniteMap ObjectVersion ObjectVersion
+         oldToNew :: Map.Map ObjectVersion ObjectVersion
          oldToNew =
-            listToFM (
+            Map.fromList (
                map
                   (\ (newVersion,protoVersion) ->
                      (version1 protoVersion,newVersion)
@@ -267,17 +267,17 @@ copyProtoStateVersions toGraph protoState =
                   protoVersions2
                )
 
-         mkParents :: FiniteMap ObjectVersion ObjectVersion ->
+         mkParents :: Map.Map ObjectVersion ObjectVersion ->
             [Either ObjectVersion ObjectVersion] -> [ObjectVersion]
          mkParents oldToNew parents =
              map
                 (\ toOrFromVersion -> case toOrFromVersion of
                    Left toVersion -> toVersion
                    Right fromVersion ->
-                      lookupWithDefaultFM
-                         oldToNew
+                      Map.findWithDefault
                          (error "CopyVersionInfo.mkParents")
                          fromVersion
+                         oldToNew
                    )
                 parents
 
@@ -314,8 +314,8 @@ copyProtoStateVersions toGraph protoState =
 
          -- If there is no pass 3, newVersionInfosFM will be the
          -- return value.
-         newVersionInfosFM :: FiniteMap ObjectVersion VersionInfo
-         newVersionInfosFM = listToFM newVersionInfos
+         newVersionInfosFM :: Map.Map ObjectVersion VersionInfo
+         newVersionInfosFM = Map.fromList newVersionInfos
 
          command2 :: SimpleDBCommand
          command2 = MultiCommand
@@ -352,8 +352,8 @@ copyProtoStateVersions toGraph protoState =
          fixups2 = catMaybes fixups1
 
          -- map from old parent to new parent.
-         fixupFM :: FiniteMap ObjectVersion ObjectVersion
-         fixupFM = listToFM
+         fixupFM :: Map.Map ObjectVersion ObjectVersion
+         fixupFM = Map.fromList
             (map
                (\ fixOldNew ->
                   (failedNewVersion fixOldNew,actualNewVersion fixOldNew)
@@ -366,8 +366,8 @@ copyProtoStateVersions toGraph protoState =
          --
          -- newVersionInfosFM2 contains all the version infos.
          (fixedUpVersionInfos1 :: [VersionInfo],
-               newVersionInfosFM2 :: FiniteMap ObjectVersion VersionInfo) =
-            foldFM
+               newVersionInfosFM2 :: Map.Map ObjectVersion VersionInfo) =
+            Map.foldWithKey
                (\ oldVersion oldVersionInfo
                      (state0 @ (fixedUpVersionInfos0,fm0)) ->
                   let
@@ -377,8 +377,8 @@ copyProtoStateVersions toGraph protoState =
                      newParents :: [ObjectVersion]
                      newParents = map
                         (\ oldParent ->
-                           lookupWithDefaultFM fixupFM
-                              oldParent oldParent
+                           Map.findWithDefault
+                              oldParent oldParent fixupFM
                            )
                         oldParents
 
@@ -386,7 +386,7 @@ copyProtoStateVersions toGraph protoState =
                      newVersion1 = version (user oldVersionInfo)
 
                      newVersion2 :: ObjectVersion
-                     newVersion2 = case lookupFM fixupFM newVersion1 of
+                     newVersion2 = case Map.lookup newVersion1 fixupFM of
                         Nothing -> newVersion1
                         Just newVersion2 -> newVersion2
 
@@ -407,7 +407,7 @@ copyProtoStateVersions toGraph protoState =
                               else
                                  newVersionInfo : fixedUpVersionInfos1
                               ,
-                              addToFM fm0 oldVersion newVersionInfo
+                              Map.insert oldVersion newVersionInfo fm0
                               )
                   )
 

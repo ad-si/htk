@@ -25,7 +25,7 @@ import System.Time
 
 import Control.Exception hiding (handle)
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Network hiding (Service)
 
 import Control.Concurrent
@@ -361,7 +361,7 @@ runServer serviceList =
 -- the appropriate newClientAction
 ------------------------------------------------------------------------
       let
-         serviceMap = listToFM serviceDataList
+         serviceMap = Map.fromList serviceDataList
 
       portNumber <- getPortNumber portDesc
       socket <- listenOn (PortNumber portNumber)
@@ -390,14 +390,14 @@ runServer serviceList =
       sequence_
          (map
             (\ (_,ServiceData {disconnect = disconnect}) -> disconnect)
-            (fmToList serviceMap)
+            (Map.toList serviceMap)
             )
 
 ------------------------------------------------------------------------
 -- Function for doing the initial service lookup-up and authentication.
 ------------------------------------------------------------------------
 
-initialConnect :: FiniteMap String ServiceData -> Handle
+initialConnect :: Map.Map String ServiceData -> Handle
    -> IO (Maybe (ServiceData,User))
 initialConnect serviceMap handle =
    do
@@ -412,7 +412,7 @@ initialConnect serviceMap handle =
                      coerceWithErrorOrBreakIO break connectDataWE
 
                   -- (1) find the service
-                  serviceData <- case lookupFM serviceMap key of
+                  serviceData <- case Map.lookup key serviceMap of
                      Nothing -> break ("Service " ++ show key
                         ++ " not recognised")
                      Just serviceData -> return serviceData

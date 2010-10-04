@@ -8,7 +8,7 @@ module MMiSS.ExportFiles(
 
 import Control.Monad
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.FileNames
 import Util.Computation
@@ -78,18 +78,18 @@ exportFiles view dir0 exportFiles0 =
 
       -- Check for duplicates and construct map
       let
-         (exportFiles3 :: FiniteMap (EntityFullName,String)
+         (exportFiles3 :: Map.Map (EntityFullName,String)
                  (Link MMiSSFile,MMiSSVariantSearch),
                duplicates :: [(EntityFullName,String)])
             = foldl
                (\ (exportFiles0,duplicates0) (nameExt,linkVariant) ->
-                  case lookupFM exportFiles0 nameExt of
+                  case Map.lookup nameExt exportFiles0 of
                      Just linkVariant1 | linkVariant1 /= linkVariant
                         -> (exportFiles0,nameExt : duplicates0)
                      _ ->
-                        (addToFM exportFiles0 nameExt linkVariant,duplicates0)
+                        (Map.insert nameExt linkVariant exportFiles0,duplicates0)
                   )
-               (emptyFM,[])
+               (Map.empty,[])
                exportFiles2
 
       case duplicates of
@@ -107,7 +107,7 @@ exportFiles view dir0 exportFiles0 =
          (\ ((name,ext),(link,variantSearch)) ->
             exportMMiSSFile view dir1 link variantSearch
             )
-         (fmToList exportFiles3)
+         (Map.toList exportFiles3)
 
       case fromWithError (listWithError unitWEs) of
          Left mess -> errorMess mess

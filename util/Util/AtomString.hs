@@ -39,7 +39,7 @@ module Util.AtomString(
    ) where
 
 import Control.Concurrent
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import System.IO.Unsafe
 import qualified Data.ByteString.Char8 as BS
 import Control.Exception
@@ -52,7 +52,7 @@ import Util.DeepSeq
 import Util.Computation
 import Util.BinaryAll
 
-data AtomSource = AtomSource (MVar (FiniteMap BS.ByteString AtomString))
+data AtomSource = AtomSource (MVar (Map.Map BS.ByteString AtomString))
    -- where AtomStrings come from
    -- Here the key for an element is itself.
 
@@ -60,7 +60,7 @@ data AtomSource = AtomSource (MVar (FiniteMap BS.ByteString AtomString))
 emptyAtomSource :: IO AtomSource
 emptyAtomSource =
    do
-      mVar <- newMVar emptyFM
+      mVar <- newMVar Map.empty
       return (AtomSource mVar)
 
 theAtomSource :: AtomSource
@@ -147,9 +147,9 @@ mkAtom str =
 
       map <- takeMVar mVar
       let
-         (result,newMap) = case lookupFM map packed of
+         (result,newMap) = case Map.lookup packed map of
             Nothing ->
-               (AtomString packed,addToFM map packed (AtomString packed))
+               (AtomString packed,Map.insert packed (AtomString packed) map)
             Just newPacked -> (newPacked,map)
             -- now original copy of packed can be GC'd.
       putMVar mVar newMap

@@ -101,17 +101,13 @@ module Util.ExtendedPrelude (
    allEq, -- :: Eq a => [a] -> Bool
    findDuplicate, -- :: Ord a => (b -> a) -> [b] -> Maybe b
 
-   fmToList_GE_1,
-   maxFM_1,
-   keysFM_GE_1,
-
    generalisedMerge,
    ) where
 
 import Data.Char
 import Control.Monad
 import Data.Maybe
-import qualified Util.DeprecatedFiniteMap as DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import qualified Data.Set as Set
 import Control.Exception
@@ -677,14 +673,14 @@ uniqOrd = Set.toList . Set.fromList
 uniqOrdByKey :: Ord b => (a -> b) -> [a] -> [a]
 uniqOrdByKey (getKey :: a -> b) (as :: [a]) =
    let
-      fm :: DeprecatedFiniteMap.FiniteMap b a
-      fm = DeprecatedFiniteMap.listToFM
+      fm :: Map.Map b a
+      fm = Map.fromList
          (fmap
             (\ a -> (getKey a,a))
             as
             )
   in
-     fmap snd (DeprecatedFiniteMap.fmToList fm)
+     fmap snd (Map.toList fm)
 
 -- | Remove duplicate elements from a list where the key function is supplied.
 -- The list order is preserved and of the duplicates, it is the first in the
@@ -759,21 +755,6 @@ allSame fn (a : as) =
 allEq :: Eq a => [a] -> Bool
 allEq [] = True
 allEq (a:as) = all (== a) as
-
--- ------------------------------------------------------------------------
--- Operations on FiniteMaps
--- These will hopefully be in GHC6.1 onwards anyway.
--- ------------------------------------------------------------------------
-
-fmToList_GE_1 :: Ord key
-   => DeprecatedFiniteMap.FiniteMap key elt -> key ->  [(key,elt)]
-maxFM_1 :: Ord key => DeprecatedFiniteMap.FiniteMap key elt -> Maybe key
-keysFM_GE_1 :: Ord key => DeprecatedFiniteMap.FiniteMap key elt -> key -> [key]
-
-
-fmToList_GE_1 = DeprecatedFiniteMap.fmToList_GE
-maxFM_1 = DeprecatedFiniteMap.maxFM
-keysFM_GE_1 = DeprecatedFiniteMap.keysFM_GE
 
 -- ------------------------------------------------------------------------
 -- Generalised Merge

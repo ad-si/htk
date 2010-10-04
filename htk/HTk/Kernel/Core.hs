@@ -107,7 +107,7 @@ module HTk.Kernel.Core (
 
 ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Control.Concurrent
 import System.IO.Unsafe
 
@@ -161,7 +161,7 @@ instance GUIObject a => Destroyable a where
 -- -----------------------------------------------------------------------
 
 data GUI        = GUI GUIOBJECT (Ref GST)
-type GST        = FiniteMap ObjectID GUIOBJECT
+type GST        = Map.Map ObjectID GUIOBJECT
 
 
 -- -----------------------------------------------------------------------
@@ -183,7 +183,7 @@ instance GUIObject GUI where
 getGUI :: IO GUI          -- IO because of old htk stuff, may change
 getGUI =
   return (unsafePerformIO (do
-                             wdg <- newRef emptyFM
+                             wdg <- newRef Map.empty
                              obj <- newGUIObject ROOT SESSION defMethods
                              let gui = GUI obj wdg
                              return gui))
@@ -209,7 +209,7 @@ createGUIObject par@(GUIOBJECT _ postref) kind meths =
     pname <- withRef postref objectname
     execTclScript ((createCmd meths) pname kind name oid [])
     return guio
-  where newObj guio @ (GUIOBJECT oid ost) wd = addToFM wd oid guio
+  where newObj guio @ (GUIOBJECT oid ost) wd = Map.insert oid guio wd
 createGUIObject ROOT kind meths =
   do
     guio@(GUIOBJECT oid ostref) <- newGUIObject ROOT kind meths
@@ -218,7 +218,7 @@ createGUIObject ROOT kind meths =
     name <- withRef ostref objectname
     execTclScript ((createCmd meths) (ObjectName ".") kind name oid [])
     return guio
-  where newObj guio @ (GUIOBJECT oid ost) wd = addToFM wd oid guio
+  where newObj guio @ (GUIOBJECT oid ost) wd = Map.insert oid guio wd
 
 
 createHTkObject :: Methods -> IO GUIOBJECT
@@ -238,7 +238,7 @@ createWidget par kind = createGUIObject par kind defMethods
 
 lookupGUIObject :: ObjectID -> IO GUIOBJECT
 lookupGUIObject key = do {
-        mwid <- queryGUI (\wd -> lookupFM wd key);
+        mwid <- queryGUI (\wd -> Map.lookup key wd);
         case mwid of
                 Nothing    ->
                   error "Haskell-Tk Error: gui object not found"
@@ -257,7 +257,7 @@ getParentPathName w =
 lookupGUIObjectByName :: WidgetName -> IO (Maybe GUIOBJECT)
 lookupGUIObjectByName (WidgetName "") = return Nothing
 lookupGUIObjectByName (WidgetName str) =
-        queryGUI (\wd -> lookupFM wd no)
+        queryGUI (\wd -> Map.lookup no wd)
         where   wnm =
                    head (reverse (ExtendedPrelude.simpleSplit (== '.') str))
                 no = ObjectID (read ( drop 1 wnm))
@@ -266,7 +266,7 @@ getParentObject :: GUIObject w => w -> IO (Maybe GUIOBJECT)
 getParentObject w =
   do
     oid <- getParentObjectID (toGUIObject w)
-    queryGUI (\wd -> lookupFM wd oid)             -- TD ???
+    queryGUI (\wd -> Map.lookup oid wd)             -- TD ???
 
 getParentObjectID :: GUIOBJECT -> IO ObjectID
 getParentObjectID (GUIOBJECT _ ostref) = withRef ostref parentobj

@@ -3,10 +3,9 @@ module Types.MergeComputeParents(
    computeParents, -- :: LinkReAssigner -> IO [(Location,Location)]
    ) where
 
-import Control.Monad
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.VariableSet(HasKey(..))
 
@@ -29,7 +28,7 @@ computeParents headView linkReAssigner =
    do
       let
          allMergesList :: [(WrappedMergeLink,[(View,WrappedMergeLink)])]
-         allMergesList = fmToList (allMergesMap linkReAssigner)
+         allMergesList = Map.toList (allMergesMap linkReAssigner)
 
          allNonHeadsList :: [(WrappedMergeLink,[(View,WrappedMergeLink)])]
          allNonHeadsList =
@@ -91,8 +90,9 @@ computeParents headView linkReAssigner =
                keyWrappedLink = WrappedMergeLink keyLink
 
                Just targetLink =
-                  lookupFM (linkMap linkReAssigner)
+                  Map.lookup
                      (viewId view,keyWrappedLink)
+                        (linkMap linkReAssigner)
             in
                toKey targetLink
 

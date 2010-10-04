@@ -90,7 +90,7 @@ import Time
 import Data.List (intersperse)
 
 import Data.Typeable
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 import Util.BinaryAll
@@ -143,7 +143,7 @@ data UserInfo = UserInfo {
 -- | miscellaneous attributes.
 -- At the moment the only envisaged use for these is for the deletion
 -- count, but we provide more for so the format can be extended easily.
-newtype VersionAttributes = VersionAttributes (FiniteMap String String)
+newtype VersionAttributes = VersionAttributes (Map.Map String String)
 
 -- | The information that can either be automatically constructed by the
 -- server, or specified on commit.  Once constructed the ServerInfo value
@@ -192,7 +192,7 @@ instance Show VersionAttributes where
    showsPrec n (VersionAttributes fm) acc =
       let
          l :: [(String,String)]
-         l = fmToList fm
+         l = Map.toList fm
 
          kvs :: [String]
          kvs = map (\ (k,v) -> k ++ "=" ++ v) l
@@ -301,10 +301,10 @@ instance Ord VersionInfo where
 -- ----------------------------------------------------------------------
 
 instance Eq VersionAttributes where
-   (==) = mapEq (\ (VersionAttributes fm) -> fmToList fm)
+   (==) = mapEq (\ (VersionAttributes fm) -> Map.toList fm)
 
 instance Ord VersionAttributes where
-   compare = mapOrd (\ (VersionAttributes fm) -> fmToList fm)
+   compare = mapOrd (\ (VersionAttributes fm) -> Map.toList fm)
 
 
 userInfoMap :: Full UserInfo -> (String,String,ObjectVersion,[ObjectVersion],
@@ -603,21 +603,21 @@ editVersionInfoGraphic title versionInfo =
 
 lookupVersionAttribute :: VersionAttributes -> String -> Maybe String
 lookupVersionAttribute (VersionAttributes fm) key =
-   lookupFM fm key
+   Map.lookup key fm
 
 setVersionAttribute :: VersionAttributes -> String -> String
    -> VersionAttributes
 setVersionAttribute (VersionAttributes fm) key value =
-   VersionAttributes (addToFM fm key value)
+   VersionAttributes (Map.insert key value fm)
 
 emptyVersionAttributes :: VersionAttributes
-emptyVersionAttributes = VersionAttributes emptyFM
+emptyVersionAttributes = VersionAttributes Map.empty
 
 exportVersionAttributes :: VersionAttributes -> [(String,String)]
-exportVersionAttributes (VersionAttributes fm) = fmToList fm
+exportVersionAttributes (VersionAttributes fm) = Map.toList fm
 
 importVersionAttributes :: [(String,String)] -> VersionAttributes
-importVersionAttributes l = VersionAttributes (listToFM l)
+importVersionAttributes l = VersionAttributes (Map.fromList l)
 
 -- ----------------------------------------------------------------------
 -- We also support textual display of a VersionInfo using format letters

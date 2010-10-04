@@ -31,7 +31,7 @@ import Data.Maybe
 
 import Data.IORef
 import qualified Data.Set as Set
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Control.Concurrent
 import qualified Data.Dynamic
 import qualified Data.List as List
@@ -134,7 +134,7 @@ data DaVinciGraphParms = DaVinciGraphParms {
    surveyView :: Bool,
    configDoImprove :: Bool,
    configFileMenuActions
-      :: FiniteMap FileMenuOption (DaVinciGraph -> IO ()),
+      :: Map.Map FileMenuOption (DaVinciGraph -> IO ()),
    configGlobalMenu :: Maybe GlobalMenu,
    configActionWrapper :: IO () -> IO (),
    graphTitleSource :: Maybe (SimpleSource GraphTitle),
@@ -305,7 +305,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   Nothing -> alertMess ("Mysterious daVinci fileMenu "
                      ++ fileMenuStr ++ " ignored")
                   Just reservedMenuOption ->
-                     case lookupFM configFileMenuActions reservedMenuOption of
+                     case Map.lookup reservedMenuOption configFileMenuActions of
                         Nothing ->
                            if fileMenuStr == "close"
                               then
@@ -439,7 +439,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             -- Work out which options to enable.
             fileMenuIds = fmap
                (\ (option,_) -> MenuId ("#%"++(fromFileMenuOption option)))
-               (fmToList configFileMenuActions)
+               (Map.toList configFileMenuActions)
 
          -- Attach globalMenu if necessary and get its menuids as well.
          -- (All global menu-ids need to be activated at once.)
@@ -481,8 +481,8 @@ instance GraphParms DaVinciGraphParms where
       configGlobalMenu = Nothing
       }
 
-initialFileMenuActions :: FiniteMap FileMenuOption (DaVinciGraph -> IO ())
-initialFileMenuActions = listToFM [
+initialFileMenuActions :: Map.Map FileMenuOption (DaVinciGraph -> IO ())
+initialFileMenuActions = Map.fromList [
    (PrintMenuOption,
       (\ graph -> doInContext
          (Menu (File (Print Nothing))) (context graph))
@@ -563,8 +563,8 @@ instance HasConfig (FileMenuOption,(Maybe (DaVinciGraph -> IO ())))
       let
          configFileMenuActions0 = configFileMenuActions daVinciGraphParms
          configFileMenuActions1 = case actFnOpt of
-            Nothing -> delFromFM configFileMenuActions0 option
-            Just actFn -> addToFM configFileMenuActions0 option actFn
+            Nothing -> Map.delete option configFileMenuActions0
+            Just actFn -> Map.insert option actFn configFileMenuActions0
       in
          daVinciGraphParms {configFileMenuActions = configFileMenuActions1}
 
@@ -1404,13 +1404,13 @@ instance HasConfigValue ValueTitle DaVinciArcTypeParms where
 ------------------------------------------------------------------------
 
 data Attributes value = Attributes {
-   options :: FiniteMap String String,
+   options :: Map.Map String String,
    menuOpt :: Maybe (LocalMenu value)
    }
 
 emptyAttributes :: Attributes value
 emptyAttributes = Attributes {
-   options = emptyFM,
+   options = Map.empty,
    menuOpt = Nothing
    }
 
@@ -1436,7 +1436,7 @@ instance HasConfigValue Att Attributes where
    configUsed' _ _ = True
    ($$$) (Att key value) attributes =
       attributes {
-         options = addToFM (options attributes) key value
+         options = Map.insert key value (options attributes)
          }
 
 instance HasConfigValue LocalMenu Attributes where
@@ -1452,7 +1452,7 @@ encodeAttributes attributes daVinciGraph =
          keysPart =
             fmap
                (\ (key,value) -> A key value)
-               (fmToList (options attributes))
+               (Map.toList (options attributes))
       case menuOpt attributes of
          Nothing -> return (
             error "MenuId returned by daVinci for object with no menu!",

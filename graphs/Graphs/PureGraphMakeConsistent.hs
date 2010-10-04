@@ -8,7 +8,7 @@ module Graphs.PureGraphMakeConsistent(
    pureGraphMakeConsistent,
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Graphs.PureGraph
 
@@ -16,12 +16,12 @@ pureGraphMakeConsistent :: Ord nodeInfo
    => PureGraph nodeInfo arcInfo -> PureGraph nodeInfo arcInfo
 pureGraphMakeConsistent (PureGraph {nodeDataFM = nodeDataFM0}) =
    let
-      nodeDataFM1 = mapFM
+      nodeDataFM1 = Map.mapWithKey
          (\ _ nodeData0 ->
             let
                parents0 = parents nodeData0
                parents1 = filter
-                  (\ arcData -> elemFM (target arcData) nodeDataFM0)
+                  (\ arcData -> Map.member (target arcData) nodeDataFM0)
                   parents0
 
                nodeData1 = NodeData {parents = parents1}

@@ -11,7 +11,7 @@ module Graphs.RemoveAncestors(
    ) where
 
 import Control.Monad.Identity
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Graphs.Graph
 
@@ -41,43 +41,43 @@ removeAncestorsBy :: (Ord node,Monad m)
    => (node -> m [node]) -> [node] -> m [node]
 removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
    do
-      -- We maintain a state of type (FiniteMap node NodeState) to express
+      -- We maintain a state of type (Map.Map node NodeState) to express
       -- what is currently known about each node.  We also maintain
       -- a set containing the target nodes.
 
       -- compute initial map
       let
-         state0 = listToFM (map (\ node -> (node,Yes)) nodes)
+         state0 = Map.fromList (map (\ node -> (node,Yes)) nodes)
 
-         uniqueNodes = map fst (fmToList state0)
+         uniqueNodes = map fst (Map.toList state0)
 
          -- Return True if there is a, possibly trivial, path from this node
          -- to one of the target set, also transforming the state.
          -- EXCEPTION - we don't search down nodes which have Cycle set,
          -- and in that case return False.
-         nodeIsAncestor :: node -> FiniteMap node NodeState
-            -> m (Bool,FiniteMap node NodeState)
+         nodeIsAncestor :: node -> Map.Map node NodeState
+            -> m (Bool,Map.Map node NodeState)
          nodeIsAncestor node state0 =
-            case lookupFM state0 node of
+            case Map.lookup node state0 of
                Just Yes -> return (True,state0)
                Just No -> return (False,state0)
                Just Cycle -> return (False,state0)
                Nothing ->
                   do
                      let
-                        state1 = addToFM state0 node Cycle
+                        state1 = Map.insert node Cycle state0
 
                      children <- getChildren node
                      (isAncestor,state2) <- anyNodeIsAncestor children state1
                      let
-                        state3 = addToFM state2 node
-                           (if isAncestor then Yes else No)
+                        state3 = Map.insert node
+                           (if isAncestor then Yes else No) state2
                      return (isAncestor,state3)
 
          -- Returns True if there is a, possibly trivial, path from any
          -- of the given nodes to one of the target nodes.
-         anyNodeIsAncestor :: [node] -> FiniteMap node NodeState
-            -> m (Bool,FiniteMap node NodeState)
+         anyNodeIsAncestor :: [node] -> Map.Map node NodeState
+            -> m (Bool,Map.Map node NodeState)
          anyNodeIsAncestor [] state0 = return (False,state0)
          anyNodeIsAncestor (node : nodes) state0 =
             do
@@ -90,14 +90,14 @@ removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
 
          -- Returns True if there is a non-trivial path from the given node
          -- to one of the target nodes.
-         nodeIsNonTrivialAncestor :: node -> FiniteMap node NodeState
-            -> m (Bool,FiniteMap node NodeState)
+         nodeIsNonTrivialAncestor :: node -> Map.Map node NodeState
+            -> m (Bool,Map.Map node NodeState)
          nodeIsNonTrivialAncestor node state0 =
             do
                children <- getChildren node
                anyNodeIsAncestor children state0
 
-      (list :: [node],finalState :: FiniteMap node NodeState) <- foldM
+      (list :: [node],finalState :: Map.Map node NodeState) <- foldM
          (\ (listSoFar,state0) node ->
             do
                (isAncestor,state1) <- nodeIsNonTrivialAncestor node state0

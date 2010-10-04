@@ -1,30 +1,41 @@
 name:           uni-simpledb
-version:        2.0
+version:        2.0.0.0
 build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
+license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
+maintainer:     Christian.Maeder@dfki.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       data base support for uniform
 description:    access to an installed Berkeley DB
-exposed-modules: SimpleDB.BDBOps, SimpleDB.ServerErrors,
- SimpleDB.ObjectVersion,
- SimpleDB.VersionInfo, SimpleDB.VersionInfoService,
- SimpleDB.Permissions, SimpleDB.ExaminePermissions,
- SimpleDB.Types, SimpleDB.BDBExtras,
- SimpleDB.PrimitiveLocation, SimpleDB.VersionData,
- SimpleDB.SecurityManagement, SimpleDB.OpenSimpleDB,
- SimpleDB.QuerySimpleDB, SimpleDB.LocationAllocation,
- SimpleDB.VersionAllocation, SimpleDB.FlushSimpleDB,
- SimpleDB.VersionState, SimpleDB.ModifyUserInfo, SimpleDB.LastChange,
- SimpleDB.GetDiffs, SimpleDB.SetGetSecurityData, SimpleDB.Retrieve,
- SimpleDB.Commit, SimpleDB.Server, SimpleDB.Service,
- SimpleDB.Interface, SimpleDB.ObjectSource, SimpleDB.VersionInfoFilter
-include-dirs: include
-c-sources: bdbclient.c bdbcommon.c
-build-depends: base >=3 && < 4, haskell98, parsec, mtl, uni-util, uni-events,
-  uni-posixutil, uni-reactor, uni-htk, uni-server, uni-graphs
-ghc-options: -fglasgow-exts
-extensions: CPP, OverlappingInstances, UndecidableInstances
-extra-libraries: db
+cabal-version:  >= 1.4
+Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+
+library
+  exposed-modules: SimpleDB.BDBOps, SimpleDB.ServerErrors,
+    SimpleDB.ObjectVersion,
+    SimpleDB.VersionInfo, SimpleDB.VersionInfoService,
+    SimpleDB.Permissions, SimpleDB.ExaminePermissions,
+    SimpleDB.Types, SimpleDB.BDBExtras,
+    SimpleDB.PrimitiveLocation, SimpleDB.VersionData,
+    SimpleDB.SecurityManagement, SimpleDB.OpenSimpleDB,
+    SimpleDB.QuerySimpleDB, SimpleDB.LocationAllocation,
+    SimpleDB.VersionAllocation, SimpleDB.FlushSimpleDB,
+    SimpleDB.VersionState, SimpleDB.ModifyUserInfo, SimpleDB.LastChange,
+    SimpleDB.GetDiffs, SimpleDB.SetGetSecurityData, SimpleDB.Retrieve,
+    SimpleDB.Commit, SimpleDB.Server, SimpleDB.Service,
+    SimpleDB.Interface, SimpleDB.ObjectSource, SimpleDB.VersionInfoFilter
+
+  include-dirs: include
+
+  c-sources: bdbclient.c bdbcommon.c
+
+  build-depends: base >=3 && < 4, containers, haskell98, parsec, mtl, uni-util,
+    uni-events, uni-posixutil, uni-reactor, uni-htk, uni-server, uni-graphs
+
+  ghc-options: -fglasgow-exts
+
+  extensions: CPP, OverlappingInstances, UndecidableInstances
+
+  extra-libraries: db

@@ -8,7 +8,7 @@ module MMiSS.BundleNodeWrite(
       -- :: View -> InsertionPoint -> BundleNode -> IO ()
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Control.Monad.State
 import Control.Monad.Trans
 
@@ -47,7 +47,7 @@ data PreWriteNodeData = PreWriteNodeData {
    }
 
 newtype PreWriteData = PreWriteData {
-   preWriteFM :: FiniteMap [EntityName] PreWriteNodeData
+   preWriteFM :: Map.Map [EntityName] PreWriteNodeData
    }
 
 -- -------------------------------------------------------------------------
@@ -98,7 +98,7 @@ mkPreWriteData view insertionPoint bundleNode =
 
       let
          preWriteData0 = PreWriteData {
-            preWriteFM =listToFM [([],preWriteNodeData0)]
+            preWriteFM =Map.fromList [([],preWriteNodeData0)]
             }
 
          bundleFoldFn :: AncestorInfo -> BundleNode
@@ -169,8 +169,8 @@ mkPreWriteData view insertionPoint bundleNode =
                preWriteData0 <- get
                put (PreWriteData {
                   preWriteFM =
-                     addToFM (preWriteFM preWriteData0) names1
-                        preWriteNodeData
+                     Map.insert names1
+                        preWriteNodeData (preWriteFM preWriteData0)
                   })
 
                let
@@ -224,7 +224,7 @@ writePreWriteData view preWriteData =
                   MMiSSPreambleC link -> do1 link
                   MMiSSFileC link -> do1 link
             )
-         (fmToList (preWriteFM preWriteData))
+         (Map.toList (preWriteFM preWriteData))
 
       -- Connect everything
       makeConnections view preWriteData
@@ -235,7 +235,7 @@ writePreWriteData view preWriteData =
 toBundleNodeLocations :: PreWriteData -> BundleNodeLocations
 toBundleNodeLocations preWriteData =
    BundleNodeLocations (
-      mapFM
+      Map.mapWithKey
          (\ _ preWriteNodeData -> BundleNodeExtraData {
             location = wrapSplitLink (thisLink preWriteNodeData)})
          (preWriteFM preWriteData)
@@ -272,14 +272,14 @@ makeConnections view preWriteData =
                      coerceImportExportIO resultWE
 
          Just (PreWriteNodeData {node = headNode}) =
-            lookupFM preWriteFM1 []
+            Map.lookup [] preWriteFM1
 
       mapM_
          (\ (locInfo,_) ->
             do
                let
                   Just preWriteNodeData1 =
-                     lookupFM preWriteFM1 (packagePath locInfo)
+                     Map.lookup (packagePath locInfo) preWriteFM1
                connect preWriteNodeData1
             )
          (getAllNodes1 (Bundle [(error "Bad package id",headNode)]))

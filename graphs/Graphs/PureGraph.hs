@@ -38,7 +38,7 @@ module Graphs.PureGraph(
 
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Graphs.Graph(PartialShow(..))
 
@@ -49,7 +49,7 @@ import Graphs.Graph(PartialShow(..))
 -- | node given with their parent nodes.  The parents should always come
 -- before their children in the list.
 newtype PureGraph nodeInfo arcInfo = PureGraph {
-   nodeDataFM :: FiniteMap nodeInfo (NodeData nodeInfo arcInfo)
+   nodeDataFM :: Map.Map nodeInfo (NodeData nodeInfo arcInfo)
    }
 
 data NodeData nodeInfo arcInfo = NodeData {
@@ -68,11 +68,11 @@ data ArcData nodeInfo arcInfo = ArcData {
 -- The Show instances are mainly there for debugging purposes.
 instance (Show nodeInfo,Show arcInfo)
       => Show (PureGraph nodeInfo arcInfo) where
-   show (PureGraph fm) = show (fmToList fm)
+   show (PureGraph fm) = show (Map.toList fm)
 
 instance Show (PartialShow (PureGraph nodeInfo arcInfo)) where
    show (PartialShow (PureGraph fm)) = "NParents dump :"
-      ++ show (PartialShow (eltsFM fm))
+      ++ show (PartialShow (Map.elems fm))
 
 instance Show (PartialShow (NodeData nodeInfo arcInfo)) where
    show (PartialShow nodeData) = "#"++show (length (parents nodeData))
@@ -82,27 +82,26 @@ instance Show (PartialShow (NodeData nodeInfo arcInfo)) where
 -- ---------------------------------------------------------------------------
 
 emptyPureGraph :: Ord nodeInfo => PureGraph nodeInfo arcInfo
-emptyPureGraph = PureGraph emptyFM
+emptyPureGraph = PureGraph Map.empty
 
 -- | add a node with given parent arcs from it.
 addNode :: Ord nodeInfo
    => PureGraph nodeInfo arcInfo -> nodeInfo -> [(arcInfo,nodeInfo)]
    -> PureGraph nodeInfo arcInfo
 addNode (PureGraph fm) newNode newArcs =
-   PureGraph (addToFM
-      fm
+   PureGraph (Map.insert
       newNode
       (NodeData {parents = map
          (\ (arcInfo,target) -> ArcData {arcInfo = arcInfo,target = target})
          newArcs
-         })
+         }) fm
       )
 
 -- | NB.  The graph will end up ill-formed if you delete a node which
 -- has parent arcs pointing to it.
 deleteNode :: Ord nodeInfo
    => PureGraph nodeInfo arcInfo -> nodeInfo -> PureGraph nodeInfo arcInfo
-deleteNode (PureGraph fm) node = PureGraph (delFromFM fm node)
+deleteNode (PureGraph fm) node = PureGraph (Map.delete node fm)
 
 
 -- ---------------------------------------------------------------------------
@@ -110,22 +109,22 @@ deleteNode (PureGraph fm) node = PureGraph (delFromFM fm node)
 -- ---------------------------------------------------------------------------
 
 toAllNodes :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> [nodeInfo]
-toAllNodes (PureGraph fm) = keysFM fm
+toAllNodes (PureGraph fm) = Map.keys fm
 
 toNodeParents :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo
    -> Maybe [nodeInfo]
 toNodeParents (PureGraph fm) nodeInfo =
    do
-      nodeData <- lookupFM fm nodeInfo
+      nodeData <- Map.lookup nodeInfo fm
       return (parentNodes nodeData)
 
 nodeExists :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo -> Bool
-nodeExists (PureGraph fm) nodeInfo = elemFM nodeInfo fm
+nodeExists (PureGraph fm) nodeInfo = Map.member nodeInfo fm
 
 mapArcInfo :: (arcInfo1 -> arcInfo2) -> PureGraph nodeInfo arcInfo1
    -> PureGraph nodeInfo arcInfo2
 mapArcInfo mapArc (PureGraph fm) =
-   PureGraph (mapFM
+   PureGraph (Map.mapWithKey
       (\ _ nodeData1 ->
          let
             parents1 = parents nodeData1

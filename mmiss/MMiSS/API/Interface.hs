@@ -138,7 +138,7 @@ import System
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import qualified Control.Exception
 
 import Util.Object
@@ -206,7 +206,7 @@ data State = State {
    currentServer :: Maybe Server,
    currentVariant :: Variant,
    currentVersion :: Maybe Version,
-   currentDirs :: FiniteMap Version Dir,
+   currentDirs :: Map.Map Version Dir,
    versionInfoFormat :: CompiledFormatString,
    registrationsDone :: Bool
    }
@@ -229,7 +229,7 @@ initialState = State {
    currentServer = Nothing,
    currentVariant = Variant emptyMMiSSVariantSearch,
    currentVersion = Nothing,
-   currentDirs = emptyFM,
+   currentDirs = Map.empty,
    versionInfoFormat = initialVersionInfoFormat,
    registrationsDone = False
    }
@@ -267,7 +267,7 @@ getCurrentDir :: Version -> IO Dir
 getCurrentDir version =
    do
       dirs <- getStateValue currentDirs
-      case lookupFM dirs version of
+      case Map.lookup version dirs of
          Nothing -> apiError "No current directory for this version!"
          Just dir -> return dir
 
@@ -275,7 +275,7 @@ setCurrentDir :: Version -> Dir -> IO ()
 setCurrentDir version dir =
    modifyMVar_ stateMVar
       (\ state -> return (state {
-         currentDirs = addToFM (currentDirs state) version dir})
+         currentDirs = Map.insert version dir (currentDirs state)})
          )
 
 getCurrentVariants :: IO Variant
@@ -418,8 +418,8 @@ checkOut1' (Server {versionGraph = versionGraph}) v =
                      return (state {
                         currentVersion = Just version,
                         currentDirs =
-                           addToFM (currentDirs state) version
-                              (Folder topFolderLink)
+                           Map.insert version
+                              (Folder topFolderLink) (currentDirs state)
                         })
                      )
 

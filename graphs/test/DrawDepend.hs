@@ -9,7 +9,7 @@ import IO
 import System
 
 import qualified Data.Set as Set
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Debug
 import Util.Computation
@@ -37,7 +37,7 @@ import Hasse
 --     left hand side of a rule.
 --------------------------------------------------------------------------
 
-data ParsedDepend = ParsedDepend (FiniteMap String [String])
+data ParsedDepend = ParsedDepend (Map.Map String [String])
 -- Map from file to its dependencies.
 
 data SemiParsedDepend = SemiParsedDepend [(String,String)]
@@ -116,18 +116,18 @@ finishParseDepend (SemiParsedDepend dependencies) =
             (\ (importer,imported) map ->
                let
                   importedSoFar =
-                     lookupWithDefaultFM map [] importer
-                  map2 = addToFM map importer (imported:importedSoFar)
+                     Map.findWithDefault map [] importer
+                  map2 = Map.insert map importer (imported:importedSoFar)
                   -- add imported to map if not there.
                   map3 =
-                     case lookupFM map2 imported of
+                     case Map.lookup map2 imported of
                         Nothing ->
-                            addToFM map2 imported []
+                            Map.insert map2 imported []
                         Just _ -> map2
                in
                   map3
                )
-            emptyFM
+            Map.empty
             dependencies
    in
       ParsedDepend finiteMap
@@ -156,7 +156,7 @@ drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
    do
       (ParsedDepend dependMap) <- parseDepend
       let
-         (dependencies :: [(String,[String])]) = fmToList dependMap
+         (dependencies :: [(String,[String])]) = Map.toList dependMap
 
       let
          graphParms =
@@ -192,9 +192,9 @@ drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
                )
             dependencies
       let
-         nodeMap = listToFM nodes
+         nodeMap = Map.fromList nodes
          stringToNode nodeString =
-            case lookupFM nodeMap nodeString of
+            case Map.lookup nodeMap nodeString of
                Just node -> node
 
       sequence_ (fmap

@@ -43,7 +43,7 @@ module Types.GlobalRegistry(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 import Util.Dynamics
@@ -348,7 +348,7 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
          )
 
       -- (2) extract the object type data
-      (objectTypeData :: [(View,FiniteMap GlobalKey objectType)])
+      (objectTypeData :: [(View,Map.Map GlobalKey objectType)])
          <- mapM
          (\ (view,viewData) ->
             do
@@ -360,25 +360,25 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
       let
          -- (3) function for constructing the map.  We pair each element
          -- with its originating view.
-         constructMap :: FiniteMap GlobalKey [(View,objectType)]
-            -> [(View,FiniteMap GlobalKey objectType)]
-            -> IO (WithError (FiniteMap GlobalKey [(View,objectType)]))
+         constructMap :: Map.Map GlobalKey [(View,objectType)]
+            -> [(View,Map.Map GlobalKey objectType)]
+            -> IO (WithError (Map.Map GlobalKey [(View,objectType)]))
          constructMap map [] = return (hasValue map)
          constructMap map ((view,newMap):rest) =
             do
                let
-                  (elts :: [(GlobalKey,objectType)]) = fmToList newMap
+                  (elts :: [(GlobalKey,objectType)]) = Map.toList newMap
 
                   -- function for appending these elements to the map
-                  addItems :: FiniteMap GlobalKey [(View,objectType)]
+                  addItems :: Map.Map GlobalKey [(View,objectType)]
                      -> [(GlobalKey,objectType)]
                      -> IO (WithError (
-                        FiniteMap GlobalKey [(View,objectType)]))
+                        Map.Map GlobalKey [(View,objectType)]))
                   addItems map [] = return (hasValue map)
                   addItems map ((key,newType):rest) =
-                     case lookupFM map key of
+                     case Map.lookup key map of
                         Nothing ->
-                           addItems (addToFM map key [(view,newType)]) rest
+                           addItems (Map.insert key [(view,newType)] map) rest
                         Just (oldTypes @ ((oldView,oldType):_)) ->
                            do
                               equal <- equalByEncode (oldView,oldType)
@@ -386,8 +386,8 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
                               if equal
                                  then
                                     let
-                                       newMap = addToFM map key
-                                          ((view,newType) : oldTypes)
+                                       newMap = Map.insert key
+                                          ((view,newType) : oldTypes) map
                                     in
                                        addItems newMap rest
                                  else
@@ -401,14 +401,14 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
                   Left _ -> return mapWE
                   Right map -> constructMap map rest
 
-      mapWE <- constructMap emptyFM objectTypeData
+      mapWE <- constructMap Map.empty objectTypeData
       mapWithErrorIO
-         (\ (map1 :: FiniteMap GlobalKey [(View,objectType)]) ->
+         (\ (map1 :: Map.Map GlobalKey [(View,objectType)]) ->
             do
               -- construct the new viewData
               let
-                 (map2 :: FiniteMap GlobalKey objectType) =
-                    mapFM (\ key ((view,objectType):rest) -> objectType) map1
+                 (map2 :: Map.Map GlobalKey objectType) =
+                    Map.mapWithKey (\ key ((view,objectType):rest) -> objectType) map1
 
               (map3 :: VariableMap GlobalKey objectType) <-
                  newVariableMapFromFM map2
@@ -419,7 +419,7 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
                     objectTypes = map3
                     }
 
-              return (viewData,fmToList map1)
+              return (viewData,Map.toList map1)
             )
          mapWE
 

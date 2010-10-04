@@ -3,7 +3,7 @@ module Graphs.TopSort(
    topSort1, -- :: Ord a => [(a,a)] -> [a] -> [a]
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 -- Based on the Art of Computer Programming
 -- Chapter 1, 2.2.3.
@@ -13,7 +13,7 @@ data Ord a => TopSortState a = TopSortState {
    maximal :: [a],
    -- All elements with no remaining greater elements.
    -- When this is empty, soFar is the correct solution.
-   remaining :: FiniteMap a (Int,[a])
+   remaining :: Map.Map a (Int,[a])
    -- Map giving for each element
    -- (a) successors not yet added to soFar.
    -- (b) its direct predecessors.
@@ -44,7 +44,7 @@ ensureNode
       TopSortState {soFar = soFar,maximal = maximal,remaining = remaining}))
    node =
 
-   case lookupFM remaining node of
+   case Map.lookup node remaining of
       Nothing -> -- node not mentioned.  Add it to soFar
          state {soFar = node : soFar}
       Just _ -> state
@@ -57,17 +57,17 @@ initialise list =
          (\ (from,to) map ->
             let
                (nFromSuccs,fromPredecessors) =
-                  lookupWithDefaultFM map (0,[]) from
-               map2 = addToFM map from (nFromSuccs+1,fromPredecessors)
+                  Map.findWithDefault (0,[]) from map
+               map2 = Map.insert from (nFromSuccs+1,fromPredecessors) map
                (nToSuccs,toPredecessors) =
-                  lookupWithDefaultFM map2 (0,[]) to
-               map3 = addToFM map2 to (nToSuccs,from:toPredecessors)
+                  Map.findWithDefault (0,[]) to map2
+               map3 = Map.insert to (nToSuccs,from:toPredecessors) map2
             in
                map3
             )
-         emptyFM
+         Map.empty
          list
-      mapEls =  fmToList map
+      mapEls =  Map.toList map
       maximal = [ key | (key,(nSuccs,_)) <- mapEls, nSuccs ==0 ]
    in
       TopSortState { soFar = soFar, remaining = map, maximal = maximal }
@@ -76,21 +76,21 @@ oneStep :: Ord a => TopSortState a -> Either [a] (TopSortState a)
 oneStep(TopSortState { soFar = soFar, remaining = map, maximal = maximal }) =
    case maximal of
       [] ->
-         if isEmptyFM map
+         if Map.null map
             then Left soFar
             else error "TopSort - cycle in data"
       next:newMaximal ->
          let
-            Just (0,nextPredecessors) = lookupFM map next
+            Just (0,nextPredecessors) = Map.lookup next map
             newSoFar = next:soFar
             (newMaximal2,newMap) =
                foldr
                   (\ pred (maximal,map) ->
                      let
-                        Just (nPredSuccs,predPredecessors) = lookupFM map pred
+                        Just (nPredSuccs,predPredecessors) = Map.lookup pred map
                         newNPredSuccs = nPredSuccs-1
-                        newMap = addToFM map pred
-                           (newNPredSuccs,predPredecessors)
+                        newMap = Map.insert pred
+                           (newNPredSuccs,predPredecessors) map
                         newMaximal = if newNPredSuccs == 0
                            then
                               (pred:maximal)
@@ -101,7 +101,7 @@ oneStep(TopSortState { soFar = soFar, remaining = map, maximal = maximal }) =
                      )
                   (newMaximal,map)
                   nextPredecessors
-            newMap2 = delFromFM newMap next
+            newMap2 = Map.delete next newMap
          in
             Right(TopSortState {
                soFar = newSoFar,maximal = newMaximal2,remaining = newMap2

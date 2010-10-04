@@ -17,7 +17,7 @@ module Types.MergePrune(
 
 import Control.Monad
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Graphs.FindCommonParents(GraphBack(..))
 import Graphs.RemoveAncestors
@@ -42,17 +42,18 @@ mergePrune ((linkList0 @ ((firstView,_,_):_)) :: [(View,Link object,object)]) =
       -- (1) cluster identical Link values together, to reorganise the
       -- list to have type [[(View,Link object,object)]]
       let
-         fMap :: FiniteMap (Link object) [(View,Link object,object)]
+         fMap :: Map.Map (Link object) [(View,Link object,object)]
          fMap = foldl
             (\ map0 (vlo@(view,link,object)) ->
-               addToFM map0 link
-                  (vlo : (lookupWithDefaultFM map0 [] link))
+               Map.insert link
+                  (vlo : (Map.findWithDefault [] link map0))
+                  map0
                )
-            emptyFM
+            Map.empty
             linkList0
 
          linkList1 :: [[(View,Link object,object)]]
-         linkList1 = eltsFM fMap
+         linkList1 = Map.elems fMap
 
       -- (2) Do the job for the individual lists.
       (linkList2 :: [[(View,Link object,object)]]) <-
@@ -94,24 +95,24 @@ mergePruneInner graphClient (linkList0 :: [(View,Link object,object)])
       -- This will mean that an object is unchanged in several views.  In
       -- that case we drop all but one of those elements.  Thus this is the
       -- first stage of pruning.
-      (nodeMap :: FiniteMap ObjectVersion (View,Link object,object)) <- foldM
+      (nodeMap :: Map.Map ObjectVersion (View,Link object,object)) <- foldM
          (\ map0 (vlo@(view,link,object))->
             do
                origVersion <- getVersion view link
-               return (addToFM map0 origVersion vlo)
+               return (Map.insert origVersion vlo map0)
             )
-         emptyFM
+         Map.empty
          linkList0
 
       -- Do the pruning
       let
-         versions = keysFM nodeMap
+         versions = Map.keys nodeMap
 
          prunedVersions = removeAncestorsByPure getVersionParents versions
 
          result =
             map
-               (lookupWithDefaultFM nodeMap (error "MergePrune.1"))
+               (\ v -> Map.findWithDefault (error "MergePrune.1") v nodeMap)
                prunedVersions
 
       return result

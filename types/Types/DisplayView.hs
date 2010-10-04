@@ -14,7 +14,7 @@ module Types.DisplayView(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Control.Concurrent.MVar
 
 import Util.Dynamics
@@ -66,8 +66,8 @@ newtype AllDisplayedObjectTypes =
 -- They mostly have the same meaning as the records in NodeDisplayData
 data DisplayedObjectType object graph node nodeType arcType =
    DisplayedObjectType {
-      arcTypes' :: FiniteMap ArcType (arcType ()),
-      nodeTypes' :: FiniteMap NodeType (nodeType (Link object)),
+      arcTypes' :: Map.Map ArcType (arcType ()),
+      nodeTypes' :: Map.Map NodeType (nodeType (Link object)),
       getNodeType' :: object -> NodeType,
       getNodeLinks' :: Link object -> IO ArcEnds,
       specialNodeActions' :: object
@@ -157,7 +157,7 @@ addNewObjectTypeInner
                      )
                   nodeTypesList
                let
-                  nodeTypes' = listToFM graphNodeTypes
+                  nodeTypes' = Map.fromList graphNodeTypes
 
                -- Create arc types map
                let
@@ -170,7 +170,7 @@ addNewObjectTypeInner
                      )
                   arcTypesList
                let
-                  arcTypes' = listToFM graphArcTypes
+                  arcTypes' = Map.fromList graphArcTypes
                   displayedObjectType = DisplayedObjectType {
                      nodeTypes' = nodeTypes',
                      arcTypes' = arcTypes',
@@ -336,7 +336,7 @@ displayView
                   (DisplayedObjectType {
                      arcTypes' = arcTypes',
                      nodeTypes' = (nodeTypes'
-                        :: FiniteMap NodeType (nodeType (Link object))),
+                        :: Map.Map NodeType (nodeType (Link object))),
                      getNodeType' = getNodeType',
                      getNodeLinks' = getNodeLinks',
                      specialNodeActions' = specialNodeActions'
@@ -346,10 +346,10 @@ displayView
                -- (4) construct the physical node
                let
                   nodeTypeRep = getNodeType' object
-                  (nodeType :: nodeType (Link object)) = lookupWithDefaultFM
-                     nodeTypes'
+                  (nodeType :: nodeType (Link object)) = Map.findWithDefault
                      (error "DisplayView: unmatched node type tag")
                      nodeTypeRep
+                     nodeTypes'
                graphNode <- newNode graph nodeType link
                let
                   nodeArg = WrappedNode graphNode
@@ -385,10 +385,10 @@ displayView
                   listDrawer2 = coMapListDrawer
                      (\ (wrappedNode,arcType0) ->
                         let
-                           arcType1 = lookupWithDefaultFM
-                              arcTypes'
+                           arcType1 = Map.findWithDefault
                               (error "DisplayView: unmatched arc type tag")
                               arcType0
+                              arcTypes'
                         in
                            (arcType1,(),wrappedNode)
                         )

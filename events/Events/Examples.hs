@@ -19,7 +19,7 @@ module Events.Examples(
 
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.IntMap as IntMap
 
 import Events.Events
 import Events.Channels
@@ -28,14 +28,14 @@ import Events.Channels
 -- Event Sets
 -- ------------------------------------------------------------------
 
-data EventSet a = EventSet Int (FiniteMap Int (Event a))
+data EventSet a = EventSet Int (IntMap.IntMap (Event a))
 
 emptyEventSet :: EventSet a
-emptyEventSet = EventSet 0 emptyFM
+emptyEventSet = EventSet 0 IntMap.empty
 
 addToEventSet :: EventSet a -> Event a -> EventSet a
 addToEventSet (EventSet next fmap) event =
-   EventSet (next+1) (addToFM fmap next event)
+   EventSet (next+1) (IntMap.insert next event fmap)
 
 fromEventSet :: EventSet a -> Event (a,EventSet a)
 -- fromEventSet turns the event set into an event which
@@ -45,13 +45,14 @@ fromEventSet (EventSet next fmap) =
    choose
       (map
          (\ (key,event) ->
-            event >>>= (\ a -> return (a,EventSet next (delFromFM fmap key)))
+            event >>>=
+              (\ a -> return (a,EventSet next (IntMap.delete key fmap)))
             )
-         (fmToList fmap)
+         (IntMap.toList fmap)
          )
 
 isEmptyEventSet :: EventSet a -> Bool
-isEmptyEventSet (EventSet _ fmap) = isEmptyFM fmap
+isEmptyEventSet (EventSet _ fmap) = IntMap.null fmap
 
 -- ------------------------------------------------------------------
 -- Watchers

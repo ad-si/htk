@@ -6,7 +6,7 @@ module SimpleDB.QuerySimpleDB(
 import Control.Monad
 
 import Data.IORef
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 
@@ -49,7 +49,7 @@ querySimpleDB1 user simpleDB command = case command of
    ListVersions ->
       do
          versionDataMap <- readIORef (versionData simpleDB)
-         return (IsObjectVersions (keysFM versionDataMap))
+         return (IsObjectVersions (Map.keys versionDataMap))
    Retrieve location version ->
       do
          icsl <- retrieve simpleDB user location version

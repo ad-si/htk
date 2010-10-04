@@ -26,7 +26,7 @@ module Util.VariableMap(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Dynamics
 import Util.Broadcaster
@@ -39,7 +39,7 @@ import Util.Sources
 
 -- | Describes a map update.  For DelUpdate, the second parameter (the one
 -- of type elt) is irrelevant and may be undefined.
-newtype VariableMapData key elt = VariableMapData (FiniteMap key elt)
+newtype VariableMapData key elt = VariableMapData (Map.Map key elt)
 
 -- | We recycle the VariableSetUpdate type for this.
 newtype VariableMapUpdate key elt =
@@ -59,19 +59,19 @@ update (variableUpdate @ (VariableMapUpdate update))
             then
                (variableMap,[],False)
             else
-               (VariableMapData (addToFM map key elt),[variableUpdate],True)
+               (VariableMapData (Map.insert key elt map),[variableUpdate],True)
       DelElement (key,_) ->
          -- we ignore the element, allowing delFromVariable map to put an
          -- error there.
-         case lookupFM map key of
+         case Map.lookup key map of
             Just elt ->
-               (VariableMapData (delFromFM map key),
+               (VariableMapData (Map.delete key map),
                   [VariableMapUpdate (DelElement (key,elt))],True)
             Nothing -> (variableMap,[],False)
       BeginGroup -> (variableMap,[variableUpdate],True)
       EndGroup -> (variableMap,[variableUpdate],True)
    where
-      member key = isJust (lookupFM map key)
+      member key = isJust (Map.lookup key map)
 
 newtype VariableMap key elt =
    VariableMap (GeneralBroadcaster (VariableMapData key elt)
@@ -86,15 +86,15 @@ newtype VariableMap key elt =
 newEmptyVariableMap :: Ord key => IO (VariableMap key elt)
 newEmptyVariableMap =
    do
-      broadcaster <- newGeneralBroadcaster (VariableMapData emptyFM)
+      broadcaster <- newGeneralBroadcaster (VariableMapData Map.empty)
       return (VariableMap broadcaster)
 
 -- | Create a new variable map with given contents
 newVariableMap :: Ord key => [(key,elt)] -> IO (VariableMap key elt)
-newVariableMap contents = newVariableMapFromFM (listToFM contents)
+newVariableMap contents = newVariableMapFromFM (Map.fromList contents)
 
 newVariableMapFromFM :: Ord key
-   => FiniteMap key elt -> IO (VariableMap key elt)
+   => Map.Map key elt -> IO (VariableMap key elt)
 newVariableMapFromFM fmap =
    do
       broadcaster <- newGeneralBroadcaster (VariableMapData fmap)
@@ -124,16 +124,16 @@ instance Ord key => HasSource (VariableMap key elt)
    toSource (VariableMap broadcaster) = toSource broadcaster
 
 lookupMap :: Ord key => VariableMapData key elt -> key -> Maybe elt
-lookupMap (VariableMapData map) key = lookupFM map key
+lookupMap (VariableMapData map) key = Map.lookup key map
 
 lookupWithDefaultMap :: Ord key => VariableMapData key elt -> elt -> key -> elt
 lookupWithDefaultMap (VariableMapData map) def key
-   = lookupWithDefaultFM map def key
+   = Map.findWithDefault def key map
 
 mapToList :: Ord key => VariableMapData key elt -> [(key,elt)]
-mapToList = fmToList . mapToFM
+mapToList = Map.toList . mapToFM
 
-mapToFM :: Ord key => VariableMapData key elt -> FiniteMap key elt
+mapToFM :: Ord key => VariableMapData key elt -> Map.Map key elt
 mapToFM (VariableMapData map) = map
 
 -- --------------------------------------------------------------------
@@ -159,7 +159,7 @@ instance Ord key => HasSource (VariableMapSet key elt element) [element]
          {variableMap = variableMap,mkElement = mkElement}) =
             (map1
                (\ (VariableMapData contents) ->
-                  map (uncurry mkElement) (fmToList contents)
+                  map (uncurry mkElement) (Map.toList contents)
                   )
                )
             .
@@ -196,7 +196,7 @@ lookupVariableMap :: Ord key => VariableMap key elt -> key -> IO (Maybe elt)
 lookupVariableMap (VariableMap broadcaster) key =
    do
       (VariableMapData finiteMap) <- readContents broadcaster
-      return (lookupFM finiteMap key)
+      return (Map.lookup key finiteMap)
 
 -- --------------------------------------------------------------------
 -- Returns current value of key (if any) in variable map
@@ -212,7 +212,7 @@ getVariableMapByKey variableMap key =
       source1 = toSource variableMap
       source2 =
          (map1
-            (\ (VariableMapData fmap) -> lookupFM fmap key)
+            (\ (VariableMapData fmap) -> Map.lookup key fmap)
             )
          .
          (filter2

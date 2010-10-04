@@ -64,7 +64,7 @@ module Imports.Environment(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Computation
 import Util.Sources
@@ -87,10 +87,10 @@ data Env node =
          }
    |  This {
          this :: node,
-         contents :: FiniteMap EntityName (Env node)
+         contents :: Map.Map EntityName (Env node)
          }
    |  NoThis {
-         contents :: FiniteMap EntityName (Env node)
+         contents :: Map.Map EntityName (Env node)
          }
 
 -- basic type we manipulate in constructing the Environment.
@@ -101,7 +101,7 @@ type ESource node = SimpleSource (WithError (Env node))
 -- --------------------------------------------------------------
 
 emptyESource :: ESource node
-emptyESource = staticSimpleSource (hasValue (NoThis {contents = emptyFM}))
+emptyESource = staticSimpleSource (hasValue (NoThis {contents = Map.empty}))
 
 
 newESource :: FolderStructure node -> node -> EntityFullName
@@ -114,12 +114,12 @@ newESource (folderStructure :: FolderStructure node) node
          (hasValue (Leaf {this = node})))
       newSource node (name1 : names) =
          do
-            (contents :: SimpleSource (FiniteMap EntityName node))
+            (contents :: SimpleSource (Map.Map EntityName node))
                <- getContentsSource folderStructure node
             return (mapIOSeq
                contents
                (\ contentsMap ->
-                  case lookupFM contentsMap name1 of
+                  case Map.lookup name1 contentsMap of
                      Nothing -> return (staticSimpleSource
                         (hasError ("Object " ++ toString fullName ++
                            " not found")))
@@ -179,7 +179,7 @@ union (folderStructure :: FolderStructure node) source1 source2 =
             err :: String -> IO (SimpleSource (WithError (Env node)))
             err mess = return (staticSimpleSource (hasError mess))
 
-            wrap :: ((FiniteMap EntityName (Env node)) -> Env node)
+            wrap :: ((Map.Map EntityName (Env node)) -> Env node)
                -> IO (SimpleSource (WithError (Env node)))
             wrap wrapFn =
                do
@@ -194,21 +194,21 @@ union (folderStructure :: FolderStructure node) source1 source2 =
                      )
 
       unionMap :: Env node -> Env node
-         -> IO (SimpleSource (WithError (FiniteMap EntityName (Env node))))
+         -> IO (SimpleSource (WithError (Map.Map EntityName (Env node))))
       unionMap env1 env2 =
          do
-            (contents1 :: SimpleSource (FiniteMap EntityName (Env node)))
+            (contents1 :: SimpleSource (Map.Map EntityName (Env node)))
                <- toContents folderStructure env1
-            (contents2 :: SimpleSource (FiniteMap EntityName (Env node)))
+            (contents2 :: SimpleSource (Map.Map EntityName (Env node)))
                <- toContents folderStructure env2
             let
                contents :: SimpleSource (
-                  FiniteMap EntityName (Env node),
-                  FiniteMap EntityName (Env node))
+                  Map.Map EntityName (Env node),
+                  Map.Map EntityName (Env node))
                contents = pairSimpleSources contents1 contents2
 
                result :: SimpleSource (WithError
-                  (FiniteMap EntityName (Env node)))
+                  (Map.Map EntityName (Env node)))
                result =
                   mapIOSeq
                      contents
@@ -217,17 +217,17 @@ union (folderStructure :: FolderStructure node) source1 source2 =
                            let
                               commonNames :: [EntityName]
                               commonNames = filter
-                                 (\ name -> isJust (lookupFM map2 name))
-                                 (keysFM map1)
+                                 (\ name -> isJust (Map.lookup name map2))
+                                 (Map.keys map1)
 
-                              map1' :: FiniteMap EntityName (Env node)
-                              map1' = delListFromFM map1 commonNames
+                              map1' :: Map.Map EntityName (Env node)
+                              map1' = foldr Map.delete map1 commonNames
 
-                              map2':: FiniteMap EntityName (Env node)
-                              map2' = delListFromFM map2 commonNames
+                              map2':: Map.Map EntityName (Env node)
+                              map2' = foldr Map.delete map2 commonNames
 
-                              map0 :: FiniteMap EntityName (Env node)
-                              map0 = plusFM map1' map2'
+                              map0 :: Map.Map EntityName (Env node)
+                              map0 = Map.union map1' map2'
 
 
                            (commonSources :: [SimpleSource
@@ -236,8 +236,8 @@ union (folderStructure :: FolderStructure node) source1 source2 =
                                  (\ name ->
                                     do
                                        let
-                                          (Just env1) = lookupFM map1 name
-                                          (Just env2) = lookupFM map2 name
+                                          (Just env1) = Map.lookup name map1
+                                          (Just env2) = Map.lookup name map2
                                        (source :: SimpleSource (WithError
                                           (Env node)))
                                           <- unionEnv (Just name) env1 env2
@@ -257,7 +257,7 @@ union (folderStructure :: FolderStructure node) source1 source2 =
                               commonSource = sequenceSimpleSource commonSources
 
                               result1 :: SimpleSource (WithError
-                                 (FiniteMap EntityName (Env node)))
+                                 (Map.Map EntityName (Env node)))
                               result1 = fmap
                                  (\ pairWEs ->
                                     let
@@ -265,7 +265,9 @@ union (folderStructure :: FolderStructure node) source1 source2 =
                                           = listWithErrorCheckReported pairWEs
                                     in
                                        mapWithError
-                                          (\ pairs -> addListToFM map0 pairs)
+                                          (\ pairs -> foldr
+                                              (uncurry Map.insert)
+                                              map0 pairs)
                                           pairsWE
                                     )
                                  commonSource
@@ -283,7 +285,7 @@ prefix entityName =
    fmap . mapWithError $
       (\ env ->
          NoThis {
-            contents = listToFM [(entityName,env)]
+            contents = Map.fromList [(entityName,env)]
             }
          )
 
@@ -297,7 +299,7 @@ rename (folderStructure :: FolderStructure node) fullName name source =
       source
       (\ env0 ->
          do
-            (contentsSource :: SimpleSource (FiniteMap EntityName (Env node)))
+            (contentsSource :: SimpleSource (Map.Map EntityName (Env node)))
                <- toContents folderStructure env0
             return (mapIOSeq
                contentsSource
@@ -313,7 +315,7 @@ rename (folderStructure :: FolderStructure node) fullName name source =
                               ++ toString fullName ++ " not found")
                            Just env2 ->
                               let
-                                 contents1 = addToFM contents0 name env2
+                                 contents1 = Map.insert name env2 contents0
 
                                  env3 = setContents env1 contents1
                               in
@@ -344,9 +346,9 @@ hide (folderStructure :: FolderStructure node) fullNames source =
          do
             let
                hideList :: [(EntityName,Maybe EntityNameTree)]
-               hideList = fmToList hideMap
+               hideList = Map.toList hideMap
 
-            (contentsSource :: SimpleSource (FiniteMap EntityName (Env node)))
+            (contentsSource :: SimpleSource (Map.Map EntityName (Env node)))
                <- toContents folderStructure env0
             return (mapIOSeq
                contentsSource
@@ -355,7 +357,7 @@ hide (folderStructure :: FolderStructure node) fullNames source =
                      (whatToHide1 :: [SimpleSource (WithError (EntityName,
                            Maybe (Env node)))]) <- mapM
                         (\ (name,treeOpt) ->
-                           case lookupFM contentsMap name of
+                           case Map.lookup name contentsMap of
                               Nothing ->
                                  return (staticSimpleSource (hasError (
                                     "hide failed: " ++ toString name
@@ -399,9 +401,9 @@ hide (folderStructure :: FolderStructure node) fullNames source =
                                              (\ map0 (name,envOpt) ->
                                                 case envOpt of
                                                    Nothing ->
-                                                      delFromFM map0 name
+                                                      Map.delete name map0
                                                    Just env ->
-                                                      addToFM map0 name env
+                                                      Map.insert name env map0
                                                 )
                                              contentsMap
                                              hideList
@@ -435,9 +437,9 @@ reveal (folderStructure :: FolderStructure node) fullNames source =
          do
             let
                revealList :: [(EntityName,Maybe EntityNameTree)]
-               revealList = fmToList revealMap
+               revealList = Map.toList revealMap
 
-            (contentsSource :: SimpleSource (FiniteMap EntityName (Env node)))
+            (contentsSource :: SimpleSource (Map.Map EntityName (Env node)))
                <- toContents folderStructure env0
             return (mapIOSeq
                contentsSource
@@ -446,7 +448,7 @@ reveal (folderStructure :: FolderStructure node) fullNames source =
                      (whatToReveal1 :: [SimpleSource (WithError (EntityName,
                            Maybe (Env node)))]) <- mapM
                         (\ (name,treeOpt) ->
-                           case lookupFM contentsMap name of
+                           case Map.lookup name contentsMap of
                               Nothing ->
                                  return (staticSimpleSource (hasError (
                                     "reveal failed: " ++ toString name
@@ -486,16 +488,16 @@ reveal (folderStructure :: FolderStructure node) fullNames source =
                                  (\ (revealList
                                        :: [(EntityName,Maybe (Env node))]) ->
                                     let
-                                       contents :: FiniteMap EntityName
+                                       contents :: Map.Map EntityName
                                           (Env node)
                                        contents =
-                                          listToFM
+                                          Map.fromList
                                              (map
                                                 (\ (name,envOpt) ->
                                                    (name,
                                                       case (envOpt,
-                                                         lookupFM contentsMap
-                                                            name) of
+                                                         Map.lookup name
+                                                            contentsMap) of
                                                          (Just env,_) -> env
                                                          (Nothing,Just env) ->
                                                             env
@@ -538,7 +540,7 @@ noLoop tSem source =
 -- --------------------------------------------------------------
 
 newtype EntityNameTree =
-   EntityNameTree (FiniteMap EntityName (Maybe EntityNameTree))
+   EntityNameTree (Map.Map EntityName (Maybe EntityNameTree))
 
 structureNames :: [EntityFullName] -> Maybe EntityNameTree
 structureNames fullNames =
@@ -550,22 +552,22 @@ structureNames fullNames =
    where
       nameEmpty = any (\ (EntityFullName name) -> null name) fullNames
 
-      emptyTree = EntityNameTree emptyFM
+      emptyTree = EntityNameTree Map.empty
 
       addName :: EntityNameTree -> EntityFullName -> EntityNameTree
       addName (EntityNameTree map0) (EntityFullName (name:names)) =
          case names of
-            [] -> EntityNameTree (addToFM map0 name Nothing)
+            [] -> EntityNameTree (Map.insert name Nothing map0)
             _ ->
                let
                   fullName1 = EntityFullName names
 
-                  tree1Opt = case lookupFM map0 name of
+                  tree1Opt = case Map.lookup name map0 of
                      Nothing -> Just (addName emptyTree fullName1)
                      Just Nothing -> Nothing
                      Just (Just tree0) -> Just (addName tree0 fullName1)
                in
-                  EntityNameTree (addToFM map0 name tree1Opt)
+                  EntityNameTree (Map.insert name tree1Opt map0)
 
 -- --------------------------------------------------------------
 -- Utility functions
@@ -600,7 +602,7 @@ lookupEnv (folderStructure :: FolderStructure node) env names
            return (mapIOSeq
               contents
               (\ map0 ->
-                 case lookupFM map0 name of
+                 case Map.lookup name map0 of
                     Nothing -> return (staticSimpleSource Nothing)
                     Just env -> lookup1 env names
                  )
@@ -620,13 +622,13 @@ setThis env this1 =
       Nothing -> Leaf {this = this1}
       Just contents1 -> This {this = this1,contents = contents1}
 
-contentsOpt :: Env node -> Maybe (FiniteMap EntityName (Env node))
+contentsOpt :: Env node -> Maybe (Map.Map EntityName (Env node))
 contentsOpt (Leaf {}) = Nothing
 contentsOpt (This {contents = contents}) = Just contents
 contentsOpt (NoThis {contents = contents}) = Just contents
 
 toContents :: FolderStructure node -> Env node
-   -> IO (SimpleSource (FiniteMap EntityName (Env node)))
+   -> IO (SimpleSource (Map.Map EntityName (Env node)))
 toContents folderStructure env =
    case env of
       This {contents = contents} -> wrapContents contents
@@ -636,7 +638,7 @@ toContents folderStructure env =
             source <- getContentsSource folderStructure this
             return (fmap
                (\ map0 ->
-                  mapFM
+                  Map.mapWithKey
                      (\ _ node -> Leaf {this = node})
                      map0
                   )
@@ -645,7 +647,7 @@ toContents folderStructure env =
    where
       wrapContents contents = return (staticSimpleSource contents)
 
-setContents :: Env node -> FiniteMap EntityName (Env node) -> Env node
+setContents :: Env node -> Map.Map EntityName (Env node) -> Env node
 setContents env contents =
    case thisOpt env of
       Nothing -> NoThis contents

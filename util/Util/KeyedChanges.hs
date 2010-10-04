@@ -25,13 +25,13 @@ module Util.KeyedChanges(
    -- instance Ord key => HasSource (KeyedChanges key delta) [delta] delta
    ) where
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 
 import Util.Sources
 import Util.Broadcaster
 
 newtype KeyedChanges key delta
-   = KeyedChanges (Broadcaster (FiniteMap key delta) delta)
+   = KeyedChanges (Broadcaster (Map.Map key delta) delta)
 
 -- ------------------------------------------------------------------------
 -- Producer's interface
@@ -40,18 +40,18 @@ newtype KeyedChanges key delta
 newKeyedChanges :: Ord key => IO (KeyedChanges key delta)
 newKeyedChanges =
    do
-      broadcaster <- newBroadcaster emptyFM
+      broadcaster <- newBroadcaster Map.empty
       return (KeyedChanges broadcaster)
 
 sendKeyedChanges :: Ord key => key -> delta -> KeyedChanges key delta -> IO ()
 sendKeyedChanges key delta (KeyedChanges broadcaster) =
-   applyUpdate broadcaster (\ map -> (addToFM map key delta,[delta]))
+   applyUpdate broadcaster (\ map -> (Map.insert key delta map,[delta]))
 
 deleteKeyedChange :: Ord key => key -> delta -> KeyedChanges key delta -> IO ()
 deleteKeyedChange key delta (KeyedChanges broadcaster) =
-   applyUpdate broadcaster (\ map -> case lookupFM map key of
+   applyUpdate broadcaster (\ map -> case Map.lookup key map of
       Nothing -> (map,[])
-      Just _ -> (delFromFM map key,[delta])
+      Just _ -> (Map.delete key map,[delta])
       )
 
 -- ------------------------------------------------------------------------
@@ -59,4 +59,4 @@ deleteKeyedChange key delta (KeyedChanges broadcaster) =
 -- ------------------------------------------------------------------------
 
 instance Ord key => HasSource (KeyedChanges key delta) [delta] delta where
-   toSource (KeyedChanges broadcaster) = map1 eltsFM (toSource broadcaster)
+   toSource (KeyedChanges broadcaster) = map1 Map.elems (toSource broadcaster)

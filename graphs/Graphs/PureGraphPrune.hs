@@ -13,7 +13,7 @@ module Graphs.PureGraphPrune(
 
 import Data.Maybe
 
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Set (Set)
 
@@ -51,7 +51,7 @@ pureGraphPrune isHidden (pureGraph0 :: PureGraph nodeInfo arcInfo) =
 -- | Computes list in which parents always precede their children.
 orderGraph :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> [nodeInfo]
 orderGraph ((PureGraph fm) :: PureGraph nodeInfo arcInfo) =
-      reverse (snd (foldl visit (Set.empty,[]) (keysFM fm)))
+      reverse (snd (foldl visit (Set.empty,[]) (Map.keys fm)))
    where
       visit :: (Set nodeInfo,[nodeInfo]) -> nodeInfo
          -> (Set nodeInfo,[nodeInfo])
@@ -62,7 +62,7 @@ orderGraph ((PureGraph fm) :: PureGraph nodeInfo arcInfo) =
             else
                let
                   nodeData :: NodeData nodeInfo arcInfo
-                  Just nodeData = lookupFM fm a
+                  Just nodeData = Map.lookup a fm
 
                   set1 = Set.insert a set0
 
@@ -84,18 +84,18 @@ zTrans isHidden ((pureGraph @ (PureGraph fm))
       ordered = orderGraph pureGraph
 
       compute ::
-          FiniteMap nodeInfo (nodeInfo,NodeData nodeInfo (Maybe arcInfo))
+          Map.Map nodeInfo (nodeInfo,NodeData nodeInfo (Maybe arcInfo))
           -> nodeInfo
-          -> FiniteMap nodeInfo (nodeInfo,NodeData nodeInfo (Maybe arcInfo))
+          -> Map.Map nodeInfo (nodeInfo,NodeData nodeInfo (Maybe arcInfo))
       compute z0 (a :: nodeInfo) =
          let
             nodeData :: NodeData nodeInfo (Maybe arcInfo)
-            Just nodeData = lookupFM fm a
+            Just nodeData = Map.lookup a fm
 
             mapParent ::
                ArcData nodeInfo (Maybe arcInfo)
                -> ArcData nodeInfo (Maybe arcInfo)
-            mapParent arcData = case lookupFM z0 (target arcData) of
+            mapParent arcData = case Map.lookup (target arcData) z0 of
                Just (parentNode,_) | parentNode /= target arcData
                   -> newArc parentNode
                _ -> arcData
@@ -111,15 +111,15 @@ zTrans isHidden ((pureGraph @ (PureGraph fm))
                   else
                      a
          in
-            addToFM z0 a (za,NodeData {
+            Map.insert a (za,NodeData {
                parents = parents1
-               })
+               }) z0
 
-      zMap :: FiniteMap nodeInfo (nodeInfo,NodeData nodeInfo (Maybe arcInfo))
-      zMap = foldl compute emptyFM ordered
+      zMap :: Map.Map nodeInfo (nodeInfo,NodeData nodeInfo (Maybe arcInfo))
+      zMap = foldl compute Map.empty ordered
 
-      fm2 :: FiniteMap nodeInfo (NodeData nodeInfo (Maybe arcInfo))
-      fm2 = mapFM
+      fm2 :: Map.Map nodeInfo (NodeData nodeInfo (Maybe arcInfo))
+      fm2 = Map.mapWithKey
          (\ a (_,nodeData) -> nodeData)
          zMap
    in
@@ -137,7 +137,7 @@ findNotHanging isHidden (PureGraph fm :: PureGraph nodeInfo (Maybe arcInfo)) =
       visit set0 a =
          let
             set1 = Set.insert a set0
-            Just nodeData = lookupFM fm a
+            Just nodeData = Map.lookup a fm
          in
             visits set1 (parentNodes nodeData)
 
@@ -147,7 +147,7 @@ findNotHanging isHidden (PureGraph fm :: PureGraph nodeInfo (Maybe arcInfo)) =
       notHidden :: [nodeInfo]
       notHidden = mapMaybe
          (\ a -> if isHidden a then Nothing else Just a)
-         (keysFM fm)
+         (Map.keys fm)
 
       notHanging :: Set nodeInfo
       notHanging = visits Set.empty notHidden
@@ -155,35 +155,36 @@ findNotHanging isHidden (PureGraph fm :: PureGraph nodeInfo (Maybe arcInfo)) =
       notHangingFM = foldl
          (\ fm0 a ->
             let
-               Just nodeData = lookupFM fm a
+               Just nodeData = Map.lookup a fm
             in
-               addToFM fm0 a nodeData
+               Map.insert a nodeData fm0
             )
-         emptyFM
+         Map.empty
          (Set.toList notHanging)
    in
       PureGraph notHangingFM
 
 -- | Compute the number of children each node has in a Dag
-nChildren :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> (nodeInfo -> Int)
-nChildren (PureGraph fm :: PureGraph nodeInfo arcInfo) =
+nChildren :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo -> Int
+nChildren (PureGraph fm :: PureGraph nodeInfo arcInfo) nf =
    let
-      fm1 = foldFM
+      fm1 = Map.foldWithKey
          (\ a nodeData fm0 ->
             let
                parents1 = parentNodes nodeData
             in
                foldl
                   (\ fm0 parent ->
-                     addToFM fm0 parent (lookupWithDefaultFM fm0 0 parent + 1)
+                     Map.insert parent (Map.findWithDefault 0 parent fm0 + 1)
+                     fm0
                      )
                   fm0
                   parents1
             )
-         (emptyFM :: FiniteMap nodeInfo Int)
+         (Map.empty :: Map.Map nodeInfo Int)
          fm
    in
-      lookupWithDefaultFM fm1 0
+      Map.findWithDefault 0 nf fm1
 
 -- | For nodes with one hidden parent, which has just that child,
 -- delete the hidden parent and replace the original node's parents by the
@@ -202,7 +203,7 @@ removeOneHiddenParent isHidden (pureGraph @ (PureGraph fm0)
       nc = nChildren pureGraph
 
       candidates0 :: [(nodeInfo,NodeData nodeInfo (Maybe arcInfo))]
-      candidates0 = fmToList fm0
+      candidates0 = Map.toList fm0
 
       deletions :: [(nodeInfo,nodeInfo,NodeData nodeInfo (Maybe arcInfo))]
       deletions = mapMaybe
@@ -210,7 +211,7 @@ removeOneHiddenParent isHidden (pureGraph @ (PureGraph fm0)
            [parent] ->
               if nc parent == 1
                  then
-                    case lookupFM fm0 parent of
+                    case Map.lookup parent fm0 of
                        Just nodeData | isHidden parent ->
                           let
                              parentNodes1 = parentNodes nodeData
@@ -226,7 +227,7 @@ removeOneHiddenParent isHidden (pureGraph @ (PureGraph fm0)
 
       fm1 = foldl
          (\ fm0 (a,parent,nodeData) ->
-            (addToFM (delFromFM fm0 parent) a nodeData)
+            (Map.insert a nodeData (Map.delete parent fm0))
             )
          fm0
          deletions

@@ -29,7 +29,7 @@ import Control.Monad
 import Data.Maybe
 
 import Data.IORef
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import Data.HashTable
 
 import Util.WBFiles
@@ -51,7 +51,7 @@ import SimpleDB.ServerErrors
 
 data VersionState = VersionState {
    versionDB :: BDB, -- ^ Data base of all known versions.
-   serverMapRef :: IORef (FiniteMap ServerInfo ObjectVersion),
+   serverMapRef :: IORef (Map.Map ServerInfo ObjectVersion),
       -- ^ Secondary index
    versionInfoActRef :: IORef ( IO (Bool,VersionInfo) -> IO ()),
       -- ^ Action to be performed when a VersionInfo is added (Bool is False)
@@ -85,14 +85,14 @@ mkVersionState isInternal =
 
       let
          addVersionInfo
-            :: FiniteMap ServerInfo ObjectVersion
+            :: Map.Map ServerInfo ObjectVersion
             -> VersionInfo
-            -> FiniteMap ServerInfo ObjectVersion
+            -> Map.Map ServerInfo ObjectVersion
          addVersionInfo map0 info =
-            addToFM map0 (server info) (toObjectVersion info)
+            Map.insert (server info) (toObjectVersion info) map0
 
-         serverMap :: FiniteMap ServerInfo ObjectVersion
-         serverMap = foldl addVersionInfo emptyFM versionInfos
+         serverMap :: Map.Map ServerInfo ObjectVersion
+         serverMap = foldl addVersionInfo Map.empty versionInfos
 
       serverMapRef <- newIORef serverMap
 
@@ -142,7 +142,7 @@ addVersionInfo versionState versionInfo1 txn =
          setServerInfo :: VersionInfo -> IO ()
          setServerInfo versionInfo =
             atomicModifyIORef (serverMapRef versionState)
-               (\ map0 -> (addToFM map0 (server versionInfo) objectVersion,()))
+               (\ map0 -> (Map.insert (server versionInfo) objectVersion map0,()))
 
       versionInfo0Opt <- lookupVersionInfo versionState objectVersion
 
@@ -244,7 +244,7 @@ lookupServerInfo :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion)
 lookupServerInfo versionState serverInfo =
    do
       serverMap <- readIORef (serverMapRef versionState)
-      return (lookupFM serverMap serverInfo)
+      return (Map.lookup serverInfo serverMap)
 
 -- | Retrieve all object versions in ObjectVersion order.
 getVersionInfos :: VersionState -> IO [VersionInfo]

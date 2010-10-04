@@ -68,7 +68,7 @@ import Data.Maybe
 
 import Control.Monad.Trans
 import System.IO.Unsafe
-import Util.DeprecatedFiniteMap
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Control.Concurrent
 import Control.Exception
@@ -157,18 +157,18 @@ class KeyOpsRegistry registry from where
 -- whole map while the fallback action runs.
 -- ----------------------------------------------------------------------
 
-newtype Ord from => Registry from to = Registry (MVar (FiniteMap from to))
+newtype Ord from => Registry from to = Registry (MVar (Map.Map from to))
    deriving (Typeable)
 
 instance Ord from => NewRegistry (Registry from to) where
    newRegistry =
       do
-         mVar <- newMVar emptyFM
+         mVar <- newMVar Map.empty
          return (Registry mVar)
    emptyRegistry (Registry mVar) =
       do
          takeMVar mVar
-         putMVar mVar emptyFM
+         putMVar mVar Map.empty
 
 instance Ord from => GetSetRegistry (Registry from to) from to where
    getValue registry from =
@@ -182,23 +182,23 @@ instance Ord from => GetSetRegistry (Registry from to) from to where
    getValueOpt (Registry mVar) from =
       do
          map <- readMVar mVar
-         return (lookupFM map from)
+         return (Map.lookup from map)
 
    transformValue (Registry mVar) from transformer =
       modifyMVar mVar
          (\ map ->
             do
-               (newSetting,extra) <- transformer (lookupFM map from)
+               (newSetting,extra) <- transformer (Map.lookup from map)
                newMap <- case newSetting of
-                  Just newTo -> return (addToFM map from newTo)
-                  Nothing -> return (delFromFM map from)
+                  Just newTo -> return (Map.insert from newTo map)
+                  Nothing -> return (Map.delete from map)
                return (newMap,extra)
             )
 
    setValue (Registry mVar) from to =
       do
          map <- takeMVar mVar
-         putMVar mVar (addToFM map from to)
+         putMVar mVar (Map.insert from to map)
 
 
 getRegistryValue :: Ord from => Registry from to -> from -> IO to
@@ -212,10 +212,10 @@ instance Ord from => KeyOpsRegistry (Registry from to) from where
    deleteFromRegistryBool (Registry mVar) from =
       do
          map <- takeMVar mVar
-         if elemFM from map
+         if Map.member from map
             then
                do
-                  putMVar mVar (delFromFM map from)
+                  putMVar mVar (Map.delete from map)
                   return True
             else
                do
@@ -225,26 +225,26 @@ instance Ord from => KeyOpsRegistry (Registry from to) from where
    deleteFromRegistry (Registry mVar) from =
       do
          map <- takeMVar mVar
-         putMVar mVar (delFromFM map from)
+         putMVar mVar (Map.delete from map)
    listKeys (Registry mVar) =
       do
          map <- readMVar mVar
-         return (keysFM map)
+         return (Map.keys map)
 
 instance Ord from => ListRegistryContents Registry from to where
    listRegistryContents (Registry mVar) =
       do
          fm <- readMVar mVar
-         return (fmToList fm)
+         return (Map.toList fm)
 
    listRegistryContentsAndEmptyRegistry (Registry mVar) =
       modifyMVar mVar (\ fm ->
-         return (emptyFM,fmToList fm)
+         return (Map.empty,Map.toList fm)
          )
 
    listToNewRegistry contents =
       do
-         let map = listToFM contents
+         let map = Map.fromList contents
          mVar <- newMVar map
          return (Registry mVar)
 
@@ -252,12 +252,12 @@ instance Ord from => ListRegistryContents Registry from to where
 -- delete it, replacing it with the element given by the second key.
 changeKey :: Ord from => Registry from to -> from -> from -> IO ()
 changeKey (Registry mVar) oldKey newKey =
-   modifyMVar_ mVar (\ fmap0 -> return (case lookupFM fmap0 oldKey of
+   modifyMVar_ mVar (\ fmap0 -> return (case Map.lookup oldKey fmap0 of
       Nothing -> fmap0
       Just elt ->
          let
-            fmap1 = delFromFM fmap0 oldKey
-            fmap2 = addToFM fmap1 newKey elt
+            fmap1 = Map.delete oldKey fmap0
+            fmap2 = Map.insert newKey elt fmap1
          in
             fmap2
          )
