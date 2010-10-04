@@ -10,9 +10,6 @@ module Graphs.RemoveAncestors(
    removeAncestorsByPure,
    ) where
 
-import Control.Monad
-
-
 import Control.Monad.Identity
 import Util.DeprecatedFiniteMap
 
