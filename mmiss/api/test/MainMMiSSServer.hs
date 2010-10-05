@@ -9,13 +9,12 @@ import IO
 import Time
 
 import Control.Concurrent
-import Control.OldException as Control.Exception
 import Network
 
 
 import Util.ExtendedPrelude
 import Util.BinaryAll
-import Util.Computation
+import Util.Computation as Exception
 import Util.WBFiles(getXMLPort,parseArgumentsRequiring)
 
 import Posixutil.BlockSigPIPE
@@ -94,7 +93,7 @@ mainHandle handle hostName  =
                   authError
          ))
 
-      Control.Exception.try (
+      Exception.try (
          -- general wrapper to catch IO errors
          case fromWithError userWE of
             Right user ->
