@@ -114,37 +114,6 @@ setEmptyRelationSpecs gid gv onto =
                             (getRelationNames onto)
 
 
-{--
-createDaVinciGraph :: A.NodeMapping -> Gr (String, String, OntoObjectType) String
-                        -> String -> A.Descr -> A.GraphInfo -> IO (A.NodeMapping)
-
-createDaVinciGraph nodeMap classGraph nodeType gid ginfo =
-  do nodeMap1 <- foldM (createNode gid ginfo) nodeMap (labNodes classGraph)
-     nodeMap2 <- foldM (createLink gid ginfo) nodeMap1 (labEdges classGraph)
---     A.Result _ _ <- A.writeOntoGraph gid classGraph ginfo
-     return nodeMap2
-  where
-    createNode :: Int -> A.GraphInfo -> A.NodeMapping -> LNode (String, String, OntoObjectType) -> IO (A.NodeMapping)
-    createNode gid ginfo nMap (nodeID, (label, _, _)) =
-      do (A.Result nid _) <- A.addnode gid nodeType label ginfo
-         return (Map.insert nMap nodeID nid)
-
-    createLink :: A.Descr -> A.GraphInfo -> A.NodeMapping -> LEdge String -> IO (A.NodeMapping)
-    createLink gid ginfo nMap (node1, node2, edgeLabel) =
-      do dNodeID_1 <- case Map.lookup nMap node1 of
-                        Nothing -> return (-1)
-                        Just(n) -> return(n)
-         dNodeID_2 <- case Map.lookup nMap node2 of
-                        Nothing -> return (-1)
-                        Just(n) -> return(n)
-         if ((dNodeID_1 == -1) || (dNodeID_2 == -1))
-           then return nMap
-           else do A.Result eid _ <- if (edgeLabel == "isa")
-                                       then A.addlink gid edgeLabel edgeLabel dNodeID_2 dNodeID_1 ginfo
-                                       else A.addlink gid edgeLabel edgeLabel dNodeID_1 dNodeID_2 ginfo
-                   return nMap
---}
-
 
 -- Klassengraph -> Objekte dazu (mit Links auf Klasse)
 --
@@ -177,21 +146,21 @@ updateDaVinciGraph newGraph gid gv =
           createNode :: Int -> A.GraphInfo -> Gr (String,String,OntoObjectType) String ->
                           A.NodeMapping -> LNode (String, String, OntoObjectType) -> IO (A.NodeMapping)
           createNode gid ginfo oldGraph nMap (nodeID, (name, className, objectType)) =
-            case Map.lookup nMap nodeID of
+            case Map.lookup nodeID nMap of
               Just(_) -> return nMap
               Nothing ->
                 do (A.Result nid err) <- A.addnode gid (getTypeLabel objectType) name ginfo
                    case err of
-                     Nothing -> return (Map.insert nMap nodeID nid)
+                     Nothing -> return (Map.insert nodeID nid nMap)
                      Just(str) -> do putStr str
-                                     return (Map.insert nMap nodeID nid)
+                                     return (Map.insert nodeID nid nMap)
 
           createLink :: A.Descr -> A.GraphInfo -> A.NodeMapping -> LEdge String -> IO (A.NodeMapping)
           createLink gid ginfo nMap (node1, node2, edgeLabel) =
-            do dNodeID_1 <- case Map.lookup nMap node1 of
+            do dNodeID_1 <- case Map.lookup node1 nMap of
                               Nothing -> return (-1)
                               Just(n) -> return(n)
-               dNodeID_2 <- case Map.lookup nMap node2 of
+               dNodeID_2 <- case Map.lookup node2 nMap of
                               Nothing -> return (-1)
                               Just(n) -> return(n)
                if ((dNodeID_1 == -1) || (dNodeID_2 == -1))
@@ -487,7 +456,7 @@ purgeThisNode onto gv (name, descr, gid) =
            case mayNodeID of
              Nothing -> return()
              Just(nodeID) ->
-               case Map.lookup nMap nodeID of
+               case Map.lookup nodeID nMap of
                  Nothing -> return()
                  Just(node) -> do A.delnode gid node gv
                                   A.redisplay gid gv
@@ -540,7 +509,7 @@ setFocusToNode onto nodeName gv (name, desc, gid) =
             case findLNode oldGraph nodeName of
                Nothing -> return(False)
                Just(nodeID) ->
-                  case Map.lookup nMap nodeID of
+                  case Map.lookup nodeID nMap of
                     Nothing -> return(False)
                     Just(n) ->  do
                                    A.setFocusToNode gid n gv
