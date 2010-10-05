@@ -5,8 +5,7 @@ module Types.CallEditor(
    editObject,
    ) where
 
-import System
-
+import System.Exit
 import System.IO.Unsafe
 
 import Util.Computation

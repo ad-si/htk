@@ -9,6 +9,10 @@ module HTk.Toolkit.ScrollBox (
 
 ) where
 
+import Util.Computation
+
+import Events.Synchronized
+
 import HTk.Toplevel.HTk
 import HTk.Kernel.Core
 

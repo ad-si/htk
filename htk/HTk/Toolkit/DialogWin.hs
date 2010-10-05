@@ -33,6 +33,9 @@ import System.IO.Unsafe
 
 import Util.Messages
 import Util.ExtendedPrelude (newFallOut,mkBreakFn)
+import Util.Computation
+
+import Events.Events
 
 import HTk.Kernel.Core
 import qualified HTk.Toplevel.HTk as HTk (font)

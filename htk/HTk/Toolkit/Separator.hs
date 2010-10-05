@@ -8,6 +8,8 @@ module HTk.Toolkit.Separator (
 
         ) where
 
+import Util.Computation
+
 import HTk.Kernel.Core
 import HTk.Toplevel.HTk
 

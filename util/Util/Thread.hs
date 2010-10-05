@@ -5,14 +5,12 @@
 
 -- | Basic Thread operations.
 module Util.Thread (
-   module Util.Computation,
 
    ThreadId,
 
    hashThreadId, -- :: ThreadId -> Int32
 
    -- thread creation
-   forkIO, -- identical with standard action.
 
    forkIODebug, -- :: IO () -> IO ThreadId
       -- Try to be more helpful about catching exceptions.
@@ -58,6 +56,7 @@ import qualified GHC.Base
 
 import Control.Exception
 import Control.Concurrent
+import Control.Monad
 import Data.HashTable
 import Data.Int
 

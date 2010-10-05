@@ -6,8 +6,6 @@ module Types.ManagePermissions(
    showAllPermissions,
    ) where
 
-import Control.Monad
-
 import Util.VariableSet(toKey)
 
 import Util.Computation

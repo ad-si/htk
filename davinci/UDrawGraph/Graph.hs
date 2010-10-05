@@ -42,6 +42,7 @@ import Util.Delayer
 import qualified Util.UniqueString as UniqueString
 import qualified Util.VariableList as VariableList
 
+import Util.Computation (done)
 import Util.Dynamics
 import Util.Registry
 import Util.ExtendedPrelude

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | This module provides a general mechanism for bunching up commands to
 -- a server and sending them in one go.
 module Server.MultiPlexer(

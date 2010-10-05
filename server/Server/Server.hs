@@ -73,7 +73,7 @@ runServer serviceList =
 ------------------------------------------------------------------------
 -- This obscenely long function is divided as follows:
 ------------------------------------------------------------------------
-      (serviceDataList :: [(String,ServiceData)]) <-
+      serviceDataList <- -- :: [(String,ServiceData)]
          mapM
             (\ (Service service) ->
                do

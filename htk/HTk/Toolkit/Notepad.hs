@@ -41,8 +41,13 @@ module HTk.Toolkit.Notepad (
 ) where
 
 import Data.Maybe
-
 import qualified Data.Map as Map
+
+import Util.Computation
+
+import Events.Events
+import Events.Channels
+import Events.Synchronized
 
 import Reactor.ReferenceVariables
 

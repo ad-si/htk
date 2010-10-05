@@ -16,10 +16,15 @@ module HTk.Toolkit.IconBar (
 
 where
 
-import HTk.Toplevel.HTk
+import Util.Computation
+
+import Events.Synchronized
+
 import Reactor.ReferenceVariables
+
 import HTk.Kernel.Configuration
 import HTk.Kernel.GUIObject
+import HTk.Toplevel.HTk
 
 
 -- -----------------------------------------------------------------------

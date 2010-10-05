@@ -27,7 +27,6 @@ module Types.DisplayParms(
    fontStyleSource,
    ) where
 
-import Data.Maybe
 import Data.Char
 
 import Util.Computation

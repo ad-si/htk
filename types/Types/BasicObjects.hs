@@ -38,8 +38,6 @@ module Types.BasicObjects(
 
    ) where
 
-import IO
-
 import Util.TempFile
 import Util.Registry
 import Util.ICStringLen

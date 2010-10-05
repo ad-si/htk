@@ -146,6 +146,11 @@ import Util.ExtendedPrelude
 import Util.BinaryAll(HasBinary(..),mapWrite,mapRead)
 import Util.Messages
 
+import Util.Computation
+
+import Events.Events
+import Events.Channels
+
 import HTk.Toplevel.HTk
 import HTk.Toolkit.HTkMenu
 

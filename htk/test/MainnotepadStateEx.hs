@@ -1,6 +1,10 @@
 
 module Main (main) where
 
+import Util.Computation
+
+import Events.Synchronized
+
 import HTk.Toplevel.HTk
 import HTk.Toolkit.Notepad
 import HTk.Toolkit.Name

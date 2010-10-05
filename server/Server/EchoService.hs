@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | This is a very simple service which rebroadcasts all lines it
 -- receives to all currently connected clients.
 module Server.EchoService(

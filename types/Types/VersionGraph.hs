@@ -616,7 +616,7 @@ newVersionGraph1
 
       closeDownAction <- doOnce closeDownAction'
 
-      spawn destructorThread
+      _ <- spawn destructorThread
 
       let
          versionGraph = VersionGraph {

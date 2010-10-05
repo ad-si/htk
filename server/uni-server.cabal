@@ -26,8 +26,7 @@ library
     old-time, random, uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk,
     HaXml >= 1.13.2 && < 1.14
 
-  ghc-options: -fglasgow-exts
-  extensions: NoMonoPatBinds, RecursiveDo
-
-  if impl(ghc > 6.10)
+  if impl(ghc < 6.10)
+    extensions: PatternSignatures
+  else
     ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

@@ -10,6 +10,12 @@ module HTk.Toolkit.SpinButton (
 
 import System.IO.Unsafe
 
+import Util.Computation
+
+import Events.Events
+import Events.Channels
+import Events.Synchronized
+
 import HTk.Kernel.Core
 import HTk.Toplevel.HTk
 

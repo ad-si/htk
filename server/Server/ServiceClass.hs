@@ -1,3 +1,7 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | The ServiceClass class needs to be instanced (at least partially)
 -- to define a new service.
 module Server.ServiceClass(

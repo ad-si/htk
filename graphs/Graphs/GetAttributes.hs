@@ -118,7 +118,7 @@ getNodeAttributes registry =
                do
                   displayError "You must first define some node types"
                   cancelQuery
-            _ -> done
+            _ -> return ()
          let
             def = NodePreAttributes {
                preNodeType=head knownTypeNames,
@@ -201,7 +201,7 @@ getArcAttributes registry =
                do
                   displayError "You must first define some arc types"
                   cancelQuery
-            _ -> done
+            _ -> return ()
          let
             def = ArcPreAttributes {
                preArcType=head knownTypeNames

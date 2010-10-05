@@ -17,6 +17,11 @@ import Control.Exception
 
 import Util.FileNames
 import Util.Messages
+import Util.Computation
+
+import Events.Events
+import Events.Channels
+import Events.Synchronized
 
 import Reactor.ReferenceVariables
 

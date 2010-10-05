@@ -6,8 +6,6 @@ module Types.CreateObjectMenu(
 
 import Data.Maybe
 
-import Util.Computation
-
 import HTk.Toolkit.SimpleForm
 
 import Types.View

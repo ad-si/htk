@@ -3,12 +3,13 @@ version:        2.2.0.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
-author:         uDrawGraph@informatik.uni-bremen.de
+author:         uniform@informatik.uni-bremen.de
 maintainer:     Christian.Maeder@dfki.de
-homepage:       http://www.informatik.uni-bremen.de/uDrawGraph/
+homepage:       http://www.informatik.uni-bremen.de/uniform/wb
 category:       GUI
 synopsis:       Graphs binding
 description:    Binding to uDrawGraph (formerly daVinci)
+                <http://www.informatik.uni-bremen.de/uDrawGraph/>
 cabal-version:  >= 1.4
 Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
 

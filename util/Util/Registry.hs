@@ -78,7 +78,6 @@ import GHC.Prim(unsafeCoerce#)
 import Util.ExtendedPrelude(newFallOut,mkBreakFn)
 import Util.Dynamics
 import Util.BinaryAll
-import Util.Thread
 import Util.CompileFlags
 import Util.Object(ObjectID)
 
@@ -147,7 +146,7 @@ class KeyOpsRegistry registry from where
    deleteFromRegistry registry from =
       do
          deleteFromRegistryBool registry from
-         done
+         return ()
 
    listKeys :: registry -> IO [from]
 

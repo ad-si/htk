@@ -12,6 +12,7 @@ import qualified Data.Map as Map
 import Control.Monad.State
 import Control.Monad.Trans
 
+import Util.Computation
 import Util.Thread
 
 import Imports.EntityNames

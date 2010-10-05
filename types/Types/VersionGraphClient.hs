@@ -56,6 +56,7 @@ import Data.Maybe
 import Control.Concurrent.MVar
 
 import Util.AtomString
+import Util.Computation (done)
 import Util.Thread
 import Util.Sources
 import Util.Sink
@@ -134,7 +135,7 @@ mkVersionGraphClient :: (?server :: HostPort) => IO VersionGraphClient
 mkVersionGraphClient =
    do
       (versionGraph,terminator) <- connectToServer
-      registerDestroyAct terminator
+      _ <- registerDestroyAct terminator
       return versionGraph
 
 -- | Get the VersionGraph (internal version), and arrange for the connection to
@@ -143,7 +144,7 @@ mkVersionGraphClientInternal :: VersionState -> IO VersionGraphClient
 mkVersionGraphClientInternal versionState =
    do
       (versionGraph,terminator) <- connectToServerInternal versionState
-      registerDestroyAct terminator
+      _ <- registerDestroyAct terminator
       return versionGraph
 
 -- | connectToServer generates a new graph connected to the version

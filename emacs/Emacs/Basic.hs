@@ -41,10 +41,10 @@ import IO
 
 import qualified Control.Exception
 import Control.Concurrent.MVar
+import Control.Concurrent (forkIO)
 import System.IO.Unsafe
 
 import Util.Object
-import Util.Thread(forkIO)
 import Util.Debug(debugString)
 import Util.Computation
 import Util.WBFiles

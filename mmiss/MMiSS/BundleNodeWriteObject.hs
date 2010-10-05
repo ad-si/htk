@@ -4,7 +4,7 @@ module MMiSS.BundleNodeWriteObject(
 
 import Text.XML.HaXml.Types
 
-import Util.Thread
+import Util.Computation
 
 import Reactor.BSem
 

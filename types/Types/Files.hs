@@ -37,7 +37,6 @@ import HTk.Toolkit.SimpleForm
 import Posixutil.CopyFile
 
 import Graphs.GraphConfigure
-import Graphs.Graph(NodeType)
 
 import Types.View
 import Types.CodedValue

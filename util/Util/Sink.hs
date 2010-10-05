@@ -31,12 +31,14 @@ module Util.Sink(
    ) where
 
 import Control.Concurrent
+import Control.Exception (try)
 import System.IO.Unsafe
 import Data.IORef
 
 import Util.Object
 import Util.ExtendedPrelude
 import Util.Thread
+import Util.Computation (done)
 import Util.VSem
 
 -- -------------------------------------------------------------------------

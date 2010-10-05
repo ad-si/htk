@@ -142,6 +142,7 @@ module Types.Link(
 import Control.Concurrent
 import Data.IORef
 
+import Util.Computation
 import Util.Registry
 import Util.Dynamics
 import Util.VariableSet(HasKey(..))

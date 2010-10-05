@@ -1,3 +1,8 @@
+{-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE NoMonoPatBinds #-}
+{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | CallServer does the job of calling up a server.
 module Server.CallServer(
    -- The context of all these functions is the same and is omitted from

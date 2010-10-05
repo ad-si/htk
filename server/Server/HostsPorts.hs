@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE ImplicitParams #-}
+
 -- | HostPorts provides an abstract interface for describing hosts and
 -- ports.
 module Server.HostsPorts(
@@ -161,13 +164,12 @@ fromHostDescription' :: String -> Maybe LoginInfo -> IO (WithError HostPort)
 fromHostDescription' description loginInfoOpt =
    do
       let
-          (hostPortWE :: WithError (String,Int))
+          hostPortWE -- :: WithError (String,Int)
              = case splitToChar ':' description of
                 Nothing -> hasValue (description,defaultPort)
-                Just (host,portStr)
-                   | (Just port) <- readCheck portStr
-                      -> hasValue (host,port)
-                   | True -> hasError ("Cannot parse port number " ++ portStr
+                Just (host,portStr) -> case readCheck portStr of
+                   Just port -> hasValue (host,port :: Int)
+                   _ -> hasError ("Cannot parse port number " ++ portStr
                       ++ " in " ++ description)
 
       mapWithErrorIO

@@ -7,6 +7,10 @@ module HTk.Toolkit.TextDisplay(
 
 ) where
 
+import Util.Computation
+
+import Events.Events
+
 import HTk.Toplevel.HTk
 import HTk.Toolkit.ScrollBox
 

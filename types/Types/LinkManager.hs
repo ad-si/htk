@@ -260,7 +260,6 @@ import Util.Messages
 import Imports.FolderStructure
 import Imports.Imports
 
-import Util.Debug
 import Types.VersionDB
 import Types.LinkDrawer
 import Types.CodedValue

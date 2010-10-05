@@ -13,6 +13,7 @@ import qualified Data.Map as Map
 import System.IO.Unsafe
 import Control.Exception
 
+import Util.Computation
 import Util.ExtendedPrelude
 import Util.Object
 import Util.Sources

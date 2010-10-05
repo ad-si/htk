@@ -1,3 +1,6 @@
+{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Notification is intended for UniForM processes (possibly on
 -- different machines) to communicate when files are touched.
 -- We use "EchoService".
@@ -11,15 +14,13 @@ module Server.Notification(
                 -- when someone sends a notification with this String.
    ) where
 
-import System.IO
-
 import Util.Object
 
 import Events.Events
 import Events.GuardedEvents
 import Events.EqGuard
 
-import Util.Thread
+import Control.Concurrent (forkIO)
 import Server.HostsPorts
 import Server.EchoService
 import Server.CallServer
@@ -79,6 +80,4 @@ notify (Notifier{writeAction=writeAction}) key = writeAction key
 
 isNotified :: Notifier -> String -> Event ()
 isNotified notifier@(Notifier{eventChannel=eventChannel}) key =
-   toEvent (listen eventChannel |> Eq key) >> done
-
-
+   toEvent (listen eventChannel |> Eq key) >> return ()

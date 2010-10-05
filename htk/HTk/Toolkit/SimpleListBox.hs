@@ -37,6 +37,9 @@ import Control.Concurrent.MVar
 
 import Util.ExtendedPrelude
 import Util.Object
+import Util.Computation
+
+import Events.Events
 
 import HTk.Kernel.Core(GUIObject(..))
 import HTk.Toplevel.HTk

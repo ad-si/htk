@@ -21,6 +21,7 @@ import qualified Data.Map as Map
 import Data.IORef
 import qualified Data.Set as Set
 
+import Util.Computation
 import Util.ExtendedPrelude
 import Util.Registry
 import Util.Dynamics

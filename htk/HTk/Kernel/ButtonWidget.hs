@@ -8,9 +8,8 @@ module HTk.Kernel.ButtonWidget (
 
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
-import Util.Computation
 import HTk.Kernel.Configuration
-
+import Control.Exception (try)
 
 -- -----------------------------------------------------------------------
 -- class ButtonWidget
@@ -22,7 +21,7 @@ class Widget w => ButtonWidget w where
   flash   :: w -> IO ()
   -- Invokes the given button widget.
   invoke  :: w -> IO ()
-  flash w  = do {try(execMethod w (\ nm -> tkFlash nm)); done}
+  flash w  = do {try(execMethod w (\ nm -> tkFlash nm)); return ()}
   invoke w = execMethod (toGUIObject w) (\ nm -> tkInvoke nm)
 
 tkFlash :: ObjectName -> TclScript

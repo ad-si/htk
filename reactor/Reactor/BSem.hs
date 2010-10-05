@@ -16,7 +16,7 @@ import Data.Maybe
 
 import Control.Concurrent.MVar
 
-import Util.Thread
+import Util.Computation
 import Events.Synchronized
 import Reactor.Lock
 

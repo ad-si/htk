@@ -155,6 +155,7 @@ module Types.ObjectTypes(
 import System.IO.Unsafe
 import qualified Data.Dynamic
 
+import Util.Computation
 import Util.Registry
 import Util.ExtendedPrelude
 import Util.Dynamics

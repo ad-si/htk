@@ -1,7 +1,6 @@
 module Server.Hosts where
 
 import Text.XML.HaXml.Xml2Haskell
-import Text.XML.HaXml.OneOfN
 import Data.Char (isSpace)
 
 

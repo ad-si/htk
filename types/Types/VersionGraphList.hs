@@ -12,7 +12,6 @@ module Types.VersionGraphList(
    ) where
 
 import Data.Maybe
-import Control.Monad
 
 import System.IO.Unsafe
 import Control.Concurrent

@@ -47,6 +47,7 @@ import Data.Char
 import System.IO.Unsafe
 import qualified Data.Map as Map
 
+import Util.Computation
 import Util.WBFiles
 import Util.ICStringLen
 import Util.Dynamics

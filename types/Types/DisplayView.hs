@@ -16,18 +16,16 @@ import Data.Maybe
 
 import qualified Data.Map as Map
 import Control.Concurrent.MVar
+import Control.Concurrent (forkIO)
 
 import Util.Dynamics
 import Util.ExtendedPrelude(mapEq,mapOrd)
 import Util.Registry
-import Util.Thread
-import Util.Computation
 import Util.Sources
 import Util.Delayer
 import Util.VariableList hiding (redraw)
 import Util.VariableSet
 import Util.Sink
-import qualified Util.VariableList as VariableList
 
 import Events.Destructible
 import Events.Events (sync)

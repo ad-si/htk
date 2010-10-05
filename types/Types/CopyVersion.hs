@@ -19,7 +19,6 @@ import SimpleDB.VersionInfo
 
 import Types.Link
 import Types.View
-import Types.ViewType
 import Types.CodedValue
 import Types.ObjectTypes
 import Types.GlobalRegistry

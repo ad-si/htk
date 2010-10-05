@@ -43,7 +43,6 @@ import Types.ViewType
 import Types.MergeTypes
 import Types.GlobalRegistry
 import Types.DisplayParms
-import Types.ViewType(View)
 import Types.SpecialNodeActions(emptyNodeActions)
 
 -- ----------------------------------------------------------------------

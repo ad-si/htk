@@ -12,7 +12,6 @@ import Util.VariableSet(HasKey(..))
 import Types.VersionDB
 import Types.ViewType
 import Types.MergeTypes
-import Types.View
 import Types.Link
 import Types.NoAccessObject -- used for dummy wrapped link
 

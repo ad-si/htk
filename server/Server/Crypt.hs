@@ -1,3 +1,5 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+
 -- | This module encapsulates the Unix crypt function to provide a means of
 -- verifying passwords.
 module Server.Crypt(
@@ -11,7 +13,6 @@ import System.IO.Unsafe
 import Events.Synchronized
 
 import Reactor.BSem
-import Reactor.Lock
 
 -- Reimplementation of crypt(3) which doesn't require libcrypt.
 foreign import ccall unsafe "dipperstein_crypt.h dipperstein_crypt" crypt0

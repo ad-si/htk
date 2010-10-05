@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 -- | This module deals with reading and writing a log file containing
 -- entries which are instances of HasBinary.
 module Server.LogFile(

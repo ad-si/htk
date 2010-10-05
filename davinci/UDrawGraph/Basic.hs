@@ -58,13 +58,14 @@ import System.IO.Error as IO
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
+import qualified Control.Exception as Exception(try)
 import Foreign.C.String
 import Data.IORef
 import System.Environment
 
 import Util.Object
 import Util.WBFiles
-import qualified Util.Computation as Computation (try, propagate)
+import Util.Computation as Computation (propagate, done)
 import Util.FileNames
 import Util.Registry
 import Util.UniqueString
@@ -455,7 +456,7 @@ withHandler newHandler context act =
 
             oldHandler <- readIORef ioRef
             writeIORef ioRef newHandler
-            result <- Computation.try act
+            result <- Exception.try act
             writeIORef ioRef oldHandler
             return result
          )

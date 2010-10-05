@@ -17,6 +17,7 @@ import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Control.Exception(assert)
 
+import Util.Computation
 import Util.Thread
 import Util.ExtendedPrelude
 import Util.AtomString(toString,fromStringWE)

@@ -67,7 +67,6 @@ import HTk.Toolkit.SimpleForm
 
 import Graphs.GraphDisp
 import Graphs.GraphConfigure
-import Graphs.Graph(ArcType,NodeType)
 
 import Imports.FolderStructure(getName)
 import Imports.Imports

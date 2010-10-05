@@ -211,8 +211,8 @@ getHostsRegistry =
                      Default portStr -> portStr
                      NonDefault portStr -> portStr
 
-                  (port1 :: Int) = case readCheck portStr of
-                     Just portNum -> portNum
+                  port1 = case readCheck portStr of
+                     Just portNum -> portNum :: Int
                      Nothing -> err (show portStr
                         ++ " is not a valid port number")
 

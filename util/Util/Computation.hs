@@ -5,25 +5,23 @@
 module Util.Computation (
         Answer,
 
-        Monad(..),
-
         done,
 
         ( # ), -- reverse of application
 
         -- * exceptions and handlers
         propagate,
-        try, -- in IO
+        try, -- re-export from Control.Exception
         tryUntilOK,
         raise,
 
         -- * selectors
-        when,  -- when b y means "if b is true, perform y"
-        unless,
+        when, -- re-export from Control.Monad
+        unless, -- re-export from Control.Monad
         incase,
 
         -- * iterators
-        forever,
+        forever, -- re-export from Control.Monad
         foreverUntil,
         foreach,
         while,
@@ -106,7 +104,7 @@ module Util.Computation (
         )
 where
 
-import Control.Monad hiding (forever)
+import Control.Monad
 
 import Control.Exception
 
@@ -339,9 +337,6 @@ toMonadWithError act = MonadWithError (
 -- --------------------------------------------------------------------------
 -- Derived Control Abstractions: Iteration
 -- --------------------------------------------------------------------------
-
-forever :: Monad m => m a -> m ()
-forever c  = sequence_ (repeat c)     -- x >> forever x
 
 foreverUntil :: Monad m => m Bool -> m ()
 foreverUntil act =

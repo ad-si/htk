@@ -152,6 +152,10 @@ import qualified Prelude (not)
 import System.IO.Unsafe
 
 import Util.Object
+import Util.Computation
+
+import Events.Channels
+import Events.Events
 
 import Reactor.ReferenceVariables
 

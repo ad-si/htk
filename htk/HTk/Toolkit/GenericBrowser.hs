@@ -10,9 +10,14 @@ module HTk.Toolkit.GenericBrowser (
 
 ) where
 
-import Control.Monad hiding (forever)
+import Control.Monad
 
 import System.IO.Unsafe
+
+import Util.Computation
+
+import Events.Events
+import Events.Channels
 
 import Reactor.ReferenceVariables
 

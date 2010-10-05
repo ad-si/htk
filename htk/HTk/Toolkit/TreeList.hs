@@ -54,6 +54,12 @@ import Data.Maybe
 
 import System.IO.Unsafe
 
+import Util.Computation
+
+import Events.Events
+import Events.Channels
+import Events.Synchronized
+
 import Reactor.ReferenceVariables
 
 import HTk.Toplevel.HTk

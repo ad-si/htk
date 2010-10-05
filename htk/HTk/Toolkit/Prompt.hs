@@ -11,6 +11,10 @@ module HTk.Toolkit.Prompt (
 
 ) where
 
+import Util.Computation
+
+import Events.Synchronized
+
 import HTk.Kernel.Core
 import HTk.Toplevel.HTk
 
