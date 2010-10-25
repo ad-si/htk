@@ -288,10 +288,16 @@ GHCDIR = $(shell $(HC) --print-libdir | sed -e 's+/lib/.*++g')
 echoghcdir :
 	echo $(GHCDIR)
 
-CABAL = $(SETUP) configure -O --prefix=$(GHCDIR) --global; \
+CABAL = \
+    $(CP) -f $(TOP)/LICENCE.txt LICENSE ; \
+    $(CP) -f $(TOP)/Setup.hs . ; \
+    $(SETUP) configure -O --prefix=$(GHCDIR) --global; \
+    $(SETUP) sdist; \
+    (cd dist; $(TAR) zxf uni-*.tar.gz; cd uni-*; \
+    $(SETUP) configure --prefix=$(GHCDIR) --global; \
     $(SETUP) build; \
     $(SETUP) haddock; \
-    $(SETUP) install
+    $(SETUP) install )
 
 CABALFILE = $(wildcard *.cabal)
 cabalhere : $(SETUP)
