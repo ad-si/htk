@@ -15,7 +15,7 @@ module Graphs.GetAttributes(
    displayError, -- :: String -> IO ()
    ) where
 
-import Control.Exception
+import Control.Exception as Exception
 
 import Util.Dynamics
 import Util.Registry hiding (getValue)
@@ -256,15 +256,18 @@ getSingleString query =
 newtype CancelException = CancelException () deriving (Typeable)
 
 cancelQuery :: IO anything
-cancelQuery = throwDyn (CancelException ())
+cancelQuery = throw $ toDyn (CancelException ())
 
 allowCancel :: IO a -> IO (Maybe a)
 allowCancel action =
-   catchDyn
+   Exception.catchJust
+      (\ e -> case fromDynamic e of
+           Just (CancelException ()) -> return $ Just ()
+           _ -> return Nothing)
       (do
          result <- action
          return (Just result)
          )
-      (\ (CancelException ()) -> return Nothing)
+      (\ _ -> return Nothing)
 
 

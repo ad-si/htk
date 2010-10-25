@@ -2,6 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | HTk's <strong>entry field</strong>.<br>
 -- A simple widget that displays an editable line of text.
@@ -16,6 +17,8 @@ module HTk.Widgets.Entry (
   getShowText
 
 ) where
+
+import Control.Exception
 
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
@@ -241,7 +244,7 @@ instance HasSelectionBaseIndexRange (Entry a) Int where
       mstart <-
         try (evalMethod ent (\nm -> [show nm ++ " index sel.first "]))
       case mstart of
-        Left e -> return Nothing     -- actually a tk error
+        Left (e :: SomeException) -> return Nothing     -- actually a tk error
         Right v -> return (Just v)
   -- Gets the end index of the entry\'s selection.
   getSelectionEnd ent =
@@ -249,7 +252,7 @@ instance HasSelectionBaseIndexRange (Entry a) Int where
       mend <-
         try (evalMethod ent (\nm -> [show nm ++ " index sel.last "]))
       case mend of
-        Left e -> return Nothing    -- actually a tk error
+        Left (e :: SomeException) -> return Nothing    -- actually a tk error
         Right v -> return (Just v)
 
 -- | An editor widget has an X selection.

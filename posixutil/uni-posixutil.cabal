@@ -1,5 +1,5 @@
 name:           uni-posixutil
-version:        2.2.0.0
+version:        2.2.1.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -10,7 +10,7 @@ category:       Uniform
 synopsis:       Posix utilities for the uniform workbench
 description:    posix utilities
 cabal-version:  >= 1.4
-tested-with:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+tested-with:    GHC==6.10.4, GHC==6.12.3
 
 library
   exposed-modules:
@@ -21,7 +21,7 @@ library
     Posixutil.BlockSigPIPE
 
   build-depends:
-        base >=3 && < 4,
+        base >=4 && < 5,
         directory,
         process,
         uni-util,
@@ -32,5 +32,4 @@ library
   else
      build-Depends: unix
 
-  if impl(ghc > 6.10)
-    ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations
+  ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

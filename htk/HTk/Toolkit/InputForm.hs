@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | the inputform
 module HTk.Toolkit.InputForm (
@@ -34,6 +35,8 @@ module HTk.Toolkit.InputForm (
 
         )
 where
+
+import Control.Exception
 
 import Util.Messages
 import HTk.Kernel.Core
@@ -288,16 +291,14 @@ instance InputField EntryField where
         modifier f fe@(EntryField pr lbl pv) = synchronize fe (do {
                 setReplacorCmd pv cmd;
                 return fe
-                }) where cmd r = do {
-                          ans <- try (getVar fe);
+                }) where cmd r = do
+                          ans <- try (getVar fe)
                           case ans of
-                                  (Left e) -> do {
-                                          txt <- getText lbl;
-                                          errorMess (txt++" legal field value");
+                                  Left (e :: SomeException) -> do
+                                          txt <- getText lbl
+                                          errorMess (txt++" legal field value")
                                           raise illegalGUIValue
-                                          }
-                                  (Right val) -> return (f r val)
-                          }
+                                  Right val -> return (f r val)
 
 -- --------------------------------------------------------------------------
 --  Numeric Entry Fields
@@ -326,10 +327,12 @@ newNumEntryField form@(InputForm box field) (min, max) delta confs =
         pack lbl [Expand Off, Fill X]
         pr <- newEntry b []
         pack pr [Fill X, Expand Off]
-        sp <- newSpinButton b (\sp-> do tv<- try (getValue pr);
-                                        case tv of
-                                          Right v -> pr # value (spin sp v)
-                                          Left _  -> return pr) []
+        sp <- newSpinButton b
+          (\sp-> do
+             tv <- try (getValue pr);
+             case tv of
+               Right v -> pr # value (spin sp v)
+               Left (_ :: SomeException)  -> return pr) []
         pack sp [Expand Off]
         pv <- newFieldInf
                 (\c -> do {bg (toColour c) pr; done})
@@ -393,25 +396,22 @@ instance InputField NumEntryField where
                 synchronize fe $ do {
                 setReplacorCmd pv cmd;
                 return fe
-                } where cmd r = do {
-                          ans <- try (getVar fe);
+                } where cmd r = do
+                          ans <- try (getVar fe)
                           case ans of
-                                  (Left e) -> do {
-                                          txt <- getText lbl;
-                                          errorMess ("Illegal field value for "++ txt);
+                                  Left (e :: SomeException) -> do
+                                          txt <- getText lbl
+                                          errorMess ("Illegal field value for "++ txt)
                                           raise illegalGUIValue
-                                          }
-                                  (Right val) -> return (f r val) {- do
+                                  Right val -> return (f r val) {- do
                                           num <- try ((readIO val) :: IO b)
                                           case num of
                                             Left _ -> do txt <- getText lbl
                                                          createErrorWin
-                                                           ("Not a numeric                                                          \value for field "
+                                                           ("Not a numeric " ++
+                                                            "value for field "
                                                             ++ txt) []
                                             Right _ -> return (f r val) -}
-                          }
-
-
 
 -- --------------------------------------------------------------------------
 --  Checkbox Fields
@@ -497,17 +497,14 @@ instance InputField CheckboxField where
         modifier f fe@(CheckboxField pr lbl cbv pv) = synchronize fe (do {
                 setReplacorCmd pv cmd;
                 return fe
-                }) where cmd r = do {
-                          ans <- try (getVar fe);
+                }) where cmd r = do
+                          ans <- try (getVar fe)
                           case ans of
-                                  (Left e) -> do {
-                                          txt <- getText lbl;
-                                          errorMess (txt++" legal field value");
+                                  Left (e :: SomeException) -> do
+                                          txt <- getText lbl
+                                          errorMess (txt++" legal field value")
                                           raise illegalGUIValue
-                                          }
-                                  (Right val) -> return (f r val)
-                          }
-
+                                  Right val -> return (f r val)
 
 -- --------------------------------------------------------------------------
 --  Text Fields
@@ -589,16 +586,14 @@ instance InputField TextField where
         modifier f fe@(TextField tp lbl pv) = synchronize fe (do {
                 setReplacorCmd pv cmd;
                 return fe
-                }) where cmd r = do {
-                          ans <- try (getVar fe);
+                }) where cmd r = do
+                          ans <- try (getVar fe)
                           case ans of
-                            Left err -> do {
-                                   txt <- getText lbl;
-                                   errorMess (txt++" legal field value");
+                            Left (err :: SomeException) -> do
+                                   txt <- getText lbl
+                                   errorMess (txt++" legal field value")
                                    raise illegalGUIValue
-                                   }
                             Right val -> return (f r val)
-                          }
 
 
 -- --------------------------------------------------------------------------

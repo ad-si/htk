@@ -511,7 +511,7 @@ data FallOutExcep = FallOutExcep {
    } deriving (Typeable)
 
 mkBreakFn :: ObjectID -> BreakFn
-mkBreakFn id mess = throwDyn (FallOutExcep {fallOutId = id,mess = mess})
+mkBreakFn id mess = throw $ toDyn (FallOutExcep {fallOutId = id,mess = mess})
 
 
 newFallOut :: IO (ObjectID,IO a -> IO (Either String a))
@@ -523,12 +523,8 @@ newFallOut =
 
       return (id,tryFn)
 
-isOurFallOut :: ObjectID -> Exception -> Maybe String
-isOurFallOut oId exception =
-   case dynExceptions exception of
-      Nothing -> Nothing
-         -- don't handle this as it's not even a dyn.
-      Just dyn ->
+isOurFallOut :: ObjectID -> Dyn -> Maybe String
+isOurFallOut oId dyn =
          case fromDynamic dyn of
             Nothing -> Nothing -- not a fallout.
             Just fallOutExcep -> if fallOutId fallOutExcep /= oId
@@ -552,7 +548,7 @@ addGeneralFallOut =
    do
       (objectId,catchFn) <- newGeneralFallOut
       let
-         breakFn a = throwDyn (GeneralFallOutExcep {
+         breakFn a = throw $ toDyn (GeneralFallOutExcep {
             generalFallOutId = objectId,a=a})
       return (GeneralBreakFn breakFn,catchFn)
 
@@ -569,10 +565,7 @@ newGeneralFallOut =
       let
          tryFn act =
             tryJust
-               (\ exception -> case dynExceptions exception of
-                  Nothing -> Nothing
-                     -- don't handle this as it's not even a dyn.
-                  Just dyn ->
+               (\ dyn ->
                      case fromDynamic dyn of
                         Nothing -> Nothing
                            -- not a fallout, or not the right type of a.
@@ -593,16 +586,14 @@ newGeneralFallOut =
 -- General catch function for our exceptions.
 -- ------------------------------------------------------------------------
 
-ourExcepToMess :: Exception -> Maybe String
-ourExcepToMess excep = case dynExceptions excep of
-   Nothing -> Nothing
-   Just dyn ->
+ourExcepToMess :: Dyn -> Maybe String
+ourExcepToMess dyn =
       case fromDynamic dyn of
          Just fallOut -> Just ("Fall-out exception "
             ++ show (fallOutId fallOut) ++ ": " ++ mess fallOut)
          Nothing -> Just ("Mysterious dynamic exception " ++ show dyn)
 
-showException2 :: Exception -> String
+showException2 :: Dyn -> String
 showException2 exception =
    fromMaybe (show exception) (ourExcepToMess exception)
 

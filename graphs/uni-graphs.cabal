@@ -1,5 +1,5 @@
 name:           uni-graphs
-version:        2.2.0.0
+version:        2.2.1.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -10,7 +10,7 @@ category:       GUI
 synopsis:       Graphs
 description:    Graphs toolkit
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+Tested-With:    GHC==6.10.4, GHC==6.12.3
 
 flag debug
   description: add debug traces
@@ -25,13 +25,10 @@ library
     Graphs.EmptyGraphSort, Graphs.PureGraph, Graphs.PureGraphPrune,
     Graphs.PureGraphToGraph, Graphs.VersionDag, Graphs.PureGraphMakeConsistent
 
-  build-depends: base >=3 && < 4, containers, mtl, uni-util, uni-events,
+  build-depends: base >=4 && < 5, containers, mtl, uni-util, uni-events,
     uni-reactor, uni-htk
 
   if flag(debug)
     cpp-options: -DDEBUG
 
-  if impl(ghc < 6.10)
-    extensions: PatternSignatures
-  else
-    ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations
+  ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

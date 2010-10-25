@@ -1,5 +1,5 @@
 name:           uni-util
-version:        2.2.0.0
+version:        2.2.1.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -14,7 +14,7 @@ description:
  They are kept for compatibility reason and put on hackage to ease
  installation.
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+Tested-With:    GHC==6.10.4, GHC==6.12.3
 
 extra-source-files: include/new_object.h include/default_options.h
 
@@ -45,7 +45,7 @@ library
  include-dirs: include
  c-sources: new_object.c, default_options.c
 
- build-depends: base >= 3 && < 4, parsec < 3, mtl, directory,
+ build-depends: base >= 4 && < 5, parsec < 3, mtl, directory,
   network, containers, bytestring, array, old-time
 
  if flag(base4)
@@ -57,7 +57,4 @@ library
  if os(windows)
    cpp-options: -DWINDOWS
 
- if impl(ghc < 6.10)
-   extensions: PatternSignatures
- else
-   ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations
+ ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

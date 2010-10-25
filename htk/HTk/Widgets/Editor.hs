@@ -2,6 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | HTk\'s /editor widget/.
 -- A text container for editing purposes. An editor widget can contain
@@ -47,6 +48,9 @@ module HTk.Widgets.Editor (
 
 ) where
 
+import Control.Exception
+import Data.Char(isSpace)
+
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
@@ -57,7 +61,7 @@ import HTk.Components.Selection
 import HTk.Devices.XSelection
 import HTk.Components.ICursor
 import HTk.Components.Index
-import Data.Char(isSpace)
+
 import Util.Computation
 import Events.Destructible
 import Events.Synchronized
@@ -280,6 +284,7 @@ appendText :: Editor
 appendText ed str =
   do
     try (insertText ed EndOfText str)
+      :: IO (Either SomeException ())
     moveto Vertical ed 1.0
     done
 
@@ -326,8 +331,9 @@ instance (HasIndex Editor i BaseIndex) => HasBBox Editor i  where
     do
       binx <- getBaseIndex w i
       ans <- try (evalMethod w (\nm -> [tkBBox nm (binx::BaseIndex)]))
-      case ans of (Left e)  -> return Nothing
-                  (Right v) -> return (Just v)
+      case ans of
+        Left (e :: SomeException)  -> return Nothing
+        Right v -> return (Just v)
     where tkBBox nm i = show nm ++ " bbox " ++ show i
 
 
@@ -507,14 +513,14 @@ instance HasSelectionBaseIndexRange Editor (Distance,Distance) where
         getSelectionStart tp = do
                 mstart <- try (evalMethod tp (\nm -> tkSelFirst nm))
                 case mstart of
-                        (Left e)  -> return Nothing -- actually a tk error
-                        (Right v) -> (return . Just) v
+                        Left (e :: SomeException)  -> return Nothing -- actually a tk error
+                        Right v -> return $ Just v
         -- Gets the end index of the editor\'s selection.
         getSelectionEnd tp = do
                 mstart <- try (evalMethod tp (\nm -> tkSelEnd nm))
                 case mstart of
-                        (Left e)  -> return Nothing -- actually a tk error
-                        (Right v) -> (return . Just) v
+                        Left (e :: SomeException)  -> return Nothing -- actually a tk error
+                        Right v -> return $ Just v
 
 -- | You can select a text range inside an editor widget.
 instance (

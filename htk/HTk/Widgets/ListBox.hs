@@ -2,6 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | HTk\'s /listbox widget/ .
 -- A scrollable widget that displays a set of text lines with selection
@@ -23,7 +24,9 @@ module HTk.Widgets.ListBox (
 
 ) where
 
+import Control.Exception
 import Data.List
+
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
 import HTk.Kernel.Configuration
@@ -169,7 +172,7 @@ instance HasIndex (ListBox a) i Int => HasBBox (ListBox a) i  where
     do
       binx <- getBaseIndex w i
       ans <- try (evalMethod w (\nm -> [tkBBox nm (binx::Int)]))
-      case ans of Left e  -> return Nothing
+      case ans of Left (e :: SomeException)  -> return Nothing
                   Right v -> return (Just v)
     where tkBBox nm i = show nm ++ " bbox " ++ show i
 

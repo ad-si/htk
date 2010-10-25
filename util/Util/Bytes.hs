@@ -80,9 +80,7 @@ import Data.Char
 import System.IO
 
 import System.IO.Error
-import Control.Exception(Exception(IOException),throw)
-
-
+import Control.Exception (throw)
 
 -- ----------------------------------------------------------------------
 -- The datatypes
@@ -175,11 +173,10 @@ throwEOF :: Handle -> IO a
 throwEOF handle =
    do
       let
-         eofError = IOException (
+         eofError =
             mkIOError eofErrorType
                "BinaryIO" (Just handle)
                Nothing
-            )
       throw eofError
 
 -- ----------------------------------------------------------------------

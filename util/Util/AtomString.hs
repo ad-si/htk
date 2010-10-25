@@ -114,9 +114,7 @@ fromStringWEHacked :: (StringClass stringClass,DeepSeq stringClass)
 fromStringWEHacked str =
    do
       either <- tryJust
-         (\ exception -> case dynExceptions exception of
-            Nothing -> Nothing -- don't handle this as it's not even a dyn.
-            Just dyn ->
+         (\ dyn ->
                case fromDynamic dyn of
                   Nothing -> Nothing -- not a fromStringError.
                   Just (FromStringExcep mess) -> Just mess
@@ -130,7 +128,7 @@ fromStringWEHacked str =
       return (toWithError either)
 
 fromStringError :: String -> a
-fromStringError mess = throwDyn (FromStringExcep mess)
+fromStringError mess = throw $ toDyn (FromStringExcep mess)
 
 newtype FromStringExcep = FromStringExcep String deriving (Typeable)
 

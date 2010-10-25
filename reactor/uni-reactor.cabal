@@ -1,5 +1,5 @@
 name:           uni-reactor
-version:        2.2.0.0
+version:        2.2.1.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -10,7 +10,7 @@ category:       Uniform
 synopsis:       Reactors for the uniform workbench
 description:    uni reactor
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+Tested-With:    GHC==6.10.4, GHC==6.12.3
 
 library
   exposed-modules:
@@ -21,7 +21,6 @@ library
     Reactor.InfoBus,
     Reactor.WithDir
 
-  build-depends: base >=3 && < 5, containers, directory, uni-util, uni-events
+  build-depends: base >=4 && < 5, containers, directory, uni-util, uni-events
 
-  if impl(ghc > 6.10)
-    ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations
+  ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

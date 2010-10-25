@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | HTk\'s /file dialog box/.
 module HTk.Toolkit.FileDialog (
   fileDialogStr,
@@ -33,10 +35,10 @@ debugMsg str = done -- putStr (">>> " ++ str ++ "\n")
 
 
 -- Display a warning window with a meaningful error message
-ioErrorWindow :: Exception -> IO ()
+ioErrorWindow :: SomeException -> IO ()
 ioErrorWindow excep =
   warningMess ("Error while reading directory:\n"++
-     case ioErrors excep of
+     case fromException excep of
         Just ioe ->
            ioeGetErrorString ioe++"\n"++
            case ioeGetFileName ioe of
@@ -45,7 +47,7 @@ ioErrorWindow excep =
         Nothing -> "Exception: "++show excep++"\n"
     )
 
-tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either Exception
+tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either SomeException
                                                         ([FilePath], [FilePath]))
 tryGetFilesAndFolders path showhidden =
   do
@@ -159,7 +161,7 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
                 setTkVariable file_var ""
                 return True
            Left excep ->
-              case ioErrors excep of
+              case fromException excep of
                  Just error | isPermissionError error -> return False
                  Nothing ->
                     do
@@ -642,7 +644,7 @@ fileDialog' isNew title pathref =
                                showhidden <- getRef showhiddenref
                                refresh foldersref filesref pathref
                                  folderslb fileslb showhidden
-                           Left _ ->
+                           Left (_ :: SomeException) ->
                              status #
                                text
                                  ("Error: Couldn't create folder '" ++
@@ -711,7 +713,7 @@ fileDialog' isNew title pathref =
                                    showhidden <- getRef showhiddenref
                                    refresh foldersref filesref pathref
                                      folderslb fileslb showhidden
-                               Left _ ->
+                               Left (_ :: SomeException) ->
                                  status #
                                    text
                                      ("Error: Could not delete file '" ++

@@ -99,10 +99,7 @@ copyFileToString filePath =
 copyFileToStringCheck :: FilePath -> IO (WithError String)
 copyFileToStringCheck filePath =
    exceptionToError
-      (\ exception ->
-         case ioErrors exception of
-         Nothing -> Nothing
-         Just ioError ->
+      (\ ioError ->
             if IO.isDoesNotExistError ioError
             then
                Just "File does not exist"
@@ -126,10 +123,7 @@ copyFileToCStringLen file =
 copyFileToICStringLenCheck :: FilePath -> IO (WithError ICStringLen)
 copyFileToICStringLenCheck filePath =
    exceptionToError
-      (\ exception ->
-         case ioErrors exception of
-            Nothing -> Nothing
-            Just ioError -> Just (show ioError)
+      (\ ioError -> Just $ show (ioError :: IOException)
          )
       (copyFileToICStringLen filePath)
 
@@ -166,10 +160,7 @@ copyICStringLenToFile icsl filePath =
 copyStringToFileCheck :: String -> FilePath -> IO (WithError ())
 copyStringToFileCheck str filePath =
    exceptionToError
-      (\ exception ->
-         case ioErrors exception of
-            Nothing -> Nothing
-            Just ioError -> Just (show ioError)
+      (\ ioError -> Just $ show (ioError :: IOException)
          )
       (copyStringToFile str filePath)
 

@@ -105,10 +105,11 @@ goesQuietly action =
    do
       result <-
          tryJust
-            (\ exception -> case exception of
-               AsyncException ThreadKilled -> Just ()
-               BlockedOnDeadMVar -> Just ()
-               _ -> Nothing
+            (\ exception -> case fromException exception of
+               Just ThreadKilled -> Just ()
+               _ -> case fromException exception of
+                 Just BlockedIndefinitelyOnMVar -> Just ()
+                 _ -> Nothing
                )
             action
       case result of
@@ -133,8 +134,8 @@ forkIOquiet label action =
          newAction =
             do
                error <- tryJust
-                  (\ exception -> case exception of
-                     BlockedOnDeadMVar -> Just ()
+                  (\ exception -> case fromException exception of
+                     Just BlockedIndefinitelyOnMVar -> Just ()
                      _ -> Nothing
                      )
                   action
@@ -182,7 +183,7 @@ mapMConcurrentExcep mapFn [a] =
       return [b]
 mapMConcurrentExcep mapFn as =
    do
-      (mVars :: [MVar (Either Exception b)]) <- mapM
+      (mVars :: [MVar (Either SomeException b)]) <- mapM
          (\ a ->
             do
                mVar <- newEmptyMVar

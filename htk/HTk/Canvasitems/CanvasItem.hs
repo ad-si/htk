@@ -28,6 +28,7 @@ module HTk.Canvasitems.CanvasItem (
 
 ) where
 
+import Control.Exception
 import Data.List (intersperse)
 
 import HTk.Widgets.Canvas
@@ -61,6 +62,7 @@ instance CanvasItem w => HasCoords w where
   coord co item =
     do
       try (execMethod item (\nm -> tkCoordItem nm co))
+        :: IO (Either SomeException ())
       return item
   -- Gets the coord(s) of a canvas item on the parent canvas.
   getCoord item =  evalMethod item (\nm -> tkGetCoordItem nm)

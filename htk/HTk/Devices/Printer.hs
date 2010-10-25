@@ -23,7 +23,7 @@ module HTk.Devices.Printer (
 
 
 import Data.Char(isSpace)
-import Control.Exception (try)
+import Control.Exception
 
 import HTk.Kernel.Core
 import HTk.Kernel.Geometry
@@ -43,6 +43,7 @@ class GUIObject w => HasPostscript w where
       confstr <- showCreationConfigs confs
       try
         (execMethod target (\nm -> [tkPostScript nm confstr]))
+        :: IO (Either SomeException ())
       return ()
     where tkPostScript :: ObjectName -> String -> TclCmd
           tkPostScript name confstr =

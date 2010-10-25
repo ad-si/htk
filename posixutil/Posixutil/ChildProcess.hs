@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Description: Calling other programs.
 --
@@ -338,7 +339,8 @@ readMsg childProcess = readChan (processOutput childProcess)
 -- | Waits for the ChildProcess to exit or be terminated
 waitForChildProcess :: ChildProcess -> IO ChildProcessStatus
 waitForChildProcess p =
-  Exception.catch (waitForChild p) (\_ -> return ChildTerminated)
+  Exception.catch (waitForChild p)
+    (\ (_ :: Exception.SomeException) -> return ChildTerminated)
   where
     waitForChild p = do
       exitCode <- waitForProcess (processHandle p)

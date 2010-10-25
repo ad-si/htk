@@ -192,7 +192,7 @@ choose nonEmpty = foldr1 (+>) nonEmpty
 -- ----------------------------------------------------------------------
 
 -- | Catch an error if it occurs during an action attached to an event.
-tryEV :: Event a -> Event (Either Exception a)
+tryEV :: Event a -> Event (Either SomeException a)
 tryEV (Event registerFn) = Event (
    \ toggle errorOraSink ->
       registerFn toggle (\ aAct ->

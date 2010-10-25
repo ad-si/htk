@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | HTk's <strong>canvas widget</strong>.<br>
 -- A canvas is a drawing pad, that can also contain widgets in embedded
@@ -26,6 +27,8 @@ module HTk.Widgets.Canvas (
 --  getScrollIncrementer
 
 ) where
+
+import Control.Exception
 
 import HTk.Kernel.Core
 import HTk.Kernel.BaseClasses(Widget)
@@ -174,7 +177,7 @@ instance GUIObject c => HasBBox Canvas c where
       objnm <- getObjectName (toGUIObject item)
       ans <- try (evalMethod cnv (\nm -> tkBBox nm objnm))
       case ans of
-        Left e -> return Nothing
+        Left (e :: SomeException) -> return Nothing
         Right a -> return (Just a)
 
 tkBBox :: ObjectName -> ObjectName -> TclScript

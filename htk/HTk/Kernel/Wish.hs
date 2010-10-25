@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
 -- -----------------------------------------------------------------------
@@ -463,7 +464,7 @@ readWishEvent calledWish =
       destroy <- spawnEvent(forever(
          do
             next <-
-               always (Control.Exception.catch (readCalledWish calledWish)                                    (\_-> return "OK Terminated"))
+               always (Control.Exception.catch (readCalledWish calledWish)                                    (\ (_ :: SomeException) -> return "OK Terminated"))
             send wishInChannel (typeWishAnswer next)
          ))
       return (listen wishInChannel,destroy)

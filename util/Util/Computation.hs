@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
 -- Description : Miscellaneous Monads, in particular 'Computation.WithError'.
@@ -117,7 +118,7 @@ infixr 2 #
 -- Type Definitions
 -- --------------------------------------------------------------------------
 
-type Answer a = Either Exception a
+type Answer a = Either SomeException a
 
 -- --------------------------------------------------------------------------
 -- Done
@@ -150,7 +151,7 @@ propagate (Left e) = throw e
 propagate (Right v) = return v
 
 catchall :: IO a -> IO a -> IO a
-catchall c1 c2 = Control.Exception.catch c1 (\ _ -> c2)
+catchall c1 c2 = Control.Exception.catch c1 (\ (_ :: SomeException) -> c2)
 
 tryUntilOK :: IO a -> IO a
 tryUntilOK c = catchall c (tryUntilOK c)
@@ -285,7 +286,7 @@ swapIOWithError (Value act) =
       v <- act
       return (Value v)
 
-exceptionToError :: (Exception -> Maybe String) -> IO a -> IO (WithError a)
+exceptionToError :: Exception e => (e -> Maybe String) -> IO a -> IO (WithError a)
 exceptionToError testFn action =
    catchJust
       testFn

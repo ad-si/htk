@@ -5,6 +5,8 @@ module HTk.Toolkit.ModalDialog (
 
 ) where
 
+import Control.Exception
+
 import HTk.Toplevel.HTk
 
 -- -----------------------------------------------------------------------
@@ -39,8 +41,10 @@ doModalDialog destr win ev =
   gw <- getCurrentGrab
   grabLocal win
   ans <- sync ev
-  try(releaseGrab win)
-  when destr (do {try (destroy win);done})
+  try(releaseGrab win) :: IO (Either SomeException ())
+  when destr $ do
+    try (destroy win) :: IO (Either SomeException ())
+    return ()
   returnGrab gw
   return ans
 

@@ -28,10 +28,11 @@ goesQuietly action =
    do
       result <-
          tryJust
-            (\ exception -> case exception of
-               AsyncException ThreadKilled -> Just ()
-               BlockedOnDeadMVar -> Just ()
-               _ -> Nothing
+            (\ exception -> case fromException exception of
+               Just ThreadKilled -> Just ()
+               _ -> case fromException exception of
+                 Just BlockedIndefinitelyOnMVar -> Just ()
+                 _ -> Nothing
                )
             action
       case result of

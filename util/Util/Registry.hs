@@ -460,7 +460,7 @@ instance Ord from => GetSetRegistry (LockedRegistry from to) from to where
             Left error ->
                do
                   putVal lockedRegistry from valInOpt
-                  Control.Exception.throw error
+                  Control.Exception.throw (error :: SomeException)
             Right (valOutOpt,extra) ->
                do
                   putVal lockedRegistry from valOutOpt

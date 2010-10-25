@@ -12,6 +12,7 @@ module Reactor.InfoBus (
    ) where
 
 
+import Control.Exception
 import Control.Concurrent.MVar
 import qualified Data.Map as Map
 import System.IO.Unsafe
@@ -70,7 +71,7 @@ deregisterTool t =
          do
             map <- takeMVar toolmanager
             putMVar toolmanager (Map.delete oid map)
-         )
+         ) :: IO (Either SomeException ())
       debug ("deregisterTool ",oid)
       done
 
@@ -84,7 +85,7 @@ shutdown =
          (\ (oid,cmd) ->
             do
                debug ("Shutting down ",oid)
-               try cmd
+               try cmd :: IO (Either SomeException ())
             )
       performGC
 

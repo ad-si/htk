@@ -10,6 +10,8 @@ module HTk.Toolkit.LogWin (
 
 ) where
 
+import Control.Exception
+
 import System.IO.Unsafe
 import Reactor.ReferenceVariables
 import HTk.Toplevel.HTk
@@ -70,7 +72,9 @@ saveLog ed =
   do selev <- fileDialog "Open file" pathRef
      file  <- sync selev
      case file of
-       Just fp -> try (writeTextToFile ed fp) >> done
+       Just fp -> do
+         try (writeTextToFile ed fp) :: IO (Either SomeException ())
+         done
        _ -> done
 
 
@@ -103,5 +107,6 @@ writeLogWin :: LogWin
 writeLogWin lw@(LogWin _ ed _) str =
   do
     try (insertText ed EndOfText str)
+      :: IO (Either SomeException ())
     moveto Vertical ed 1.0
     done

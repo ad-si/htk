@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Basic input window for record values and their fields.
 module HTk.Toolkit.InputWin (
         InputWin,
@@ -7,6 +9,8 @@ module HTk.Toolkit.InputWin (
         wait,
         waitValidate
         ) where
+
+import Control.Exception
 
 import HTk.Kernel.Core
 import HTk.Toplevel.HTk
@@ -164,11 +168,13 @@ internalWait win@(InputWin tp form ev) val mod = do
   True  -> do
             res <- try (getFormValue form)
             case res of
-             Left  e -> internalWait win val mod
-             Right res' -> do chck <- val res'
-                              if chck then do destroy win
-                                              return (Just res')
-                                      else internalWait win val mod
+             Left (e :: SomeException) -> internalWait win val mod
+             Right res' -> do
+                 chck <- val res'
+                 if chck then do
+                     destroy win
+                     return (Just res')
+                   else internalWait win val mod
 
 initiate :: InputForm a -> Maybe a -> IO ()
 initiate form Nothing = done

@@ -125,7 +125,7 @@ alwaysDebugAct mess act =
          Left error ->
             do
                alwaysDebug ("AlwaysDebug.debug caught "++mess)
-               throw error
+               throw (error :: SomeException)
          Right success -> return success
 
 (@@:) :: String -> IO a -> IO a
@@ -140,7 +140,7 @@ wrapError str value = value
 
 wrapErrorIO :: String -> a -> IO a
 wrapErrorIO str value =
-   Control.Exception.catchJust errorCalls (value `seq` return value)
-      (\ mess -> error (str++":"++mess))
+   Control.Exception.catch (value `seq` return value)
+      (\ mess -> error (str ++ ":"++ show (mess :: ErrorCall)))
 
 

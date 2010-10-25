@@ -42,7 +42,7 @@ module Graphs.SimpleGraph(
 import Data.List(delete)
 
 import Control.Concurrent
-import Control.Exception(try)
+import Control.Exception
 
 import Util.Computation (done)
 import Util.Object
@@ -341,7 +341,8 @@ applyUpdate graph update proceedFn =
                               (clientSink clientData update)
                            case result of
                               Left exception ->
-                                 putStrLn ("Client error "++(show exception))
+                                 putStrLn ("Client error " ++
+                                           show (exception :: SomeException))
                               Right () -> done
                      else
                         done
