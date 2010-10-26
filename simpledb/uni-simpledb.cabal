@@ -1,5 +1,5 @@
 name:           uni-simpledb
-version:        2.0.0.0
+version:        2.2.1.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -10,7 +10,9 @@ category:       Uniform
 synopsis:       data base support for uniform
 description:    access to an installed Berkeley DB
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+Tested-With:    GHC==6.10.4, GHC==6.12.3
+
+extra-source-files: include/bdbclient.h include/bdbcommon.h
 
 library
   exposed-modules: SimpleDB.BDBOps, SimpleDB.ServerErrors,
@@ -31,7 +33,7 @@ library
 
   c-sources: bdbclient.c bdbcommon.c
 
-  build-depends: base >=3 && < 4, containers, haskell98, parsec, mtl, uni-util,
+  build-depends: base >=4 && < 5, containers, haskell98, parsec, mtl, uni-util,
     uni-events, uni-posixutil, uni-reactor, uni-htk, uni-server, uni-graphs
 
   ghc-options: -fglasgow-exts

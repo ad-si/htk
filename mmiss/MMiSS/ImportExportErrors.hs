@@ -12,7 +12,7 @@ module MMiSS.ImportExportErrors(
 
    ) where
 
-import Control.Exception(catchJust)
+import Control.Exception
 import System.IO.Unsafe
 
 import Util.Messages
@@ -64,7 +64,8 @@ catchAllErrorsWE act =
       case exceptionOrerrorOrUnit of
          Left excep ->
             do
-               return (hasError ("System error: " ++ show excep))
+               return (hasError ("System error: " ++
+                                 show (excep :: SomeException)))
          Right (Left mess) ->
             return (hasError mess)
          Right (Right a) -> return (hasValue a)

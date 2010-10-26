@@ -201,7 +201,7 @@ commit simpleDB usr versionInformation redirects0 changeData0 parentChanges =
          (\ exception ->
             do
                abortTransaction txn
-               Control.Exception.throw exception
+               Control.Exception.throw (exception :: SomeException)
             )
 
       if isJust versionOpt

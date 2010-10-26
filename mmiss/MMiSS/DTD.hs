@@ -33,7 +33,7 @@ import qualified Data.List as List
 
 import qualified Data.Map as Map
 import System.IO.Unsafe
-import qualified Control.Exception (try)
+import Control.Exception
 
 import Util.WBFiles
 import Util.IOExtras
@@ -85,7 +85,7 @@ readDTD filePath =
          handle = case handleEither of
             Left excep ->
                error ("Error opening MMiSS DTD from "++filePath++":"++
-                  show excep)
+                  show (excep :: SomeException))
             Right handle -> handle
       dtdString <- hGetContents handle
       let
@@ -164,7 +164,7 @@ xmlParseCheck fName contents =
             el `deepSeq` return el
          )
       return (case result of
-         Left parseError -> hasError ("Parse error: "++parseError)
+         Left (ErrorCall parseError) -> hasError ("Parse error: "++parseError)
          Right el -> hasValue (xmlUnEscape stdXmlEscaper el)
          )
 

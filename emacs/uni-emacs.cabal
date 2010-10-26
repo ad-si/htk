@@ -1,8 +1,8 @@
 name:           uni-emacs
-version:        2.0
+version:        2.2.1.0
 build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
+license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
@@ -10,7 +10,7 @@ synopsis:       emacs
 exposed-modules: Emacs.Basic, Emacs.Commands, Emacs.SExp, Emacs.Content,
   Emacs.Extents, Emacs.Edit
 
-build-depends: base >=3 && < 4, haskell98, parsec, uni-util, uni-events,
+build-depends: base >=4 && < 5, haskell98, parsec, uni-util, uni-events,
   uni-reactor, uni-posixutil, uni-htk, uni-server
 data-files: sendmess.el mmisstex.el extents.el allmmiss.el
 ghc-options: -fglasgow-exts

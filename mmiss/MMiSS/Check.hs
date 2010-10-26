@@ -57,7 +57,7 @@ runChecker title scriptName dir args =
      case exitCode of
        ExitFailure code -> do errorWin title code output
        ExitSuccess -> do r <- catch (evaluate (readXml output))
-                                    (\_ -> return Nothing)
+                                    (\ (_ :: SomeException) -> return Nothing)
                          case r of
                            Just chckout -> procChecks chckout
                            Nothing -> errorWin title (-1)

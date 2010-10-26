@@ -8,13 +8,14 @@ module Main(main) where
 import IO
 import Time
 
+import Control.Exception as Exception
 import Control.Concurrent
 import Network
 
 
 import Util.ExtendedPrelude
 import Util.BinaryAll
-import Util.Computation as Exception
+import Util.Computation
 import Util.WBFiles(getXMLPort,parseArgumentsRequiring)
 
 import Posixutil.BlockSigPIPE
@@ -115,7 +116,7 @@ mainHandle handle hostName  =
                   hFlush stdout
                   writeString handle ("ERROR: " ++ mess)
                   hClose handle
-         )
+         ) :: IO (Either SomeException ())
 
       done
 

@@ -30,7 +30,7 @@ modifyUserInfo simpleDB user versionInformation =
             (\ exception ->
                do
                   abortTransaction txn
-                  Control.Exception.throw exception
+                  Control.Exception.throw (exception :: SomeException)
                )
       endTransaction txn
       case isAlreadyEnteredOpt of

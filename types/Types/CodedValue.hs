@@ -125,7 +125,8 @@ doEncodeIO1 desc (a ::  a) view =
       case encodeResult of
          Left excep ->
             throwError ClientError
-               ("Error " ++ show excep ++ " encoding " ++ desc)
+               ("Error " ++ show (excep :: SomeException)
+                ++ " encoding " ++ desc)
          Right result -> return result
    where
       wb1 :: WriteBinary (ArgMonad View StateBinArea)
@@ -151,7 +152,7 @@ doDecodeIO1 :: forall a . HasBinary a CodingMonad => String -> CodedValue
             -> View -> IO a
 doDecodeIO1 desc icsl view =
    do
-      (decodeResult :: Either Exception a) <- Control.Exception.try (
+      (decodeResult :: Either SomeException a) <- Control.Exception.try (
          do
             let
                bl = bytesFromICStringLen icsl

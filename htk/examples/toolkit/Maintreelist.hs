@@ -7,6 +7,7 @@ import Directory
 import System
 import HTk.Toolkit.Name
 import Control.Concurrent(threadDelay)
+import Control.Exception
 
 hidden :: FilePath -> Bool
 hidden ('.':_) = True
@@ -37,8 +38,10 @@ getMatchedFiles fs abs = getMatchedFiles' fs [] abs
                                hidden f then
                                  getMatchedFiles' fs dirs abs
                                else getMatchedFiles' fs (f : dirs) abs
-                             Left _ -> getMatchedFiles' fs (f : dirs) abs
-              Left _ -> getMatchedFiles' fs (f : dirs) abs
+                             Left (_ :: SomeException) ->
+                                 getMatchedFiles' fs (f : dirs) abs
+              Left (_ :: SomeException) ->
+                  getMatchedFiles' fs (f : dirs) abs
         getMatchedFiles' _ dirs _ = return dirs
 
 node :: FilePath -> FilePath -> IO Bool
@@ -54,10 +57,10 @@ node abs fp =
                   Right p ->
                     if (searchable p && not(hidden f)) then return True
                     else containsFolder fs
-                  _ -> containsFolder fs
+                  Left (_ :: SomeException) -> containsFolder fs
             containsFolder _ = return False
         in containsFolder c
-      _ -> return False
+      Left (_ :: SomeException) -> return False
 
 toTreeListObjects :: String -> [FilePath] ->
                      IO [TreeListObject FileObject]

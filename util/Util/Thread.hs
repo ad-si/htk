@@ -109,7 +109,7 @@ goesQuietly action =
             (\ exception -> case fromException exception of
                Just ThreadKilled -> Just ()
                _ -> case fromException exception of
-#if __GLASGOW_HASKELL >= 612
+#if __GLASGOW_HASKELL__ >= 612
                  Just BlockedIndefinitelyOnMVar -> Just ()
 #else
                  Just BlockedOnDeadMVar -> Just ()
@@ -140,7 +140,7 @@ forkIOquiet label action =
             do
                error <- tryJust
                   (\ exception -> case fromException exception of
-#if __GLASGOW_HASKELL >= 612
+#if __GLASGOW_HASKELL__ >= 612
                      Just BlockedIndefinitelyOnMVar -> Just ()
 #else
                      Just BlockedOnDeadMVar -> Just ()

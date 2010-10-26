@@ -324,6 +324,7 @@ isEmacsWorking =
             Right ("Hello Haskell","4") -> hasValue ()
             Right sp -> hasError (err ++ "incorrect computed values "
                ++ show sp)
-            Left excep -> hasError (err ++ show excep)
+            Left excep -> hasError (err
+               ++ show (excep :: Control.Exception.SomeException))
          )
 

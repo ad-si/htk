@@ -8,6 +8,7 @@ module SimpleDB.ServerErrors(
 
 import System.IO.Unsafe
 import Control.Exception
+import Data.Dynamic
 
 import Util.Object
 import Util.ExtendedPrelude
@@ -71,7 +72,7 @@ catchError act wrapError =
                wrapError errorType mess
          )
 
-isServerError :: Exception -> Maybe (ErrorType,String)
+isServerError :: Dynamic -> Maybe (ErrorType,String)
 isServerError exception =
    do
       str <- isOurFallOut (fst fallOut) exception

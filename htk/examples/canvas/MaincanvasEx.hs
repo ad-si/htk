@@ -6,6 +6,7 @@ import Reactor.ReferenceVariables
 import HTk.Toplevel.HTk
 import HTk.Toolkit.FileDialog
 import System
+import Control.Exception
 
 exportPS :: Canvas -> IO ()
 exportPS cnv =
@@ -15,8 +16,11 @@ exportPS cnv =
     selev <- fileDialog "Open file" homeDirRef
     file  <- sync selev
     case file of
-      Just fp -> try (postscript cnv [psfile fp] >>
-                      putStrLn "postscript exported") >> done
+      Just fp -> do
+                try (postscript cnv [psfile fp] >>
+                      putStrLn "postscript exported")
+                   :: IO (Either SomeException ())
+                done
       _ -> done
 
 

@@ -1,6 +1,7 @@
 
 module Main(main) where
 
+import Control.Exception
 import Directory
 
 import System.IO.Unsafe
@@ -78,7 +79,7 @@ readDir dir =
                                       not (hidden f)) dc
                     mapM (toFileObject dir) dc')
      case ret of Right objs -> return objs
-                 Left _ -> return []
+                 Left (_ :: SomeException) -> return []
 
 hidden :: FilePath -> Bool
 hidden ('.':_) = True

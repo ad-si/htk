@@ -1,8 +1,8 @@
 name:           uni-mmiss
-version:        2.0
+version:        2.2.1.0
 build-type:     Simple
 license:        LGPL
-license-file:   ../LIZENZ.txt
+license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
@@ -32,7 +32,7 @@ exposed-modules:
   MMiSS.API.Block, MMiSS.API.MapVersionInfo, MMiSS.API.ToFromBundle,
   MMiSS.API.CallServer, MMiSS.API.CheckOutCommit, MMiSS.API.GetPut,
   MMiSS.API.Messages, MMiSS.API.DoXml, MMiSS.API.SecurityOps
-build-depends: base >=3 && < 4, haskell98, containers, parsec, pretty, mtl,
+build-depends: base >=4 && < 5, haskell98, containers, parsec, pretty, mtl,
   fgl, uni-util, uni-events, uni-reactor, uni-posixutil, uni-htk, uni-graphs,
   uni-server, uni-simpledb, uni-imports, uni-types, uni-emacs,
   HaXml >= 1.13.2 && < 1.14
