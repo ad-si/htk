@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -- | Spawn provides an interface to Concurrent.forkIO which is supposed
 -- to be implementable for both Hugs and GHC.
 --
@@ -31,7 +33,11 @@ goesQuietly action =
             (\ exception -> case fromException exception of
                Just ThreadKilled -> Just ()
                _ -> case fromException exception of
+#if __GLASGOW_HASKELL >= 612
                  Just BlockedIndefinitelyOnMVar -> Just ()
+#else
+                 Just BlockedOnDeadMVar -> Just ()
+#endif
                  _ -> Nothing
                )
             action
