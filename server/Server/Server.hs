@@ -234,7 +234,7 @@ runServer serviceList =
                               Left excep ->
                                  do
                                     putMVar stateMVar oldState
-                                    throw excep
+                                    throw (excep :: SomeException)
 
 ------------------------------------------------------------------------
 -- (3) Define newClientAction to be done for each new client
@@ -288,11 +288,7 @@ runServer serviceList =
                                              clientReadAction
                                           -- clientReadAction cannot return
                                           -- otherwise
-                                          case exception of
-                                             IOException excep
-                                                | isEOFError excep
-                                                   -> done
-                                             _ ->
+                                          unless (isEOFError exception) $
                                                 putStrLn (
                                                    "Server error on "
                                                    ++ show serviceKey ++ ": "
@@ -382,6 +378,7 @@ runServer serviceList =
                serverAction
 
       Control.Exception.try serverAction
+        :: IO (Either SomeException ())
       -- disconnect everything
 ------------------------------------------------------------------------
 -- (6) serverAction ended mysteriously, perhaps someone has interrupted
@@ -456,8 +453,8 @@ initialConnect serviceMap handle =
       case resultOrExcep of
          Left excep ->
             do
-               case excep of
-                 IOException _ ->
+               case fromException excep :: Maybe IOException of
+                 Just _ ->
                     done
                        -- we ignore this, because mmiss/test/IsConnected
                        -- provokes it.

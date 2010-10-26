@@ -15,7 +15,7 @@ description:
   "Files" and "Folders" are two such instances.  "LinkManager" maintains the
   folder structure.
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
+Tested-With:    GHC==6.10.4, GHC==6.12.3
 
 library
   exposed-modules:
