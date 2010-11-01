@@ -291,7 +291,7 @@ echoghcdir :
 CABAL = \
     $(CP) -f $(TOP)/LICENCE.txt LICENSE ; \
     $(CP) -f $(TOP)/Setup.hs . ; \
-    $(SETUP) configure -O --prefix=$(GHCDIR) --global; \
+    $(SETUP) configure -O --prefix=$(GHCDIR) --global --with-tar=$(TAR); \
     $(SETUP) sdist; \
     (cd dist; $(TAR) zxf uni-*.tar.gz; cd uni-*; \
     $(SETUP) configure --prefix=$(GHCDIR) --global; \
