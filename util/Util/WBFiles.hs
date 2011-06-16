@@ -198,7 +198,7 @@ module Util.WBFiles (
    -- It is an error if any of the options with names in the second argument
    -- are not defined.
 
-   setAlternateArgs, -- :: [String] -> IO ()
+   setAlternateArgs -- :: [String] -> IO ()
    -- specify the given strings as arguments to be used by the parse
    -- functions.
 
