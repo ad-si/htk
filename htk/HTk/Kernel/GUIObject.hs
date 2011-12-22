@@ -1,7 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverlappingInstances #-}
-
 module HTk.Kernel.GUIObject(
 
   GUIObject(..),
@@ -44,9 +40,6 @@ class GUIObject w where
   cget            :: GUIValue a => w -> ConfigID -> IO a
   cset w cid v    = setConfig (toGUIObject w) cid v >> return w
   cget w cid      = getConfig (toGUIObject w) cid
-
-instance GUIObject w => Eq w where
-  w1 == w2 = toGUIObject w1 == toGUIObject w2
 
 setConfig :: GUIValue a => GUIOBJECT -> ConfigID -> a -> IO ()
 setConfig (GUIOBJECT _ ostref) cid val =
