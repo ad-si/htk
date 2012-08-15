@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, ScopedTypeVariables #-}
 
 -- |
 -- MODULE        : Debug
@@ -39,10 +39,9 @@ module Util.Debug(
      -- to the evaluation.
   ) where
 import System.IO as IO
-import System.IO.Error as IO
 
 import System.IO.Unsafe
-import Control.Exception
+import Control.Exception as Exception
 
 import Util.WBFiles
 
@@ -50,13 +49,13 @@ openDebugFile :: IO (Maybe Handle)
 openDebugFile =
    do
       debugFileName <- getDebugFileName
-      IO.catch (
+      Exception.catch (
          do
              handle <- openFile debugFileName WriteMode
              hSetBuffering handle NoBuffering
              return (Just handle)
          )
-         (\ _-> return Nothing)
+         (\ (_ :: IOException) -> return Nothing)
 
 debugFile = unsafePerformIO openDebugFile
 debugFile :: Maybe Handle
@@ -75,12 +74,12 @@ debug s =
 
 debugAct mess act =
                do
-                  res <- Control.Exception.try act
+                  res <- Exception.try act
                   case res of
                      Left error ->
                         do
                            debug ("Debug.debug caught "++mess)
-                           throw error
+                           throw (error :: SomeException)
                      Right success -> return success
 
 #else
@@ -120,7 +119,7 @@ alwaysDebug s =
 alwaysDebugAct :: String -> IO a -> IO a
 alwaysDebugAct mess act =
    do
-      res <- Control.Exception.try act
+      res <- Exception.try act
       case res of
          Left error ->
             do
@@ -140,7 +139,7 @@ wrapError str value = value
 
 wrapErrorIO :: String -> a -> IO a
 wrapErrorIO str value =
-   Control.Exception.catch (value `seq` return value)
+   Exception.catch (value `seq` return value)
       (\ mess -> error (str ++ ":"++ show (mess :: ErrorCall)))
 
 

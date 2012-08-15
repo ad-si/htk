@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface, ScopedTypeVariables #-}
 
 -- |
 -- Description : Option processing
@@ -207,12 +207,12 @@ module Util.WBFiles (
 import Data.Char
 import Util.CompileFlags
 import System.IO
-import System.IO.Error
 import Data.List
 import Control.Monad
 import qualified System.Environment as System
 import System.Exit(exitWith,ExitCode(..))
 
+import qualified Control.Exception as Exception
 import Control.Concurrent
 import qualified Data.Map as Map
 import System.IO.Unsafe
@@ -843,9 +843,9 @@ parseTheseArgumentsRequiring' arguments required =
             let
                option = optionName arg
                envVar = "UNI"++(map toUpper option)
-            valueOpt <- try (System.getEnv envVar)
+            valueOpt <- Exception.try (System.getEnv envVar)
             case valueOpt of
-               Left error -> return prev
+               Left (_ :: Exception.IOException) -> return prev
                Right newValue ->
                   tryToAddValue (argType arg) option newValue prev
 
