@@ -1,5 +1,5 @@
 name:           uni-util
-version:        2.2.1.1
+version:        2.2.1.2
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -14,7 +14,6 @@ description:
  They are kept for compatibility reason and put on hackage to ease
  installation.
 cabal-version:  >= 1.4
-Tested-With:    GHC==7.0.2
 
 extra-source-files: include/new_object.h include/default_options.h
 

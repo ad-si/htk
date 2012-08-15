@@ -1,5 +1,5 @@
 name:           uni-posixutil
-version:        2.2.1.0
+version:        2.2.1.1
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -10,7 +10,6 @@ category:       Uniform
 synopsis:       Posix utilities for the uniform workbench
 description:    posix utilities
 cabal-version:  >= 1.4
-tested-with:    GHC==6.10.4, GHC==6.12.3
 
 library
   exposed-modules:

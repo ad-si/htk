@@ -1,5 +1,5 @@
 name:           uni-uDrawGraph
-version:        2.2.0.0
+version:        2.2.0.1
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -11,7 +11,6 @@ synopsis:       Graphs binding
 description:    Binding to uDrawGraph (formerly daVinci)
                 <http://www.informatik.uni-bremen.de/uDrawGraph/>
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.8.3, GHC==6.10.4, GHC==6.12.3
 
 library
   exposed-modules: UDrawGraph.Types, UDrawGraph.Basic, UDrawGraph.Graph
