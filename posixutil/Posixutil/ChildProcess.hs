@@ -52,7 +52,6 @@ module Posixutil.ChildProcess (
 where
 
 import System.IO
-import System.IO.Error as IO
 
 import Foreign.C.String
 import System.Exit
@@ -268,12 +267,12 @@ newChildProcess filePath configurations =
             do
                sendMsg childProcess challenge
                responseLineOrError
-                  <- IO.try (mapM (const (hGetChar processOut))
+                  <- Exception.try (mapM (const (hGetChar processOut))
                      [1..length response])
                case responseLineOrError of
-                  Left excep -> error (
-                     "Starting " ++ toolTitle ++ " got IO error "
-                     ++ show excep)
+                  Left excep -> error
+                     $ "Starting " ++ toolTitle ++ " got IO error "
+                     ++ show (excep :: Exception.IOException)
                   Right line -> if line == response
                      then
                         done

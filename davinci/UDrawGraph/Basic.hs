@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | DaVinciBasic contains the code to do the following things:
 -- (1) get daVinci going (it calls it via a ChildProcess).
 -- (2) open new contexts.
@@ -54,11 +56,10 @@ module UDrawGraph.Basic(
 
 import Data.Maybe
 import Data.List (isPrefixOf)
-import System.IO.Error as IO
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
-import qualified Control.Exception as Exception(try)
+import qualified Control.Exception as Exception
 import Foreign.C.String
 import Data.IORef
 import System.Environment
@@ -228,9 +229,9 @@ getDaVinciEnvironment =
          getEnvOpt :: String -> IO (Maybe (String,String))
          getEnvOpt envName =
             do
-               res <- IO.try (getEnv envName)
+               res <- Exception.try (getEnv envName)
                return (case res of
-                  Left error -> Nothing
+                  Left (_ :: Exception.IOException) -> Nothing
                   Right envVal -> Just (envName,envVal)
                   )
 

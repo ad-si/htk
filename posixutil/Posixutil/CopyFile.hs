@@ -19,7 +19,7 @@ import System.IO.Error as IO
 import qualified System.IO.Error as IOErr
 
 import Foreign.C
-import Control.Exception
+import Control.Exception as Exception
 import qualified System.Directory as Dir
 
 import Util.Computation
@@ -43,7 +43,7 @@ copyFileWE source destination =
       then
          return (hasValue ())
       else
-             IOErr.catch (do
+             Exception.catch (do
                             Dir.copyFile source destination
                             return(hasValue()))
               (\ioErr ->
