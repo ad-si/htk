@@ -33,7 +33,7 @@ import Util.DeepSeq
 
 import HTk.Toolkit.SimpleForm
 
-import Text.XML.HaXml.Xml2Haskell
+import Text.XML.HaXml.XmlContent
 
 import Server.Hosts
 import Server.HostsPorts
@@ -197,7 +197,7 @@ getHostsRegistry =
       hosts <- getHosts
       hostsString <- readFile hosts
       let
-         Just (Hosts hostList) = readXml $!! hostsString
+         Right (Hosts hostList) = readXml $!! hostsString
       let
          err s = error ("In " ++ hosts ++ ": " ++ s)
 

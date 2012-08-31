@@ -1,5 +1,5 @@
 name:           uni-server
-version:        2.2.1.0
+version:        2.2.1.1
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -10,7 +10,6 @@ category:       Uniform
 synopsis:       Server for the uniform workbench
 description:    server
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.10.4, GHC==6.12.3
 
 extra-source-files: include/dipperstein_crypt.h
 
@@ -26,6 +25,6 @@ library
 
   build-depends: base >=4 && < 5, containers, directory, network, parsec,
     old-time, random, uni-util, uni-events, uni-posixutil, uni-reactor, uni-htk,
-    HaXml >= 1.13.2 && < 1.14
+    HaXml >= 1.22
 
   ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations

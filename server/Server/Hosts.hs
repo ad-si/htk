@@ -1,8 +1,7 @@
 module Server.Hosts where
 
-import Text.XML.HaXml.Xml2Haskell
-import Data.Char (isSpace)
-
+import Text.XML.HaXml.XmlContent
+import Text.XML.HaXml.Types
 
 {-Type decls-}
 
@@ -17,24 +16,25 @@ data Host = Host
 
 {-Instance decls-}
 
+instance HTypeable Hosts where
+    toHType x = Defined "hosts" [] []
 instance XmlContent Hosts where
-    fromElem (CElem (Elem "hosts" [] c0):rest) =
-        (\(a,ca)->
-           (Just (Hosts a), rest))
-        (many fromElem c0)
-    fromElem (CMisc _:rest) = fromElem rest
-    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
-    fromElem rest = (Nothing, rest)
-    toElem (Hosts a) =
-        [CElem (Elem "hosts" [] (concatMap toElem a))]
+    toContents (Hosts a) =
+        [CElem (Elem (N "hosts") [] (concatMap toContents a)) ()]
+    parseContents = do
+        { e@(Elem _ [] _) <- element ["hosts"]
+        ; interior e $ return (Hosts) `apply` many parseContents
+        } `adjustErr` ("in <hosts>, "++)
+
+instance HTypeable Host where
+    toHType x = Defined "host" [] []
 instance XmlContent Host where
-    fromElem (CElem (Elem "host" as []):rest) =
-        (Just (fromAttrs as), rest)
-    fromElem (CMisc _:rest) = fromElem rest
-    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
-    fromElem rest = (Nothing, rest)
-    toElem as =
-        [CElem (Elem "host" (toAttrs as) [])]
+    toContents as =
+        [CElem (Elem (N "host") (toAttrs as) []) ()]
+    parseContents = do
+        { (Elem _ as []) <- element ["host"]
+        ; return (fromAttrs as)
+        } `adjustErr` ("in <host>, "++)
 instance XmlAttributes Host where
     fromAttrs as =
         Host
@@ -49,6 +49,3 @@ instance XmlAttributes Host where
         , maybeToAttr toAttrFrStr "description" (hostDescription v)
         , maybeToAttr toAttrFrStr "user" (hostUser v)
         ]
-
-
-{-Done-}

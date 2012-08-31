@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ImplicitParams #-}
 
 -- | HostPorts provides an abstract interface for describing hosts and
@@ -58,7 +59,6 @@ import System.IO
 import Network
 
 import Util.WBFiles
-import Util.Thread
 import Util.ExtendedPrelude
 import Util.Computation
 
@@ -141,7 +141,8 @@ mkHostPort host port descriptionOpt loginInfo  =
          loginInfo = loginInfo
          })
 
-mkHostDescription :: (Show portNo,Num portNo) => String -> portNo -> String
+mkHostDescription :: (Show portNo, Eq portNo, Num portNo)
+   => String -> portNo -> String
 mkHostDescription hostStr i =
    if i == defaultPort
       then
