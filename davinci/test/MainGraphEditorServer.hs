@@ -2,8 +2,6 @@
    -}
 module Main(main) where
 
-import IO
-
 import Util.WBFiles
 
 import Server.Server
