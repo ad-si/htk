@@ -1,10 +1,8 @@
 module Main where
 
-import Random -- (randomRIO)
-import Array
+import System.Random -- (randomRIO)
+import Data.Array
 import Data.List (union, nub)
-import System
-import Control.Monad (foldM)
 
 import System.IO.Unsafe
 

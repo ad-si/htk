@@ -6,13 +6,14 @@
    -}
 module Main(main) where
 
-import IO
+import System.IO
 import Util.WBFiles
+import qualified Control.Exception as Exception
 
 output :: Handle -> IO ()
 output handle =
    do
-      line' <- try(hGetLine handle)
+      line' <- Exception.try(hGetLine handle)
       case line' of
          Right ('\"':'C':'h':'i':'l':'d':'P':'r':'o':'c':'e':'s':
             's':'>':rest) ->
@@ -20,7 +21,7 @@ output handle =
                putStr   (read ('\"':rest))
                output handle
          Right _ -> output handle
-         Left _  -> return ()
+         Left e  -> const (return ()) (e :: Exception.IOException)
 
 main :: IO ()
 main =
