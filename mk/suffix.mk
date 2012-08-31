@@ -283,18 +283,13 @@ $(SETUP) : $(SETUP).hs
 
 # Cabal-1.4.0.1 only works with --package-db
 
-GHCDIR = $(shell $(HC) --print-libdir | sed -e 's+/lib/.*++g')
-
-echoghcdir :
-	echo $(GHCDIR)
-
 CABAL = \
     $(CP) -f $(TOP)/LICENCE.txt LICENSE ; \
     $(CP) -f $(TOP)/Setup.hs . ; \
-    $(SETUP) configure -O --prefix=$(GHCDIR) --global --with-tar=$(TAR); \
+    $(SETUP) configure -O --user --with-tar=$(TAR); \
     $(SETUP) sdist; \
     (cd dist; $(TAR) zxf uni-*.tar.gz; cd uni-*; \
-    $(SETUP) configure --prefix=$(GHCDIR) --global; \
+    $(SETUP) configure --user; \
     $(SETUP) build; \
     $(SETUP) haddock; \
     $(SETUP) install )
