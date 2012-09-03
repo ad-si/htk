@@ -115,8 +115,8 @@ daVinci = unsafePerformIO newDaVinci
 
 challengeResponsePair :: (String,String)
 challengeResponsePair =
-  ("nothing"++recordSep++"nothing"++recordSep++"nothing",
-   "ok"++recordSep++"ok"++recordSep++"ok"++recordSep++"ok"++recordSep)
+  (unlines $ replicate 3 "nothing",
+   unlines $ replicate 4 "ok")
 -- 3 nothings and 4 oks, because daVinci also outputs an extra "ok"
 -- right at the beginning.
 
@@ -133,6 +133,7 @@ newDaVinci =
                  daVinciIconsOpt env,
             arguments ["-pipe"],
             standarderrors False,
+            linemode True,
             challengeResponse challengeResponsePair,
             toolName "daVinci"
             ]
