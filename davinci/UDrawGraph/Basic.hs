@@ -63,7 +63,6 @@ import qualified Control.Exception as Exception
 import Foreign.C.String
 import Data.IORef
 import System.Environment
-import System.IO (BufferMode(NoBuffering))
 
 import Util.Object
 import Util.WBFiles
@@ -116,8 +115,8 @@ daVinci = unsafePerformIO newDaVinci
 
 challengeResponsePair :: (String,String)
 challengeResponsePair =
-  ("nothing"++"\n"++"nothing"++"\n"++"nothing",
-   "ok"++"\n"++"ok"++"\n"++"ok"++"\n"++"ok"++"\n")
+  ("nothing"++recordSep++"nothing"++recordSep++"nothing",
+   "ok"++recordSep++"ok"++recordSep++"ok"++recordSep++"ok"++recordSep)
 -- 3 nothings and 4 oks, because daVinci also outputs an extra "ok"
 -- right at the beginning.
 
@@ -134,8 +133,6 @@ newDaVinci =
                  daVinciIconsOpt env,
             arguments ["-pipe"],
             standarderrors False,
-			linemode True,
-			buffermode NoBuffering,
             challengeResponse challengeResponsePair,
             toolName "daVinci"
             ]

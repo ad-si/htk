@@ -17,7 +17,6 @@ module Posixutil.ChildProcess (
    -- processes take a [Config PosixProcess] as an argument.
    -- In particular newChildProcess does.
    linemode,       -- :: Bool -> Config PosixProcess
-   buffermode,
    -- for meaning of linemode see readMsg.
    arguments,      -- :: [String] -> Config PosixProcess
    appendArguments,-- :: [String] -> Config PosixProcess
@@ -82,7 +81,6 @@ data PosixProcess =
       args            :: [String],
       ppenv           :: Maybe [(String, String)],
       lmode           :: Bool, -- line mode
-	  bmode           :: Maybe BufferMode,
       includestderr   :: Bool, -- include stderr
       cresponse       :: Maybe (String,String),
       toolname        :: Maybe String
@@ -95,7 +93,6 @@ defaultPosixProcess =
       args = [],
       ppenv = Nothing,
       lmode = True,
-	  bmode = Nothing,
       includestderr = True,
       cresponse = Nothing,
       toolname = Nothing
@@ -106,10 +103,6 @@ defaultPosixProcess =
 -- that's available
 linemode :: Bool -> Config PosixProcess
 linemode lm' parms = return parms{lmode = lm'}
-
--- | Sets buffer mode for input and output handle
-buffermode :: BufferMode -> Config PosixProcess
-buffermode b parms = return parms {bmode = Just b}
 
 -- | Set command arguments
 arguments :: [String] -> Config PosixProcess
@@ -190,10 +183,6 @@ newChildProcess filePath configurations =
       (processIn,processOut,processErr,processHandle) <- runInteractiveProcess
          filePath (args parms) Nothing (ppenv parms)
 
-      case bmode parms of
-       Just b -> do hSetBuffering processIn b; hSetBuffering processOut b
-       Nothing -> done
-	   
       childObjectID <- newObject
 
       processOutput <- newChan
@@ -316,8 +305,8 @@ sendMsg childProcess line =
    do
       debugWrite childProcess line
       let
-         lineToWrite = 
-            if lineMode childProcess then line ++ "\n" else line
+         lineToWrite =
+            if lineMode childProcess then line ++ recordSep else line
       hPutStr (processIn childProcess) lineToWrite
       hFlush (processIn childProcess)
 
