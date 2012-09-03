@@ -67,7 +67,6 @@ import System.Environment
 import Util.Object
 import Util.WBFiles
 import Util.Computation as Computation (propagate, done)
-import Util.FileNames
 import Util.Registry
 import Util.UniqueString
 import Util.Thread
