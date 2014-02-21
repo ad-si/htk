@@ -9,8 +9,6 @@ module Util.Thread (
 
    ThreadId,
 
-   hashThreadId, -- :: ThreadId -> Int32
-
    -- thread creation
 
    forkIODebug, -- :: IO () -> IO ThreadId
@@ -58,7 +56,6 @@ import qualified GHC.Base
 import Control.Exception
 import Control.Concurrent
 import Control.Monad
-import Data.HashTable
 import Data.Int
 
 import Util.Computation
@@ -217,15 +214,3 @@ mapMConcurrentExcep mapFn as =
 
 mapMConcurrent_ :: (a -> IO ()) -> [a] -> IO ()
 mapMConcurrent_ mapFn as = mapM_ (\ a -> forkIO (mapFn a)) as
-
-
--- --------------------------------------------------------------------------
--- hashThreadId
--- --------------------------------------------------------------------------
-
-hashThreadId :: ThreadId -> Int32
--- Currently implemented by a horrible hack requiring access to GHC internals.
-hashThreadId (GHC.Conc.ThreadId ti) = hashInt (getThreadId ti)
-
-foreign import ccall unsafe "rts_getThreadId" getThreadId
-   :: GHC.Base.ThreadId# -> Int

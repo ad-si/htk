@@ -7,46 +7,45 @@ module Util.ThreadDict(
    modifyThreadDict, -- :: ThreadDict a -> (Maybe a -> IO (Maybe a,b)) -> IO b
    ) where
 
-import Data.HashTable
 import Control.Concurrent
 
-import Util.Thread
+import qualified Data.Map as Map
+import Data.IORef
 
 -- -------------------------------------------------------------------------
 -- Data types
 -- -------------------------------------------------------------------------
 
-newtype ThreadDict a = ThreadDict (HashTable ThreadId a)
+newtype ThreadDict a = ThreadDict (IORef (Map.Map ThreadId a))
 
 -- -------------------------------------------------------------------------
 -- Functions
 -- -------------------------------------------------------------------------
 
 newThreadDict :: IO (ThreadDict a)
-newThreadDict =
-   do
-      table <- new (==) hashThreadId
-      return (ThreadDict table)
+newThreadDict = do
+  m <- newIORef Map.empty
+  return (ThreadDict m)
 
 writeThreadDict :: ThreadDict a -> a -> IO ()
 writeThreadDict (ThreadDict table) a =
    do
       ti <- myThreadId
-      insert table ti a
+      atomicModifyIORef table $ \ m -> (Map.insert ti a m, ())
 
 readThreadDict :: ThreadDict a -> IO (Maybe a)
 readThreadDict (ThreadDict table) =
    do
       ti <- myThreadId
-      Data.HashTable.lookup table ti
+      m <- readIORef table
+      return $ Map.lookup ti m
 
-modifyThreadDict :: ThreadDict a -> (Maybe a -> IO (Maybe a,b)) -> IO b
+modifyThreadDict :: ThreadDict a -> (Maybe a -> IO (Maybe a, b)) -> IO b
 modifyThreadDict (ThreadDict table) updateFn =
    do
       ti <- myThreadId
-      aOpt0 <- Data.HashTable.lookup table ti
-      (aOpt1,b) <- updateFn aOpt0
-      case aOpt1 of
-         Nothing -> delete table ti
-         Just a -> insert table ti a
-      return b
+      m <- readIORef table
+      (aOpt1, b) <- updateFn $ Map.lookup ti m
+      atomicModifyIORef table $ \ im -> ((case aOpt1 of
+            Nothing -> Map.delete ti
+            Just a -> Map.insert ti a) im, b)
