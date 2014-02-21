@@ -2,6 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
 
 -- | This module provides immutable CStrings, which additionally have
 -- the property that they are automatically freed when the garbage-collector
@@ -43,6 +44,9 @@ module Util.ICStringLen(
 import System.IO.Unsafe
 import Foreign.C.String
 import Foreign.ForeignPtr
+#if __GLASGOW_HASKELL__ > 706
+import Foreign.ForeignPtr.Unsafe
+#endif
 import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import Foreign.C.Types
@@ -205,4 +209,3 @@ writeToICStringLen a =
    do
       bl <- writeToBytes a
       bytesToICStringLen bl
-
