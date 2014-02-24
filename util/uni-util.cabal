@@ -1,5 +1,5 @@
 name:           uni-util
-version:        2.2.1.2
+version:        2.3.0.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -23,6 +23,10 @@ flag debug
   description: add debug traces
   default: False
 
+flag parsec1
+    Description: Use parsec1
+    Default: True
+
 library
  exposed-modules:
   Util.Huffman, Util.CompileFlags, Util.Queue,
@@ -44,16 +48,19 @@ library
  include-dirs: include
  c-sources: new_object.c, default_options.c
 
- build-depends: base >= 4 && < 5, parsec < 3.2, mtl, directory,
+ build-depends: base >= 4 && < 5, mtl, directory,
   network, containers, bytestring, array, old-time
 
  if flag(base4)
    build-depends: ghc-prim
+
+ if flag(parsec1)
+   build-depends: parsec1
+ else
+   build-depends: parsec
 
  if flag(debug)
    cpp-options: -DDEBUG
 
  if os(windows)
    cpp-options: -DWINDOWS
-
- ghc-options: -fwarn-unused-imports -fno-warn-warnings-deprecations
