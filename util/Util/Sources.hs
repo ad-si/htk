@@ -160,7 +160,9 @@ module Util.Sources(
 
 import Data.Maybe
 
+import Control.Applicative
 import Control.Concurrent
+import Control.Monad
 import Data.IORef
 
 import Util.ExtendedPrelude(HasMapIO(..))
@@ -706,6 +708,10 @@ mapIOSeq (SimpleSource (source1 :: Source a a))
       source2 = seqSourceIO source1 getSource
    in
       SimpleSource source2
+
+instance Applicative SimpleSource where
+   pure = return
+   (<*>) = ap
 
 instance Monad SimpleSource where
    return x = SimpleSource (staticSource x)

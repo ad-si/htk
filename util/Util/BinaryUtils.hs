@@ -68,6 +68,7 @@ module Util.BinaryUtils(
 import System.IO(Handle)
 
 -- GHC imports
+import Control.Applicative
 import Control.Monad.Trans
 
 -- our imports
@@ -142,6 +143,14 @@ instance Functor m => Functor (ArgMonad arg m) where
          fn2 arg = fmap mapFn (fn arg)
       in
          ArgMonad fn2
+
+instance Applicative m => Applicative (ArgMonad arg m) where
+   pure v = ArgMonad (const (pure v))
+   ArgMonad fn1 <*> ArgMonad fn2 =
+      let
+         fn arg = fn1 arg <*> fn2 arg
+      in
+         ArgMonad fn
 
 instance Monad m => Monad (ArgMonad arg m) where
    (>>=) (ArgMonad fn1) getArgMonad =

@@ -105,6 +105,7 @@ module Util.Computation (
         )
 where
 
+import Control.Applicative
 import Control.Monad
 
 import Control.Exception
@@ -301,6 +302,10 @@ instance Functor WithError where
       Value a -> Value (aToB a)
       Error e -> Error e
 
+instance Applicative WithError where
+   pure = return
+   (<*>) = ap
+
 instance Monad WithError where
    return v = hasValue v
    (>>=) aWE toBWe =
@@ -308,6 +313,13 @@ instance Monad WithError where
    fail s = hasError s
 
 newtype MonadWithError m a = MonadWithError (m (WithError a))
+
+instance Monad m => Functor (MonadWithError m) where
+   fmap f (MonadWithError a) = MonadWithError $ liftM (fmap f) a
+
+instance Monad m => Applicative (MonadWithError m) where
+   pure = return
+   (<*>) = ap
 
 instance Monad m => Monad (MonadWithError m) where
    return v = MonadWithError (return (Value v))
@@ -400,4 +412,3 @@ class HasConfig option configuration where
 
 infixr 0 $$
 -- This makes $$ have fixity like $.
-
