@@ -1,5 +1,5 @@
 name:           uni-util
-version:        2.3.0.0
+version:        2.3.0.1
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
@@ -25,7 +25,7 @@ flag debug
 
 flag parsec1
     Description: Use parsec1
-    Default: True
+    Default: False
 
 library
  exposed-modules:
