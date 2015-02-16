@@ -65,6 +65,8 @@ module Events.Events(
 
 import Control.Exception
 import Control.Concurrent
+import Control.Applicative
+import Control.Monad
 
 import Util.Computation
 
@@ -365,6 +367,13 @@ instance Monad Event where
    return = doneEvent
 
    fail str = always (ioError (userError str))
+
+instance Applicative Event where
+   pure = return
+   (<*>) = ap
+
+instance Functor Event where
+   fmap  = liftM
 
 thenGetEvent :: Event a -> (a -> Event b) -> Event b
 thenGetEvent event1 getEvent2 = event1 >>>= (\ val -> sync(getEvent2 val))

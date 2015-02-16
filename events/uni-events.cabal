@@ -1,16 +1,15 @@
 name:           uni-events
-version:        2.2.1.0
+version:        2.2.2.0
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
-maintainer:     Christian.Maeder@dfki.de
+maintainer:     c.maeder@jacobs-university.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Event handling for the uniform workbench
 description:    uni events
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.10.4, GHC==6.12.3
 
 library
   exposed-modules:
