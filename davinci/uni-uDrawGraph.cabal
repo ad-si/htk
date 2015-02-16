@@ -1,10 +1,10 @@
 name:           uni-uDrawGraph
-version:        2.2.0.2
+version:        2.2.0.3
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
-maintainer:     Christian.Maeder@dfki.de
+maintainer:     c.maeder@jacobs-university.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb
 category:       GUI
 synopsis:       Graphs binding
