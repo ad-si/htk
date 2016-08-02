@@ -4,13 +4,13 @@ build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
-maintainer:     c.maeder@jacobs-university.de
+maintainer:     chr.maeder@web.de
 homepage:       http://www.informatik.uni-bremen.de/htk/
 category:       GUI
 synopsis:       Graphical User Interface for Haskell Programs
 description:    GUI toolkit based on Tcl\/Tk
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.10.4, GHC==6.12.3, GHC==7.0.4
+Tested-With:    GHC==8.0.1
 
 flag debug
   description: add debug traces
