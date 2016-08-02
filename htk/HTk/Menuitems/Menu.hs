@@ -52,7 +52,7 @@ class GUIObject w => HasMenu w where
       cset w "menu" (show (objectname most))
 
 -- | Windows are containers for menus.
-instance Window w => HasMenu w
+instance (Window w, GUIObject w) => HasMenu w
 
 
 -- -----------------------------------------------------------------------

@@ -109,7 +109,7 @@ instance Window w => HasGeometry w where
   getGeometry win = cget win "geometry"
 
 -- | A window has a configureable size.
-instance Window w => HasSize w where
+instance (Window w, GUIObject w) => HasSize w where
   --  Sets the window\'s width.
   width w win = getGeometry win >>= \(_,h,x,y) -> geometry (w,h,x,y) win
   --  Gets the window\'s width.
@@ -130,7 +130,7 @@ instance Window w => HasSize w where
   getSize win = getGeometry win >>= \(w,h,_,_) -> return (w,h)
 
 -- | A window has a position on the associated screen.
-instance Window w => HasPosition w where
+instance (Window w, GUIObject w) => HasPosition w where
   --  Sets the window\'s position-
   position (x,y) win =
     do
