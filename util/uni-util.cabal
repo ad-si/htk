@@ -1,10 +1,10 @@
 name:           uni-util
-version:        2.3.0.1
+version:        2.3.0.2
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
-maintainer:     Christian.Maeder@dfki.de
+maintainer:     chr.maeder@web.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       Uniform
 synopsis:       Utilities for the uniform workbench
@@ -14,7 +14,8 @@ description:
  They are kept for compatibility reason and put on hackage to ease
  installation.
 cabal-version:  >= 1.4
-
+Tested-With:    GHC==7.10.3, GHC==8.2.2, GHC==8.4.3
+                
 extra-source-files: include/new_object.h include/default_options.h
 
 flag base4

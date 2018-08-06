@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE KindSignatures #-}
 
 -- |
 -- Description: Basic Interface for Graph Display
@@ -60,7 +61,7 @@
 -- DaVinci, the type parameter is required to be an instance of 'Typeable'.
 --
 -- *   node.  A value of this type is an actual node in a graph.
---       (Will be an instance of 'Typeable' via 'Typeable1'.)
+--       (Will be an instance of 'Typeable' via 'Typeable'.)
 --
 -- *   nodeType.  Nodes are created with a particular UniForM \"type\" which
 --       is a Haskell value of type nodetype.  In fact a graph might
@@ -480,12 +481,12 @@ class ArcTypeParms arcTypeParms where
 --
 class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,SetNodeFocus graph node,
-   NodeClass node,Typeable1 node,NodeTypeClass nodeType,
+   NodeClass node,Typeable node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
    SetArcType graph arc arcType,
    DeleteArc graph arc,
-   ArcClass arc,Typeable1 arc,ArcTypeClass arcType,
+   ArcClass arc,Typeable arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
    ) =>
    GraphAll graph graphParms node nodeType nodeTypeParms
@@ -574,9 +575,9 @@ class (GraphClass graph,NodeClass node) =>
       graph -> node value -> IO ()
 
 
-class (Typeable1 node,Ord1 node) => NodeClass node
+class (Typeable node,Ord1 node) => NodeClass node
 
-class Typeable1 nodeType => NodeTypeClass nodeType
+class Typeable (nodeType :: * -> *) => NodeTypeClass nodeType
 
 class (GraphClass graph,NodeTypeClass nodeType,NodeTypeParms nodeTypeParms)
    => NewNodeType graph nodeType nodeTypeParms where
@@ -616,9 +617,9 @@ class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
    setArcValuePrim  :: Typeable value => graph -> arc value -> value -> IO ()
    getArcValuePrim :: Typeable value => graph -> arc value -> IO value
 
-class (Typeable1 arc,Ord1 arc) => ArcClass arc
+class (Typeable arc,Ord1 arc) => ArcClass arc
 
-class (Typeable1 arcType,Ord1 arcType) => ArcTypeClass arcType where
+class (Typeable arcType,Ord1 arcType) => ArcTypeClass arcType where
    -- This is a special arc type which stops the arc being drawn at all.
    invisibleArcType :: Typeable value => arcType value
 

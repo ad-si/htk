@@ -75,4 +75,4 @@ dynCast mess value = case dynCastOpt value of
    Just value2 -> value2
 
 dynCastOpt :: (Typeable a,Typeable b) => a -> Maybe b
-dynCastOpt = Data.Dynamic.cast
+dynCastOpt = cast

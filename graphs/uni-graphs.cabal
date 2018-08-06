@@ -1,16 +1,16 @@
 name:           uni-graphs
-version:        2.2.1.0
+version:        2.2.1.1
 build-type:     Simple
 license:        LGPL
 license-file:   LICENSE
 author:         uniform@informatik.uni-bremen.de
-maintainer:     Christian.Maeder@dfki.de
+maintainer:     chr.maeder@web.de
 homepage:       http://www.informatik.uni-bremen.de/uniform/wb/
 category:       GUI
 synopsis:       Graphs
 description:    Graphs toolkit
 cabal-version:  >= 1.4
-Tested-With:    GHC==6.10.4, GHC==6.12.3
+Tested-With:    GHC==7.10.3, GHC==8.4.3
 
 flag debug
   description: add debug traces

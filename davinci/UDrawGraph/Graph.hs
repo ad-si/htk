@@ -29,6 +29,7 @@ module UDrawGraph.Graph(
    ) where
 
 import Data.Maybe
+import Data.Typeable
 
 import Data.IORef
 import qualified Data.Set as Set
@@ -1818,7 +1819,7 @@ menuOptionList = [
 -- actually identical . . .
 coDyn :: (Typeable a,Typeable b) => a -> b
 coDyn valueA =
-   case Data.Dynamic.cast valueA of
+   case cast valueA of
       Just valueB -> valueB
 
 -- ---------------------------------------------------------------------
