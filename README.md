@@ -14,8 +14,8 @@ Here is the last version of the official website on the internet archive:
 ## What's HTk?
 
 **HTk** is an encapsulation of the graphical user interface toolkit and library
-[Tcl/Tk](https://web.archive.org/web/20220920170419/http://www.scriptics.com/software/tcltk)
-for the functional programming language [Haskell](https://web.archive.org/web/20220920170419/http://www.haskell.org/).
+[Tcl/Tk](https://www.tcl-lang.org/)
+for the functional programming language [Haskell](https://www.haskell.org/).
 It allows the creation of high-quality graphical user interfaces within Haskell
 in a typed, abstract, and portable manner,
 as **HTk** is known to run under most POSIX systems,
@@ -29,10 +29,10 @@ like Linux, Solaris and Mac OS X.
     - Canvasses to draw on;
     - Text widgets for hypertext and forms;
 - A toolkit of useful interface elements and dialog windows,
-- No longer tested support for [Tix](https://web.archive.org/web/20220920170419/http://tix.sourceforge.net/),
+- No longer tested support for [Tix](https://tix.sourceforge.net/),
     the Tk Interace eXtension, with features such as notebooks and paned windows.
 - Hierarchical module names and
-    [cabal packages](https://web.archive.org/web/20220920170419/http://www.haskell.org/cabal/)
+    [cabal packages](https://www.haskell.org/cabal/)
 - A program to convert the imports of old sources to hierarchical module names.
 
 **HTk** is easy to use; for example, here is the infamous incrementing button example:
@@ -72,9 +72,9 @@ main =
 
 You'll need the following software to run **HTk**:
 
-- The [Glasgow Haskell Compiler](https://web.archive.org/web/20220920170419/http://www.haskell.org/ghc),
+- The [Glasgow Haskell Compiler](https://www.haskell.org/ghc/),
     Version 6.8.1 or later;
-- [Tcl/Tk](https://web.archive.org/web/20220920170419/http://www.scriptics.com/software/tcltk)
+- [Tcl/Tk](https://www.tcl-lang.org/)
     (Version 8.1.1 or later), currently tested with Version 8.4.
 - An operating system on which these two run, such as Linux, MacOS or Solaris
     (Windows 89, 2K and FreeBSD used to work, too)
